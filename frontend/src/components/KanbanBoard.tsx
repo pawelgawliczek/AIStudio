@@ -20,14 +20,14 @@ interface KanbanBoardProps {
 }
 
 const columns: { status: StoryStatus; title: string }[] = [
-  { status: 'backlog', title: 'Backlog' },
-  { status: 'planning', title: 'Planning' },
-  { status: 'analysis', title: 'Analysis' },
-  { status: 'architecture', title: 'Architecture' },
-  { status: 'implementation', title: 'Implementation' },
-  { status: 'review', title: 'Review' },
-  { status: 'qa', title: 'QA' },
-  { status: 'done', title: 'Done' },
+  { status: StoryStatus.backlog, title: 'Backlog' },
+  { status: StoryStatus.planning, title: 'Planning' },
+  { status: StoryStatus.analysis, title: 'Analysis' },
+  { status: StoryStatus.architecture, title: 'Architecture' },
+  { status: StoryStatus.implementation, title: 'Implementation' },
+  { status: StoryStatus.review, title: 'Review' },
+  { status: StoryStatus.qa, title: 'QA' },
+  { status: StoryStatus.done, title: 'Done' },
 ];
 
 export function KanbanBoard({ stories, onStoryClick, onStatusChange }: KanbanBoardProps) {
