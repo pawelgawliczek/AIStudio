@@ -84,6 +84,84 @@ Alternatively, you can run everything in Docker:
 docker compose up -d
 ```
 
+## 🔌 MCP Server Setup
+
+AI Studio includes an MCP (Model Context Protocol) server for integration with Claude Code and other MCP-compatible clients.
+
+### Quick MCP Setup
+
+1. **Build the backend**
+
+```bash
+npm run build:backend
+```
+
+2. **Configure Claude Code**
+
+Add to your Claude Code configuration file:
+
+**Development Mode (using ts-node):**
+```json
+{
+  "mcpServers": {
+    "aistudio": {
+      "command": "npx",
+      "args": ["ts-node", "--esm", "backend/src/mcp/server.ts"],
+      "cwd": "/path/to/AIStudio",
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/aistudio?schema=public",
+        "NODE_ENV": "development"
+      }
+    }
+  }
+}
+```
+
+**Production Mode (using built files):**
+```json
+{
+  "mcpServers": {
+    "aistudio": {
+      "command": "node",
+      "args": ["backend/dist/mcp/server.js"],
+      "cwd": "/path/to/AIStudio",
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/aistudio?schema=public"
+      }
+    }
+  }
+}
+```
+
+3. **Start using MCP tools in Claude Code**
+
+The MCP server provides 10 tools for Sprint 3:
+- `bootstrap_project` - Create project with default structure
+- `create_project` - Create basic project
+- `list_projects` - List all projects
+- `get_project` - Get project details
+- `create_epic` - Create an epic
+- `list_epics` - List epics
+- `create_story` - Create a story
+- `list_stories` - List stories with filters
+- `get_story` - Get story details
+- `update_story` - Update story
+
+Example usage:
+```
+Ask Claude: "Use the bootstrap_project tool to create a project called 'MyApp'"
+```
+
+See [backend/src/mcp/README.md](./backend/src/mcp/README.md) for detailed MCP documentation.
+
+### Running MCP Server Standalone
+
+For testing or debugging:
+
+```bash
+npm run mcp:dev
+```
+
 ## 📁 Project Structure
 
 ```
@@ -92,6 +170,12 @@ AIStudio/
 │   ├── src/
 │   │   ├── auth/         # Authentication module
 │   │   ├── projects/     # Project management module
+│   │   ├── users/        # User management module
+│   │   ├── mcp/          # MCP Server (Sprint 3)
+│   │   │   ├── server.ts # MCP server entry point
+│   │   │   ├── tools/    # MCP tool implementations
+│   │   │   ├── types.ts  # MCP type definitions
+│   │   │   └── utils.ts  # MCP utilities
 │   │   ├── prisma/       # Prisma ORM service
 │   │   └── main.ts       # Application entry point
 │   └── prisma/
@@ -187,22 +271,24 @@ npm run test:coverage
 
 ## 🗓️ Development Phases
 
-### ✅ Phase 1: Foundation (Current)
+### ✅ Phase 1: Foundation
 
-- ✅ Monorepo structure setup
-- ✅ Docker Compose with PostgreSQL + Redis
-- ✅ Database schema with Prisma
-- ✅ NestJS backend scaffolding
-- ✅ React frontend with Vite + TailwindCSS
-- ✅ Authentication (JWT)
-- ✅ CI/CD pipeline (GitHub Actions)
+- ✅ Sprint 1: Monorepo structure setup
+- ✅ Sprint 1: Docker Compose with PostgreSQL + Redis
+- ✅ Sprint 1: Database schema with Prisma
+- ✅ Sprint 1: NestJS backend scaffolding
+- ✅ Sprint 1: React frontend with Vite + TailwindCSS
+- ✅ Sprint 2: Authentication (JWT + RBAC)
+- ✅ Sprint 2: Projects & Users CRUD API
+- ✅ Sprint 2: CI/CD pipeline (GitHub Actions)
 
-### 🔄 Phase 2: MCP Server & Core API (Next)
+### 🔄 Phase 2: MCP Server & Core API (Current)
 
-- MCP Server with core tools
-- Project Management API
-- Story workflow state machine
-- Basic Web UI shell
+- ✅ Sprint 3: MCP Server with 10 core tools
+- ✅ Sprint 3: Project, Epic, Story management tools
+- ✅ Sprint 3: Claude Code integration
+- Next: Story workflow state machine
+- Next: Basic Web UI shell
 
 ### 📅 Future Phases
 
@@ -264,7 +350,7 @@ For questions or issues, please:
 
 ---
 
-**Status**: Phase 1 - Foundation ✅ Complete | Sprint 1 of 12
+**Status**: Phase 2 - MCP Server & Core API 🔄 | Sprint 3 of 12
 
 **Version**: 0.1.0
 

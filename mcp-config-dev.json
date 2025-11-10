@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "aistudio": {
+      "command": "npx",
+      "args": [
+        "ts-node",
+        "--esm",
+        "backend/src/mcp/server.ts"
+      ],
+      "cwd": "/home/user/AIStudio",
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/aistudio?schema=public",
+        "NODE_ENV": "development"
+      },
+      "description": "AI Studio MCP Server (Development Mode with ts-node)"
+    }
+  }
+}
