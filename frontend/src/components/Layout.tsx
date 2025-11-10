@@ -2,9 +2,11 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { ProjectSelector } from './ProjectSelector';
 import { ConnectionStatus } from './ConnectionStatus';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { useProject } from '../context/ProjectContext';
 
 export function Layout() {
   const navigate = useNavigate();
+  const { selectedProject } = useProject();
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
@@ -28,14 +30,36 @@ export function Layout() {
                   to="/dashboard"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                 >
-                  Dashboard
+                  📊 Dashboard
                 </Link>
                 <Link
                   to="/projects"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                 >
-                  Projects
+                  📋 Projects
                 </Link>
+                <Link
+                  to="/planning"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                >
+                  🎯 Planning
+                </Link>
+                {selectedProject && (
+                  <>
+                    <Link
+                      to={`/code-quality/${selectedProject}`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                    >
+                      🔍 Code Quality
+                    </Link>
+                    <Link
+                      to={`/agent-performance/${selectedProject}`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                    >
+                      📈 Agent Performance
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
