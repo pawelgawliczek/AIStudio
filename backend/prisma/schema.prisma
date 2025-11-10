@@ -447,14 +447,16 @@ enum StoryType {
 }
 
 enum StoryStatus {
+  backlog
   planning
   analysis
   architecture
   design
-  impl
+  implementation
   review
   qa
   done
+  blocked
 }
 
 enum SubtaskStatus {
