@@ -1,0 +1,525 @@
+// AI Studio MCP Control Plane - Database Schema
+// Based on req.md Section 20 and architecture.md
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp"), vector, pgTrgm(map: "pg_trgm")]
+}
+
+// ============================================================================
+// CORE PROJECT MANAGEMENT
+// ============================================================================
+
+model User {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String
+  email     String   @unique
+  password  String   // bcrypt hashed
+  role      UserRole
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdStories       Story[]           @relation("CreatedStories")
+  createdUseCaseVersions UseCaseVersion[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String        @unique
+  description String?
+  repositoryUrl String?     @map("repository_url")
+  status      ProjectStatus @default(active)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  epics         Epic[]
+  stories       Story[]
+  useCases      UseCase[]
+  commits       Commit[]
+  testCases     TestCase[]
+  agents        Agent[]
+  frameworks    AgentFramework[]
+  runs          Run[]
+  releases      Release[]
+  auditLogs     AuditLog[]
+
+  @@map("projects")
+}
+
+model Epic {
+  id          String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String     @map("project_id") @db.Uuid
+  key         String     // e.g., EP-1, unique within project
+  title       String
+  description String?
+  status      EpicStatus @default(planning)
+  priority    Int        @default(0)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stories Story[]
+  commits Commit[]
+
+  @@unique([projectId, key])
+  @@index([projectId, status])
+  @@map("epics")
+}
+
+model Story {
+  id                   String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId            String       @map("project_id") @db.Uuid
+  epicId               String?      @map("epic_id") @db.Uuid
+  key                  String       // e.g., ST-1, unique within project
+  type                 StoryType    @default(feature)
+  title                String
+  description          String?
+  status               StoryStatus  @default(planning)
+  businessImpact       Int?         @map("business_impact")
+  businessComplexity   Int?         @map("business_complexity")
+  technicalComplexity  Int?         @map("technical_complexity")
+  estimatedTokenCost   Int?         @map("estimated_token_cost")
+  assignedFrameworkId  String?      @map("assigned_framework_id") @db.Uuid
+  createdById          String       @map("created_by") @db.Uuid
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  project          Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  epic             Epic?                @relation(fields: [epicId], references: [id], onDelete: SetNull)
+  createdBy        User                 @relation("CreatedStories", fields: [createdById], references: [id])
+  assignedFramework AgentFramework?     @relation(fields: [assignedFrameworkId], references: [id], onDelete: SetNull)
+  subtasks         Subtask[]
+  useCaseLinks     StoryUseCaseLink[]
+  commits          Commit[]
+  runs             Run[]
+  defect           Defect?
+  releaseItems     ReleaseItem[]
+
+  @@unique([projectId, key])
+  @@index([projectId, status, type])
+  @@index([epicId])
+  @@index([assignedFrameworkId])
+  @@map("stories")
+}
+
+model Subtask {
+  id           String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId      String          @map("story_id") @db.Uuid
+  key          String?         // optional key within story
+  title        String
+  description  String?
+  layer        LayerType?
+  component    String?
+  assigneeType AssigneeType    @default(agent) @map("assignee_type")
+  assigneeId   String?         @map("assignee_id") @db.Uuid
+  status       SubtaskStatus   @default(todo)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  runs  Run[]
+
+  @@index([storyId, status])
+  @@map("subtasks")
+}
+
+// ============================================================================
+// USE CASES & REQUIREMENTS
+// ============================================================================
+
+model UseCase {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  key       String   // unique within project
+  title     String
+  area      String?  // screen/flow/feature area
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions     UseCaseVersion[]
+  storyLinks   StoryUseCaseLink[]
+  testMappings TestCaseMapping[]
+
+  @@unique([projectId, key])
+  @@index([projectId, area])
+  @@map("use_cases")
+}
+
+model UseCaseVersion {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  useCaseId       String   @map("use_case_id") @db.Uuid
+  version         Int
+  summary         String?
+  content         String   // markdown or JSON
+  embedding       Unsupported("vector(1536)")?  // pgvector for semantic search
+  createdById     String   @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  linkedStoryId   String?  @map("linked_story_id") @db.Uuid
+  linkedDefectId  String?  @map("linked_defect_id") @db.Uuid
+
+  // Relations
+  useCase  UseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  createdBy User   @relation(fields: [createdById], references: [id])
+
+  @@unique([useCaseId, version])
+  @@index([useCaseId])
+  @@map("use_case_versions")
+}
+
+model StoryUseCaseLink {
+  storyId   String             @map("story_id") @db.Uuid
+  useCaseId String             @map("use_case_id") @db.Uuid
+  relation  UseCaseRelation    @default(implements)
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  // Relations
+  story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  useCase UseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, useCaseId])
+  @@map("story_use_case_links")
+}
+
+// ============================================================================
+// DEFECTS / BUGS
+// ============================================================================
+
+model Defect {
+  storyId        String          @map("story_id") @db.Uuid @id
+  originStoryId  String?         @map("origin_story_id") @db.Uuid
+  originStage    OriginStage?    @map("origin_stage")
+  discoveryStage DiscoveryStage  @map("discovery_stage")
+  severity       DefectSeverity
+
+  // Relations
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@map("defects")
+}
+
+// ============================================================================
+// CODE, COMMITS, TESTS
+// ============================================================================
+
+model Commit {
+  hash      String   @id
+  projectId String   @map("project_id") @db.Uuid
+  author    String
+  timestamp DateTime @db.Timestamptz
+  message   String
+  storyId   String?  @map("story_id") @db.Uuid
+  epicId    String?  @map("epic_id") @db.Uuid
+
+  // Relations
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  story   Story?       @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  epic    Epic?        @relation(fields: [epicId], references: [id], onDelete: SetNull)
+  files   CommitFile[]
+
+  @@index([projectId, timestamp])
+  @@index([storyId])
+  @@map("commits")
+}
+
+model CommitFile {
+  id               BigInt   @id @default(autoincrement())
+  commitHash       String   @map("commit_hash")
+  filePath         String   @map("file_path")
+  locAdded         Int      @default(0) @map("loc_added")
+  locDeleted       Int      @default(0) @map("loc_deleted")
+  complexityBefore Int?     @map("complexity_before")
+  complexityAfter  Int?     @map("complexity_after")
+  coverageBefore   Decimal? @map("coverage_before") @db.Decimal(5, 2)
+  coverageAfter    Decimal? @map("coverage_after") @db.Decimal(5, 2)
+
+  // Relations
+  commit Commit @relation(fields: [commitHash], references: [hash], onDelete: Cascade)
+
+  @@index([commitHash])
+  @@index([filePath])
+  @@map("commit_files")
+}
+
+model TestCase {
+  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  key         String       // unique within project
+  description String?
+  type        TestCaseType
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mappings TestCaseMapping[]
+
+  @@unique([projectId, key])
+  @@index([projectId, type])
+  @@map("test_cases")
+}
+
+model TestCaseMapping {
+  testCaseId String  @map("test_case_id") @db.Uuid
+  filePath   String  @map("file_path")
+  useCaseId  String? @map("use_case_id") @db.Uuid
+
+  // Relations
+  testCase TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  useCase  UseCase? @relation(fields: [useCaseId], references: [id], onDelete: SetNull)
+
+  @@id([testCaseId, filePath])
+  @@index([useCaseId])
+  @@map("test_case_mappings")
+}
+
+// ============================================================================
+// AGENTS, FRAMEWORKS, RUNS
+// ============================================================================
+
+model Agent {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId String?  @map("project_id") @db.Uuid
+  name      String
+  role      String
+  config    Json     // system prompt, tools, limits
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runs    Run[]
+
+  @@index([projectId, active])
+  @@map("agents")
+}
+
+model AgentFramework {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String?  @map("project_id") @db.Uuid
+  name        String
+  description String?
+  config      Json     // composition of agents, routing rules
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stories Story[]
+  runs    Run[]
+
+  @@index([projectId, active])
+  @@map("agent_frameworks")
+}
+
+model Run {
+  id           String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId    String      @map("project_id") @db.Uuid
+  storyId      String?     @map("story_id") @db.Uuid
+  subtaskId    String?     @map("subtask_id") @db.Uuid
+  agentId      String?     @map("agent_id") @db.Uuid
+  frameworkId  String?     @map("framework_id") @db.Uuid
+  origin       RunOrigin
+  tokensInput  Int         @default(0) @map("tokens_input")
+  tokensOutput Int         @default(0) @map("tokens_output")
+  startedAt    DateTime    @map("started_at") @db.Timestamptz
+  finishedAt   DateTime?   @map("finished_at") @db.Timestamptz
+  success      Boolean     @default(true)
+  errorType    String?     @map("error_type")
+  iterations   Int         @default(1)
+  metadata     Json?       // flexible storage for additional data
+
+  // Relations
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  story     Story?          @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  subtask   Subtask?        @relation(fields: [subtaskId], references: [id], onDelete: SetNull)
+  agent     Agent?          @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  framework AgentFramework? @relation(fields: [frameworkId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, startedAt])
+  @@index([storyId])
+  @@index([frameworkId, success])
+  @@map("runs")
+}
+
+// ============================================================================
+// RELEASES & AUDIT
+// ============================================================================
+
+model Release {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String        @map("project_id") @db.Uuid
+  name        String
+  description String?
+  startDate   DateTime?     @map("start_date")
+  releaseDate DateTime?     @map("release_date")
+  status      ReleaseStatus @default(planned)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   ReleaseItem[]
+
+  @@index([projectId, status])
+  @@map("releases")
+}
+
+model ReleaseItem {
+  releaseId String @map("release_id") @db.Uuid
+  storyId   String @map("story_id") @db.Uuid
+
+  // Relations
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, storyId])
+  @@map("release_items")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  projectId  String?  @map("project_id") @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  action     String
+  actor      String
+  timestamp  DateTime @default(now()) @map("at") @db.Timestamptz
+  diff       Json?
+
+  // Relations
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, timestamp])
+  @@index([entityType, entityId])
+  @@map("audit_log")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  admin
+  pm
+  ba
+  architect
+  dev
+  qa
+  viewer
+}
+
+enum ProjectStatus {
+  active
+  archived
+}
+
+enum EpicStatus {
+  planning
+  in_progress
+  done
+  archived
+}
+
+enum StoryType {
+  feature
+  bug
+  defect
+  chore
+  spike
+}
+
+enum StoryStatus {
+  planning
+  analysis
+  architecture
+  design
+  impl
+  review
+  qa
+  done
+}
+
+enum SubtaskStatus {
+  todo
+  in_progress
+  done
+  blocked
+}
+
+enum LayerType {
+  frontend
+  backend
+  infra
+  test
+  other
+}
+
+enum AssigneeType {
+  human
+  agent
+}
+
+enum UseCaseRelation {
+  implements
+  modifies
+  deprecates
+}
+
+enum OriginStage {
+  dev
+  arch
+  ba
+  unknown
+}
+
+enum DiscoveryStage {
+  unit_test
+  integration_test
+  qa
+  uat
+  production
+}
+
+enum DefectSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum TestCaseType {
+  unit
+  integration
+  e2e
+}
+
+enum RunOrigin {
+  mcp
+  cli
+  ci
+  ui
+}
+
+enum ReleaseStatus {
+  planned
+  in_progress
+  released
+  rolled_back
+}
