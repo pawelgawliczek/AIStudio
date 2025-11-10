@@ -8,6 +8,7 @@ import { StoriesModule } from './stories/stories.module';
 import { EpicsModule } from './epics/epics.module';
 import { SubtasksModule } from './subtasks/subtasks.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { UseCasesModule } from './use-cases/use-cases.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -24,6 +25,7 @@ import { HealthController } from './health.controller';
     EpicsModule,
     SubtasksModule,
     WebSocketModule,
+    UseCasesModule,
   ],
   controllers: [HealthController],
 })
