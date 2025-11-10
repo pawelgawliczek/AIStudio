@@ -12,6 +12,7 @@ import {
   FilterStoryDto,
   UpdateStoryStatusDto,
 } from './dto';
+import { WebSocketGateway } from '../websocket/websocket.gateway';
 
 /**
  * Story Workflow State Machine
@@ -30,7 +31,10 @@ const STORY_WORKFLOW: Record<StoryStatus, StoryStatus[]> = {
 
 @Injectable()
 export class StoriesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private wsGateway: WebSocketGateway,
+  ) {}
 
   /**
    * Generate next story key for a project
@@ -135,7 +139,7 @@ export class StoriesService {
     const key = await this.generateNextKey(createStoryDto.projectId);
 
     // Create story
-    return this.prisma.story.create({
+    const story = await this.prisma.story.create({
       data: {
         ...createStoryDto,
         key,
@@ -160,6 +164,11 @@ export class StoriesService {
         },
       },
     });
+
+    // Broadcast story created
+    this.wsGateway.broadcastStoryCreated(story.projectId, story);
+
+    return story;
   }
 
   /**
@@ -331,7 +340,7 @@ export class StoriesService {
       }
     }
 
-    return this.prisma.story.update({
+    const story = await this.prisma.story.update({
       where: { id },
       data: updateStoryDto,
       include: {
@@ -346,6 +355,11 @@ export class StoriesService {
         },
       },
     });
+
+    // Broadcast story updated
+    this.wsGateway.broadcastStoryUpdated(id, story.projectId, story);
+
+    return story;
   }
 
   /**
@@ -361,6 +375,7 @@ export class StoriesService {
     isAdmin: boolean = false
   ) {
     const story = await this.findOne(id, false);
+    const oldStatus = story.status;
 
     // Validate status transition
     this.validateStatusTransition(story.status, updateStatusDto.status, isAdmin);
@@ -370,7 +385,7 @@ export class StoriesService {
       this.validateComplexityForImplementation(story);
     }
 
-    return this.prisma.story.update({
+    const updatedStory = await this.prisma.story.update({
       where: { id },
       data: { status: updateStatusDto.status },
       include: {
@@ -382,6 +397,16 @@ export class StoriesService {
         },
       },
     });
+
+    // Broadcast status changed
+    this.wsGateway.broadcastStoryStatusChanged(id, updatedStory.projectId, {
+      storyId: id,
+      oldStatus: oldStatus,
+      newStatus: updatedStory.status,
+      story: updatedStory,
+    });
+
+    return updatedStory;
   }
 
   /**
