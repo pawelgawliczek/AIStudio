@@ -9,6 +9,7 @@ import {
   ListProjectsParams,
   GetProjectParams,
   ProjectResponse,
+  PaginatedResponse,
   NotFoundError,
   ValidationError,
 } from '../types';
@@ -157,17 +158,30 @@ export async function createProject(
 }
 
 /**
- * List all projects
+ * List all projects with pagination
  */
 export async function listProjects(
   prisma: PrismaClient,
   params: ListProjectsParams = {},
-): Promise<ProjectResponse[]> {
+): Promise<PaginatedResponse<ProjectResponse>> {
   try {
+    const page = params.page || 1;
+    const pageSize = Math.min(params.pageSize || 20, 100);
+    const skip = (page - 1) * pageSize;
+
+    const whereClause: any = {};
+    if (params.status) {
+      whereClause.status = params.status;
+    }
+
+    // Get total count
+    const total = await prisma.project.count({ where: whereClause });
+
+    // Get paginated data
     const projects = await prisma.project.findMany({
-      where: {
-        ...(params.status && { status: params.status }),
-      },
+      where: whereClause,
+      skip,
+      take: pageSize,
       include: {
         _count: {
           select: { epics: true, stories: true },
@@ -176,7 +190,19 @@ export async function listProjects(
       orderBy: { createdAt: 'desc' },
     });
 
-    return projects.map((p: any) => formatProject(p, true));
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      data: projects.map((p: any) => formatProject(p, true)),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   } catch (error: any) {
     throw handlePrismaError(error, 'list_projects');
   }
@@ -211,5 +237,71 @@ export async function getProject(
       throw error;
     }
     throw handlePrismaError(error, 'get_project');
+  }
+}
+
+/**
+ * Get aggregated statistics for a project (Sprint 4.5)
+ */
+export async function getProjectSummary(
+  prisma: PrismaClient,
+  params: { projectId: string },
+): Promise<any> {
+  try {
+    validateRequired(params, ['projectId']);
+
+    const [project, storiesByStatus, storiesByType, epicStats] = await Promise.all([
+      prisma.project.findUnique({ where: { id: params.projectId } }),
+
+      // Stories by status
+      prisma.story.groupBy({
+        by: ['status'],
+        where: { projectId: params.projectId },
+        _count: true,
+      }),
+
+      // Stories by type
+      prisma.story.groupBy({
+        by: ['type'],
+        where: { projectId: params.projectId },
+        _count: true,
+      }),
+
+      // Epic statistics
+      prisma.epic.findMany({
+        where: { projectId: params.projectId },
+        include: {
+          _count: { select: { stories: true } },
+        },
+      }),
+    ]);
+
+    if (!project) {
+      throw new NotFoundError('Project', params.projectId);
+    }
+
+    return {
+      project: {
+        id: project.id,
+        name: project.name,
+        status: project.status,
+      },
+      statistics: {
+        storiesByStatus: Object.fromEntries(
+          storiesByStatus.map((s) => [s.status, s._count])
+        ),
+        storiesByType: Object.fromEntries(
+          storiesByType.map((t) => [t.type, t._count])
+        ),
+        totalEpics: epicStats.length,
+        epicsWithStories: epicStats.filter((e) => e._count.stories > 0).length,
+        totalStories: storiesByStatus.reduce((sum, s) => sum + s._count, 0),
+      },
+    };
+  } catch (error: any) {
+    if (error.name === 'MCPError') {
+      throw error;
+    }
+    throw handlePrismaError(error, 'get_project_summary');
   }
 }
