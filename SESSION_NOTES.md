@@ -1351,3 +1351,439 @@ search_use_cases({
 **Next Sprint**: Sprint 6 - Agent Telemetry & Metrics
 
 ---
+
+## Session: 2025-11-10 (Continued - Sprint 6)
+
+### Current Sprint: 6
+### Current Phase: Phase 3 - Telemetry & Project Planning UI (MVP TARGET)
+### Status: 🚧 Backend Complete | Frontend Pending
+
+---
+
+## Sprint 6: Telemetry & Project Planning UI (MVP)
+
+### Overview
+Sprint 6 focused on implementing automatic telemetry collection for agent executions and git commits, plus the Project Planning View (Kanban board). This is the **MVP milestone** where the system becomes fully functional for tracking AI agent development.
+
+---
+
+## ✅ Sprint 6 Implementation Details (Backend Complete)
+
+### 1. **Runs Module - Agent Execution Tracking**
+   - Created complete NestJS module for tracking agent executions
+   - DTOs: CreateRunDto, RunResponseDto
+   - Service with CRUD operations and statistics
+   - Controller with REST endpoints (secured by JWT + RBAC)
+   - Tracks: tokensInput, tokensOutput, duration, success rate, iterations, metadata
+
+### 2. **Commits Module - Git Integration**
+   - Created complete NestJS module for linking git commits
+   - DTOs: LinkCommitDto, CommitResponseDto, CommitFileDto
+   - Service with commit linking and statistics
+   - Controller with REST endpoints
+   - Tracks: hash, author, message, timestamp, files changed, LOC added/deleted
+
+### 3. **Telemetry API Endpoints**
+   #### Runs:
+   - `POST /runs` - Log a new agent execution
+   - `GET /runs/project/:projectId` - Get all runs for project
+   - `GET /runs/story/:storyId` - Get all runs for story
+   - `GET /runs/framework/:frameworkId` - Get all runs for framework
+   - `GET /runs/project/:projectId/statistics` - Aggregate statistics
+   - `GET /runs/story/:storyId/statistics` - Story-level statistics
+   - `GET /runs/:id` - Get single run by ID
+
+   #### Commits:
+   - `POST /commits/link` - Link commit to story/epic
+   - `GET /commits/project/:projectId` - Get all commits for project
+   - `GET /commits/story/:storyId` - Get all commits for story
+   - `GET /commits/epic/:epicId` - Get all commits for epic
+   - `GET /commits/project/:projectId/statistics` - Aggregate statistics
+   - `GET /commits/story/:storyId/statistics` - Story-level statistics
+   - `GET /commits/:hash` - Get single commit by hash
+
+### 4. **MCP Tools for Telemetry (3 tools)**
+   - **log_run**: Log agent execution with token usage
+     ```typescript
+     {
+       projectId, storyId, origin, tokensInput, tokensOutput,
+       startedAt, finishedAt, success, iterations, metadata
+     }
+     ```
+   - **link_commit**: Link git commit with file changes
+     ```typescript
+     {
+       hash, projectId, author, timestamp, message,
+       storyId, epicId, files: [{filePath, locAdded, locDeleted, ...}]
+     }
+     ```
+   - **get_assigned_stories**: Get work queue for agents/frameworks
+     ```typescript
+     {
+       projectId, frameworkId, status, includeSubtasks, includeUseCases
+     }
+     ```
+
+### 5. **Git Post-Commit Hook**
+   - Created `scripts/git-hooks/post-commit` for automatic commit linking
+   - Extracts story keys from commit messages (ST-42, STORY-123, etc.)
+   - Queries API for story ID
+   - Parses git diff for file changes
+   - Sends commit data to API automatically
+   - Installation script: `scripts/git-hooks/install-hooks.sh`
+   - Configuration via `.env.git` file
+
+### 6. **WebSocket Enhancement**
+   - Added real-time event broadcasting:
+     - `commit:linked` - When commits link to stories
+     - `run:logged` - When agent executions complete
+     - `story:deleted` - Story deletion events
+     - `comment:added` - Story collaboration events
+     - `usecase:linked` - Traceability events
+   - Broadcasts to both project and story rooms
+   - Integrated with Runs and Commits services
+
+### 7. **Module Integration**
+   - Updated `app.module.ts` with RunsModule and CommitsModule
+   - Added WebSocket dependencies to modules
+   - Forward references for circular dependency resolution
+   - Full authentication and RBAC support
+
+---
+
+## Key Files Created (Sprint 6)
+
+### Backend Modules
+- `backend/src/runs/runs.service.ts` (190 lines)
+- `backend/src/runs/runs.controller.ts` (90 lines)
+- `backend/src/runs/runs.module.ts`
+- `backend/src/runs/dto/create-run.dto.ts` (80 lines)
+- `backend/src/runs/dto/run-response.dto.ts` (40 lines)
+- `backend/src/commits/commits.service.ts` (220 lines)
+- `backend/src/commits/commits.controller.ts` (95 lines)
+- `backend/src/commits/commits.module.ts`
+- `backend/src/commits/dto/link-commit.dto.ts` (70 lines)
+- `backend/src/commits/dto/commit-response.dto.ts` (45 lines)
+
+### MCP Tools
+- `backend/src/mcp/servers/telemetry/log_run.ts` (155 lines)
+- `backend/src/mcp/servers/telemetry/link_commit.ts` (180 lines)
+- `backend/src/mcp/servers/telemetry/get_assigned_stories.ts` (165 lines)
+- `backend/src/mcp/servers/telemetry/index.ts`
+
+### Git Integration
+- `scripts/git-hooks/post-commit` (150 lines)
+- `scripts/git-hooks/install-hooks.sh` (80 lines)
+
+### Modified Files
+- `backend/src/app.module.ts` - Added RunsModule, CommitsModule
+- `backend/src/websocket/websocket.gateway.ts` - Added 5 new broadcast methods
+
+---
+
+## Technical Highlights
+
+### Automatic Telemetry Collection
+```bash
+# Developer workflow (transparent):
+1. Work on story ST-42
+2. Make commits: git commit -m "ST-42: Implement feature"
+3. Commits automatically link to story
+4. Agent executions automatically logged via MCP
+5. All visible in Project Planning View
+```
+
+### Statistics Aggregation
+```typescript
+// Project statistics
+{
+  totalRuns: 142,
+  successfulRuns: 138,
+  failedRuns: 4,
+  totalTokens: 2450000,
+  avgIterations: 8.2,
+  totalCommits: 89,
+  uniqueAuthors: 5,
+  netLinesChanged: 15420
+}
+```
+
+### Real-Time Updates
+```typescript
+// WebSocket events flow:
+Agent executes → log_run tool → RunsService → WebSocket → All connected clients
+Git commit → post-commit hook → API → WebSocket → Kanban board updates
+```
+
+---
+
+## Sprint 6 Acceptance Criteria
+
+Backend:
+- ✅ Agent executions are logged automatically via MCP tools
+- ✅ Commits link to stories via git hook or API
+- ✅ Statistics endpoints aggregate telemetry data
+- ✅ WebSocket broadcasts real-time events
+- ✅ All endpoints secured with JWT + RBAC
+
+Frontend (PENDING):
+- ⏸️ Kanban board shows stories with drag-and-drop
+- ⏸️ Story detail drawer with all fields
+- ⏸️ Real-time updates work via WebSocket
+- ⏸️ Demo data and seed scripts
+
+MVP Status:
+- 🟡 **PARTIAL** - Backend complete, Frontend pending
+
+---
+
+## What's Working
+
+✅ Complete Runs module with statistics
+✅ Complete Commits module with file tracking
+✅ 3 MCP tools for telemetry (auto-discovered)
+✅ Git post-commit hook template
+✅ WebSocket event broadcasting
+✅ REST API with comprehensive endpoints
+✅ Automatic token tracking and LOC counting
+✅ Integration with existing modules (Stories, Projects, Epics)
+
+---
+
+## What's Pending
+
+### Frontend (Major Component - ~1500 LOC)
+1. **Project Planning View** (designs/01-project-planning-view.md)
+   - Kanban board layout with 8 status columns
+   - Story cards with priority, tags, assignee, progress
+   - Drag-and-drop between columns
+   - Filters: epic, status, component, assignee
+   - View modes: Board, List, Timeline, Sprint
+
+2. **Story Detail Drawer** (designs/01-project-planning-view.md)
+   - All story fields (status, priority, type, components, layers)
+   - Complexity assessment section
+   - BA and Architect analysis sections
+   - Design and attachment uploads
+   - Subtasks list with progress
+   - Linked use cases display
+   - Commits list (from telemetry)
+   - Agent executions list (from telemetry)
+   - Activity log
+
+3. **WebSocket Integration**
+   - Connect to WebSocket on Planning View mount
+   - Join project room
+   - Listen for story updates, commits, runs
+   - Optimistic UI updates
+   - Conflict resolution
+
+4. **Demo Data & Seed Scripts**
+   - Sample projects with multiple stories
+   - Sample agent executions
+   - Sample commits with file changes
+   - Multiple frameworks for comparison
+
+5. **Testing**
+   - Unit tests for Runs and Commits services
+   - Integration tests for API endpoints
+   - E2E tests for git hook
+   - Frontend component tests
+
+---
+
+## Next Sprint Should
+
+### Sprint 6 Continuation (Frontend Implementation)
+1. **Week 1: Kanban Board**
+   - Set up React component structure
+   - Implement drag-and-drop with `@dnd-kit/core`
+   - Story card component
+   - Column component with virtualization
+   - Filters and search
+
+2. **Week 2: Story Detail Drawer**
+   - Drawer component with all fields
+   - Editable sections
+   - Subtasks management
+   - Commits and runs display
+   - Activity timeline
+
+3. **Week 3: WebSocket & Polish**
+   - Real-time updates integration
+   - Optimistic UI updates
+   - Loading states and error handling
+   - Demo data seed scripts
+   - E2E testing
+
+---
+
+## Architecture Decisions
+
+### ADR-008: Git Hook for Commit Linking (Sprint 6)
+**Decision**: Use client-side git post-commit hook for automatic commit linking
+
+**Rationale**:
+- **Simplicity**: No server-side git integration needed
+- **Security**: API token stays on developer machine
+- **Flexibility**: Developers control when to enable
+- **Transparent**: Works with existing git workflow
+- **Offline**: Can queue commits for later sync
+
+**Alternatives Considered**:
+- GitHub Actions webhook (requires GitHub-specific code)
+- Server-side git polling (complex, resource-intensive)
+- Manual commit linking via UI (poor UX)
+
+**Result**: Simple, effective solution that works with any git host
+
+---
+
+### ADR-009: Separate Runs and Commits Modules (Sprint 6)
+**Decision**: Create separate NestJS modules for Runs and Commits instead of unified Telemetry module
+
+**Rationale**:
+- **Clear Separation**: Runs = agent executions, Commits = code changes
+- **Different Lifecycles**: Runs created during dev, commits during git operations
+- **Scalability**: Can scale independently
+- **API Clarity**: /runs vs /commits endpoints
+
+**Result**: Clean, maintainable codebase with clear boundaries
+
+---
+
+## Usage Examples
+
+### Example 1: Log Agent Execution via MCP
+```typescript
+// Claude Code automatically calls:
+log_run({
+  projectId: "proj-123",
+  storyId: "story-456",
+  origin: "mcp",
+  tokensInput: 15000,
+  tokensOutput: 8500,
+  startedAt: "2025-11-10T10:30:00Z",
+  finishedAt: "2025-11-10T10:45:00Z",
+  success: true,
+  iterations: 12,
+  metadata: { model: "claude-sonnet-3.5" }
+})
+```
+
+### Example 2: Link Commit via Git Hook
+```bash
+# Developer makes commit:
+git commit -m "ST-42: Implement password reset flow
+
+Added backend API endpoint and email template"
+
+# Hook automatically:
+1. Extracts story key: ST-42
+2. Queries API for story ID
+3. Parses git diff for file changes
+4. POSTs to /commits/link with all data
+```
+
+### Example 3: Get Assigned Stories via MCP
+```typescript
+// Agent discovers work queue:
+get_assigned_stories({
+  projectId: "proj-123",
+  frameworkId: "framework-single-agent",
+  status: "planning",
+  includeSubtasks: true,
+  includeUseCases: true,
+  limit: 10
+})
+
+// Returns stories with full context for implementation
+```
+
+---
+
+## Sprint 6 Blockers
+
+None for backend - all functionality complete
+
+Frontend blockers:
+- Drag-and-drop library selection (recommend `@dnd-kit/core`)
+- WebSocket reconnection strategy
+- Optimistic UI update patterns
+
+---
+
+## Sprint 6 Notes
+
+- Sprint 6 backend is **COMPLETE** ✅
+- All telemetry APIs functional and tested manually
+- MCP tools auto-discovered by filesystem scanner
+- Git hook tested with local repository
+- WebSocket events verified with Socket.io client
+- Ready for frontend integration
+- Database schema already supports all features (from Sprint 1)
+- Authentication and RBAC enforced on all endpoints
+
+---
+
+## API Documentation
+
+All endpoints documented in Swagger/OpenAPI:
+- Available at: `http://localhost:3000/api/docs`
+- Runs endpoints: `/runs/*`
+- Commits endpoints: `/commits/*`
+- Bearer token authentication required
+- Role-based access control enforced
+
+---
+
+## References
+
+- Requirements: `req.md` (Section 20.3 - Runs/Commits schema)
+- Architecture: `architecture.md` (Section 4.1.3 - Telemetry Module)
+- Design: `designs/01-project-planning-view.md`
+- Use Cases: `use-cases/pm/UC-PM-007-jira-like-planning-view.md`
+- Development Plan: `plan.md` (Sprint 6)
+- Database Schema: `backend/prisma/schema.prisma` (Run, Commit models)
+
+---
+
+**Status**: Sprint 6 Backend Complete ✅ | Frontend Pending ⏸️
+**Next Work**: Frontend Kanban Board & Story Detail Drawer
+**Estimated Remaining**: 2-3 days for full frontend implementation
+**Completion Date (Backend)**: 2025-11-10
+**Branch**: `claude/sprint-6-implementation-011CUzJUDBdNE9oKbQ7YAoFB`
+**Commit**: 042503a
+
+---
+
+## MVP Milestone Status
+
+**Target**: Sprint 6 (End of Phase 3)
+**Progress**: 70% Complete (Backend: 100%, Frontend: 0%)
+
+**What's MVP-Ready**:
+- ✅ Project, Epic, Story management (Sprints 1-4)
+- ✅ Use Case library with semantic search (Sprint 5)
+- ✅ Automatic telemetry collection (Sprint 6)
+- ✅ MCP tools for AI agents (Sprints 3-6)
+- ✅ REST API complete (Sprints 1-6)
+- ✅ WebSocket infrastructure (Sprint 6)
+
+**What's Needed for MVP**:
+- ⏸️ Project Planning UI (Kanban board)
+- ⏸️ Story Detail Drawer
+- ⏸️ Real-time updates in UI
+- ⏸️ Demo data for showcase
+
+**MVP Demo Flow** (when complete):
+1. Create project via MCP: `bootstrap_project({ name: "MyApp" })`
+2. Create epic via MCP: `create_epic({ ... })`
+3. Create story via MCP: `create_story({ ... })`
+4. Link use cases: `link_use_case_to_story({ ... })`
+5. Developer commits code: Git hook auto-links
+6. Agent executes: MCP logs execution
+7. View in UI: Kanban board shows real-time progress
+8. Track metrics: Tokens, LOC, duration all visible
+
+---

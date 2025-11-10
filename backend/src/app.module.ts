@@ -9,6 +9,8 @@ import { EpicsModule } from './epics/epics.module';
 import { SubtasksModule } from './subtasks/subtasks.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { UseCasesModule } from './use-cases/use-cases.module';
+import { RunsModule } from './runs/runs.module';
+import { CommitsModule } from './commits/commits.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -26,6 +28,8 @@ import { HealthController } from './health.controller';
     SubtasksModule,
     WebSocketModule,
     UseCasesModule,
+    RunsModule,
+    CommitsModule,
   ],
   controllers: [HealthController],
 })
