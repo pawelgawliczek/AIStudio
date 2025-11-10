@@ -1,19 +1,38 @@
+import { useEffect } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { ProjectSelector } from './ProjectSelector';
 import { ConnectionStatus } from './ConnectionStatus';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useProject } from '../context/ProjectContext';
+import { useAuth } from '../context/AuthContext';
 
 export function Layout() {
   const navigate = useNavigate();
   const { selectedProject } = useProject();
+  const { isAuthenticated, loading, logout } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('selectedProjectId');
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

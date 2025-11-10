@@ -61,3 +61,11 @@ docker-compose.override.yml
 # Note: Migrations should be committed to version control
 # backend/prisma/migrations/*_*/
 !backend/prisma/migrations/.gitkeep
+
+# TypeScript build info
+*.tsbuildinfo
+
+# MCP Configuration (contains system-specific paths and credentials)
+.mcp.json
+mcp-config.json
+mcp-config-dev.json
