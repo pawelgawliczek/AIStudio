@@ -2,10 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubtaskDto, UpdateSubtaskDto, FilterSubtaskDto } from './dto';
 import { SubtaskStatus } from '@prisma/client';
+import { WebSocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class SubtasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private wsGateway: WebSocketGateway,
+  ) {}
 
   /**
    * Create a new subtask
@@ -16,6 +20,7 @@ export class SubtasksService {
     // Verify story exists
     const story = await this.prisma.story.findUnique({
       where: { id: createSubtaskDto.storyId },
+      select: { id: true, projectId: true },
     });
 
     if (!story) {
@@ -23,7 +28,7 @@ export class SubtasksService {
     }
 
     // Create subtask
-    return this.prisma.subtask.create({
+    const subtask = await this.prisma.subtask.create({
       data: {
         ...createSubtaskDto,
         status: SubtaskStatus.todo,
@@ -38,6 +43,15 @@ export class SubtasksService {
         },
       },
     });
+
+    // Broadcast subtask created
+    this.wsGateway.broadcastSubtaskCreated(
+      subtask.storyId,
+      story.projectId,
+      subtask
+    );
+
+    return subtask;
   }
 
   /**
@@ -107,13 +121,20 @@ export class SubtasksService {
    * @returns Updated subtask
    */
   async update(id: string, updateSubtaskDto: UpdateSubtaskDto) {
-    const existingSubtask = await this.prisma.subtask.findUnique({ where: { id } });
+    const existingSubtask = await this.prisma.subtask.findUnique({
+      where: { id },
+      include: {
+        story: {
+          select: { id: true, projectId: true },
+        },
+      },
+    });
 
     if (!existingSubtask) {
       throw new NotFoundException(`Subtask with ID ${id} not found`);
     }
 
-    return this.prisma.subtask.update({
+    const subtask = await this.prisma.subtask.update({
       where: { id },
       data: updateSubtaskDto,
       include: {
@@ -126,6 +147,16 @@ export class SubtasksService {
         },
       },
     });
+
+    // Broadcast subtask updated
+    this.wsGateway.broadcastSubtaskUpdated(
+      id,
+      subtask.storyId,
+      existingSubtask.story.projectId,
+      subtask
+    );
+
+    return subtask;
   }
 
   /**

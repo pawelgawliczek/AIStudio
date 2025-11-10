@@ -6,10 +6,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEpicDto, UpdateEpicDto, FilterEpicDto } from './dto';
 import { EpicStatus } from '@prisma/client';
+import { WebSocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class EpicsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private wsGateway: WebSocketGateway,
+  ) {}
 
   /**
    * Generate next epic key for a project
@@ -50,7 +54,7 @@ export class EpicsService {
     const key = await this.generateNextKey(createEpicDto.projectId);
 
     // Create epic
-    return this.prisma.epic.create({
+    const epic = await this.prisma.epic.create({
       data: {
         ...createEpicDto,
         key,
@@ -68,6 +72,11 @@ export class EpicsService {
         },
       },
     });
+
+    // Broadcast epic created
+    this.wsGateway.broadcastEpicCreated(epic.projectId, epic);
+
+    return epic;
   }
 
   /**
@@ -151,7 +160,7 @@ export class EpicsService {
       throw new NotFoundException(`Epic with ID ${id} not found`);
     }
 
-    return this.prisma.epic.update({
+    const epic = await this.prisma.epic.update({
       where: { id },
       data: updateEpicDto,
       include: {
@@ -166,6 +175,11 @@ export class EpicsService {
         },
       },
     });
+
+    // Broadcast epic updated
+    this.wsGateway.broadcastEpicUpdated(id, epic.projectId, epic);
+
+    return epic;
   }
 
   /**
