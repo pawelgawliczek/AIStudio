@@ -324,21 +324,109 @@ export class UseCasesService {
   }
 
   /**
-   * Search use cases using different modes
+   * Search use cases with component/area/story/epic filtering (AI-friendly)
+   * Provides deterministic, predictable results for AI agents
    */
   async search(dto: SearchUseCasesDto): Promise<UseCaseResponse[]> {
-    const mode = dto.mode || SearchMode.TEXT;
+    const where: Prisma.UseCaseWhereInput = {
+      projectId: dto.projectId,
+    };
 
-    switch (mode) {
-      case SearchMode.SEMANTIC:
-        return this.searchSemantic(dto);
-      case SearchMode.TEXT:
-        return this.searchText(dto);
-      case SearchMode.COMPONENT:
-        return this.searchByComponent(dto);
-      default:
-        throw new BadRequestException(`Invalid search mode: ${mode}`);
+    // Filter by area (single)
+    if (dto.area) {
+      where.area = dto.area;
     }
+
+    // Filter by areas (multiple OR)
+    if (dto.areas && dto.areas.length > 0) {
+      where.area = { in: dto.areas };
+    }
+
+    // Filter by story (use cases linked to this story)
+    if (dto.storyId) {
+      where.storyLinks = {
+        some: {
+          storyId: dto.storyId,
+        },
+      };
+    }
+
+    // Filter by epic (use cases linked to stories in this epic)
+    if (dto.epicId) {
+      where.storyLinks = {
+        some: {
+          story: {
+            epicId: dto.epicId,
+          },
+        },
+      };
+    }
+
+    // Text search across key, title, area
+    if (dto.query) {
+      where.OR = [
+        { key: { contains: dto.query, mode: 'insensitive' } },
+        { title: { contains: dto.query, mode: 'insensitive' } },
+        { area: { contains: dto.query, mode: 'insensitive' } },
+      ];
+    }
+
+    const useCases = await this.prisma.useCase.findMany({
+      where,
+      include: {
+        versions: {
+          orderBy: { version: 'desc' },
+          take: 1,
+          include: {
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        storyLinks: {
+          include: {
+            story: {
+              select: {
+                id: true,
+                key: true,
+                title: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+      skip: dto.offset || 0,
+      take: dto.limit || 20,
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return useCases.map((uc) => ({
+      id: uc.id,
+      projectId: uc.projectId,
+      key: uc.key,
+      title: uc.title,
+      area: uc.area,
+      createdAt: uc.createdAt,
+      updatedAt: uc.updatedAt,
+      latestVersion: uc.versions[0]
+        ? {
+            id: uc.versions[0].id,
+            version: uc.versions[0].version,
+            summary: uc.versions[0].summary,
+            content: uc.versions[0].content,
+            createdAt: uc.versions[0].createdAt,
+            createdBy: uc.versions[0].createdBy,
+            linkedStoryId: uc.versions[0].linkedStoryId,
+            linkedDefectId: uc.versions[0].linkedDefectId,
+          }
+        : undefined,
+      storyLinks: uc.storyLinks.map((link) => ({
+        storyId: link.storyId,
+        relation: link.relation,
+        story: link.story,
+      })),
+    }));
   }
 
   /**
@@ -609,6 +697,304 @@ export class UseCasesService {
     });
 
     return response.data[0].embedding;
+  }
+
+  /**
+   * Find related use cases for a story (AI-friendly)
+   * Returns use cases that are:
+   * 1. Already linked to the story
+   * 2. Linked to other stories in the same epic
+   * 3. Semantically similar to the story description
+   */
+  async findRelatedForStory(storyId: string, options?: {
+    includeEpicUseCases?: boolean;
+    includeSemanticallySimilar?: boolean;
+    limit?: number;
+    minSimilarity?: number;
+  }): Promise<UseCaseResponse[]> {
+    const {
+      includeEpicUseCases = true,
+      includeSemanticallySimilar = true,
+      limit = 10,
+      minSimilarity = 0.6,
+    } = options || {};
+
+    // Get the story details
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      include: {
+        epic: true,
+        useCaseLinks: {
+          include: {
+            useCase: {
+              include: {
+                versions: {
+                  orderBy: { version: 'desc' },
+                  take: 1,
+                  include: {
+                    createdBy: {
+                      select: { id: true, name: true, email: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID ${storyId} not found`);
+    }
+
+    const results: UseCaseResponse[] = [];
+    const seenIds = new Set<string>();
+
+    // 1. Use cases already linked to this story (highest priority)
+    for (const link of story.useCaseLinks) {
+      if (!seenIds.has(link.useCase.id)) {
+        seenIds.add(link.useCase.id);
+        results.push({
+          id: link.useCase.id,
+          projectId: link.useCase.projectId,
+          key: link.useCase.key,
+          title: link.useCase.title,
+          area: link.useCase.area,
+          createdAt: link.useCase.createdAt,
+          updatedAt: link.useCase.updatedAt,
+          latestVersion: link.useCase.versions[0] ? {
+            id: link.useCase.versions[0].id,
+            version: link.useCase.versions[0].version,
+            summary: link.useCase.versions[0].summary,
+            content: link.useCase.versions[0].content,
+            createdAt: link.useCase.versions[0].createdAt,
+            createdBy: link.useCase.versions[0].createdBy,
+            linkedStoryId: link.useCase.versions[0].linkedStoryId,
+            linkedDefectId: link.useCase.versions[0].linkedDefectId,
+          } : undefined,
+          similarity: 1.0, // Already linked = perfect match
+        });
+      }
+    }
+
+    // 2. Use cases from the same epic
+    if (includeEpicUseCases && story.epicId && results.length < limit) {
+      const epicUseCases = await this.prisma.useCase.findMany({
+        where: {
+          projectId: story.projectId,
+          storyLinks: {
+            some: {
+              story: {
+                epicId: story.epicId,
+                id: { not: storyId },
+              },
+            },
+          },
+        },
+        include: {
+          versions: {
+            orderBy: { version: 'desc' },
+            take: 1,
+            include: {
+              createdBy: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
+        },
+        take: limit - results.length,
+      });
+
+      for (const uc of epicUseCases) {
+        if (!seenIds.has(uc.id)) {
+          seenIds.add(uc.id);
+          results.push({
+            id: uc.id,
+            projectId: uc.projectId,
+            key: uc.key,
+            title: uc.title,
+            area: uc.area,
+            createdAt: uc.createdAt,
+            updatedAt: uc.updatedAt,
+            latestVersion: uc.versions[0] ? {
+              id: uc.versions[0].id,
+              version: uc.versions[0].version,
+              summary: uc.versions[0].summary,
+              content: uc.versions[0].content,
+              createdAt: uc.versions[0].createdAt,
+              createdBy: uc.versions[0].createdBy,
+              linkedStoryId: uc.versions[0].linkedStoryId,
+              linkedDefectId: uc.versions[0].linkedDefectId,
+            } : undefined,
+            similarity: 0.8, // Same epic = high relevance
+          });
+        }
+      }
+    }
+
+    // 3. Semantically similar use cases
+    if (includeSemanticallySimilar && this.openai && story.description && results.length < limit) {
+      try {
+        const searchQuery = `${story.title}\n\n${story.description}`;
+        const semanticResults = await this.search({
+          projectId: story.projectId,
+          query: searchQuery,
+          mode: SearchMode.SEMANTIC,
+          limit: limit - results.length,
+          minSimilarity,
+        });
+
+        for (const result of semanticResults) {
+          if (!seenIds.has(result.id)) {
+            seenIds.add(result.id);
+            results.push(result);
+          }
+        }
+      } catch (error) {
+        this.logger.error(`Failed to find semantically similar use cases: ${error.message}`);
+      }
+    }
+
+    return results.slice(0, limit);
+  }
+
+  /**
+   * Get use case with full context for AI agents
+   * Includes all versions, linked stories, test coverage, etc.
+   */
+  async getWithFullContext(id: string): Promise<any> {
+    const useCase = await this.prisma.useCase.findUnique({
+      where: { id },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+        versions: {
+          orderBy: { version: 'desc' },
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        storyLinks: {
+          include: {
+            story: {
+              select: {
+                id: true,
+                key: true,
+                title: true,
+                description: true,
+                status: true,
+                businessImpact: true,
+                businessComplexity: true,
+                technicalComplexity: true,
+              },
+            },
+          },
+        },
+        testMappings: {
+          include: {
+            testCase: {
+              select: {
+                id: true,
+                key: true,
+                description: true,
+                type: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!useCase) {
+      throw new NotFoundException(`Use case with ID ${id} not found`);
+    }
+
+    return {
+      ...useCase,
+      versionCount: useCase.versions.length,
+      linkedStoriesCount: useCase.storyLinks.length,
+      testCoverageCount: useCase.testMappings.length,
+      latestVersion: useCase.versions[0],
+      changelog: useCase.versions.map((v, idx) => ({
+        version: v.version,
+        createdAt: v.createdAt,
+        createdBy: v.createdBy.name,
+        linkedStoryId: v.linkedStoryId,
+        linkedDefectId: v.linkedDefectId,
+        isLatest: idx === 0,
+      })),
+    };
+  }
+
+  /**
+   * Batch get use cases by IDs (AI-friendly for bulk operations)
+   */
+  async findManyByIds(ids: string[]): Promise<UseCaseResponse[]> {
+    const useCases = await this.prisma.useCase.findMany({
+      where: {
+        id: { in: ids },
+      },
+      include: {
+        versions: {
+          orderBy: { version: 'desc' },
+          take: 1,
+          include: {
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        storyLinks: {
+          include: {
+            story: {
+              select: {
+                id: true,
+                key: true,
+                title: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return useCases.map((uc) => ({
+      id: uc.id,
+      projectId: uc.projectId,
+      key: uc.key,
+      title: uc.title,
+      area: uc.area,
+      createdAt: uc.createdAt,
+      updatedAt: uc.updatedAt,
+      latestVersion: uc.versions[0] ? {
+        id: uc.versions[0].id,
+        version: uc.versions[0].version,
+        summary: uc.versions[0].summary,
+        content: uc.versions[0].content,
+        createdAt: uc.versions[0].createdAt,
+        createdBy: uc.versions[0].createdBy,
+        linkedStoryId: uc.versions[0].linkedStoryId,
+        linkedDefectId: uc.versions[0].linkedDefectId,
+      } : undefined,
+      storyLinks: uc.storyLinks.map((link) => ({
+        storyId: link.storyId,
+        relation: link.relation,
+        story: link.story,
+      })),
+    }));
   }
 
   /**

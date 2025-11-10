@@ -1,16 +1,10 @@
-import { IsString, IsOptional, IsUUID, IsEnum, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsArray, IsInt, Min, Max } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-
-export enum SearchMode {
-  SEMANTIC = 'semantic',
-  TEXT = 'text',
-  COMPONENT = 'component',
-}
+import { Type, Transform } from 'class-transformer';
 
 export class SearchUseCasesDto {
   @ApiPropertyOptional({
-    description: 'Project ID to search within',
+    description: 'Project ID to search within (required)',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsUUID()
@@ -18,24 +12,15 @@ export class SearchUseCasesDto {
   projectId?: string;
 
   @ApiPropertyOptional({
-    description: 'Search query (text or semantic)',
-    example: 'password reset flow',
+    description: 'Text search query (searches key, title, area, content)',
+    example: 'password reset',
   })
   @IsString()
   @IsOptional()
   query?: string;
 
   @ApiPropertyOptional({
-    description: 'Search mode',
-    enum: SearchMode,
-    example: SearchMode.SEMANTIC,
-  })
-  @IsEnum(SearchMode)
-  @IsOptional()
-  mode?: SearchMode;
-
-  @ApiPropertyOptional({
-    description: 'Filter by feature area',
+    description: 'Filter by feature area/component (exact match)',
     example: 'Authentication',
   })
   @IsString()
@@ -43,12 +28,30 @@ export class SearchUseCasesDto {
   area?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter by components (comma-separated)',
-    example: 'Authentication,Email Service',
+    description: 'Filter by multiple areas (OR logic, comma-separated)',
+    example: ['Authentication', 'Email Service'],
+    type: [String],
   })
-  @IsString()
+  @IsArray()
   @IsOptional()
-  components?: string;
+  @Transform(({ value }) => (typeof value === 'string' ? value.split(',').map(s => s.trim()) : value))
+  areas?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Filter by story ID (find use cases linked to this story)',
+    example: '123e4567-e89b-12d3-a456-426614174001',
+  })
+  @IsUUID()
+  @IsOptional()
+  storyId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by epic ID (find use cases linked to stories in this epic)',
+    example: '123e4567-e89b-12d3-a456-426614174002',
+  })
+  @IsUUID()
+  @IsOptional()
+  epicId?: string;
 
   @ApiPropertyOptional({
     description: 'Number of results to return',
@@ -63,11 +66,13 @@ export class SearchUseCasesDto {
   limit?: number = 20;
 
   @ApiPropertyOptional({
-    description: 'Minimum similarity threshold for semantic search (0-1)',
-    example: 0.7,
-    default: 0.7,
+    description: 'Offset for pagination',
+    example: 0,
+    default: 0,
   })
+  @IsInt()
   @IsOptional()
+  @Min(0)
   @Type(() => Number)
-  minSimilarity?: number = 0.7;
+  offset?: number = 0;
 }
