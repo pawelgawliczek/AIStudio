@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: aistudio-postgres
+    environment:
+      POSTGRES_DB: aistudio
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aistudio-network
+
+  # Redis for caching and Bull queue
+  redis:
+    image: redis:7-alpine
+    container_name: aistudio-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aistudio-network
+
+  # Backend API (NestJS)
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: aistudio-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/aistudio
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: development-secret-change-in-production
+      PORT: 3000
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./backend:/app/backend
+      - ./shared:/app/shared
+      - /app/backend/node_modules
+      - /app/shared/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aistudio-network
+    command: npm run dev --workspace=backend
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: aistudio-frontend
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_WS_URL: ws://localhost:3000
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./frontend:/app/frontend
+      - ./shared:/app/shared
+      - /app/frontend/node_modules
+      - /app/shared/node_modules
+    depends_on:
+      - backend
+    networks:
+      - aistudio-network
+    command: npm run dev --workspace=frontend
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  aistudio-network:
+    driver: bridge
