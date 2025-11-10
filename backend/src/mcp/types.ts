@@ -4,6 +4,27 @@
  */
 
 // ============================================================================
+// PAGINATION SUPPORT (Sprint 4.5)
+// ============================================================================
+
+export interface PaginationParams {
+  page?: number; // Default: 1
+  pageSize?: number; // Default: 20, Max: 100
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+// ============================================================================
 // PROJECT MANAGEMENT TOOLS
 // ============================================================================
 
@@ -20,7 +41,7 @@ export interface CreateProjectParams {
   repositoryUrl?: string;
 }
 
-export interface ListProjectsParams {
+export interface ListProjectsParams extends PaginationParams {
   status?: 'active' | 'archived';
 }
 
@@ -39,7 +60,7 @@ export interface CreateEpicParams {
   priority?: number;
 }
 
-export interface ListEpicsParams {
+export interface ListEpicsParams extends PaginationParams {
   projectId: string;
   status?: 'planning' | 'in_progress' | 'done' | 'archived';
 }
@@ -60,7 +81,7 @@ export interface CreateStoryParams {
   assignedFrameworkId?: string;
 }
 
-export interface ListStoriesParams {
+export interface ListStoriesParams extends PaginationParams {
   projectId?: string;
   epicId?: string;
   status?: 'planning' | 'analysis' | 'architecture' | 'design' | 'impl' | 'review' | 'qa' | 'done';
