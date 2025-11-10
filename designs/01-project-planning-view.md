@@ -153,11 +153,16 @@ Each story card shows:
 ┃                                                                  [View Full]    ┃
 ┃                                                              [Edit Analysis]    ┃
 ┃                                                                                 ┃
-┃ ━━━━━━━━━━━━━━━━━ DESIGNS & ATTACHMENTS ━━━━━━━━━━━━━━━━━                     ┃
-┃ 📎 wireframe-password-reset.fig          (245 KB)   Nov 8      [Download]      ┃
-┃ 📎 api-sequence-diagram.png              (128 KB)   Nov 8      [Download]      ┃
+┃ ━━━━━━━━━━━━━━━━━ DESIGNS ━━━━━━━━━━━━━━━━━                                    ┃
+┃ 📐 wireframe-password-reset.fig          (245 KB)   Nov 8      [Download]      ┃
+┃ 🎨 ui-mockup-reset-flow.sketch           (180 KB)   Nov 8      [Download]      ┃
+┃ 📊 api-sequence-diagram.png              (128 KB)   Nov 8      [Download]      ┃
+┃                                                            [+ Upload Design]    ┃
+┃                                                                                 ┃
+┃ ━━━━━━━━━━━━━━━━━ ATTACHMENTS ━━━━━━━━━━━━━━━━━                                ┃
 ┃ 📎 technical-design-doc.md               (12 KB)    Nov 9      [Download]      ┃
-┃                                                               [+ Upload File]   ┃
+┃ 📎 requirements-specification.pdf        (342 KB)   Nov 8      [Download]      ┃
+┃                                                         [+ Upload Attachment]   ┃
 ┃                                                                                 ┃
 ┃ ━━━━━━━━━━━━━━━━━ SUBTASKS (4/6 completed) ━━━━━━━━━━━━━━━━━                  ┃
 ┃ ☑ ST-42-1: Backend API endpoint              ✓ Done        👤 Dev Agent        ┃
@@ -187,10 +192,10 @@ Each story card shows:
 ┃    6,600 tokens (4.5K in, 2.1K out) | 15 min | 4 iterations                    ┃
 ┃                                                                                 ┃
 ┃ 3. Developer Agent - Backend Implementation                                    ┃
-┃    23,500 tokens (15K in, 8.5K out) | 45 min | 12 iterations | 285 LOC         ┃
+┃    23,500 tokens (15K in, 8.5K out) | 45 min | 12 iterations | ✓ 285 LOC       ┃
 ┃                                                                                 ┃
 ┃ 4. Developer Agent - Frontend Implementation                                   ┃
-┃    19,200 tokens (12K in, 7.2K out) | 38 min | 10 iterations | 198 LOC         ┃
+┃    19,200 tokens (12K in, 7.2K out) | 38 min | 10 iterations | ✓ 198 LOC       ┃
 ┃                                                                  [View Details] ┃
 ┃                                                                                 ┃
 ┃ ━━━━━━━━━━━━━━━━━ ACTIVITY LOG ━━━━━━━━━━━━━━━━━                              ┃
