@@ -27,8 +27,10 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  createdStories       Story[]           @relation("CreatedStories")
+  createdStories         Story[]            @relation("CreatedStories")
   createdUseCaseVersions UseCaseVersion[]
+  assignedTestCases      TestCase[]         @relation("TestCaseAssignee")
+  createdTestCases       TestCase[]         @relation("TestCaseCreator")
 
   @@map("users")
 }
@@ -105,6 +107,7 @@ model Story {
   useCaseLinks     StoryUseCaseLink[]
   commits          Commit[]
   runs             Run[]
+  testExecutions   TestExecution[]
   defect           Defect?
   releaseItems     ReleaseItem[]
 
@@ -151,10 +154,10 @@ model UseCase {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  versions     UseCaseVersion[]
-  storyLinks   StoryUseCaseLink[]
-  testMappings TestCaseMapping[]
+  project    Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions   UseCaseVersion[]
+  storyLinks StoryUseCaseLink[]
+  testCases  TestCase[]
 
   @@unique([projectId, key])
   @@index([projectId, area])
@@ -227,10 +230,11 @@ model Commit {
   epicId    String?  @map("epic_id") @db.Uuid
 
   // Relations
-  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  story   Story?       @relation(fields: [storyId], references: [id], onDelete: SetNull)
-  epic    Epic?        @relation(fields: [epicId], references: [id], onDelete: SetNull)
-  files   CommitFile[]
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  story          Story?          @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  epic           Epic?           @relation(fields: [epicId], references: [id], onDelete: SetNull)
+  files          CommitFile[]
+  testExecutions TestExecution[]
 
   @@index([projectId, timestamp])
   @@index([storyId])
@@ -257,35 +261,76 @@ model CommitFile {
 }
 
 model TestCase {
-  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId   String       @map("project_id") @db.Uuid
-  key         String       // unique within project
+  id         String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId  String       @map("project_id") @db.Uuid
+  useCaseId  String       @map("use_case_id") @db.Uuid
+  key        String       // unique within project (e.g., TC-AUTH-101)
+  title      String
   description String?
-  type        TestCaseType
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Test details
+  testLevel       TestCaseType  @map("test_level") // unit, integration, e2e
+  priority        TestPriority? @default(medium)
+  preconditions   String?
+  testSteps       String?       @map("test_steps")
+  expectedResults String?       @map("expected_results")
+  testData        Json?         @map("test_data")
+
+  // Implementation
+  status       TestCaseStatus @default(pending)
+  testFilePath String?        @map("test_file_path")
+  assignedToId String?        @map("assigned_to") @db.Uuid
+
+  // Audit
+  createdById String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  mappings TestCaseMapping[]
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  useCase     UseCase         @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  assignedTo  User?           @relation("TestCaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy   User            @relation("TestCaseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  executions  TestExecution[]
 
   @@unique([projectId, key])
-  @@index([projectId, type])
+  @@index([projectId, testLevel])
+  @@index([useCaseId])
+  @@index([status])
   @@map("test_cases")
 }
 
-model TestCaseMapping {
-  testCaseId String  @map("test_case_id") @db.Uuid
-  filePath   String  @map("file_path")
-  useCaseId  String? @map("use_case_id") @db.Uuid
+model TestExecution {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  testCaseId   String   @map("test_case_id") @db.Uuid
+  storyId      String?  @map("story_id") @db.Uuid
+  commitHash   String?  @map("commit_hash")
+
+  // Execution details
+  executedAt   DateTime           @map("executed_at") @db.Timestamptz
+  status       TestExecutionStatus
+  durationMs   Int?               @map("duration_ms")
+  errorMessage String?            @map("error_message")
+
+  // Coverage data (from CI reports)
+  coveragePercentage Decimal? @map("coverage_percentage") @db.Decimal(5, 2)
+  linesCovered       Int?     @map("lines_covered")
+  linesTotal         Int?     @map("lines_total")
+
+  // CI/CD context
+  ciRunId     String? @map("ci_run_id")
+  environment String? // dev, staging, prod
 
   // Relations
   testCase TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
-  useCase  UseCase? @relation(fields: [useCaseId], references: [id], onDelete: SetNull)
+  story    Story?   @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  commit   Commit?  @relation(fields: [commitHash], references: [hash], onDelete: SetNull)
 
-  @@id([testCaseId, filePath])
-  @@index([useCaseId])
-  @@map("test_case_mappings")
+  @@index([testCaseId, executedAt])
+  @@index([storyId])
+  @@index([commitHash])
+  @@index([status])
+  @@map("test_executions")
 }
 
 // ============================================================================
@@ -511,6 +556,27 @@ enum TestCaseType {
   unit
   integration
   e2e
+}
+
+enum TestPriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum TestCaseStatus {
+  pending
+  implemented
+  automated
+  deprecated
+}
+
+enum TestExecutionStatus {
+  pass
+  fail
+  skip
+  error
 }
 
 enum RunOrigin {

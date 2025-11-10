@@ -13,6 +13,8 @@ import { RunsModule } from './runs/runs.module';
 import { CommitsModule } from './commits/commits.module';
 import { CodeMetricsModule } from './code-metrics/code-metrics.module';
 import { AgentMetricsModule } from './agent-metrics/agent-metrics.module';
+import { TestCasesModule } from './test-cases/test-cases.module';
+import { TestExecutionsModule } from './test-executions/test-executions.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -34,6 +36,8 @@ import { HealthController } from './health.controller';
     CommitsModule,
     CodeMetricsModule,
     AgentMetricsModule,
+    TestCasesModule,
+    TestExecutionsModule,
   ],
   controllers: [HealthController],
 })
