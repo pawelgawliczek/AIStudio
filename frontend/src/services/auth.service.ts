@@ -1,0 +1,119 @@
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+}
+
+class AuthService {
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
+
+    if (response.data.accessToken) {
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+
+    return response.data;
+  }
+
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, data);
+
+    if (response.data.accessToken) {
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+
+    return response.data;
+  }
+
+  async logout(): Promise<void> {
+    const accessToken = localStorage.getItem('accessToken');
+
+    if (accessToken) {
+      try {
+        await axios.post(
+          `${API_URL}/auth/logout`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
+
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  }
+
+  async refreshToken(): Promise<string | null> {
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (!refreshToken) {
+      return null;
+    }
+
+    try {
+      const response = await axios.post<{ accessToken: string; refreshToken: string }>(
+        `${API_URL}/auth/refresh`,
+        { refreshToken }
+      );
+
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+
+      return response.data.accessToken;
+    } catch (error) {
+      this.logout();
+      return null;
+    }
+  }
+
+  getCurrentUser(): User | null {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      return JSON.parse(userStr);
+    }
+    return null;
+  }
+
+  getAccessToken(): string | null {
+    return localStorage.getItem('accessToken');
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken');
+  }
+}
+
+export default new AuthService();
