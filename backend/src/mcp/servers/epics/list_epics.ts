@@ -1,75 +1,63 @@
 /**
- * Epic Management MCP Tools
+ * List Epics Tool
+ * Lists all epics for a project with optional status filter and pagination
  */
 
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import {
-  CreateEpicParams,
   ListEpicsParams,
   EpicResponse,
   PaginatedResponse,
   NotFoundError,
-  ValidationError,
-} from '../types';
+} from '../../types';
 import {
   formatEpic,
-  generateNextKey,
   validateRequired,
   handlePrismaError,
-} from '../utils';
+} from '../../utils';
 
-/**
- * Create a new epic
- */
-export async function createEpic(
-  prisma: PrismaClient,
-  params: CreateEpicParams,
-): Promise<EpicResponse> {
-  try {
-    validateRequired(params, ['projectId', 'title']);
-
-    // Verify project exists
-    const project = await prisma.project.findUnique({
-      where: { id: params.projectId },
-    });
-
-    if (!project) {
-      throw new NotFoundError('Project', params.projectId);
-    }
-
-    // Generate next epic key (e.g., EP-2, EP-3)
-    const key = await generateNextKey(prisma, 'epic', params.projectId);
-
-    // Create epic
-    const epic = await prisma.epic.create({
-      data: {
-        projectId: params.projectId,
-        key,
-        title: params.title,
-        description: params.description,
-        status: 'planning',
-        priority: params.priority ?? 0,
+export const tool: Tool = {
+  name: 'list_epics',
+  description: 'List all epics for a project with optional status filter and pagination',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      projectId: {
+        type: 'string',
+        description: 'Project UUID',
       },
-      include: {
-        _count: {
-          select: { stories: true },
-        },
+      status: {
+        type: 'string',
+        enum: ['planning', 'in_progress', 'done', 'archived'],
+        description: 'Filter by epic status',
       },
-    });
+      page: {
+        type: 'number',
+        description: 'Page number (default: 1)',
+        minimum: 1,
+      },
+      pageSize: {
+        type: 'number',
+        description: 'Items per page (default: 20, max: 100)',
+        minimum: 1,
+        maximum: 100,
+      },
+    },
+    required: ['projectId'],
+  },
+};
 
-    return formatEpic(epic, true);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
-      throw error;
-    }
-    throw handlePrismaError(error, 'create_epic');
-  }
-}
+export const metadata = {
+  category: 'epics',
+  domain: 'project_management',
+  tags: ['epic', 'list', 'pagination', 'filter'],
+  version: '2.0.0',
+  since: 'sprint-3',
+  updated: 'sprint-4.5',
+};
 
-/**
- * List epics for a project with pagination
- */
-export async function listEpics(
+export async function handler(
   prisma: PrismaClient,
   params: ListEpicsParams,
 ): Promise<PaginatedResponse<EpicResponse>> {
