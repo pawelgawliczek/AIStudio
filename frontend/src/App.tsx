@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
+import { PlanningView } from './pages/PlanningView';
 import { ProjectProvider } from './context/ProjectContext';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
+            <Route path="planning" element={<PlanningView />} />
             <Route path="projects/:projectId/stories" element={<StoryListPage />} />
             <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
           </Route>
