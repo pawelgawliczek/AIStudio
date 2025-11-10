@@ -18,7 +18,7 @@ services:
     environment:
       POSTGRES_DB: aistudio
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_THIS_PASSWORD}  # CHANGE IN PRODUCTION!
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       # Only expose to localhost for MCP server access from host
       - '127.0.0.1:5432:5432'
@@ -48,7 +48,7 @@ services:
       - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    command: redis-server --appendonly yes
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
@@ -91,6 +91,7 @@ services:
         condition: service_healthy
     networks:
       - aistudio-network
+      - stack_appnet
     logging:
       driver: "json-file"
       options:
@@ -120,6 +121,7 @@ services:
       - backend
     networks:
       - aistudio-network
+      - stack_appnet
     logging:
       driver: "json-file"
       options:
@@ -131,45 +133,15 @@ services:
       timeout: 10s
       retries: 3
 
-  # Caddy Reverse Proxy
-  caddy:
-    image: caddy:2-alpine
-    container_name: aistudio-caddy
-    restart: unless-stopped
-    ports:
-      - '80:80'       # HTTP
-      - '443:443'     # HTTPS
-      - '443:443/udp' # HTTP/3
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - aistudio-network
-    depends_on:
-      - backend
-      - frontend
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
-  caddy_data:
-    driver: local
-  caddy_config:
-    driver: local
 
 networks:
   aistudio-network:
     driver: bridge
+  stack_appnet:
+    external: true
