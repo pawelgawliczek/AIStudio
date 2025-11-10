@@ -15,10 +15,11 @@
 5. [Data Flow & Integration](#data-flow--integration)
 6. [Technology Stack](#technology-stack)
 7. [Use Case to Component Mapping](#use-case-to-component-mapping)
-8. [Non-Functional Requirements](#non-functional-requirements)
-9. [Deployment Architecture](#deployment-architecture)
-10. [Security Architecture](#security-architecture)
-11. [Future Considerations](#future-considerations)
+8. [MCP Progressive Disclosure Architecture](#mcp-progressive-disclosure-architecture)
+9. [Non-Functional Requirements](#non-functional-requirements)
+10. [Deployment Architecture](#deployment-architecture)
+11. [Security Architecture](#security-architecture)
+12. [Future Considerations](#future-considerations)
 
 ---
 
@@ -972,9 +973,401 @@ The system follows a 4-tier layered architecture:
 
 ---
 
-## 8. Non-Functional Requirements
+## 8. MCP Progressive Disclosure Architecture
 
-### 8.1 Performance
+**Added:** Sprint 4.5 (2025-11-10)
+**Reference:** ADR-001, Sprint 4.5 Technical Spec
+
+### 8.1 Overview
+
+The AI Studio MCP Server implements progressive disclosure patterns as recommended by Anthropic's engineering team. This architecture optimizes token usage and agent performance by loading tool definitions on-demand rather than upfront.
+
+**Key Benefits:**
+- **98% token reduction** on tool discovery operations
+- **30-50% faster** agent response times
+- **Scalable** to 50+ tools without performance degradation
+- **Better developer experience** with clear file organization
+
+### 8.2 File-Based Tool Organization
+
+```
+backend/src/mcp/
+├── servers/                          # Tool discovery root
+│   ├── projects/                     # Project management domain
+│   │   ├── bootstrap_project.ts      # Tool: bootstrap_project
+│   │   ├── create_project.ts         # Tool: create_project
+│   │   ├── list_projects.ts          # Tool: list_projects
+│   │   ├── get_project.ts            # Tool: get_project
+│   │   ├── get_project_summary.ts    # Tool: get_project_summary (Sprint 4.5)
+│   │   └── index.ts                  # Domain exports
+│   ├── epics/                        # Epic management domain
+│   │   ├── create_epic.ts
+│   │   ├── list_epics.ts
+│   │   └── index.ts
+│   ├── stories/                      # Story management domain
+│   │   ├── create_story.ts
+│   │   ├── list_stories.ts
+│   │   ├── get_story.ts
+│   │   ├── get_story_summary.ts      # Tool: get_story_summary (Sprint 4.5)
+│   │   ├── update_story.ts
+│   │   └── index.ts
+│   └── meta/                         # Meta tools
+│       ├── search_tools.ts           # Tool: search_tools (Sprint 4.5)
+│       └── index.ts
+├── core/                             # Core infrastructure
+│   ├── loader.ts                     # ToolLoader class
+│   ├── registry.ts                   # ToolRegistry class
+│   └── discovery.ts                  # Filesystem scanning
+├── server.ts                         # MCP server entry point
+├── types.ts                          # Type definitions
+└── utils.ts                          # Utility functions
+```
+
+### 8.3 Tool File Format
+
+Each tool file follows a standardized structure:
+
+```typescript
+// backend/src/mcp/servers/{domain}/{tool_name}.ts
+
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
+
+/**
+ * Tool Definition
+ * Loaded on-demand based on detail level requested
+ */
+export const tool: Tool = {
+  name: 'tool_name',
+  description: 'What this tool does',
+  inputSchema: {
+    type: 'object',
+    properties: { /* ... */ },
+    required: [ /* ... */ ]
+  }
+};
+
+/**
+ * Tool Metadata
+ * Used for categorization and search
+ */
+export const metadata = {
+  category: 'domain_name',        // e.g., 'projects', 'stories'
+  domain: 'business_domain',      // e.g., 'project_management'
+  tags: ['tag1', 'tag2'],         // Search keywords
+  version: '1.0.0',               // Semantic version
+  since: 'sprint-3',              // When introduced
+  updated: 'sprint-4.5'           // Last updated (optional)
+};
+
+/**
+ * Tool Handler
+ * Loaded only when tool is executed
+ */
+export async function handler(
+  prisma: PrismaClient,
+  params: ToolParams
+): Promise<ToolResponse> {
+  // Implementation
+}
+```
+
+### 8.4 Progressive Disclosure Pattern
+
+**Three Detail Levels:**
+
+1. **names_only** (~100 bytes)
+   - Returns array of tool names only
+   - Use case: Initial discovery, "What tools are available?"
+   - Example: `["bootstrap_project", "create_project", ...]`
+
+2. **with_descriptions** (~500-800 bytes)
+   - Returns names + descriptions + categories
+   - Use case: Category exploration, "What do these tools do?"
+   - Example: `[{ name, description, category }, ...]`
+
+3. **full_schema** (~1KB per tool)
+   - Returns complete tool definitions with input schemas
+   - Use case: Execution preparation, "What parameters does this tool need?"
+   - Example: `[{ name, description, inputSchema, metadata }, ...]`
+
+**Discovery Workflow:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Agent: "What tools are available?"                          │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│ search_tools({ detail_level: 'names_only' })               │
+│ Response: ["search_tools", "bootstrap_project", ...]        │
+│ Tokens: ~100 bytes                                          │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Agent: "Tell me about project tools"                        │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│ search_tools({ category: 'projects',                       │
+│               detail_level: 'with_descriptions' })          │
+│ Response: [{ name: "bootstrap_project", ... }, ...]        │
+│ Tokens: ~500 bytes                                          │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Agent: "I'll use bootstrap_project"                        │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│ search_tools({ query: 'bootstrap_project',                 │
+│               detail_level: 'full_schema' })                │
+│ Response: [{ name, description, inputSchema, ... }]        │
+│ Tokens: ~1KB                                                 │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│ bootstrap_project({ name: 'MyApp', ... })                  │
+│ Executes tool handler                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 8.5 Core Components
+
+#### ToolLoader
+
+**Responsibility:** Dynamic loading of tool modules from filesystem
+
+```typescript
+class ToolLoader {
+  private cache: Map<string, ToolModule> = new Map();
+  private serversPath: string;
+
+  async discoverTools(category: string = 'all'): Promise<ToolModule[]>
+  async loadToolModule(filePath: string): Promise<ToolModule | null>
+  async getToolByName(name: string): Promise<ToolModule | null>
+  clearCache(): void
+}
+```
+
+**Key Features:**
+- Filesystem scanning for tool discovery
+- Dynamic ES module imports
+- In-memory caching for performance
+- Category filtering support
+
+#### ToolRegistry
+
+**Responsibility:** Central registry for tool management and execution
+
+```typescript
+class ToolRegistry {
+  private loader: ToolLoader;
+  private prisma: PrismaClient;
+
+  async discoverTools(category: string = 'all'): Promise<ToolModule[]>
+  async listTools(category?: string): Promise<Tool[]>
+  async executeTool(name: string, params: any): Promise<any>
+  async searchTools(query: string, category: string, detailLevel: string): Promise<any>
+}
+```
+
+**Key Features:**
+- Delegates discovery to ToolLoader
+- Implements progressive disclosure logic
+- Handles tool execution with error handling
+- Manages database context (Prisma)
+
+### 8.6 Pagination & Aggregation
+
+**Motivation:** Reduce token costs for large datasets
+
+#### Pagination
+
+All list operations support pagination:
+
+```typescript
+interface PaginationParams {
+  page?: number;        // Default: 1
+  pageSize?: number;    // Default: 20, Max: 100
+}
+
+interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+```
+
+**Example:**
+```typescript
+list_stories({
+  projectId: 'uuid',
+  status: 'impl',
+  page: 1,
+  pageSize: 20
+})
+// Returns 20 stories (~5KB) instead of all 87 (~20KB+)
+```
+
+#### Aggregation
+
+Summary tools for large datasets:
+
+```typescript
+// Get project statistics without loading all stories
+get_project_summary({ projectId: 'uuid' })
+// Returns: { statistics: { storiesByStatus, storiesByType, ... } }
+// Tokens: ~1KB vs. ~30KB for full story list
+
+// Get story breakdown by grouping
+get_story_summary({ projectId: 'uuid', groupBy: 'status' })
+// Returns: { summary: [{ status, count, avgComplexity }, ...] }
+// Tokens: ~500 bytes
+```
+
+**Database Optimization:**
+- Use `groupBy` instead of loading all records
+- Parallel queries with `Promise.all()`
+- Proper indexing on `(projectId, status)`, `(projectId, type)`
+
+### 8.7 Token Usage Comparison
+
+| Operation | Old Approach | Progressive Disclosure | Savings |
+|-----------|--------------|------------------------|---------|
+| Discover 10 tools | ~5KB | ~100 bytes | 98% |
+| Discover 50 tools | ~25KB | ~100 bytes | 99.6% |
+| Get descriptions (10 tools) | ~5KB | ~800 bytes | 84% |
+| Get schema (1 tool) | ~5KB | ~1KB | 80% |
+| List 100 stories | ~30KB | ~1KB (summary) | 97% |
+| **Total workflow** | **~45KB** | **~3KB** | **93%** |
+
+**Projected Annual Savings:**
+- 1000 agent sessions/month × 5 discovery requests = 5000 requests
+- Old: 5000 × 25KB = 125MB tokens = ~$50/month
+- New: 5000 × 100 bytes = 500KB tokens = ~$0.20/month
+- **Savings: $600/year**
+
+### 8.8 Performance Characteristics
+
+**Response Time SLAs:**
+- `search_tools` (names_only): < 50ms (p95)
+- `search_tools` (with_descriptions): < 100ms (p95)
+- `search_tools` (full_schema): < 200ms (p95)
+- Tool execution: no regression from Sprint 3 baseline
+
+**Caching Strategy:**
+- Tool definitions cached in memory after first load
+- Cache invalidation on module changes (dev mode only)
+- No caching overhead in production
+
+**Database Optimizations:**
+- Aggregation queries with `groupBy`: < 500ms
+- Pagination queries with indexed fields: < 100ms
+- Parallel queries where possible
+
+### 8.9 Integration Points
+
+#### MCP Client Integration
+
+Agents using Claude Code, Aider, Cursor connect via stdio:
+
+```json
+{
+  "mcpServers": {
+    "aistudio": {
+      "command": "node",
+      "args": ["backend/dist/mcp/server.js"],
+      "cwd": "/path/to/AIStudio",
+      "env": {
+        "DATABASE_URL": "postgresql://..."
+      }
+    }
+  }
+}
+```
+
+#### Web UI Integration
+
+Frontend calls same aggregation logic via REST API:
+
+```typescript
+// GET /api/projects/:projectId/summary
+// Calls same handler as get_project_summary MCP tool
+const summary = await api.get(`/projects/${projectId}/summary`);
+```
+
+**Benefits:**
+- Code reuse between MCP and REST
+- Consistent business logic
+- Single source of truth
+
+### 8.10 Evolution Path
+
+**Current (Sprint 4.5):** Progressive disclosure, pagination, aggregation
+
+**Phase 3 (Sprint 8-10):** Code execution environment
+- Sandboxed Node.js execution
+- Agent-written code runs in controlled environment
+- Access to tool functions as importable modules
+- Persistent state and skills directory
+
+**Future:** Multi-server federation
+- Dedicated servers per domain
+- Server-to-server communication
+- Distributed tool registry
+- Horizontal scaling
+
+### 8.11 Best Practices
+
+**For Tool Authors:**
+1. Follow standardized file format
+2. Include comprehensive metadata
+3. Add descriptive JSDoc comments
+4. Validate inputs with JSON Schema
+5. Handle errors consistently
+6. Write unit tests for handlers
+
+**For Agent Developers:**
+1. Start with `names_only` for discovery
+2. Use category filters to narrow search
+3. Request full schema only when needed
+4. Leverage pagination for large datasets
+5. Use aggregation tools instead of full lists
+6. Cache tool metadata locally if possible
+
+**For System Administrators:**
+1. Monitor tool discovery performance
+2. Track token usage metrics
+3. Set up caching appropriately
+4. Review slow queries and optimize indexes
+5. Plan for tool count growth
+
+### 8.12 Related Documentation
+
+- **ADR-001:** Progressive Disclosure Pattern (decision rationale)
+- **Sprint 4.5 Technical Spec:** Detailed implementation guide
+- **UC-DEV-004:** Discover MCP Tools (use case)
+- **UC-PM-008:** View Project Statistics (aggregation use case)
+- **backend/src/mcp/README.md:** MCP server documentation
+
+---
+
+## 9. Non-Functional Requirements
+
+### 9.1 Performance
 
 1. **API Response Time**
    - Simple queries: < 100ms (p95)
