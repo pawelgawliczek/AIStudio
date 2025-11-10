@@ -503,25 +503,37 @@ Build the **AI Studio MCP Control Plane** - a unified platform for managing AI a
 
 ---
 
-### Sprint 8: Agent Performance Metrics
+### Sprint 8: Agent Performance Metrics ✅ COMPLETE
 **Duration:** 2 weeks
 **Goal:** Framework comparison and per-agent metrics
+**Status:** ✅ Completed 2025-11-10
 
 **Stories:**
-1. Create MetricsAggregator worker
-2. Implement framework comparison logic
-3. Add complexity normalization
-4. Create metrics API endpoints (`get_framework_metrics`)
-5. **Frontend:** Agent Performance View
-6. **Frontend:** Framework comparison with charts
-7. **Frontend:** Per-story execution timeline
-8. **Frontend:** Per-agent analytics breakdown
+- [x] Create MetricsAggregator worker
+- [x] Implement framework comparison logic
+- [x] Add complexity normalization
+- [x] Create metrics API endpoints (`get_framework_metrics`)
+- [x] **Frontend:** Agent Performance View
+- [x] **Frontend:** Framework comparison with charts
+- [x] **Frontend:** Per-story execution timeline
+- [x] **Frontend:** Per-agent analytics breakdown
 
 **Acceptance Criteria:**
 - ✅ Frameworks can be compared side-by-side
 - ✅ Metrics normalized by complexity band
 - ✅ Per-agent execution metrics display correctly
 - ✅ Charts show tokens/LOC, LOC/prompt, runtime metrics
+- ✅ 6+ REST API endpoints implemented
+- ✅ Recharts integrated for data visualization
+- ✅ Navigation link added to Layout
+
+**Implementation Details:**
+- Created AgentMetricsModule with service, controller, and DTOs
+- Implemented complexity normalization for fair framework comparison
+- Added efficiency, quality, and cost metrics calculation
+- Frontend with 4 tabs: Framework Comparison, Per-Story, Per-Agent, Weekly
+- Integrated with existing runs and commits data from Sprint 6
+- Mock data support for demo purposes
 
 **Team:** Backend (2) + Frontend (3)
 
@@ -956,16 +968,20 @@ Create or update `SESSION_NOTES.md`:
 ```markdown
 ## Session: 2025-11-10
 
-### Current Sprint: X
-### Current Phase: <phase name>
-### Current Story: <story description>
+### Current Sprint: 9
+### Current Phase: Phase 3 - Advanced Features
+### Current Story: Ready to Start
 
-### Completed Today:
-- [ ] Task 1
-- [ ] Task 2
+### Completed Today (2025-11-10):
+- [x] Sprint 8: Agent Performance Metrics - Complete
+- [x] Created AgentMetricsModule with 6+ REST endpoints
+- [x] Implemented framework comparison with complexity normalization
+- [x] Built Agent Performance View frontend with 4 tabs
+- [x] Integrated Recharts for data visualization
+- [x] Added navigation and routing
 
-### In Progress:
-- [ ] Task 3 (60% done)
+### Next Up (Sprint 9):
+- [ ] Test Management & Coverage implementation
 
 ### Blockers:
 - None / <describe blocker>
@@ -989,10 +1005,10 @@ Create or update `SESSION_NOTES.md`:
 
 ### Current Sprint Tracker
 
-**Current Sprint:** 8
-**Sprint Goal:** Agent Performance Metrics
-**Start Date:** 2025-11-10
-**End Date:** 2025-11-24
+**Current Sprint:** 9
+**Sprint Goal:** Test Management & Coverage
+**Start Date:** 2025-11-11
+**End Date:** 2025-11-25
 **Status:** Ready to Start
 
 **Stories:**
