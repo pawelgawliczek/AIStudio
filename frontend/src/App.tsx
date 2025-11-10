@@ -7,6 +7,7 @@ import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
 import { PlanningView } from './pages/PlanningView';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
+import AgentPerformanceView from './pages/AgentPerformanceView';
 import { ProjectProvider } from './context/ProjectContext';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="planning" element={<PlanningView />} />
             <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
+            <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
             <Route path="projects/:projectId/stories" element={<StoryListPage />} />
             <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
           </Route>
