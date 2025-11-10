@@ -1,0 +1,96 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { Project } from '../types';
+import { projectsService } from '../services/projects.service';
+
+interface ProjectContextType {
+  projects: Project[];
+  selectedProject: Project | null;
+  setSelectedProject: (project: Project | null) => void;
+  isLoading: boolean;
+  error: string | null;
+  refreshProjects: () => Promise<void>;
+}
+
+const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
+
+export function ProjectProvider({ children }: { children: ReactNode }) {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshProjects = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await projectsService.getAll();
+      setProjects(data);
+
+      // If there's a selected project, update it with fresh data
+      if (selectedProject) {
+        const updated = data.find(p => p.id === selectedProject.id);
+        if (updated) {
+          setSelectedProject(updated);
+        } else {
+          // Project was deleted, clear selection
+          setSelectedProject(null);
+          localStorage.removeItem('selectedProjectId');
+        }
+      } else {
+        // Try to restore selected project from localStorage
+        const savedProjectId = localStorage.getItem('selectedProjectId');
+        if (savedProjectId) {
+          const project = data.find(p => p.id === savedProjectId);
+          if (project) {
+            setSelectedProject(project);
+          }
+        } else if (data.length > 0) {
+          // Auto-select first project if none selected
+          setSelectedProject(data[0]);
+          localStorage.setItem('selectedProjectId', data[0].id);
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load projects');
+      console.error('Error loading projects:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshProjects();
+  }, []);
+
+  const handleSetSelectedProject = (project: Project | null) => {
+    setSelectedProject(project);
+    if (project) {
+      localStorage.setItem('selectedProjectId', project.id);
+    } else {
+      localStorage.removeItem('selectedProjectId');
+    }
+  };
+
+  return (
+    <ProjectContext.Provider
+      value={{
+        projects,
+        selectedProject,
+        setSelectedProject: handleSetSelectedProject,
+        isLoading,
+        error,
+        refreshProjects,
+      }}
+    >
+      {children}
+    </ProjectContext.Provider>
+  );
+}
+
+export function useProject() {
+  const context = useContext(ProjectContext);
+  if (context === undefined) {
+    throw new Error('useProject must be used within a ProjectProvider');
+  }
+  return context;
+}
