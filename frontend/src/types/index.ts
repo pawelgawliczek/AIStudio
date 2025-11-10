@@ -308,3 +308,241 @@ export interface TypingEvent {
   entityId: string;
   entityType: string;
 }
+
+// Test Case types
+export enum TestLevel {
+  unit = 'unit',
+  integration = 'integration',
+  e2e = 'e2e',
+}
+
+export enum TestPriority {
+  low = 'low',
+  medium = 'medium',
+  high = 'high',
+  critical = 'critical',
+}
+
+export enum TestCaseStatus {
+  pending = 'pending',
+  implemented = 'implemented',
+  automated = 'automated',
+  deprecated = 'deprecated',
+}
+
+export enum TestExecutionStatus {
+  pass = 'pass',
+  fail = 'fail',
+  skip = 'skip',
+  error = 'error',
+}
+
+export interface TestCase {
+  id: string;
+  projectId: string;
+  useCaseId?: string;
+  key: string;
+  title: string;
+  description?: string;
+  testLevel: TestLevel;
+  priority: TestPriority;
+  status: TestCaseStatus;
+  preconditions?: string;
+  testSteps?: string;
+  expectedResults?: string;
+  testData?: string;
+  testFilePath?: string;
+  assignedToId?: string;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  project?: {
+    id: string;
+    name: string;
+  };
+  useCase?: {
+    id: string;
+    key: string;
+    title: string;
+    area?: string;
+  };
+  assignedTo?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  latestExecution?: TestExecution;
+  _count?: {
+    executions: number;
+  };
+}
+
+export interface TestExecution {
+  id: string;
+  testCaseId: string;
+  storyId?: string;
+  commitHash?: string;
+  executedAt: string;
+  status: TestExecutionStatus;
+  durationMs?: number;
+  errorMessage?: string;
+  coveragePercentage?: number;
+  linesCovered?: number;
+  linesTotal?: number;
+  ciRunId?: string;
+  environment?: string;
+  testCase?: {
+    id: string;
+    key: string;
+    title: string;
+    testLevel: TestLevel;
+  };
+  story?: {
+    id: string;
+    key: string;
+    title: string;
+  };
+  commit?: {
+    hash: string;
+    message: string;
+    author: string;
+  };
+}
+
+export interface CoverageStatistics {
+  overall: number;
+  byLevel: {
+    unit: {
+      coverage: number;
+      testCount: number;
+      implemented: number;
+      pending: number;
+    };
+    integration: {
+      coverage: number;
+      testCount: number;
+      implemented: number;
+      pending: number;
+    };
+    e2e: {
+      coverage: number;
+      testCount: number;
+      implemented: number;
+      pending: number;
+    };
+  };
+  totalTests: number;
+  implementedTests: number;
+  pendingTests: number;
+  implementationRate: number;
+}
+
+export interface CoverageGap {
+  level?: TestLevel;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  recommendation: string;
+}
+
+export interface UseCaseCoverage {
+  useCase: {
+    id: string;
+    key: string;
+    title: string;
+    area?: string;
+    project?: {
+      id: string;
+      name: string;
+    };
+  };
+  coverage: CoverageStatistics;
+  testCases: (TestCase & { latestExecution?: TestExecution })[];
+  coverageGaps: CoverageGap[];
+}
+
+export interface ComponentCoverage {
+  component: string;
+  coverage: CoverageStatistics;
+  useCases: {
+    useCase: {
+      id: string;
+      key: string;
+      title: string;
+    };
+    coverage: CoverageStatistics;
+    status: 'excellent' | 'good' | 'needs_improvement' | 'poor' | 'not_covered';
+  }[];
+}
+
+export interface TestExecutionStatistics {
+  totalExecutions: number;
+  successCount: number;
+  failureCount: number;
+  skipCount: number;
+  errorCount: number;
+  successRate: number;
+  averageDuration: number;
+  averageCoverage: number;
+}
+
+// Test Case DTOs
+export interface CreateTestCaseDto {
+  projectId: string;
+  useCaseId?: string;
+  key: string;
+  title: string;
+  description?: string;
+  testLevel: TestLevel;
+  priority: TestPriority;
+  preconditions?: string;
+  testSteps?: string;
+  expectedResults?: string;
+  testData?: string;
+  testFilePath?: string;
+  assignedToId?: string;
+}
+
+export interface UpdateTestCaseDto {
+  title?: string;
+  description?: string;
+  testLevel?: TestLevel;
+  priority?: TestPriority;
+  status?: TestCaseStatus;
+  preconditions?: string;
+  testSteps?: string;
+  expectedResults?: string;
+  testData?: string;
+  testFilePath?: string;
+  assignedToId?: string;
+}
+
+export interface SearchTestCaseDto {
+  projectId?: string;
+  useCaseId?: string;
+  testLevel?: TestLevel;
+  priority?: TestPriority;
+  status?: TestCaseStatus;
+  query?: string;
+  assignedToId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ReportTestExecutionDto {
+  testCaseId: string;
+  storyId?: string;
+  commitHash?: string;
+  status: TestExecutionStatus;
+  durationMs?: number;
+  errorMessage?: string;
+  coveragePercentage?: number;
+  linesCovered?: number;
+  linesTotal?: number;
+  ciRunId?: string;
+  environment?: string;
+}
