@@ -271,7 +271,7 @@ npm run test:coverage
 
 ## 🗓️ Development Phases
 
-### ✅ Phase 1: Foundation
+### ✅ Phase 1: Foundation (COMPLETE)
 
 - ✅ Sprint 1: Monorepo structure setup
 - ✅ Sprint 1: Docker Compose with PostgreSQL + Redis
@@ -282,22 +282,43 @@ npm run test:coverage
 - ✅ Sprint 2: Projects & Users CRUD API
 - ✅ Sprint 2: CI/CD pipeline (GitHub Actions)
 
-### 🔄 Phase 2: MCP Server & Core API (Current)
+### ✅ Phase 2: MCP Server & Core API (COMPLETE)
 
 - ✅ Sprint 3: MCP Server with 10 core tools
 - ✅ Sprint 3: Project, Epic, Story management tools
 - ✅ Sprint 3: Claude Code integration
-- Next: Story workflow state machine
-- Next: Basic Web UI shell
+- ✅ Sprint 4.5: Progressive disclosure architecture
+- ✅ Sprint 4.5: File-based tool organization with auto-discovery
+
+### ✅ Phase 3: Use Case Library & Telemetry (COMPLETE)
+
+- ✅ Sprint 5: Use case CRUD API with versioning
+- ✅ Sprint 5: Component/layer-based search
+- ✅ Sprint 5: Use case linking to stories (4 MCP tools)
+- ✅ Sprint 6: Telemetry collection (log_run, link_commit)
+- ✅ Sprint 6: Git post-commit hooks
+- ✅ Sprint 6: Agent execution tracking
+
+### 🔄 Phase 4: Code Quality & Metrics (Current - Sprint 7 Complete)
+
+- ✅ Sprint 7: Code quality analysis with health scores
+- ✅ Sprint 7: Hotspot detection algorithm
+- ✅ Sprint 7: Code Quality Dashboard UI
+- ✅ Sprint 7: Architect MCP tools (get_architect_insights, get_component_health)
+- 🚧 Sprint 8: Agent Performance Metrics (In Progress)
+- Next: Framework comparison dashboard
+- Next: Metrics aggregation worker
 
 ### 📅 Future Phases
 
-- Phase 3: Use Case Library & Telemetry (MVP Target)
-- Phase 4: Code Quality & Metrics
-- Phase 5: Testing & QA Features
-- Phase 6: Polish & Release
+- Phase 5: Testing & QA Features (Sprints 9-10)
+- Phase 6: Polish & Release (Sprints 11-12)
 
-See [plan.md](./plan.md) for detailed sprint breakdown.
+**Current Sprint:** Sprint 8 - Agent Performance Metrics
+**Completion:** 7 of 12 sprints complete (58%)
+**Status:** On track for MVP (Sprint 6 backend complete)
+
+See [plan.md](./plan.md) for detailed sprint breakdown and [SPRINT_7_SUMMARY.md](./SPRINT_7_SUMMARY.md) for latest implementation details.
 
 ## 🤝 Contributing
 
