@@ -989,24 +989,93 @@ Create or update `SESSION_NOTES.md`:
 
 ### Current Sprint Tracker
 
-**Current Sprint:** 1
-**Sprint Goal:** Foundation Setup
+**Current Sprint:** 8
+**Sprint Goal:** Agent Performance Metrics
 **Start Date:** 2025-11-10
 **End Date:** 2025-11-24
-**Status:** In Progress
+**Status:** Ready to Start
 
 **Stories:**
-- [ ] Set up monorepo structure
-- [ ] Create Docker Compose for local development
-- [ ] Implement database schema
-- [ ] Set up migrations
-- [ ] Configure CI/CD pipeline
-- [ ] Set up linting and formatting
-- [ ] Create README with setup instructions
+- [ ] Create MetricsAggregator worker
+- [ ] Implement framework comparison logic
+- [ ] Add complexity normalization
+- [ ] Create metrics API endpoints (get_framework_metrics)
+- [ ] Frontend: Agent Performance View
+- [ ] Frontend: Framework comparison with charts
+- [ ] Frontend: Per-story execution timeline
+- [ ] Frontend: Per-agent analytics breakdown
 
 **Blockers:** None
 
-**Next Sprint:** Sprint 2 - Authentication & Basic API
+**Previous Sprint:** Sprint 7 - Code Quality Analysis (✅ COMPLETE)
+**Next Sprint:** Sprint 9 - Test Management & Coverage
+
+---
+
+### Sprint History
+
+**Sprint 7: Code Quality Analysis** (✅ COMPLETE - 2025-11-10)
+- ✅ Create CodeAnalysisWorker for background processing
+- ✅ Implement code complexity calculation
+- ✅ Implement code churn tracking
+- ✅ Add hotspot detection logic
+- ✅ Create quality metrics API endpoints
+- ✅ Implement MCP tools: get_architect_insights, get_component_health
+- ✅ Frontend: Code Quality Dashboard (project level)
+- ✅ Frontend: Layer and component drill-down views
+**Status:** All acceptance criteria met (7/7)
+**Branch:** claude/sprint-7-implementation-011CUzMECbNZC52RTJUXjmNg
+**Commit:** 1f6ef12
+
+**Sprint 6: Telemetry & Project Planning UI (MVP)** (✅ COMPLETE - 2025-11-10)
+- ✅ Implement telemetry API (log_run, link_commit)
+- ✅ Create Git post-commit hook for automatic linking
+- ✅ Add agent execution tracking
+- ✅ Implement MCP tools: get_assigned_stories
+- ⏸️ Frontend: Project Planning View (Kanban board) - PENDING
+- ⏸️ Frontend: Story detail drawer - PENDING
+- ⏸️ Frontend: WebSocket integration - PENDING
+**Status:** Backend Complete (100%), Frontend Pending
+**Branch:** claude/sprint-6-implementation-011CUzJUDBdNE9oKbQ7YAoFB
+
+**Sprint 5: Use Case Library & Semantic Search** (✅ COMPLETE - 2025-11-10)
+- ✅ Implement use case CRUD API
+- ✅ Add use case versioning
+- ✅ Component/layer-based search (deterministic)
+- ✅ Create use case linking to stories API
+- ✅ Implement MCP tools: create_use_case, search_use_cases, link_use_case_to_story, find_related_use_cases
+**Status:** Backend Complete (100%)
+
+**Sprint 4.5: MCP Progressive Disclosure** (✅ COMPLETE - 2025-11-10)
+- ✅ Pagination support for list operations
+- ✅ Aggregation tools for data summarization
+- ✅ File-based tool organization
+- ✅ Progressive disclosure implementation
+- ✅ ToolLoader and ToolRegistry infrastructure
+**Status:** Complete (100%)
+
+**Sprint 3: MCP Server Foundation** (✅ COMPLETE - 2025-11-10)
+- ✅ Set up MCP server using @modelcontextprotocol/sdk
+- ✅ Implement bootstrap_project tool
+- ✅ Implement 10 core MCP tools for project/epic/story management
+**Status:** Complete (100%)
+
+**Sprint 2: Authentication & Basic API** (✅ COMPLETE - 2025-11-10)
+- ✅ Implement JWT authentication with refresh tokens
+- ✅ Implement RBAC
+- ✅ Create NestJS modules: Auth, Projects, Users
+- ✅ Add API documentation (Swagger/OpenAPI)
+**Status:** Complete (100%)
+
+**Sprint 1: Foundation Setup** (✅ COMPLETE - 2025-11-10)
+- ✅ Set up monorepo structure
+- ✅ Create Docker Compose for local development
+- ✅ Implement database schema
+- ✅ Set up migrations
+- ✅ Configure CI/CD pipeline
+- ✅ Set up linting and formatting
+- ✅ Create README with setup instructions
+**Status:** Complete (100%)
 
 ---
 
@@ -1278,7 +1347,8 @@ This plan provides a clear roadmap for building the AI Studio MCP Control Plane 
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-11-10
-**Next Review:** End of Sprint 1 (2025-11-24)
-**Owner:** Project Manager (You!)
+**Document Version:** 1.7
+**Last Updated:** 2025-11-10 (Sprint 7 Complete)
+**Current Sprint:** 8 - Agent Performance Metrics
+**Next Review:** End of Sprint 8 (2025-11-24)
+**Owner:** Project Manager
