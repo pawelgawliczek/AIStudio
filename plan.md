@@ -1092,19 +1092,22 @@ Create or update `SESSION_NOTES.md`:
 - ✅ Create Git post-commit hook for automatic linking
 - ✅ Add agent execution tracking
 - ✅ Implement MCP tools: get_assigned_stories
-- ⏸️ Frontend: Project Planning View (Kanban board) - PENDING
-- ⏸️ Frontend: Story detail drawer - PENDING
-- ⏸️ Frontend: WebSocket integration - PENDING
-**Status:** Backend Complete (100%), Frontend Pending
+- ✅ Frontend: Project Planning View (PlanningView.tsx - Kanban board)
+- ✅ Frontend: Story detail drawer (StoryDetailDrawer.tsx)
+- ✅ Frontend: WebSocket integration (websocket.service.ts)
+- ✅ Frontend: Kanban components (KanbanBoard, KanbanColumn, StoryCard, StoryFilters)
+**Status:** Complete (100%) - Backend and Frontend
 **Branch:** claude/sprint-6-implementation-011CUzJUDBdNE9oKbQ7YAoFB
 
-**Sprint 5: Use Case Library & Semantic Search** (✅ COMPLETE - 2025-11-10)
+**Sprint 5: Use Case Library & Semantic Search** (⚠️ BACKEND COMPLETE - 2025-11-10)
 - ✅ Implement use case CRUD API
 - ✅ Add use case versioning
 - ✅ Component/layer-based search (deterministic)
 - ✅ Create use case linking to stories API
 - ✅ Implement MCP tools: create_use_case, search_use_cases, link_use_case_to_story, find_related_use_cases
-**Status:** Backend Complete (100%)
+- ⏸️ Frontend: Use Case Library View (PENDING - Optional enhancement)
+**Status:** Backend Complete (100%), Frontend Pending (Optional)
+**Note:** Use cases manageable via MCP tools and API endpoints
 
 **Sprint 4.5: MCP Progressive Disclosure** (✅ COMPLETE - 2025-11-10)
 - ✅ Pagination support for list operations
