@@ -1,0 +1,146 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateSubtaskDto, UpdateSubtaskDto, FilterSubtaskDto } from './dto';
+import { SubtaskStatus } from '@prisma/client';
+
+@Injectable()
+export class SubtasksService {
+  constructor(private prisma: PrismaService) {}
+
+  /**
+   * Create a new subtask
+   * @param createSubtaskDto - Subtask creation data
+   * @returns Created subtask
+   */
+  async create(createSubtaskDto: CreateSubtaskDto) {
+    // Verify story exists
+    const story = await this.prisma.story.findUnique({
+      where: { id: createSubtaskDto.storyId },
+    });
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID ${createSubtaskDto.storyId} not found`);
+    }
+
+    // Create subtask
+    return this.prisma.subtask.create({
+      data: {
+        ...createSubtaskDto,
+        status: SubtaskStatus.todo,
+      },
+      include: {
+        story: {
+          select: {
+            id: true,
+            key: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Find all subtasks with filters
+   * @param filterDto - Filter criteria
+   * @returns List of subtasks
+   */
+  async findAll(filterDto: FilterSubtaskDto) {
+    const { storyId, status, layer, assigneeType } = filterDto;
+
+    const where: any = {};
+    if (storyId) where.storyId = storyId;
+    if (status) where.status = status;
+    if (layer) where.layer = layer;
+    if (assigneeType) where.assigneeType = assigneeType;
+
+    return this.prisma.subtask.findMany({
+      where,
+      include: {
+        story: {
+          select: {
+            id: true,
+            key: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Find one subtask by ID
+   * @param id - Subtask ID
+   * @returns Subtask with related data
+   */
+  async findOne(id: string) {
+    const subtask = await this.prisma.subtask.findUnique({
+      where: { id },
+      include: {
+        story: {
+          select: {
+            id: true,
+            key: true,
+            title: true,
+            projectId: true,
+          },
+        },
+        runs: {
+          orderBy: { startTime: 'desc' },
+          take: 5,
+        },
+      },
+    });
+
+    if (!subtask) {
+      throw new NotFoundException(`Subtask with ID ${id} not found`);
+    }
+
+    return subtask;
+  }
+
+  /**
+   * Update subtask
+   * @param id - Subtask ID
+   * @param updateSubtaskDto - Update data
+   * @returns Updated subtask
+   */
+  async update(id: string, updateSubtaskDto: UpdateSubtaskDto) {
+    const existingSubtask = await this.prisma.subtask.findUnique({ where: { id } });
+
+    if (!existingSubtask) {
+      throw new NotFoundException(`Subtask with ID ${id} not found`);
+    }
+
+    return this.prisma.subtask.update({
+      where: { id },
+      data: updateSubtaskDto,
+      include: {
+        story: {
+          select: {
+            id: true,
+            key: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Delete subtask
+   * @param id - Subtask ID
+   */
+  async remove(id: string) {
+    const subtask = await this.prisma.subtask.findUnique({ where: { id } });
+
+    if (!subtask) {
+      throw new NotFoundException(`Subtask with ID ${id} not found`);
+    }
+
+    await this.prisma.subtask.delete({ where: { id } });
+
+    return { message: 'Subtask deleted successfully' };
+  }
+}

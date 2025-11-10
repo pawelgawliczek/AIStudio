@@ -5,6 +5,8 @@ import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { UsersModule } from './users/users.module';
 import { StoriesModule } from './stories/stories.module';
+import { EpicsModule } from './epics/epics.module';
+import { SubtasksModule } from './subtasks/subtasks.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -18,6 +20,8 @@ import { HealthController } from './health.controller';
     ProjectsModule,
     UsersModule,
     StoriesModule,
+    EpicsModule,
+    SubtasksModule,
   ],
   controllers: [HealthController],
 })
