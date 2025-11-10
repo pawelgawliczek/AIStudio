@@ -8,6 +8,8 @@ import { StoryDetailPage } from './pages/StoryDetailPage';
 import { PlanningView } from './pages/PlanningView';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
+import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
+import ComponentCoverageView from './pages/ComponentCoverageView';
 import { ProjectProvider } from './context/ProjectContext';
 
 function App() {
@@ -23,6 +25,8 @@ function App() {
             <Route path="planning" element={<PlanningView />} />
             <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
             <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
+            <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
+            <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
             <Route path="projects/:projectId/stories" element={<StoryListPage />} />
             <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
           </Route>

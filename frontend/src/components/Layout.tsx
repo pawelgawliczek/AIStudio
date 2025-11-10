@@ -58,6 +58,12 @@ export function Layout() {
                     >
                       📈 Agent Performance
                     </Link>
+                    <Link
+                      to={`/test-coverage/project/${selectedProject}`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                    >
+                      🧪 Test Coverage
+                    </Link>
                   </>
                 )}
               </div>
