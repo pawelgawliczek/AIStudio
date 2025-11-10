@@ -6,6 +6,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
 import { PlanningView } from './pages/PlanningView';
+import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import { ProjectProvider } from './context/ProjectContext';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="planning" element={<PlanningView />} />
+            <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
             <Route path="projects/:projectId/stories" element={<StoryListPage />} />
             <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
           </Route>

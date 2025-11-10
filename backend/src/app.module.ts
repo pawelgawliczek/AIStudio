@@ -11,6 +11,7 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { UseCasesModule } from './use-cases/use-cases.module';
 import { RunsModule } from './runs/runs.module';
 import { CommitsModule } from './commits/commits.module';
+import { CodeMetricsModule } from './code-metrics/code-metrics.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -30,6 +31,7 @@ import { HealthController } from './health.controller';
     UseCasesModule,
     RunsModule,
     CommitsModule,
+    CodeMetricsModule,
   ],
   controllers: [HealthController],
 })
