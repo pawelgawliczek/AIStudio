@@ -3,6 +3,8 @@ import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
+import { StoryListPage } from './pages/StoryListPage';
+import { StoryDetailPage } from './pages/StoryDetailPage';
 import { ProjectProvider } from './context/ProjectContext';
 
 function App() {
@@ -15,8 +17,8 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
-            <Route path="projects/:projectId/stories" element={<div>Story List Page</div>} />
-            <Route path="projects/:projectId/stories/:storyId" element={<div>Story Detail Page</div>} />
+            <Route path="projects/:projectId/stories" element={<StoryListPage />} />
+            <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
           </Route>
         </Routes>
       </ProjectProvider>
