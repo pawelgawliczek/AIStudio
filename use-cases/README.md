@@ -32,11 +32,13 @@ use-cases/
 │   ├── UC-BA-002-create-use-case.md
 │   ├── UC-BA-003-view-use-case-impact-analysis.md
 │   ├── UC-BA-004-search-use-case-library.md
-│   └── UC-BA-005-advanced-use-case-search.md
+│   ├── UC-BA-005-advanced-use-case-search.md
+│   └── UC-BA-006-maintain-layers-components.md
 ├── architect/                         # Architect workflows
 │   ├── UC-ARCH-001-assess-technical-complexity.md
 │   ├── UC-ARCH-002-view-code-quality-dashboard.md
-│   └── UC-ARCH-003-analyze-story-dependencies.md
+│   ├── UC-ARCH-003-analyze-story-dependencies.md
+│   └── UC-ARCH-004-query-code-health-by-component.md
 ├── developer/                         # Developer & Agent workflows
 │   ├── UC-DEV-001-pull-assigned-stories.md
 │   ├── UC-DEV-002-implement-story.md
@@ -82,6 +84,7 @@ BAs analyze requirements, maintain use case library, and ensure business alignme
 | UC-BA-003 | View Use Case Impact Analysis | Track use case changes and impact |
 | UC-BA-004 | Search Use Case Library | Find use cases with semantic search |
 | UC-BA-005 | Advanced Use Case Search | Component-based search and management for finding relevant use cases |
+| UC-BA-006 | Maintain Layers and Components | BA agents proactively maintain layer/component structure |
 
 ### Architect
 Architects assess technical complexity, monitor code quality, and guide design decisions.
@@ -91,6 +94,7 @@ Architects assess technical complexity, monitor code quality, and guide design d
 | UC-ARCH-001 | Assess Technical Complexity | Evaluate and score technical complexity |
 | UC-ARCH-002 | View Code Quality Dashboard | Monitor code metrics and hotspots |
 | UC-ARCH-003 | Analyze Story Dependencies | Optimize story grouping and sequencing |
+| UC-ARCH-004 | Query Code Health by Component | Drill-down capability to query layer/component health with file/function-level detail |
 
 ### Developer / Agent
 Developers (human or AI agents) implement stories and commit code.
