@@ -12,7 +12,7 @@ import {
   FilterStoryDto,
   UpdateStoryStatusDto,
 } from './dto';
-import { WebSocketGateway } from '../websocket/websocket.gateway';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 /**
  * Story Workflow State Machine
@@ -33,7 +33,7 @@ const STORY_WORKFLOW: Record<StoryStatus, StoryStatus[]> = {
 export class StoriesService {
   constructor(
     private prisma: PrismaService,
-    private wsGateway: WebSocketGateway,
+    private wsGateway: AppWebSocketGateway,
   ) {}
 
   /**
