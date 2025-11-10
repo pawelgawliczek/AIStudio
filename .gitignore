@@ -58,5 +58,6 @@ tmp/
 docker-compose.override.yml
 
 # Prisma
-backend/prisma/migrations/*_*/
+# Note: Migrations should be committed to version control
+# backend/prisma/migrations/*_*/
 !backend/prisma/migrations/.gitkeep
