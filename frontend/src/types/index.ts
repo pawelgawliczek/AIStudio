@@ -60,6 +60,7 @@ export interface Epic {
 
 // Story types
 export enum StoryStatus {
+  backlog = 'backlog',
   planning = 'planning',
   analysis = 'analysis',
   architecture = 'architecture',
@@ -68,6 +69,7 @@ export enum StoryStatus {
   review = 'review',
   qa = 'qa',
   done = 'done',
+  blocked = 'blocked',
 }
 
 export enum StoryType {

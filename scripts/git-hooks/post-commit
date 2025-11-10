@@ -1,0 +1,115 @@
+#!/bin/bash
+# AI Studio - Git Post-Commit Hook
+# Automatically link commits to stories when commit message contains story key (e.g., ST-42)
+#
+# Installation:
+# 1. Copy this file to: .git/hooks/post-commit
+# 2. Make it executable: chmod +x .git/hooks/post-commit
+# 3. Configure API endpoint: Set AISTUDIO_API_URL environment variable
+# 4. Configure auth token: Set AISTUDIO_API_TOKEN environment variable
+#
+# Or run: npm run install:git-hooks
+
+set -e
+
+# Configuration
+API_URL="${AISTUDIO_API_URL:-http://localhost:3000}"
+API_TOKEN="${AISTUDIO_API_TOKEN}"
+PROJECT_ID="${AISTUDIO_PROJECT_ID}"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if required environment variables are set
+if [ -z "$API_TOKEN" ]; then
+  echo -e "${YELLOW}Warning: AISTUDIO_API_TOKEN not set. Skipping commit linking.${NC}"
+  exit 0
+fi
+
+if [ -z "$PROJECT_ID" ]; then
+  echo -e "${YELLOW}Warning: AISTUDIO_PROJECT_ID not set. Skipping commit linking.${NC}"
+  exit 0
+fi
+
+# Get commit information
+COMMIT_HASH=$(git rev-parse HEAD)
+COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an <%ae>')
+COMMIT_TIMESTAMP=$(git log -1 --pretty=format:'%cI')
+COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')
+
+echo "AI Studio: Processing commit ${COMMIT_HASH:0:7}..."
+
+# Extract story key from commit message (e.g., ST-42, STORY-123)
+STORY_KEY=$(echo "$COMMIT_MESSAGE" | grep -oE '(ST|STORY)-[0-9]+' | head -n1 || true)
+
+if [ -z "$STORY_KEY" ]; then
+  echo -e "${YELLOW}No story key found in commit message. Skipping linking.${NC}"
+  echo "Tip: Include a story key (e.g., ST-42) in your commit message to enable automatic linking."
+  exit 0
+fi
+
+echo "Found story key: $STORY_KEY"
+
+# Get story ID from API
+STORY_RESPONSE=$(curl -s -X GET \
+  "${API_URL}/api/stories/search?projectId=${PROJECT_ID}&key=${STORY_KEY}" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" || true)
+
+STORY_ID=$(echo "$STORY_RESPONSE" | grep -oP '"id":"[^"]+' | head -n1 | cut -d'"' -f4 || true)
+
+if [ -z "$STORY_ID" ]; then
+  echo -e "${YELLOW}Story $STORY_KEY not found in project. Skipping linking.${NC}"
+  exit 0
+fi
+
+# Get file changes
+FILES_CHANGED=$(git show --stat --format="" $COMMIT_HASH | sed '/^$/d' | sed '$d')
+FILES_JSON="[]"
+
+# Parse file changes (simplified - you can enhance this)
+# Format: path/to/file.ts | 10 +++++-----
+if [ -n "$FILES_CHANGED" ]; then
+  FILES_JSON=$(git diff-tree --no-commit-id --numstat -r $COMMIT_HASH | \
+    awk '{print "{\"filePath\":\""$3"\",\"locAdded\":"$1",\"locDeleted\":"$2"}"}' | \
+    jq -s '.' 2>/dev/null || echo "[]")
+fi
+
+# Link commit via API
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+  "${API_URL}/api/commits/link" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d @- <<EOF
+{
+  "hash": "${COMMIT_HASH}",
+  "projectId": "${PROJECT_ID}",
+  "author": "${COMMIT_AUTHOR}",
+  "timestamp": "${COMMIT_TIMESTAMP}",
+  "message": ${COMMIT_MESSAGE@Q},
+  "storyId": "${STORY_ID}",
+  "files": ${FILES_JSON}
+}
+EOF
+)
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | sed '$d')
+
+if [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 200 ]; then
+  echo -e "${GREEN}✓ Commit ${COMMIT_HASH:0:7} linked to story ${STORY_KEY}${NC}"
+
+  # Extract LOC info from response if available
+  LOC_INFO=$(echo "$BODY" | grep -oP '"linesAdded":[0-9]+|"linesDeleted":[0-9]+' || true)
+  if [ -n "$LOC_INFO" ]; then
+    echo "  $LOC_INFO"
+  fi
+else
+  echo -e "${RED}✗ Failed to link commit (HTTP $HTTP_CODE)${NC}"
+  echo "$BODY"
+fi
+
+exit 0

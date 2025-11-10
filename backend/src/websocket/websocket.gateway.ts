@@ -233,4 +233,75 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     this.server.to(room).emit('epic:updated', epic);
     this.logger.log(`Broadcasted epic update to room: ${room}`);
   }
+
+  /**
+   * Broadcast story deleted
+   */
+  broadcastStoryDeleted(storyId: string, projectId: string, data: any) {
+    const storyRoom = `story:${storyId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(storyRoom).emit('story:deleted', data);
+    this.server.to(projectRoom).emit('story:deleted', data);
+
+    this.logger.log(`Broadcasted story deletion to rooms: ${storyRoom}, ${projectRoom}`);
+  }
+
+  /**
+   * Broadcast commit linked
+   */
+  broadcastCommitLinked(storyId: string | null, projectId: string, commit: any) {
+    const projectRoom = `project:${projectId}`;
+    this.server.to(projectRoom).emit('commit:linked', commit);
+
+    if (storyId) {
+      const storyRoom = `story:${storyId}`;
+      this.server.to(storyRoom).emit('commit:linked', commit);
+      this.logger.log(`Broadcasted commit linked to rooms: ${storyRoom}, ${projectRoom}`);
+    } else {
+      this.logger.log(`Broadcasted commit linked to room: ${projectRoom}`);
+    }
+  }
+
+  /**
+   * Broadcast run logged
+   */
+  broadcastRunLogged(storyId: string | null, projectId: string, run: any) {
+    const projectRoom = `project:${projectId}`;
+    this.server.to(projectRoom).emit('run:logged', run);
+
+    if (storyId) {
+      const storyRoom = `story:${storyId}`;
+      this.server.to(storyRoom).emit('run:logged', run);
+      this.logger.log(`Broadcasted run logged to rooms: ${storyRoom}, ${projectRoom}`);
+    } else {
+      this.logger.log(`Broadcasted run logged to room: ${projectRoom}`);
+    }
+  }
+
+  /**
+   * Broadcast comment added (for story detail drawer)
+   */
+  broadcastCommentAdded(storyId: string, projectId: string, comment: any) {
+    const storyRoom = `story:${storyId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(storyRoom).emit('comment:added', comment);
+    this.server.to(projectRoom).emit('comment:added', comment);
+
+    this.logger.log(`Broadcasted comment added to rooms: ${storyRoom}, ${projectRoom}`);
+  }
+
+  /**
+   * Broadcast use case linked
+   */
+  broadcastUseCaseLinked(storyId: string, projectId: string, useCaseLink: any) {
+    const storyRoom = `story:${storyId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(storyRoom).emit('usecase:linked', useCaseLink);
+    this.server.to(projectRoom).emit('usecase:linked', useCaseLink);
+
+    this.logger.log(`Broadcasted use case linked to rooms: ${storyRoom}, ${projectRoom}`);
+  }
 }
