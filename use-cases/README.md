@@ -109,6 +109,7 @@ PMs, Architects, and Stakeholders view dashboards and metrics.
 |----|----------|-------------|
 | UC-METRICS-001 | View Framework Effectiveness | Compare agentic framework performance |
 | UC-METRICS-002 | View Project Tracker | Real-time project status and story tracking |
+| UC-METRICS-003 | View Agent Execution Details | Per-agent metrics with tokens/LOC, LOC/prompt, runtime analysis |
 
 ### System Administrator
 Admins bootstrap projects and configure frameworks.
@@ -160,8 +161,9 @@ Complete workflows spanning multiple actors.
 
 ### 7. Monitoring & Analytics
 1. **UC-METRICS-002**: View Project Tracker - Track progress
-2. **UC-METRICS-001**: View Framework Effectiveness - Compare frameworks
-3. **UC-PM-005**: View Project Dashboard - Monitor health
+2. **UC-METRICS-003**: View Agent Execution Details - Per-story and per-agent metrics
+3. **UC-METRICS-001**: View Framework Effectiveness - Compare frameworks
+4. **UC-PM-005**: View Project Dashboard - Monitor health
 
 ## Key Features Demonstrated
 
@@ -169,6 +171,19 @@ Complete workflows spanning multiple actors.
 - **UC-INT-001** shows how all metrics are collected automatically
 - **UC-DEV-002** demonstrates `log_run` calls for token tracking
 - **UC-DEV-003** shows automatic commit linking via Git hooks
+- **UC-METRICS-003** demonstrates comprehensive per-agent execution tracking
+
+### Per-Agent Execution Metrics
+- **UC-METRICS-003** tracks each agent execution separately (e.g., 3x Architect, 1x BA, 1x Developer)
+- Automatic calculation of key metrics:
+  - **tokens/LOC** - Token efficiency per line of code
+  - **LOC/prompt** - Code generation efficiency
+  - **runtime/LOC** - Time efficiency per line
+  - **runtime/token** - Processing speed
+- Views available at:
+  - **Story level**: See all agent runs for a story
+  - **Epic level**: Accumulated metrics across all stories
+  - **Analytics level**: Compare framework effectiveness
 
 ### Framework Effectiveness Comparison
 - **UC-METRICS-001** compares "Dev-only" vs "BA+Arch+Dev+QA" frameworks
