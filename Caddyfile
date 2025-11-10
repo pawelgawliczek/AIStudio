@@ -1,0 +1,121 @@
+# AI Studio Caddy Reverse Proxy Configuration
+# Version: 1.0
+# Last Updated: 2025-11-10
+
+# Production configuration with domain (HTTPS auto-enabled)
+# Uncomment and edit the domain section below if you have a domain
+
+# your-domain.com {
+#     # Frontend - serve React app
+#     handle / {
+#         reverse_proxy frontend:5173
+#     }
+#
+#     # API endpoints
+#     handle /api/* {
+#         reverse_proxy backend:3000
+#     }
+#
+#     # WebSocket support for real-time updates
+#     handle /socket.io/* {
+#         reverse_proxy backend:3000 {
+#             header_up Upgrade {http.request.header.Upgrade}
+#             header_up Connection {http.request.header.Connection}
+#         }
+#     }
+#
+#     # Enable compression
+#     encode gzip zstd
+#
+#     # Security headers
+#     header {
+#         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+#         X-Content-Type-Options "nosniff"
+#         X-Frame-Options "DENY"
+#         X-XSS-Protection "1; mode=block"
+#         Referrer-Policy "strict-origin-when-cross-origin"
+#         Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+#     }
+#
+#     # Access logs
+#     log {
+#         output file /data/access.log
+#         format json
+#     }
+# }
+
+# Development/Testing configuration (HTTP only, no domain)
+# Use this for IP-based access during initial setup
+:80 {
+    # Frontend - serve React app
+    handle / {
+        reverse_proxy frontend:5173
+    }
+
+    # API endpoints
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+
+    # WebSocket support for real-time updates
+    handle /socket.io/* {
+        reverse_proxy backend:3000 {
+            header_up Upgrade {http.request.header.Upgrade}
+            header_up Connection {http.request.header.Connection}
+        }
+    }
+
+    # Health check endpoint
+    handle /health {
+        respond "OK" 200
+    }
+
+    # Enable compression
+    encode gzip zstd
+
+    # Basic security headers (less strict for development)
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+    }
+
+    # Access logs
+    log {
+        output file /data/access.log
+        format json
+    }
+}
+
+# Alternative: HTTPS with self-signed certificate (for testing)
+# Uncomment if you want HTTPS without a domain
+# :443 {
+#     tls internal  # Caddy will generate a self-signed cert
+#
+#     handle / {
+#         reverse_proxy frontend:5173
+#     }
+#
+#     handle /api/* {
+#         reverse_proxy backend:3000
+#     }
+#
+#     handle /socket.io/* {
+#         reverse_proxy backend:3000 {
+#             header_up Upgrade {http.request.header.Upgrade}
+#             header_up Connection {http.request.header.Connection}
+#         }
+#     }
+#
+#     encode gzip zstd
+#
+#     header {
+#         Strict-Transport-Security "max-age=31536000"
+#         X-Content-Type-Options "nosniff"
+#         X-Frame-Options "SAMEORIGIN"
+#     }
+#
+#     log {
+#         output file /data/access.log
+#     }
+# }
