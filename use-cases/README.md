@@ -25,12 +25,14 @@ use-cases/
 │   ├── UC-PM-003-create-story.md
 │   ├── UC-PM-004-assign-story-to-framework.md
 │   ├── UC-PM-005-view-project-dashboard.md
-│   └── UC-PM-006-create-release.md
+│   ├── UC-PM-006-create-release.md
+│   └── UC-PM-007-jira-like-planning-view.md
 ├── ba/                                # Business Analyst workflows
 │   ├── UC-BA-001-analyze-story-requirements.md
 │   ├── UC-BA-002-create-use-case.md
 │   ├── UC-BA-003-view-use-case-impact-analysis.md
-│   └── UC-BA-004-search-use-case-library.md
+│   ├── UC-BA-004-search-use-case-library.md
+│   └── UC-BA-005-advanced-use-case-search.md
 ├── architect/                         # Architect workflows
 │   ├── UC-ARCH-001-assess-technical-complexity.md
 │   ├── UC-ARCH-002-view-code-quality-dashboard.md
@@ -41,13 +43,16 @@ use-cases/
 │   └── UC-DEV-003-link-commit-to-story.md
 ├── qa/                                # QA & Testing workflows
 │   ├── UC-QA-001-test-story-implementation.md
-│   └── UC-QA-002-report-defect.md
+│   ├── UC-QA-002-report-defect.md
+│   └── UC-QA-003-manage-test-case-coverage.md
 ├── metrics/                           # Metrics & Analytics
 │   ├── UC-METRICS-001-view-framework-effectiveness.md
-│   └── UC-METRICS-002-view-project-tracker.md
+│   ├── UC-METRICS-002-view-project-tracker.md
+│   └── UC-METRICS-003-view-agent-execution-details.md
 ├── admin/                             # System Administration
 │   ├── UC-ADMIN-001-bootstrap-project.md
-│   └── UC-ADMIN-002-manage-agentic-frameworks.md
+│   ├── UC-ADMIN-002-manage-agentic-frameworks.md
+│   └── UC-ADMIN-003-manage-layers-and-components.md
 └── integration/                       # End-to-End workflows
     └── UC-INT-001-end-to-end-story-workflow.md
 ```
@@ -61,20 +66,22 @@ PMs manage projects, epics, stories, and track overall progress.
 |----|----------|-------------|
 | UC-PM-001 | Create New Project | Initialize new project in AI Studio |
 | UC-PM-002 | Create Epic | Define high-level initiatives |
-| UC-PM-003 | Create Story | Create stories with complexity assessment |
+| UC-PM-003 | Create Story | Create stories with layers, components, complexity fields |
 | UC-PM-004 | Assign Story to Framework | Assign work to agentic frameworks |
 | UC-PM-005 | View Project Dashboard | Monitor project health and metrics |
 | UC-PM-006 | Create Release | Plan and manage releases |
+| UC-PM-007 | JIRA-like Planning View | Drag-and-drop planning with subtasks |
 
 ### Business Analyst (BA)
 BAs analyze requirements, maintain use case library, and ensure business alignment.
 
 | ID | Use Case | Description |
 |----|----------|-------------|
-| UC-BA-001 | Analyze Story Requirements | Perform BA analysis, link use cases |
-| UC-BA-002 | Create Use Case | Document business use cases |
+| UC-BA-001 | Analyze Story Requirements | Perform BA analysis, link use cases, fill BA complexity |
+| UC-BA-002 | Create Use Case | Document business use cases tagged by component |
 | UC-BA-003 | View Use Case Impact Analysis | Track use case changes and impact |
 | UC-BA-004 | Search Use Case Library | Find use cases with semantic search |
+| UC-BA-005 | Advanced Use Case Search | Component-based search and management for finding relevant use cases |
 
 ### Architect
 Architects assess technical complexity, monitor code quality, and guide design decisions.
@@ -101,6 +108,7 @@ QA testers validate implementations and report defects.
 |----|----------|-------------|
 | UC-QA-001 | Test Story Implementation | Execute testing and verify acceptance criteria |
 | UC-QA-002 | Report Defect | Create and track defects with leakage metrics |
+| UC-QA-003 | Manage Test Case Coverage | Link test cases to use cases, track coverage by test level (unit/integration/E2E) |
 
 ### Metrics & Analytics Users
 PMs, Architects, and Stakeholders view dashboards and metrics.
@@ -118,6 +126,7 @@ Admins bootstrap projects and configure frameworks.
 |----|----------|-------------|
 | UC-ADMIN-001 | Bootstrap Project | One-command project setup with MCP integration |
 | UC-ADMIN-002 | Manage Agentic Frameworks | Configure agents, workflows, and policies |
+| UC-ADMIN-003 | Manage Layers and Components | Define and maintain layer/component structure for organization |
 
 ### Integration / End-to-End
 Complete workflows spanning multiple actors.
