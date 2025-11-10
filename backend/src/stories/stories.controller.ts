@@ -1,0 +1,115 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { StoriesService } from './stories.service';
+import {
+  CreateStoryDto,
+  UpdateStoryDto,
+  FilterStoryDto,
+  UpdateStoryStatusDto,
+} from './dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '@prisma/client';
+
+@ApiTags('stories')
+@Controller('stories')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@ApiBearerAuth()
+export class StoriesController {
+  constructor(private readonly storiesService: StoriesService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all stories with filters' })
+  @ApiResponse({ status: 200, description: 'Return filtered stories' })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'epicId', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  findAll(@Query() filterDto: FilterStoryDto) {
+    return this.storiesService.findAll(filterDto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get story by ID' })
+  @ApiResponse({ status: 200, description: 'Return story details' })
+  @ApiResponse({ status: 404, description: 'Story not found' })
+  findOne(@Param('id') id: string) {
+    return this.storiesService.findOne(id);
+  }
+
+  @Post()
+  @Roles(UserRole.admin, UserRole.pm, UserRole.ba)
+  @ApiOperation({ summary: 'Create a new story (Admin, PM, BA)' })
+  @ApiResponse({ status: 201, description: 'Story successfully created' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  create(@Body() createStoryDto: CreateStoryDto, @Request() req: any) {
+    return this.storiesService.create(createStoryDto, req.user.id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.admin, UserRole.pm, UserRole.ba)
+  @ApiOperation({ summary: 'Update story (Admin, PM, BA)' })
+  @ApiResponse({ status: 200, description: 'Story successfully updated' })
+  @ApiResponse({ status: 404, description: 'Story not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  update(@Param('id') id: string, @Body() updateStoryDto: UpdateStoryDto) {
+    return this.storiesService.update(id, updateStoryDto);
+  }
+
+  @Patch(':id/status')
+  @Roles(UserRole.admin, UserRole.pm, UserRole.ba, UserRole.architect, UserRole.dev)
+  @ApiOperation({ summary: 'Update story status with workflow validation' })
+  @ApiResponse({ status: 200, description: 'Story status updated' })
+  @ApiResponse({ status: 400, description: 'Invalid status transition' })
+  @ApiResponse({ status: 404, description: 'Story not found' })
+  updateStatus(
+    @Param('id') id: string,
+    @Body() updateStatusDto: UpdateStoryStatusDto,
+    @Request() req: any
+  ) {
+    const isAdmin = req.user.role === UserRole.admin;
+    return this.storiesService.updateStatus(id, updateStatusDto, isAdmin);
+  }
+
+  @Post(':id/assign')
+  @Roles(UserRole.admin, UserRole.pm)
+  @ApiOperation({ summary: 'Assign story to framework (Admin, PM)' })
+  @ApiResponse({ status: 200, description: 'Story assigned to framework' })
+  @ApiResponse({ status: 404, description: 'Story or framework not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  assignFramework(
+    @Param('id') id: string,
+    @Body('frameworkId') frameworkId: string
+  ) {
+    return this.storiesService.assignFramework(id, frameworkId);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.admin, UserRole.pm)
+  @ApiOperation({ summary: 'Delete story (Admin, PM)' })
+  @ApiResponse({ status: 200, description: 'Story successfully deleted' })
+  @ApiResponse({ status: 404, description: 'Story not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  remove(@Param('id') id: string) {
+    return this.storiesService.remove(id);
+  }
+}
