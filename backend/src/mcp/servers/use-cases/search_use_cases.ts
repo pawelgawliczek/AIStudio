@@ -4,7 +4,7 @@ import { ValidationError } from '../../types';
 
 export const tool: Tool = {
   name: 'search_use_cases',
-  description: 'Search use cases using semantic search (natural language), text search (keywords), or component filter. Returns ranked results with similarity scores for semantic search.',
+  description: 'Search use cases using component/area filtering and text search. Optimized for AI agents with deterministic results based on story/epic context and component relationships.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -14,24 +14,32 @@ export const tool: Tool = {
       },
       query: {
         type: 'string',
-        description: 'Search query - for semantic search use natural language (e.g., "password reset flow"), for text search use keywords',
-      },
-      mode: {
-        type: 'string',
-        enum: ['semantic', 'text', 'component'],
-        description: 'Search mode: "semantic" for AI-powered similarity search, "text" for keyword matching, "component" for filtering by area/component',
+        description: 'Text search query (searches key, title, area). Example: "password reset"',
       },
       area: {
         type: 'string',
-        description: 'Filter by feature area (e.g., "Authentication", "Billing")',
+        description: 'Filter by single feature area/component (exact match). Example: "Authentication"',
+      },
+      areas: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Filter by multiple areas (OR logic). Example: ["Authentication", "Email Service"]',
+      },
+      storyId: {
+        type: 'string',
+        description: 'Find use cases linked to this specific story',
+      },
+      epicId: {
+        type: 'string',
+        description: 'Find use cases linked to stories in this epic',
       },
       limit: {
         type: 'number',
         description: 'Maximum number of results to return (default: 20, max: 100)',
       },
-      minSimilarity: {
+      offset: {
         type: 'number',
-        description: 'Minimum similarity threshold for semantic search (0.0-1.0, default: 0.7)',
+        description: 'Pagination offset (default: 0)',
       },
     },
     required: ['projectId'],
@@ -47,7 +55,7 @@ export const metadata = {
 };
 
 export async function handler(prisma: PrismaClient, params: any) {
-  const { projectId, query, mode = 'text', area, limit = 20, minSimilarity = 0.7 } = params;
+  const { projectId, query, area, areas, storyId, epicId, limit = 20, offset = 0 } = params;
 
   try {
     // Validate required parameters
@@ -56,146 +64,85 @@ export async function handler(prisma: PrismaClient, params: any) {
     }
 
     // Validate limit
-    const resultLimit = Math.min(Math.max(1, limit), 100);
+    const resultLimit = Math.min(Math.max(1, limit || 20), 100);
 
-    let useCases: any[] = [];
+    // Build where clause for component/story/epic based search
+    const where: any = {
+      projectId,
+    };
 
-    if (mode === 'semantic') {
-      // Semantic search using pgvector
-      // Note: This requires OpenAI API key and embeddings to be generated
-      if (!query) {
-        throw new ValidationError('Query is required for semantic search mode');
-      }
-
-      // For now, fall back to text search with a note
-      // In production, this would generate embeddings and use vector similarity
-      const results = await prisma.useCase.findMany({
-        where: {
-          projectId,
-          area: area || undefined,
-          OR: [
-            { key: { contains: query, mode: 'insensitive' } },
-            { title: { contains: query, mode: 'insensitive' } },
-            { area: { contains: query, mode: 'insensitive' } },
-          ],
-        },
-        include: {
-          versions: {
-            orderBy: { version: 'desc' },
-            take: 1,
-            include: {
-              createdBy: {
-                select: {
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-          storyLinks: {
-            include: {
-              story: {
-                select: {
-                  key: true,
-                  title: true,
-                  status: true,
-                },
-              },
-            },
-          },
-        },
-        take: resultLimit,
-        orderBy: { updatedAt: 'desc' },
-      });
-
-      useCases = results.map((uc) => ({
-        ...uc,
-        similarity: 0.85, // Mock similarity score
-        note: 'Semantic search requires OpenAI API key configuration',
-      }));
-    } else if (mode === 'text') {
-      // Text search using keyword matching
-      const whereClause: any = {
-        projectId,
-        area: area || undefined,
-      };
-
-      if (query) {
-        whereClause.OR = [
-          { key: { contains: query, mode: 'insensitive' } },
-          { title: { contains: query, mode: 'insensitive' } },
-          { area: { contains: query, mode: 'insensitive' } },
-        ];
-      }
-
-      useCases = await prisma.useCase.findMany({
-        where: whereClause,
-        include: {
-          versions: {
-            orderBy: { version: 'desc' },
-            take: 1,
-            include: {
-              createdBy: {
-                select: {
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-          storyLinks: {
-            include: {
-              story: {
-                select: {
-                  key: true,
-                  title: true,
-                  status: true,
-                },
-              },
-            },
-          },
-        },
-        take: resultLimit,
-        orderBy: { updatedAt: 'desc' },
-      });
-    } else if (mode === 'component') {
-      // Component-based filtering
-      useCases = await prisma.useCase.findMany({
-        where: {
-          projectId,
-          area: area || undefined,
-        },
-        include: {
-          versions: {
-            orderBy: { version: 'desc' },
-            take: 1,
-            include: {
-              createdBy: {
-                select: {
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-          storyLinks: {
-            include: {
-              story: {
-                select: {
-                  key: true,
-                  title: true,
-                  status: true,
-                },
-              },
-            },
-          },
-        },
-        take: resultLimit,
-        orderBy: { area: 'asc' },
-      });
+    // Filter by single area
+    if (area) {
+      where.area = area;
     }
 
-    // Format results
+    // Filter by multiple areas (OR logic)
+    if (areas && Array.isArray(areas) && areas.length > 0) {
+      where.area = { in: areas };
+    }
+
+    // Filter by story (use cases linked to this story)
+    if (storyId) {
+      where.storyLinks = {
+        some: {
+          storyId,
+        },
+      };
+    }
+
+    // Filter by epic (use cases linked to stories in this epic)
+    if (epicId) {
+      where.storyLinks = {
+        some: {
+          story: {
+            epicId,
+          },
+        },
+      };
+    }
+
+    // Text search across key, title, area
+    if (query) {
+      where.OR = [
+        { key: { contains: query, mode: 'insensitive' } },
+        { title: { contains: query, mode: 'insensitive' } },
+        { area: { contains: query, mode: 'insensitive' } },
+      ];
+    }
+
+    const useCases = await prisma.useCase.findMany({
+      where,
+      include: {
+        versions: {
+          orderBy: { version: 'desc' },
+          take: 1,
+          include: {
+            createdBy: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        storyLinks: {
+          include: {
+            story: {
+              select: {
+                key: true,
+                title: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+      skip: offset,
+      take: resultLimit,
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    // Format results for AI agent
     const formattedResults = useCases.map((uc) => {
       const latestVersion = uc.versions[0];
       return {
@@ -204,14 +151,15 @@ export async function handler(prisma: PrismaClient, params: any) {
         title: uc.title,
         area: uc.area,
         summary: latestVersion?.summary,
+        content: latestVersion?.content,
         version: latestVersion?.version,
         linkedStories: uc.storyLinks.map((link: any) => ({
+          storyId: link.storyId,
           key: link.story.key,
           title: link.story.title,
           status: link.story.status,
           relation: link.relation,
         })),
-        similarity: uc.similarity,
         updatedAt: uc.updatedAt,
       };
     });
@@ -223,9 +171,19 @@ export async function handler(prisma: PrismaClient, params: any) {
           text: JSON.stringify(
             {
               success: true,
-              mode,
-              query,
-              results: formattedResults.length,
+              filters: {
+                projectId,
+                query: query || null,
+                area: area || null,
+                areas: areas || null,
+                storyId: storyId || null,
+                epicId: epicId || null,
+              },
+              pagination: {
+                offset,
+                limit: resultLimit,
+                returned: formattedResults.length,
+              },
               useCases: formattedResults,
             },
             null,

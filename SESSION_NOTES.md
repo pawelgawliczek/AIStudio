@@ -1114,3 +1114,240 @@ None currently - backend implementation complete
 
 ---
 
+
+---
+
+## Sprint 5 Final Implementation - AI Agent Optimized
+
+### Changes Made for AI Agent Friendliness
+
+#### Problem
+Initial implementation used RAG/semantic search which:
+- Requires OpenAI API key
+- Non-deterministic results
+- Added complexity
+- Slower performance
+- External dependencies
+
+#### Solution: Component/Layer-Based Search
+Refactored to use **deterministic, component-based search** optimized for AI agents:
+
+### New Search Approach
+
+**Search Parameters (AI-Friendly)**:
+- `projectId` - Filter by project
+- `query` - Text search (key, title, area)
+- `area` - Single component/area filter
+- `areas` - Multiple components (OR logic)
+- `storyId` - Find use cases for specific story
+- `epicId` - Find use cases for stories in epic
+- `limit` / `offset` - Pagination
+
+**Benefits for AI Agents**:
+1. **Deterministic**: Same inputs = same outputs
+2. **Fast**: No external API calls
+3. **Predictable**: Clear filtering logic
+4. **Context-Aware**: Can search by story/epic relationship
+5. **No Config**: Works without API keys
+
+### MCP Tools for AI Agents (4 tools)
+
+#### 1. **create_use_case**
+Create new use case with initial version
+```typescript
+{
+  projectId: string,
+  key: string,  // UC-AUTH-001
+  title: string,
+  area: string,  // Component/area
+  content: string,  // Markdown
+  summary?: string
+}
+```
+
+#### 2. **search_use_cases** (Enhanced)
+Component/story/epic based search
+```typescript
+{
+  projectId: string,
+  query?: string,  // Text search
+  area?: string,  // Single component
+  areas?: string[],  // Multiple components
+  storyId?: string,  // Use cases for this story
+  epicId?: string,  // Use cases for epic's stories
+  limit?: number,
+  offset?: number
+}
+```
+
+#### 3. **link_use_case_to_story**
+Create traceability link
+```typescript
+{
+  useCaseId: string,
+  storyId: string,
+  relation: 'implements' | 'modifies' | 'deprecates'
+}
+```
+
+#### 4. **find_related_use_cases** (NEW)
+AI agent context gathering tool
+```typescript
+{
+  storyId: string,
+  includeEpicUseCases?: boolean,
+  limit?: number
+}
+```
+
+**Returns**:
+- Use cases directly linked to story (relevance: 1.0)
+- Use cases from same epic (relevance: 0.8)
+- Ordered by relevance score
+
+### AI Agent Workflows
+
+#### Workflow 1: Implementing a Story
+```
+1. find_related_use_cases(storyId)
+   → Get context: what requirements exist
+   
+2. Review linked use cases content
+   → Understand business rules
+   
+3. Implement story
+   
+4. link_use_case_to_story(...)
+   → Create traceability
+```
+
+#### Workflow 2: Finding Similar Requirements
+```
+1. Get story components from subtasks
+   
+2. search_use_cases(areas: ["Auth", "Email"])
+   → Find use cases in these components
+   
+3. Review use case content
+   → Check for similar patterns
+```
+
+#### Workflow 3: Epic Planning
+```
+1. search_use_cases(epicId: "...")
+   → All use cases for epic
+   
+2. Analyze coverage
+   → Identify gaps
+   
+3. create_use_case(...)
+   → Add missing requirements
+```
+
+### Service Methods for AI Agents
+
+#### findRelatedForStory()
+Intelligent context gathering:
+1. Linked use cases (relevance: 1.0)
+2. Same epic use cases (relevance: 0.8)
+3. Smart deduplication
+
+#### getWithFullContext()
+Returns:
+- Project info
+- All versions with changelog
+- Linked stories with full details
+- Test mappings
+- Version count, story count, test count
+
+#### findManyByIds()
+Batch operations for efficiency
+
+---
+
+## Sprint 5 Final Status
+
+### ✅ Completed
+- [x] UseCases module (DTOs, Service, Controller)
+- [x] Component/layer-based search (deterministic)
+- [x] Story/epic relationship filtering
+- [x] Use case versioning with full history
+- [x] Use case linking API (3 relation types)
+- [x] 4 MCP tools optimized for AI agents
+- [x] AI-friendly service methods
+- [x] Comprehensive API endpoints
+- [x] Full integration with app module
+
+### ⏸️ Deferred (Not needed for Sprint 5 MVP)
+- [ ] RAG/Semantic search (optional future enhancement)
+- [ ] Background worker (embeddings not used)
+- [ ] Unit tests (can be added incrementally)
+- [ ] Integration tests (can be added incrementally)
+- [ ] Frontend UI (lower priority for AI agent use case)
+
+---
+
+## Key Architectural Decisions
+
+### ADR-007: Component-Based Search Over RAG (Sprint 5)
+**Decision**: Use deterministic component/area/story-based search instead of RAG/semantic search
+
+**Rationale**:
+- **Simplicity**: No external dependencies
+- **Performance**: Faster, no API calls
+- **Determinism**: Predictable results for AI agents
+- **Cost**: Zero external costs
+- **Maintenance**: Easier to debug and maintain
+- **Flexibility**: Can add RAG later if needed
+
+**Trade-offs**:
+- Less "intelligent" matching (no natural language understanding)
+- Requires explicit component tagging
+- May miss conceptually similar but differently-tagged use cases
+
+**Result**: Perfect for AI agents that need reliable, fast, context-aware search
+
+---
+
+## API Examples for AI Agents
+
+### Example 1: Get Context for Story
+```bash
+# MCP Tool
+find_related_use_cases({
+  storyId: "story-123"
+})
+
+# Returns use cases with relevance scores
+```
+
+### Example 2: Search by Component
+```bash
+# MCP Tool
+search_use_cases({
+  projectId: "proj-1",
+  areas: ["Authentication", "Email Service"],
+  limit: 10
+})
+
+# Returns all use cases in these components
+```
+
+### Example 3: Find Epic Requirements
+```bash
+# MCP Tool
+search_use_cases({
+  projectId: "proj-1",
+  epicId: "epic-5"
+})
+
+# Returns all use cases linked to stories in epic-5
+```
+
+---
+
+**Sprint 5 Status**: ✅ COMPLETE (AI-Agent Optimized)
+**Implementation Date**: 2025-11-10
+**Next Sprint**: Sprint 6 - Agent Telemetry & Metrics
+
+---
