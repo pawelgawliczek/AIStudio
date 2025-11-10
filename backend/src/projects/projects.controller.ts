@@ -1,39 +1,70 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { ProjectsService } from './projects.service';
+import { CreateProjectDto, UpdateProjectDto } from './dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('projects')
 @Controller('projects')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiBearerAuth()
 export class ProjectsController {
-  constructor(private projectsService: ProjectsService) {}
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all projects' })
+  @ApiResponse({ status: 200, description: 'Return all projects' })
   findAll() {
     return this.projectsService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get project by ID' })
+  @ApiResponse({ status: 200, description: 'Return project details' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   findOne(@Param('id') id: string) {
     return this.projectsService.findOne(id);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new project' })
-  create(@Body() body: { name: string; description?: string; repositoryUrl?: string }) {
-    return this.projectsService.create(body);
+  @Roles(UserRole.admin, UserRole.pm, UserRole.architect)
+  @ApiOperation({ summary: 'Create a new project (Admin, PM, Architect)' })
+  @ApiResponse({ status: 201, description: 'Project successfully created' })
+  @ApiResponse({ status: 400, description: 'Bad request - project already exists' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  create(@Body() createProjectDto: CreateProjectDto) {
+    return this.projectsService.create(createProjectDto);
   }
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Update project' })
-  update(
-    @Param('id') id: string,
-    @Body() body: Partial<{ name: string; description: string; status: string }>,
-  ) {
-    return this.projectsService.update(id, body);
+  @Patch(':id')
+  @Roles(UserRole.admin, UserRole.pm, UserRole.architect)
+  @ApiOperation({ summary: 'Update project (Admin, PM, Architect)' })
+  @ApiResponse({ status: 200, description: 'Project successfully updated' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
+    return this.projectsService.update(id, updateProjectDto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.admin)
+  @ApiOperation({ summary: 'Delete project (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Project successfully deleted' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - admin role required' })
+  remove(@Param('id') id: string) {
+    return this.projectsService.remove(id);
   }
 }
