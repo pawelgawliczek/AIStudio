@@ -18,6 +18,7 @@ import { PlanningFilters } from '../components/planning/PlanningFilters';
 import { PlanningItemCard } from '../components/planning/PlanningItemCard';
 import { StoryDetailDrawer } from '../components/StoryDetailDrawer';
 import { CreateStoryModal } from '../components/CreateStoryModal';
+import { CreateEpicModal } from '../components/CreateEpicModal';
 import { useWebSocket, useStoryEvents, useEpicEvents } from '../services/websocket.service';
 import { useProject } from '../context/ProjectContext';
 
@@ -48,6 +49,8 @@ export function EpicPlanningView() {
   const [isCreating, setIsCreating] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const [showEditEpicModal, setShowEditEpicModal] = useState(false);
+  const [editingEpic, setEditingEpic] = useState<Epic | null>(null);
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -358,6 +361,27 @@ export function EpicPlanningView() {
     }
   };
 
+  const handleEditEpic = (epic: Epic) => {
+    setEditingEpic(epic);
+    setShowEditEpicModal(true);
+  };
+
+  const handleUpdateEpic = async (data: any) => {
+    if (!editingEpic) return;
+    try {
+      setIsCreating(true);
+      await epicsApi.update(editingEpic.id, data);
+      setShowEditEpicModal(false);
+      setEditingEpic(null);
+      queryClient.invalidateQueries({ queryKey: ['planning-overview'] });
+    } catch (error) {
+      console.error('Failed to update epic:', error);
+      alert('Failed to update epic');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const updateFilter = (key: string, value: string[]) => {
     const newParams = new URLSearchParams(searchParams);
     if (value.length > 0) {
@@ -521,7 +545,7 @@ export function EpicPlanningView() {
                     <EpicGroup
                       key={epic.id}
                       epic={epic}
-                      onEpicClick={handleItemClick}
+                      onEpicClick={handleEditEpic}
                       onStoryClick={handleItemClick}
                       onAddStory={handleAddStory}
                     />
@@ -614,6 +638,24 @@ export function EpicPlanningView() {
               businessComplexity: editingStory.businessComplexity,
               layerIds: editingStory.layers?.map(l => l.layerId) || [],
               componentIds: editingStory.components?.map(c => c.componentId) || [],
+            }}
+          />
+        )}
+
+        {/* Edit Epic Modal */}
+        {editingEpic && (
+          <CreateEpicModal
+            open={showEditEpicModal}
+            onClose={() => {
+              setShowEditEpicModal(false);
+              setEditingEpic(null);
+            }}
+            onSubmit={handleUpdateEpic}
+            isLoading={isCreating}
+            initialData={{
+              title: editingEpic.title,
+              description: editingEpic.description || '',
+              priority: editingEpic.priority,
             }}
           />
         )}

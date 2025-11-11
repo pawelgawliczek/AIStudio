@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -11,6 +11,11 @@ interface CreateEpicModalProps {
     priority?: number;
   }) => void;
   isLoading?: boolean;
+  initialData?: {
+    title: string;
+    description?: string;
+    priority?: number;
+  };
 }
 
 export function CreateEpicModal({
@@ -18,10 +23,27 @@ export function CreateEpicModal({
   onClose,
   onSubmit,
   isLoading = false,
+  initialData,
 }: CreateEpicModalProps) {
+  const isEditing = !!initialData;
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<number>(3);
+
+  // Populate form with initial data when editing
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title);
+      setDescription(initialData.description || '');
+      setPriority(initialData.priority || 3);
+    } else {
+      // Reset form when creating new
+      setTitle('');
+      setDescription('');
+      setPriority(3);
+    }
+  }, [initialData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +52,7 @@ export function CreateEpicModal({
       description,
       priority,
     });
-    // Reset form
-    setTitle('');
-    setDescription('');
-    setPriority(3);
+    // Form will be reset via useEffect when modal closes
   };
 
   return (
@@ -80,7 +99,7 @@ export function CreateEpicModal({
                       as="h3"
                       className="text-xl font-semibold leading-6 text-gray-900 mb-6"
                     >
-                      Create New Epic
+                      {isEditing ? 'Edit Epic' : 'Create New Epic'}
                     </Dialog.Title>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,7 +177,7 @@ export function CreateEpicModal({
                           className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                           disabled={isLoading}
                         >
-                          {isLoading ? 'Creating...' : 'Create Epic'}
+                          {isLoading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Epic' : 'Create Epic')}
                         </button>
                       </div>
                     </form>
