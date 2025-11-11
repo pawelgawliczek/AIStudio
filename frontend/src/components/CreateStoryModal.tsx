@@ -55,6 +55,7 @@ export function CreateStoryModal({
   const [epicId, setEpicId] = useState('');
   const [technicalComplexity, setTechnicalComplexity] = useState<number>(3);
   const [businessImpact, setBusinessImpact] = useState<number>(3);
+  const [businessComplexity, setBusinessComplexity] = useState<number>(3);
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
 
@@ -73,6 +74,7 @@ export function CreateStoryModal({
       // Clamp complexity and impact values to valid range (1-5)
       setTechnicalComplexity(Math.min(Math.max(initialData.technicalComplexity || 3, 1), 5));
       setBusinessImpact(Math.min(Math.max(initialData.businessImpact || 3, 1), 5));
+      setBusinessComplexity(Math.min(Math.max(initialData.businessComplexity || 3, 1), 5));
       setSelectedLayerIds(initialData.layerIds || []);
       setSelectedComponentIds(initialData.componentIds || []);
     } else {
@@ -83,6 +85,7 @@ export function CreateStoryModal({
       setEpicId('');
       setTechnicalComplexity(3);
       setBusinessImpact(3);
+      setBusinessComplexity(3);
       setSelectedLayerIds([]);
       setSelectedComponentIds([]);
     }
@@ -167,6 +170,7 @@ export function CreateStoryModal({
       epicId: epicId || undefined,
       technicalComplexity,
       businessImpact,
+      businessComplexity,
       layerIds: selectedLayerIds.length > 0 ? selectedLayerIds : undefined,
       componentIds: selectedComponentIds.length > 0 ? selectedComponentIds : undefined,
     });
