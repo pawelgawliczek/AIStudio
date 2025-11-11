@@ -20,11 +20,11 @@ import { Logger } from '@nestjs/common';
     credentials: true,
   },
 })
-export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private readonly logger = new Logger(WebSocketGateway.name);
+  private readonly logger = new Logger(AppWebSocketGateway.name);
 
   // Track active users per room
   private activeUsers = new Map<string, Set<string>>();

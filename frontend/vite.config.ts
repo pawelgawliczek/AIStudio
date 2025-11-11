@@ -12,12 +12,28 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true,
+    host: '0.0.0.0',
+    strictPort: true,
+    allowedHosts: [
+      'aistudio.example.com',
+      'vibestudio.example.com',
+      'localhost',
+      '127.0.0.1',
+    ],
+    hmr: {
+      clientPort: 443,
+      protocol: 'wss',
+      host: 'aistudio.example.com',
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://backend:3000',
         changeOrigin: true,
       },
     },
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
   },
 });

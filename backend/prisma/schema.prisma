@@ -31,6 +31,7 @@ model User {
   createdUseCaseVersions UseCaseVersion[]
   assignedTestCases      TestCase[]         @relation("TestCaseAssignee")
   createdTestCases       TestCase[]         @relation("TestCaseCreator")
+  ownedComponents        Component[]        @relation("ComponentOwner")
 
   @@map("users")
 }
@@ -55,6 +56,8 @@ model Project {
   runs          Run[]
   releases      Release[]
   auditLogs     AuditLog[]
+  layers        Layer[]
+  components    Component[]
 
   @@map("projects")
 }
@@ -95,6 +98,11 @@ model Story {
   estimatedTokenCost   Int?         @map("estimated_token_cost")
   assignedFrameworkId  String?      @map("assigned_framework_id") @db.Uuid
   createdById          String       @map("created_by") @db.Uuid
+
+  // Analysis fields (filled by agents)
+  baAnalysis           String?      @map("ba_analysis")  // Rich text from BA agent
+  architectAnalysis    String?      @map("architect_analysis")  // Rich text from Architect agent
+
   createdAt            DateTime     @default(now()) @map("created_at")
   updatedAt            DateTime     @updatedAt @map("updated_at")
 
@@ -110,6 +118,8 @@ model Story {
   testExecutions   TestExecution[]
   defect           Defect?
   releaseItems     ReleaseItem[]
+  layers           StoryLayer[]
+  components       StoryComponent[]
 
   @@unique([projectId, key])
   @@index([projectId, status, type])
@@ -141,26 +151,120 @@ model Subtask {
 }
 
 // ============================================================================
+// LAYERS & COMPONENTS (Organizational Structure)
+// ============================================================================
+
+model Layer {
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String      @map("project_id") @db.Uuid
+  name        String      // "Frontend", "Backend API", "Database", etc.
+  description String?
+  techStack   String[]    @map("tech_stack") // ["React", "TypeScript", "Vite"]
+  orderIndex  Int         @map("order_index")  // Display order in UI
+  color       String?     // Hex color for UI visualization
+  icon        String?     // Icon name or emoji
+  status      LayerStatus @default(active)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  storyLayers      StoryLayer[]
+  componentLayers  ComponentLayer[]
+  useCases         UseCase[]
+  testCases        TestCase[]
+
+  @@unique([projectId, name])
+  @@index([projectId, status])
+  @@map("layers")
+}
+
+model Component {
+  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId     String          @map("project_id") @db.Uuid
+  name          String          // "Authentication", "Billing", "Reporting"
+  description   String?
+  ownerId       String?         @map("owner_id") @db.Uuid  // Team member responsible
+  status        ComponentStatus @default(active)
+  color         String?         // Hex color for UI
+  icon          String?         // Icon or emoji
+  filePatterns  String[]        @map("file_patterns")  // ["src/auth/**/*", "**/*auth*.ts"]
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner             User?             @relation("ComponentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  layers            ComponentLayer[]  // Which layers this component spans
+  storyComponents   StoryComponent[]
+  useCases          UseCase[]
+  testCases         TestCase[]
+
+  @@unique([projectId, name])
+  @@index([projectId, status])
+  @@map("components")
+}
+
+model ComponentLayer {
+  componentId String    @map("component_id") @db.Uuid
+  layerId     String    @map("layer_id") @db.Uuid
+
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  layer     Layer     @relation(fields: [layerId], references: [id], onDelete: Cascade)
+
+  @@id([componentId, layerId])
+  @@map("component_layers")
+}
+
+model StoryLayer {
+  storyId  String  @map("story_id") @db.Uuid
+  layerId  String  @map("layer_id") @db.Uuid
+
+  story    Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  layer    Layer   @relation(fields: [layerId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, layerId])
+  @@map("story_layers")
+}
+
+model StoryComponent {
+  storyId     String    @map("story_id") @db.Uuid
+  componentId String    @map("component_id") @db.Uuid
+
+  story       Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, componentId])
+  @@map("story_components")
+}
+
+// ============================================================================
 // USE CASES & REQUIREMENTS
 // ============================================================================
 
 model UseCase {
-  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId String   @map("project_id") @db.Uuid
-  key       String   // unique within project
-  title     String
-  area      String?  // screen/flow/feature area
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  key         String   // unique within project
+  title       String
+  area        String?  // screen/flow/feature area
+  componentId String?  @map("component_id") @db.Uuid
+  layerId     String?  @map("layer_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   project    Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  component  Component?         @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  layer      Layer?             @relation(fields: [layerId], references: [id], onDelete: SetNull)
   versions   UseCaseVersion[]
   storyLinks StoryUseCaseLink[]
   testCases  TestCase[]
 
   @@unique([projectId, key])
   @@index([projectId, area])
+  @@index([componentId])
+  @@index([layerId])
   @@map("use_cases")
 }
 
@@ -261,11 +365,11 @@ model CommitFile {
 }
 
 model TestCase {
-  id         String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId  String       @map("project_id") @db.Uuid
-  useCaseId  String       @map("use_case_id") @db.Uuid
-  key        String       // unique within project (e.g., TC-AUTH-101)
-  title      String
+  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  useCaseId   String       @map("use_case_id") @db.Uuid
+  key         String       // unique within project (e.g., TC-AUTH-101)
+  title       String
   description String?
 
   // Test details
@@ -275,6 +379,10 @@ model TestCase {
   testSteps       String?       @map("test_steps")
   expectedResults String?       @map("expected_results")
   testData        Json?         @map("test_data")
+
+  // Organization
+  componentId String?        @map("component_id") @db.Uuid
+  layerId     String?        @map("layer_id") @db.Uuid
 
   // Implementation
   status       TestCaseStatus @default(pending)
@@ -289,6 +397,8 @@ model TestCase {
   // Relations
   project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   useCase     UseCase         @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  component   Component?      @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  layer       Layer?          @relation(fields: [layerId], references: [id], onDelete: SetNull)
   assignedTo  User?           @relation("TestCaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   createdBy   User            @relation("TestCaseCreator", fields: [createdById], references: [id], onDelete: Cascade)
   executions  TestExecution[]
@@ -296,6 +406,8 @@ model TestCase {
   @@unique([projectId, key])
   @@index([projectId, testLevel])
   @@index([useCaseId])
+  @@index([componentId])
+  @@index([layerId])
   @@index([status])
   @@map("test_cases")
 }
@@ -591,4 +703,15 @@ enum ReleaseStatus {
   in_progress
   released
   rolled_back
+}
+
+enum LayerStatus {
+  active
+  deprecated
+}
+
+enum ComponentStatus {
+  active
+  deprecated
+  planning
 }

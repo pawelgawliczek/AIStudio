@@ -9,6 +9,7 @@ import {
   Min,
   Max,
   IsNotEmpty,
+  IsArray,
 } from 'class-validator';
 
 export class CreateStoryDto {
@@ -76,4 +77,26 @@ export class CreateStoryDto {
   @IsUUID()
   @IsOptional()
   assignedFrameworkId?: string;
+
+  @ApiPropertyOptional({ description: 'Layer IDs this story spans', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  layerIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Component IDs this story affects', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  componentIds?: string[];
+
+  @ApiPropertyOptional({ description: 'BA agent analysis notes' })
+  @IsString()
+  @IsOptional()
+  baAnalysis?: string;
+
+  @ApiPropertyOptional({ description: 'Architect agent analysis notes' })
+  @IsString()
+  @IsOptional()
+  architectAnalysis?: string;
 }

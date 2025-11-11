@@ -37,7 +37,7 @@ export class CommitsService {
         },
       });
 
-      return commit as CommitResponseDto;
+      return this.transformCommit(commit);
     }
 
     // Create new commit with files
@@ -85,7 +85,22 @@ export class CommitsService {
       // Don't fail the request if worker enqueue fails
     }
 
-    return commit as CommitResponseDto;
+    return this.transformCommit(commit);
+  }
+
+  /**
+   * Transform commit to convert bigint and Decimal to numbers
+   */
+  private transformCommit(commit: any): any {
+    return {
+      ...commit,
+      files: commit.files?.map((file: any) => ({
+        ...file,
+        id: Number(file.id),
+        coverageBefore: file.coverageBefore ? Number(file.coverageBefore) : null,
+        coverageAfter: file.coverageAfter ? Number(file.coverageAfter) : null,
+      })),
+    };
   }
 
   /**
@@ -103,7 +118,7 @@ export class CommitsService {
       orderBy: { timestamp: 'desc' },
     });
 
-    return commits as CommitResponseDto[];
+    return commits.map(c => this.transformCommit(c));
   }
 
   /**
@@ -121,7 +136,7 @@ export class CommitsService {
       orderBy: { timestamp: 'desc' },
     });
 
-    return commits as CommitResponseDto[];
+    return commits.map(c => this.transformCommit(c));
   }
 
   /**
@@ -139,7 +154,7 @@ export class CommitsService {
       orderBy: { timestamp: 'desc' },
     });
 
-    return commits as CommitResponseDto[];
+    return commits.map(c => this.transformCommit(c));
   }
 
   /**
@@ -160,7 +175,7 @@ export class CommitsService {
       throw new NotFoundException(`Commit with hash ${hash} not found`);
     }
 
-    return commit as CommitResponseDto;
+    return this.transformCommit(commit);
   }
 
   /**
