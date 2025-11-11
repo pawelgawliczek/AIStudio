@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * AI Studio MCP Server (Sprint 4.5 - Progressive Disclosure)
+ * Vibe Studio MCP Server
  *
  * Implements progressive disclosure pattern with file-based tool discovery.
- * See: docs/sprint-4.5-technical-spec.md
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -15,11 +14,12 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Get __dirname for CommonJS (TypeScript will compile to CommonJS, so __dirname is available)
+// If running as ES module, this will be undefined but servers path will still work
+const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.resolve();
 
 // Initialize Prisma client
 const prisma = new PrismaClient({
@@ -27,13 +27,13 @@ const prisma = new PrismaClient({
 });
 
 // Initialize Tool Registry
-const serversPath = path.join(__dirname, 'servers');
+const serversPath = path.join(currentDir, 'servers');
 const registry = new ToolRegistry(serversPath, prisma);
 
 // Initialize MCP server
 const server = new Server(
   {
-    name: 'aistudio-mcp-server',
+    name: 'vibestudio-mcp-server',
     version: '0.2.0', // Sprint 4.5
   },
   {
@@ -50,15 +50,16 @@ const server = new Server(
 /**
  * List available tools
  *
- * Note: For progressive disclosure, agents should use search_tools instead.
- * This handler now returns only meta tools by default.
+ * Note: Returns all tools for Claude Code compatibility.
+ * Progressive disclosure is still encouraged via search_tools for token efficiency.
  */
 server.setRequestHandler(ListToolsRequestSchema, async (request) => {
   try {
-    // Return only meta tools by default to encourage progressive disclosure
-    const tools = await registry.listTools('meta');
+    // Return all tools to make them callable in Claude Code
+    // (Claude Code creates functions based on ListToolsRequest response)
+    const tools = await registry.listTools();
 
-    console.error(`📋 Listing ${tools.length} meta tools (use search_tools for all)`);
+    console.error(`📋 Listing ${tools.length} tools (all available for Claude Code)`);
 
     return { tools };
   } catch (error: any) {
@@ -124,6 +125,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // ============================================================================
 
 async function main() {
+  // Debug: Log DATABASE_URL and config test
+  console.error(`🔍 DATABASE_URL: ${process.env.DATABASE_URL || 'NOT SET'}`);
+  console.error(`🔍 MCP_CONFIG_TEST: ${process.env.MCP_CONFIG_TEST || 'NOT SET'}`);
+
   // Connect to database
   await prisma.$connect();
   console.error('✅ Connected to database');
@@ -139,7 +144,7 @@ async function main() {
   // Start MCP server with stdio transport
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('✅ AI Studio MCP Server started (Sprint 4.5)');
+  console.error('✅ Vibe Studio MCP Server started');
   console.error('💡 Use search_tools for progressive discovery');
   console.error('Listening for MCP requests...\n');
 }

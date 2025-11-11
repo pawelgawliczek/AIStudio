@@ -2,7 +2,7 @@
   "name": "@aistudio/frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Studio Frontend - React Web UI",
+  "description": "Vibe Studio Frontend - React Web UI",
   "type": "module",
   "scripts": {
     "dev": "vite",

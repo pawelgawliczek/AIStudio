@@ -12,7 +12,7 @@
         "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/aistudio?schema=public",
         "NODE_ENV": "development"
       },
-      "description": "AI Studio MCP Server (Development Mode with ts-node)"
+      "description": "Vibe Studio MCP Server"
     }
   }
 }

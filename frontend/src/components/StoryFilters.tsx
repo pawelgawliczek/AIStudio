@@ -1,40 +1,52 @@
-import { Epic, StoryStatus, StoryType } from '../types';
+import { Epic, StoryStatus, StoryType, Layer, Component } from '../types';
 
 interface StoryFiltersProps {
   epics: Epic[];
+  layers: Layer[];
+  components: Component[];
   selectedEpic: string;
   selectedStatus: StoryStatus | 'all';
   selectedType: StoryType | 'all';
+  selectedLayer: string;
+  selectedComponent: string;
   searchQuery: string;
   onEpicChange: (epicId: string) => void;
   onStatusChange: (status: StoryStatus | 'all') => void;
   onTypeChange: (type: StoryType | 'all') => void;
+  onLayerChange: (layerId: string) => void;
+  onComponentChange: (componentId: string) => void;
   onSearchChange: (query: string) => void;
 }
 
 export function StoryFilters({
   epics,
+  layers,
+  components,
   selectedEpic,
   selectedStatus,
   selectedType,
+  selectedLayer,
+  selectedComponent,
   searchQuery,
   onEpicChange,
   onStatusChange,
   onTypeChange,
+  onLayerChange,
+  onComponentChange,
   onSearchChange,
 }: StoryFiltersProps) {
   return (
-    <div className="bg-white shadow rounded-lg p-4 mb-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="bg-card border border-border rounded-lg shadow-md p-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Epic Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Epic
           </label>
           <select
             value={selectedEpic}
             onChange={(e) => onEpicChange(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           >
             <option value="all">All Epics</option>
             {epics.map((epic) => (
@@ -47,13 +59,13 @@ export function StoryFilters({
 
         {/* Status Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Status
           </label>
           <select
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value as StoryStatus | 'all')}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           >
             <option value="all">All Statuses</option>
             <option value="backlog">Backlog</option>
@@ -70,13 +82,13 @@ export function StoryFilters({
 
         {/* Type Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Type
           </label>
           <select
             value={selectedType}
             onChange={(e) => onTypeChange(e.target.value as StoryType | 'all')}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           >
             <option value="all">All Types</option>
             <option value="feature">Feature</option>
@@ -86,9 +98,47 @@ export function StoryFilters({
           </select>
         </div>
 
+        {/* Layer Filter */}
+        <div>
+          <label className="block text-sm font-medium text-fg mb-2">
+            Layer
+          </label>
+          <select
+            value={selectedLayer}
+            onChange={(e) => onLayerChange(e.target.value)}
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
+          >
+            <option value="all">All Layers</option>
+            {layers.filter(l => l.status === 'active').map((layer) => (
+              <option key={layer.id} value={layer.id}>
+                {layer.icon} {layer.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Component Filter */}
+        <div>
+          <label className="block text-sm font-medium text-fg mb-2">
+            Component
+          </label>
+          <select
+            value={selectedComponent}
+            onChange={(e) => onComponentChange(e.target.value)}
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
+          >
+            <option value="all">All Components</option>
+            {components.filter(c => c.status === 'active').map((component) => (
+              <option key={component.id} value={component.id}>
+                {component.icon} {component.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Search */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Search
           </label>
           <input
@@ -96,7 +146,7 @@ export function StoryFilters({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search stories..."
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           />
         </div>
       </div>
