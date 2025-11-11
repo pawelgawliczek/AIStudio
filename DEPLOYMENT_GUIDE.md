@@ -1,14 +1,14 @@
-# AI Studio - Remote Host Deployment Guide
+# Vibe Studio - Remote Host Deployment Guide
 
-**Version:** 1.0
-**Date:** 2025-11-10
-**Purpose:** Deploy AI Studio to remote host with Caddy reverse proxy and MCP server integration
+**Version:** 1.1
+**Date:** 2025-11-11
+**Purpose:** Deploy Vibe Studio to remote host with Caddy reverse proxy and MCP server integration
 
 ---
 
 ## Overview
 
-This guide walks you through deploying AI Studio on a remote host where:
+This guide walks you through deploying Vibe Studio on a remote host where:
 1. All services run in Docker containers
 2. Caddy exposes the services via HTTPS
 3. Claude Code (on the host) connects to the MCP server
@@ -94,8 +94,8 @@ cd ~/projects
 git clone https://github.com/pawelgawliczek/AIStudio.git
 cd AIStudio
 
-# Checkout the latest branch
-git checkout claude/new-priority-feature-011CUzSn4wxupZiNX6iahb2V
+# Checkout the main branch
+git checkout main
 ```
 
 ### Step 2: Create Production Environment Files
@@ -118,7 +118,7 @@ Update with production values:
 
 ```bash
 # Database Configuration (use postgres service name from docker-compose)
-DATABASE_URL="postgresql://postgres:your-secure-password@postgres:5432/aistudio?schema=public"
+DATABASE_URL="postgresql://postgres:your-secure-password@postgres:5432/vibestudio?schema=public"
 
 # Redis Configuration
 REDIS_URL="redis://redis:6379"
@@ -167,7 +167,7 @@ nano backend/.env
 ```
 
 ```bash
-DATABASE_URL="postgresql://postgres:your-secure-password@postgres:5432/aistudio?schema=public"
+DATABASE_URL="postgresql://postgres:your-secure-password@postgres:5432/vibestudio?schema=public"
 REDIS_URL="redis://redis:6379"
 JWT_SECRET="<same-as-above>"
 JWT_EXPIRES_IN="7d"
@@ -196,10 +196,10 @@ version: '3.8'
 services:
   postgres:
     image: pgvector/pgvector:pg15
-    container_name: aistudio-postgres
+    container_name: vibe-studio-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: aistudio
+      POSTGRES_DB: vibestudio
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: your-secure-password  # CHANGE THIS!
     ports:
@@ -217,7 +217,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: aistudio-redis
+    container_name: vibe-studio-redis
     restart: unless-stopped
     ports:
       - '127.0.0.1:6379:6379'  # Only expose to localhost
@@ -236,13 +236,13 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile.prod
-    container_name: aistudio-backend
+    container_name: vibe-studio-backend
     restart: unless-stopped
     env_file:
       - .env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:your-secure-password@postgres:5432/aistudio?schema=public
+      DATABASE_URL: postgresql://postgres:your-secure-password@postgres:5432/vibestudio?schema=public
       REDIS_URL: redis://redis:6379
     ports:
       - '127.0.0.1:3000:3000'  # Only expose to localhost (Caddy will proxy)
@@ -261,7 +261,7 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile.prod
-    container_name: aistudio-frontend
+    container_name: vibe-studio-frontend
     restart: unless-stopped
     env_file:
       - .env
@@ -274,7 +274,7 @@ services:
 
   caddy:
     image: caddy:2-alpine
-    container_name: aistudio-caddy
+    container_name: vibe-studio-caddy
     restart: unless-stopped
     ports:
       - '80:80'
@@ -429,7 +429,7 @@ nano Caddyfile
 **For production with domain:**
 
 ```caddyfile
-# AI Studio Caddy Configuration
+# Vibe Studio Caddy Configuration
 # Replace your-domain.com with your actual domain
 
 your-domain.com {
@@ -469,7 +469,7 @@ your-domain.com {
 **For development/testing with IP (no domain):**
 
 ```caddyfile
-# AI Studio Caddy Configuration (IP-based)
+# Vibe Studio Caddy Configuration (IP-based)
 
 :80 {
     # Frontend
@@ -504,7 +504,7 @@ your-domain.com {
 ### Step 1: Install Dependencies
 
 ```bash
-cd ~/projects/AIStudio
+cd ~/projects/AIStudio  # Note: directory name may not be updated yet
 npm install
 ```
 
@@ -531,11 +531,11 @@ docker-compose -f docker-compose.prod.yml logs -f
 docker-compose -f docker-compose.prod.yml ps
 
 # Should see:
-# - aistudio-postgres (healthy)
-# - aistudio-redis (healthy)
-# - aistudio-backend (up)
-# - aistudio-frontend (up)
-# - aistudio-caddy (up)
+# - vibe-studio-postgres (healthy)
+# - vibe-studio-redis (healthy)
+# - vibe-studio-backend (up)
+# - vibe-studio-frontend (up)
+# - vibe-studio-caddy (up)
 ```
 
 ### Step 5: Run Database Migrations
@@ -591,12 +591,12 @@ Add the MCP server configuration:
 ```json
 {
   "mcpServers": {
-    "aistudio": {
+    "vibestudio": {
       "command": "node",
       "args": ["backend/dist/mcp/server.js"],
       "cwd": "/home/YOUR_USERNAME/projects/AIStudio",
       "env": {
-        "DATABASE_URL": "postgresql://postgres:your-secure-password@localhost:5432/aistudio?schema=public",
+        "DATABASE_URL": "postgresql://postgres:your-secure-password@localhost:5432/vibestudio?schema=public",
         "NODE_ENV": "production"
       }
     }
@@ -699,10 +699,10 @@ docker-compose -f docker-compose.prod.yml exec backend npx prisma studio
 mkdir -p ~/backups
 
 # Backup database
-docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres aistudio > ~/backups/aistudio_$(date +%Y%m%d_%H%M%S).sql
+docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres vibestudio > ~/backups/vibestudio_$(date +%Y%m%d_%H%M%S).sql
 
 # Backup with compression
-docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres aistudio | gzip > ~/backups/aistudio_$(date +%Y%m%d_%H%M%S).sql.gz
+docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres vibestudio | gzip > ~/backups/vibestudio_$(date +%Y%m%d_%H%M%S).sql.gz
 ```
 
 ### Restore Database
@@ -712,10 +712,10 @@ docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres aist
 docker-compose -f docker-compose.prod.yml stop backend
 
 # Restore
-cat ~/backups/aistudio_20251110_120000.sql | docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres aistudio
+cat ~/backups/vibestudio_20251110_120000.sql | docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres vibestudio
 
 # Or with gzip
-gunzip -c ~/backups/aistudio_20251110_120000.sql.gz | docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres aistudio
+gunzip -c ~/backups/vibestudio_20251110_120000.sql.gz | docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres vibestudio
 
 # Start backend
 docker-compose -f docker-compose.prod.yml start backend
@@ -787,7 +787,7 @@ docker-compose -f docker-compose.prod.yml ps postgres
 docker-compose -f docker-compose.prod.yml logs postgres
 
 # Test connection
-docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d aistudio -c "SELECT version();"
+docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d vibestudio -c "SELECT version();"
 
 # Check DATABASE_URL
 docker-compose -f docker-compose.prod.yml exec backend env | grep DATABASE_URL
@@ -921,10 +921,10 @@ docker-compose -f docker-compose.prod.yml up -d --build
 docker-compose -f docker-compose.prod.yml ps
 
 # Database backup
-docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres aistudio > backup.sql
+docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres vibestudio > backup.sql
 
 # Access database
-docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d aistudio
+docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d vibestudio
 
 # Restart specific service
 docker-compose -f docker-compose.prod.yml restart backend
@@ -932,7 +932,7 @@ docker-compose -f docker-compose.prod.yml restart backend
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-11-10
-**Author:** AI Studio Team
+**Document Version:** 1.1
+**Last Updated:** 2025-11-11
+**Author:** Vibe Studio Team
 **Status:** Ready for Deployment
