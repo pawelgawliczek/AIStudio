@@ -8,20 +8,23 @@ export function ConnectionStatus() {
 
   return (
     <div
-      className="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium"
+      className={clsx(
+        'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium',
+        isConnected
+          ? 'bg-green-500/10 text-green-600 border border-green-500/20'
+          : 'bg-yellow-500/10 text-yellow-600 border border-yellow-500/20'
+      )}
       data-testid="connection-status"
     >
       {isConnected ? (
         <>
-          <WifiIcon className="h-4 w-4 text-green-500" />
-          <span className="text-green-700">Connected</span>
+          <WifiIcon className="h-4 w-4" />
+          <span>Connected</span>
         </>
       ) : (
         <>
-          <ExclamationTriangleIcon className="h-4 w-4 text-yellow-500" />
-          <span className="text-yellow-700" data-testid="connection-warning">
-            Disconnected
-          </span>
+          <ExclamationTriangleIcon className="h-4 w-4" />
+          <span data-testid="connection-warning">Disconnected</span>
         </>
       )}
     </div>

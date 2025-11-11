@@ -2,7 +2,7 @@
   "name": "@aistudio/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Studio Shared - Common types and utilities",
+  "description": "Vibe Studio Shared - Common types and utilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
