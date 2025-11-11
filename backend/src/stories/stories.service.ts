@@ -140,13 +140,26 @@ export class StoriesService {
     // Generate story key
     const key = await this.generateNextKey(createStoryDto.projectId);
 
+    // Extract layerIds and componentIds from DTO
+    const { layerIds, componentIds, ...storyData } = createStoryDto;
+
     // Create story
     const story = await this.prisma.story.create({
       data: {
-        ...createStoryDto,
+        ...storyData,
         key,
         createdById: userId,
         status: StoryStatus.planning, // Always start in planning
+        layers: layerIds && layerIds.length > 0
+          ? {
+              create: layerIds.map(layerId => ({ layerId })),
+            }
+          : undefined,
+        components: componentIds && componentIds.length > 0
+          ? {
+              create: componentIds.map(componentId => ({ componentId })),
+            }
+          : undefined,
       },
       include: {
         project: {
@@ -157,6 +170,20 @@ export class StoriesService {
         },
         assignedFramework: {
           select: { id: true, name: true },
+        },
+        layers: {
+          include: {
+            layer: {
+              select: { id: true, name: true, icon: true, color: true, orderIndex: true },
+            },
+          },
+        },
+        components: {
+          include: {
+            component: {
+              select: { id: true, name: true, icon: true, color: true },
+            },
+          },
         },
         _count: {
           select: {
@@ -239,6 +266,20 @@ export class StoriesService {
           assignedFramework: {
             select: { id: true, name: true },
           },
+          layers: {
+            include: {
+              layer: {
+                select: { id: true, name: true, icon: true, color: true, orderIndex: true },
+              },
+            },
+          },
+          components: {
+            include: {
+              component: {
+                select: { id: true, name: true, icon: true, color: true },
+              },
+            },
+          },
           _count: {
             select: {
               subtasks: true,
@@ -281,6 +322,20 @@ export class StoriesService {
           },
           assignedFramework: {
             select: { id: true, name: true },
+          },
+          layers: {
+            include: {
+              layer: {
+                select: { id: true, name: true, description: true, icon: true, color: true, orderIndex: true },
+              },
+            },
+          },
+          components: {
+            include: {
+              component: {
+                select: { id: true, name: true, description: true, icon: true, color: true },
+              },
+            },
           },
           subtasks: {
             orderBy: { createdAt: 'asc' as const },
@@ -342,9 +397,26 @@ export class StoriesService {
       }
     }
 
+    // Extract layerIds and componentIds from DTO
+    const { layerIds, componentIds, ...storyData } = updateStoryDto;
+
     const story = await this.prisma.story.update({
       where: { id },
-      data: updateStoryDto,
+      data: {
+        ...storyData,
+        layers: layerIds !== undefined
+          ? {
+              deleteMany: {},
+              create: layerIds.map(layerId => ({ layerId })),
+            }
+          : undefined,
+        components: componentIds !== undefined
+          ? {
+              deleteMany: {},
+              create: componentIds.map(componentId => ({ componentId })),
+            }
+          : undefined,
+      },
       include: {
         project: {
           select: { id: true, name: true },
@@ -354,6 +426,20 @@ export class StoriesService {
         },
         assignedFramework: {
           select: { id: true, name: true },
+        },
+        layers: {
+          include: {
+            layer: {
+              select: { id: true, name: true, icon: true, color: true, orderIndex: true },
+            },
+          },
+        },
+        components: {
+          include: {
+            component: {
+              select: { id: true, name: true, icon: true, color: true },
+            },
+          },
         },
       },
     });
