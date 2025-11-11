@@ -4,7 +4,8 @@ import { storiesService } from '../services/stories.service';
 import { subtasksService } from '../services/subtasks.service';
 import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service';
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import type { Story, Subtask, StoryStatus, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
+import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
+import { StoryStatus } from '../types';
 import {
   PlusIcon,
   PencilIcon,
@@ -27,13 +28,13 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_TRANSITIONS: Record<string, StoryStatus[]> = {
-  planning: ['analysis'],
-  analysis: ['planning', 'architecture'],
-  architecture: ['analysis', 'design'],
-  design: ['architecture', 'implementation'],
-  implementation: ['design', 'review'],
-  review: ['implementation', 'qa'],
-  qa: ['review', 'done', 'implementation'],
+  planning: [StoryStatus.ANALYSIS],
+  analysis: [StoryStatus.PLANNING, StoryStatus.ARCHITECTURE],
+  architecture: [StoryStatus.ANALYSIS, StoryStatus.DESIGN],
+  design: [StoryStatus.ARCHITECTURE, StoryStatus.IMPLEMENTATION],
+  implementation: [StoryStatus.DESIGN, StoryStatus.REVIEW],
+  review: [StoryStatus.IMPLEMENTATION, StoryStatus.QA],
+  qa: [StoryStatus.REVIEW, StoryStatus.DONE, StoryStatus.IMPLEMENTATION],
   done: [],
 };
 
@@ -45,7 +46,7 @@ export function StoryDetailPage() {
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showOverride, setShowOverride] = useState(false);
-  const [overrideStatus, setOverrideStatus] = useState<StoryStatus>('planning');
+  const [overrideStatus, setOverrideStatus] = useState<StoryStatus>(StoryStatus.PLANNING);
   const [layerFilter, setLayerFilter] = useState<SubtaskLayer | ''>('');
   const [showAddSubtask, setShowAddSubtask] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState<string | null>(null);

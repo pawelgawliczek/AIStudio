@@ -2,7 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
-import { QUEUE_NAMES } from '../workers.module';
+import { QUEUE_NAMES } from '../constants';
 import OpenAI from 'openai';
 import { ConfigService } from '@nestjs/config';
 

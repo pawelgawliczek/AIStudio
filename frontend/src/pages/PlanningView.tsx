@@ -44,7 +44,7 @@ export function PlanningView() {
     queryKey: ['stories', projectId],
     queryFn: () => storiesApi.getAll({ projectId }).then(res => {
       // Handle paginated response: res.data = { data: [], meta: {} }
-      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      return Array.isArray(res.data) ? res.data : ((res.data as any)?.data || []);
     }),
     enabled: !!projectId,
   });
@@ -54,7 +54,7 @@ export function PlanningView() {
     queryKey: ['epics', projectId],
     queryFn: () => epicsApi.getAll(projectId).then(res => {
       // Handle potential paginated or array response
-      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      return Array.isArray(res.data) ? res.data : ((res.data as any)?.data || []);
     }),
     enabled: !!projectId,
   });
@@ -298,7 +298,7 @@ export function PlanningView() {
             👤 My Stories
           </button>
           <button
-            onClick={() => setSelectedStatus('blocked')}
+            onClick={() => setSelectedStatus(StoryStatus.BLOCKED)}
             className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors border border-red-200"
           >
             ⚠️ Blocked
