@@ -287,11 +287,8 @@ export async function getComponentUseCases(
         useCases: {
           include: {
             testCases: true,
-            framework: {
-              select: { id: true, name: true },
-            },
           },
-          orderBy: { ucCode: 'asc' },
+          orderBy: { key: 'asc' },
         },
       },
     });
@@ -315,11 +312,9 @@ export async function getComponentUseCases(
       },
       useCases: component.useCases.map((uc: any) => ({
         id: uc.id,
-        ucCode: uc.ucCode,
+        key: uc.key,
         title: uc.title,
         area: uc.area,
-        frameworkId: uc.frameworkId,
-        frameworkName: uc.framework?.name,
         testCaseCount: uc.testCases.length,
         createdAt: uc.createdAt.toISOString(),
         updatedAt: uc.updatedAt.toISOString(),
@@ -364,7 +359,7 @@ export async function getComponentStories(
                 epic: {
                   select: { id: true, key: true, title: true },
                 },
-                assignedTo: {
+                assignedFramework: {
                   select: { id: true, name: true },
                 },
               },
@@ -399,7 +394,7 @@ export async function getComponentStories(
         status: sc.story.status,
         epicKey: sc.story.epic?.key,
         epicTitle: sc.story.epic?.title,
-        assignedTo: sc.story.assignedTo?.name,
+        assignedTo: sc.story.assignedFramework?.name,
         createdAt: sc.story.createdAt.toISOString(),
         updatedAt: sc.story.updatedAt.toISOString(),
       })),

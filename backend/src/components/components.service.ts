@@ -229,11 +229,8 @@ export class ComponentsService {
         useCases: {
           include: {
             testCases: true,
-            framework: {
-              select: { id: true, name: true },
-            },
           },
-          orderBy: { ucCode: 'asc' },
+          orderBy: { key: 'asc' },
         },
       },
     });
@@ -274,7 +271,7 @@ export class ComponentsService {
                 epic: {
                   select: { id: true, title: true },
                 },
-                assignedTo: {
+                assignedFramework: {
                   select: { id: true, name: true },
                 },
               },

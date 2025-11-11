@@ -14,13 +14,12 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
 
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Get __dirname for CommonJS (TypeScript will compile to CommonJS, so __dirname is available)
+// If running as ES module, this will be undefined but servers path will still work
+const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.resolve();
 
 // Initialize Prisma client
 const prisma = new PrismaClient({
@@ -28,7 +27,7 @@ const prisma = new PrismaClient({
 });
 
 // Initialize Tool Registry
-const serversPath = path.join(__dirname, 'servers');
+const serversPath = path.join(currentDir, 'servers');
 const registry = new ToolRegistry(serversPath, prisma);
 
 // Initialize MCP server
