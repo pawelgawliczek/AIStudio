@@ -40,7 +40,7 @@ export function PlanningView() {
   }, [projectId, isConnected, joinRoom, leaveRoom]);
 
   // Fetch stories
-  const { data: stories = [], isLoading: storiesLoading } = useQuery({
+  const { data: stories = [], isLoading: storiesLoading, error: storiesError } = useQuery({
     queryKey: ['stories', projectId],
     queryFn: () => storiesApi.getAll({ projectId }).then(res => {
       // Handle paginated response: res.data = { data: [], meta: {} }
@@ -152,6 +152,7 @@ export function PlanningView() {
 
   // Filter stories
   const filteredStories = useMemo(() => {
+    if (!Array.isArray(stories)) return [];
     let filtered = [...stories];
 
     if (selectedEpic !== 'all') {
@@ -212,6 +213,26 @@ export function PlanningView() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-fg">No Project Selected</h2>
           <p className="mt-2 text-muted">Please select a project to view the planning board.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (storiesError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold text-fg mb-2">Unable to load stories</h3>
+          <p className="text-muted mb-4">
+            Error loading stories. Please check if the backend server is running.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Reload Page
+          </button>
         </div>
       </div>
     );
