@@ -67,12 +67,12 @@ export const ComponentCoverageView = () => {
   ) => {
     const badges = {
       excellent: 'bg-green-100 text-green-800',
-      good: 'bg-blue-100 text-blue-800',
+      good: 'bg-green-100 text-green-700',
       needs_improvement: 'bg-yellow-100 text-yellow-800',
       poor: 'bg-orange-100 text-orange-800',
       not_covered: 'bg-red-100 text-red-800',
     };
-    return badges[status] || 'bg-gray-100 text-gray-800';
+    return badges[status] || 'bg-secondary text-muted';
   };
 
   const getStatusLabel = (
@@ -126,7 +126,7 @@ export const ComponentCoverageView = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
       </div>
     );
   }
@@ -154,56 +154,56 @@ export const ComponentCoverageView = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="text-blue-600 hover:text-blue-800 mb-4 flex items-center"
+          className="text-accent hover:text-accent-dark mb-4 flex items-center"
         >
           ← Back to Project
         </button>
-        <h1 className="text-3xl font-bold text-gray-900">Component Test Coverage</h1>
-        <p className="text-gray-600 mt-1">Coverage breakdown by component</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-fg">Component Test Coverage</h1>
+        <p className="text-muted mt-1">Coverage breakdown by component</p>
       </div>
 
       {/* Overall Summary */}
       {overallStats && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Project Summary</h2>
+        <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold text-fg mb-4">Project Summary</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-3xl font-bold text-green-600">
                 {overallStats.fullyCovered}
               </div>
-              <div className="text-sm text-gray-600">Fully Covered</div>
-              <div className="text-xs text-gray-500">(&gt;80%)</div>
+              <div className="text-sm text-muted">Fully Covered</div>
+              <div className="text-xs text-muted">(&gt;80%)</div>
             </div>
 
             <div className="text-center p-4 bg-yellow-50 rounded-lg">
               <div className="text-3xl font-bold text-yellow-600">
                 {overallStats.partiallyCovered}
               </div>
-              <div className="text-sm text-gray-600">Needs Work</div>
-              <div className="text-xs text-gray-500">(50-80%)</div>
+              <div className="text-sm text-muted">Needs Work</div>
+              <div className="text-xs text-muted">(50-80%)</div>
             </div>
 
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-3xl font-bold text-orange-600">
                 {overallStats.poorlyCovered}
               </div>
-              <div className="text-sm text-gray-600">Poorly Covered</div>
-              <div className="text-xs text-gray-500">(&lt;50%)</div>
+              <div className="text-sm text-muted">Poorly Covered</div>
+              <div className="text-xs text-muted">(&lt;50%)</div>
             </div>
 
             <div className="text-center p-4 bg-red-50 rounded-lg">
               <div className="text-3xl font-bold text-red-600">
                 {overallStats.notCovered}
               </div>
-              <div className="text-sm text-gray-600">Not Covered</div>
-              <div className="text-xs text-gray-500">(0%)</div>
+              <div className="text-sm text-muted">Not Covered</div>
+              <div className="text-xs text-muted">(0%)</div>
             </div>
           </div>
 
           <div className="mb-2">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-lg font-semibold">
+              <span className="text-lg font-semibold text-fg">
                 Overall Project Coverage
               </span>
               <span
@@ -214,7 +214,7 @@ export const ComponentCoverageView = () => {
                 {overallStats.avgOverall.toFixed(1)}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="w-full bg-border rounded-full h-3">
               <div
                 className={`h-3 rounded-full transition-all ${getCoverageBgColor(
                   overallStats.avgOverall
@@ -235,19 +235,19 @@ export const ComponentCoverageView = () => {
           return (
             <div
               key={component}
-              className="bg-white rounded-lg shadow-md overflow-hidden"
+              className="bg-card border border-border rounded-lg shadow-md overflow-hidden"
             >
               {/* Component Header */}
               <div
-                className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="p-6 cursor-pointer hover:bg-secondary transition-colors"
                 onClick={() => toggleComponentExpand(component)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    <h3 className="text-xl font-semibold text-fg mb-2">
                       {component}
                     </h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <div className="flex items-center space-x-4 text-sm text-muted">
                       <span>
                         {useCases.length} use case{useCases.length !== 1 ? 's' : ''}
                       </span>
@@ -269,10 +269,10 @@ export const ComponentCoverageView = () => {
                       >
                         {coverage.overall.toFixed(0)}%
                       </div>
-                      <div className="text-xs text-gray-500">Overall Coverage</div>
+                      <div className="text-xs text-muted">Overall Coverage</div>
                     </div>
 
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button className="text-muted hover:text-fg">
                       {isExpanded ? '▲' : '▼'}
                     </button>
                   </div>
@@ -281,9 +281,9 @@ export const ComponentCoverageView = () => {
                 {/* Coverage Bars */}
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center space-x-3">
-                    <span className="w-24 text-xs text-gray-600">Unit:</span>
+                    <span className="w-24 text-xs text-muted">Unit:</span>
                     <div className="flex-1">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-border rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${getCoverageBgColor(
                             coverage.byLevel.unit.coverage
@@ -304,9 +304,9 @@ export const ComponentCoverageView = () => {
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <span className="w-24 text-xs text-gray-600">Integration:</span>
+                    <span className="w-24 text-xs text-muted">Integration:</span>
                     <div className="flex-1">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-border rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${getCoverageBgColor(
                             coverage.byLevel.integration.coverage
@@ -330,9 +330,9 @@ export const ComponentCoverageView = () => {
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <span className="w-24 text-xs text-gray-600">E2E:</span>
+                    <span className="w-24 text-xs text-muted">E2E:</span>
                     <div className="flex-1">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-border rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${getCoverageBgColor(
                             coverage.byLevel.e2e.coverage
@@ -356,8 +356,8 @@ export const ComponentCoverageView = () => {
 
               {/* Use Cases Details */}
               {isExpanded && (
-                <div className="border-t border-gray-200 p-6">
-                  <h4 className="font-semibold text-gray-700 mb-4">
+                <div className="border-t border-border p-6">
+                  <h4 className="font-semibold text-fg mb-4">
                     Use Case Coverage Breakdown
                   </h4>
 
@@ -365,21 +365,21 @@ export const ComponentCoverageView = () => {
                     {useCases.map((ucCov) => (
                       <div
                         key={ucCov.useCase.id}
-                        className="flex items-center justify-between p-3 border border-gray-200 rounded hover:border-blue-300 cursor-pointer transition-colors"
+                        className="flex items-center justify-between p-3 border border-border rounded hover:border-accent cursor-pointer transition-colors"
                         onClick={() =>
                           navigate(`/test-coverage/use-case/${ucCov.useCase.id}`)
                         }
                       >
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-1">
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-fg">
                               {ucCov.useCase.key}
                             </span>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-muted">
                               {ucCov.useCase.title}
                             </span>
                           </div>
-                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          <div className="flex items-center space-x-4 text-xs text-muted">
                             <span>
                               Unit: {ucCov.coverage.byLevel.unit.coverage.toFixed(0)}%
                             </span>
@@ -402,7 +402,7 @@ export const ComponentCoverageView = () => {
                             >
                               {ucCov.coverage.overall.toFixed(0)}%
                             </div>
-                            <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                            <div className="w-24 bg-border rounded-full h-2 mt-1">
                               <div
                                 className={`h-2 rounded-full ${getCoverageBgColor(
                                   ucCov.coverage.overall
@@ -415,14 +415,14 @@ export const ComponentCoverageView = () => {
                           </div>
 
                           <span
-                            className={`px-2 py-1 text-xs rounded font-medium ${getStatusBadge(
+                            className={`inline-flex items-center px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
                               ucCov.status
                             )}`}
                           >
                             {getStatusLabel(ucCov.status)}
                           </span>
 
-                          <span className="text-blue-600 hover:text-blue-800">→</span>
+                          <span className="text-accent hover:text-accent-dark">→</span>
                         </div>
                       </div>
                     ))}
@@ -434,8 +434,8 @@ export const ComponentCoverageView = () => {
         })}
 
         {componentCoverages.length === 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-            <p className="text-gray-600 text-center">
+          <div className="bg-card border border-border rounded-lg p-6">
+            <p className="text-muted text-center">
               No component coverage data available for this project.
             </p>
           </div>

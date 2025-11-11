@@ -146,7 +146,7 @@ const CodeQualityDashboard: React.FC = () => {
   if (loading && !projectMetrics) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-xl text-gray-600">Loading metrics...</div>
+        <div className="text-xl text-muted">Loading metrics...</div>
       </div>
     );
   }
@@ -162,24 +162,24 @@ const CodeQualityDashboard: React.FC = () => {
   if (!projectMetrics) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-bg p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Code Quality Dashboard</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-fg">Code Quality Dashboard</h1>
+        <p className="text-muted mt-2">
           Last updated: {new Date(projectMetrics.lastUpdate).toLocaleString()}
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-card border border-border rounded-lg shadow-md p-4 mb-6">
         <div className="flex flex-wrap gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+            <label className="block text-sm font-medium text-fg mb-1">Time Range</label>
             <select
               value={filters.timeRange}
               onChange={(e) => setFilters({ ...filters, timeRange: Number(e.target.value) })}
-              className="border border-gray-300 rounded-md px-3 py-2"
+              className="border border-border rounded-md px-3 py-2"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
@@ -191,17 +191,17 @@ const CodeQualityDashboard: React.FC = () => {
 
       {/* Project-Level Metrics */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Project-Level Metrics</h2>
+        <h2 className="text-lg font-bold text-fg mb-4">Project-Level Metrics</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Overall Health */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">OVERALL CODE HEALTH</h3>
-            <div className="text-4xl font-bold mb-2">
+          <div className="bg-card border border-border rounded-lg shadow-md p-6">
+            <h3 className="text-sm font-medium text-muted mb-2">OVERALL CODE HEALTH</h3>
+            <div className="text-4xl font-bold text-fg mb-2">
               {projectMetrics.healthScore.overallScore}/100
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+            <div className="w-full bg-bg-secondary rounded-full h-2 mb-2">
               <div
-                className="bg-blue-600 h-2 rounded-full"
+                className="bg-accent h-2 rounded-full"
                 style={{ width: `${projectMetrics.healthScore.overallScore}%` }}
               />
             </div>
@@ -214,14 +214,14 @@ const CodeQualityDashboard: React.FC = () => {
           </div>
 
           {/* Total LOC */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">TOTAL LINES OF CODE</h3>
-            <div className="text-4xl font-bold mb-4">
+          <div className="bg-card border border-border rounded-lg shadow-md p-6">
+            <h3 className="text-sm font-medium text-muted mb-2">TOTAL LINES OF CODE</h3>
+            <div className="text-4xl font-bold text-fg mb-4">
               {projectMetrics.totalLoc.toLocaleString()} LOC
             </div>
             <div className="space-y-1">
               {Object.entries(projectMetrics.locByLanguage).map(([lang, loc]) => (
-                <div key={lang} className="text-sm text-gray-600">
+                <div key={lang} className="text-sm text-muted">
                   {lang}: {loc.toLocaleString()}
                 </div>
               ))}
@@ -229,12 +229,12 @@ const CodeQualityDashboard: React.FC = () => {
           </div>
 
           {/* Test Coverage */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">TEST COVERAGE</h3>
-            <div className="text-4xl font-bold mb-2">
+          <div className="bg-card border border-border rounded-lg shadow-md p-6">
+            <h3 className="text-sm font-medium text-muted mb-2">TEST COVERAGE</h3>
+            <div className="text-4xl font-bold text-fg mb-2">
               {projectMetrics.healthScore.coverage}%
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+            <div className="w-full bg-bg-secondary rounded-full h-2 mb-2">
               <div
                 className="bg-green-600 h-2 rounded-full"
                 style={{ width: `${projectMetrics.healthScore.coverage}%` }}
@@ -246,50 +246,50 @@ const CodeQualityDashboard: React.FC = () => {
           </div>
 
           {/* Tech Debt */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">TECHNICAL DEBT RATIO</h3>
-            <div className="text-4xl font-bold mb-2">
+          <div className="bg-card border border-border rounded-lg shadow-md p-6">
+            <h3 className="text-sm font-medium text-muted mb-2">TECHNICAL DEBT RATIO</h3>
+            <div className="text-4xl font-bold text-fg mb-2">
               {projectMetrics.healthScore.techDebtRatio}%
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+            <div className="w-full bg-bg-secondary rounded-full h-2 mb-2">
               <div
                 className="bg-yellow-600 h-2 rounded-full"
                 style={{ width: `${projectMetrics.healthScore.techDebtRatio}%` }}
               />
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted">
               {projectMetrics.healthScore.techDebtRatio < 10 ? 'ACCEPTABLE' : 'NEEDS ATTENTION'}
             </div>
           </div>
 
           {/* Complexity */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">CODE COMPLEXITY</h3>
-            <div className="text-4xl font-bold mb-2">
+          <div className="bg-card border border-border rounded-lg shadow-md p-6">
+            <h3 className="text-sm font-medium text-muted mb-2">CODE COMPLEXITY</h3>
+            <div className="text-4xl font-bold text-fg mb-2">
               Avg: {projectMetrics.healthScore.complexity}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted">
               {projectMetrics.healthScore.complexity < 10 ? 'MODERATE' : 'HIGH'}
             </div>
           </div>
 
           {/* Security Issues */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 mb-2">SECURITY ISSUES</h3>
+          <div className="bg-card border border-border rounded-lg shadow-md p-6">
+            <h3 className="text-sm font-medium text-muted mb-2">SECURITY ISSUES</h3>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-fg">
                 <span>🔴 Critical:</span>
                 <span className="font-bold">{projectMetrics.securityIssues.critical}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-fg">
                 <span>⚠️ High:</span>
                 <span className="font-bold">{projectMetrics.securityIssues.high}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-fg">
                 <span>⚠️ Medium:</span>
                 <span className="font-bold">{projectMetrics.securityIssues.medium}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-fg">
                 <span>ℹ️ Low:</span>
                 <span className="font-bold">{projectMetrics.securityIssues.low}</span>
               </div>
@@ -300,25 +300,25 @@ const CodeQualityDashboard: React.FC = () => {
 
       {/* Layer Metrics */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Layer-Level Metrics</h2>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <h2 className="text-lg font-bold text-fg mb-4">Layer-Level Metrics</h2>
+        <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-bg-secondary">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Layer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">LOC</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Health</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Complexity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Churn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Coverage</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Defects</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Layer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">LOC</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Defects</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {layerMetrics.map((layer) => (
-                <tr key={layer.layer} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{layer.layer}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={layer.layer} className="hover:bg-bg">
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-fg">{layer.layer}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">
                     {layer.loc.toLocaleString()} ({layer.locPercentage}%)
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -326,12 +326,12 @@ const CodeQualityDashboard: React.FC = () => {
                       {layer.healthScore}/100
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{layer.avgComplexity}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.avgComplexity}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">
                     {getChurnIcon(layer.churnLevel)} {layer.churnLevel}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{layer.coverage}%</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{layer.defectCount}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.coverage}%</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.defectCount}</td>
                 </tr>
               ))}
             </tbody>
@@ -341,42 +341,42 @@ const CodeQualityDashboard: React.FC = () => {
 
       {/* Component Metrics */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Component-Level Metrics</h2>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <h2 className="text-lg font-bold text-fg mb-4">Component-Level Metrics</h2>
+        <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-bg-secondary">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Component</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Health</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Complexity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Churn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Coverage</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hotspots</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Component</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Hotspots</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Action</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {componentMetrics.slice(0, 10).map((component) => (
-                <tr key={component.name} className="hover:bg-gray-50">
+                <tr key={component.name} className="hover:bg-bg">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium">{component.name}</div>
-                    <div className="text-sm text-gray-500">🏷️ {component.layer} • {component.fileCount} files</div>
+                    <div className="font-medium text-fg">{component.name}</div>
+                    <div className="text-sm text-muted">🏷️ {component.layer} • {component.fileCount} files</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(component.healthScore)}`}>
                       {component.healthScore}/100
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{component.avgComplexity}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">{component.avgComplexity}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">
                     {getChurnIcon(component.churnLevel)} {component.churnLevel}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{component.coverage}%</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">{component.coverage}%</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">
                     {component.hotspotCount > 0 ? `🔥`.repeat(Math.min(component.hotspotCount, 3)) : '─'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    <button className="text-accent hover:text-accent-dark text-sm font-medium">
                       Drill
                     </button>
                   </td>
@@ -389,30 +389,30 @@ const CodeQualityDashboard: React.FC = () => {
 
       {/* Hotspots */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">File-Level Hotspots (Top 10 by Risk)</h2>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <h2 className="text-lg font-bold text-fg mb-4">File-Level Hotspots (Top 10 by Risk)</h2>
+        <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-bg-secondary">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">File</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Complex</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Churn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cover</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Rank</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">File</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Risk</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complex</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Cover</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Action</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {hotspots.slice(0, 10).map((hotspot, index) => (
-                <tr key={hotspot.filePath} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={hotspot.filePath} className="hover:bg-bg">
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">
                     {hotspot.riskScore >= 80 ? '🔥' : '⚠️'} {index + 1}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-sm">{hotspot.filePath.split('/').pop()}</div>
-                    <div className="text-xs text-gray-500">{hotspot.component}</div>
-                    <div className="text-xs text-gray-400">
+                    <div className="font-medium text-sm text-fg">{hotspot.filePath.split('/').pop()}</div>
+                    <div className="text-xs text-muted">{hotspot.component}</div>
+                    <div className="text-xs text-muted">
                       {hotspot.loc} LOC | Last: {hotspot.lastStoryKey || 'Unknown'}
                     </div>
                   </td>
@@ -437,7 +437,7 @@ const CodeQualityDashboard: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    <button className="text-accent hover:text-accent-dark text-sm font-medium">
                       View
                     </button>
                   </td>
@@ -450,29 +450,29 @@ const CodeQualityDashboard: React.FC = () => {
 
       {/* Code Issues */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Code Smells & Issues</h2>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <h2 className="text-lg font-bold text-fg mb-4">Code Smells & Issues</h2>
+        <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-bg-secondary">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Severity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Count</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Files Affected</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Severity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Count</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Files Affected</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Action</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {codeIssues.map((issue, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={index} className="hover:bg-bg">
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">
                     {getSeverityIcon(issue.severity)} {issue.severity}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{issue.type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{issue.count}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{issue.filesAffected} files</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">{issue.type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-fg">{issue.count}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-fg">{issue.filesAffected} files</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <button className="text-blue-600 hover:text-blue-800 text-sm font-medium mr-2">
+                    <button className="text-accent hover:text-accent-dark text-sm font-medium mr-2">
                       View All
                     </button>
                     {issue.severity === 'critical' || issue.severity === 'high' ? (

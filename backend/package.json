@@ -2,7 +2,7 @@
   "name": "@aistudio/backend",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Studio Backend - NestJS REST API and MCP Server",
+  "description": "Vibe Studio Backend - NestJS REST API and MCP Server",
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",

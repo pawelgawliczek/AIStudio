@@ -118,7 +118,7 @@ docker compose up -d
 
 ## 🔌 MCP Server Setup
 
-AI Studio includes an MCP (Model Context Protocol) server for integration with Claude Code and other MCP-compatible clients.
+Vibe Studio includes an MCP (Model Context Protocol) server for integration with Claude Code and other MCP-compatible clients.
 
 ### Quick MCP Setup
 

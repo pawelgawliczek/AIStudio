@@ -166,8 +166,8 @@ export function PlanningView() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">No Project Selected</h2>
-          <p className="mt-2 text-gray-600">Please select a project to view the planning board.</p>
+          <h2 className="text-2xl font-bold text-fg">No Project Selected</h2>
+          <p className="mt-2 text-muted">Please select a project to view the planning board.</p>
         </div>
       </div>
     );
@@ -176,16 +176,16 @@ export function PlanningView() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white shadow-sm px-6 py-4">
+      <div className="bg-card shadow-sm px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Project Planning</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <h1 className="text-2xl font-bold text-fg">Project Planning</h1>
+            <p className="mt-1 text-sm text-muted">
               {filteredStories.length} stories
               {isConnected && (
-                <span className="ml-2 inline-flex items-center">
+                <span className="ml-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-500/10 text-green-600 border border-green-500/20">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                  <span className="text-xs text-green-600">Live</span>
+                  Live
                 </span>
               )}
             </p>
@@ -219,7 +219,7 @@ export function PlanningView() {
       <div className="flex-1 overflow-hidden px-6 pb-4">
         {storiesLoading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-gray-500">Loading stories...</div>
+            <div className="text-muted">Loading stories...</div>
           </div>
         ) : (
           <KanbanBoard

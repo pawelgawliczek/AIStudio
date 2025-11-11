@@ -70,12 +70,12 @@ export const TestCaseCoverageDashboard = () => {
 
   const getStatusBadge = (status: TestExecutionStatus) => {
     const badges = {
-      pass: 'bg-green-100 text-green-800',
-      fail: 'bg-red-100 text-red-800',
-      skip: 'bg-gray-100 text-gray-800',
-      error: 'bg-red-100 text-red-800',
+      pass: 'bg-green-500/10 text-green-600 border border-green-500/20',
+      fail: 'bg-red-500/10 text-red-600 border border-red-500/20',
+      skip: 'bg-muted/10 text-fg border border-border',
+      error: 'bg-red-500/10 text-red-600 border border-red-500/20',
     };
-    return badges[status] || 'bg-gray-100 text-gray-800';
+    return badges[status] || 'bg-muted/10 text-fg border border-border';
   };
 
   const getSeverityColor = (severity: CoverageGap['severity']) => {
@@ -83,7 +83,7 @@ export const TestCaseCoverageDashboard = () => {
       critical: 'border-red-500 bg-red-50',
       high: 'border-orange-500 bg-orange-50',
       medium: 'border-yellow-500 bg-yellow-50',
-      low: 'border-blue-500 bg-blue-50',
+      low: 'border-accent bg-accent/5',
     };
     return colors[severity];
   };
@@ -120,7 +120,7 @@ export const TestCaseCoverageDashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
       </div>
     );
   }
@@ -142,8 +142,8 @@ export const TestCaseCoverageDashboard = () => {
 
   if (!coverage) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 m-4">
-        <p className="text-gray-600">No coverage data available</p>
+      <div className="bg-card border border-border rounded-lg p-6 m-4">
+        <p className="text-muted">No coverage data available</p>
       </div>
     );
   }
@@ -156,23 +156,23 @@ export const TestCaseCoverageDashboard = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="text-blue-600 hover:text-blue-800 mb-4 flex items-center"
+          className="text-accent hover:text-accent-dark mb-4 flex items-center transition-colors"
         >
           ← Back
         </button>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-2xl sm:text-3xl font-bold text-fg">
           {useCase.key}: {useCase.title}
         </h1>
-        <p className="text-gray-600 mt-1">Test Coverage Dashboard</p>
+        <p className="text-muted mt-1">Test Coverage Dashboard</p>
       </div>
 
       {/* Overall Coverage Card */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Overall Coverage</h2>
+      <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-semibold text-fg mb-4">Overall Coverage</h2>
 
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-2xl font-bold">
+            <span className="text-2xl font-bold text-fg">
               {stats.overall.toFixed(1)}%
             </span>
             <span
@@ -183,7 +183,7 @@ export const TestCaseCoverageDashboard = () => {
               {stats.overall >= 80 ? '✓ MEETS TARGET (80%)' : '⚠️ BELOW TARGET (80%)'}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className="w-full bg-border rounded-full h-3">
             <div
               className={`h-3 rounded-full transition-all ${getCoverageBgColor(
                 stats.overall
@@ -193,7 +193,7 @@ export const TestCaseCoverageDashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+        <div className="grid grid-cols-2 gap-4 text-sm text-muted">
           <div>
             <span className="font-medium">Total Test Cases:</span>{' '}
             {stats.totalTests} ({stats.implementedTests} implemented,{' '}
@@ -207,13 +207,13 @@ export const TestCaseCoverageDashboard = () => {
 
         {/* Coverage by Level */}
         <div className="mt-6 space-y-3">
-          <h3 className="font-semibold text-gray-700">Coverage by Level:</h3>
+          <h3 className="font-semibold text-fg">Coverage by Level:</h3>
 
           {/* Unit Tests */}
           <div className="flex items-center space-x-3">
-            <span className="w-32 text-sm font-medium">Unit Tests:</span>
+            <span className="w-32 text-sm font-medium text-fg">Unit Tests:</span>
             <div className="flex-1">
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-border rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${getCoverageBgColor(
                     stats.byLevel.unit.coverage
@@ -231,16 +231,16 @@ export const TestCaseCoverageDashboard = () => {
             >
               {stats.byLevel.unit.coverage.toFixed(0)}%
             </span>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted">
               ({stats.byLevel.unit.testCount} tests)
             </span>
           </div>
 
           {/* Integration Tests */}
           <div className="flex items-center space-x-3">
-            <span className="w-32 text-sm font-medium">Integration Tests:</span>
+            <span className="w-32 text-sm font-medium text-fg">Integration Tests:</span>
             <div className="flex-1">
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-border rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${getCoverageBgColor(
                     stats.byLevel.integration.coverage
@@ -258,16 +258,16 @@ export const TestCaseCoverageDashboard = () => {
             >
               {stats.byLevel.integration.coverage.toFixed(0)}%
             </span>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted">
               ({stats.byLevel.integration.testCount} tests)
             </span>
           </div>
 
           {/* E2E Tests */}
           <div className="flex items-center space-x-3">
-            <span className="w-32 text-sm font-medium">E2E Tests:</span>
+            <span className="w-32 text-sm font-medium text-fg">E2E Tests:</span>
             <div className="flex-1">
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-border rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${getCoverageBgColor(
                     stats.byLevel.e2e.coverage
@@ -285,7 +285,7 @@ export const TestCaseCoverageDashboard = () => {
             >
               {stats.byLevel.e2e.coverage.toFixed(0)}%
             </span>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted">
               ({stats.byLevel.e2e.testCount} tests)
             </span>
           </div>
@@ -301,13 +301,13 @@ export const TestCaseCoverageDashboard = () => {
 
         return (
           <div key={level} className="mb-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-card border border-border rounded-lg shadow-md p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold capitalize">
+                <h2 className="text-xl font-semibold text-fg capitalize">
                   {level === 'e2e' ? 'E2E' : level} Tests ({tests.length} tests)
                 </h2>
                 <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-600">Coverage:</span>
+                  <span className="text-sm text-muted">Coverage:</span>
                   <span
                     className={`font-semibold ${getCoverageColor(
                       levelStats.coverage
@@ -315,7 +315,7 @@ export const TestCaseCoverageDashboard = () => {
                   >
                     {levelStats.coverage.toFixed(0)}%
                   </span>
-                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                  <div className="w-32 bg-border rounded-full h-2">
                     <div
                       className={`h-2 rounded-full ${getCoverageBgColor(
                         levelStats.coverage
@@ -336,38 +336,38 @@ export const TestCaseCoverageDashboard = () => {
                   return (
                     <div
                       key={testCase.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                      className="border border-border rounded-lg p-4 hover:border-accent transition-colors"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-semibold text-fg">
                               {testCase.key}: {testCase.title}
                             </h3>
                             <span
                               className={`px-2 py-1 text-xs rounded ${
                                 testCase.status === 'automated'
-                                  ? 'bg-green-100 text-green-800'
+                                  ? 'bg-green-500/10 text-green-600 border border-green-500/20'
                                   : testCase.status === 'implemented'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-accent/10 text-accent border border-accent/20'
+                                  : 'bg-muted/10 text-fg border border-border'
                               }`}
                             >
                               {testCase.status}
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted">
                               Priority: {testCase.priority}
                             </span>
                           </div>
 
                           {testCase.description && (
-                            <p className="text-sm text-gray-600 mb-2">
+                            <p className="text-sm text-muted mb-2">
                               {testCase.description}
                             </p>
                           )}
 
                           {testCase.testFilePath && (
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p className="text-xs text-muted mb-2">
                               📄 {testCase.testFilePath}
                             </p>
                           )}
@@ -383,16 +383,16 @@ export const TestCaseCoverageDashboard = () => {
                                 {latestExec.status === 'fail' && '✗ '}
                                 {latestExec.status.toUpperCase()}
                               </span>
-                              <span className="text-gray-600">
+                              <span className="text-muted">
                                 Last run: {formatDate(latestExec.executedAt)}
                               </span>
                               {latestExec.coveragePercentage !== null && (
-                                <span className="text-gray-600">
+                                <span className="text-muted">
                                   Coverage: {latestExec.coveragePercentage.toFixed(1)}%
                                 </span>
                               )}
                               {latestExec.durationMs && (
-                                <span className="text-gray-600">
+                                <span className="text-muted">
                                   Duration: {formatDuration(latestExec.durationMs)}
                                 </span>
                               )}
@@ -402,7 +402,7 @@ export const TestCaseCoverageDashboard = () => {
 
                         <button
                           onClick={() => toggleTestExpand(testCase.id)}
-                          className="text-blue-600 hover:text-blue-800 text-sm ml-4"
+                          className="text-accent hover:text-accent-dark text-sm ml-4 transition-colors"
                         >
                           {isExpanded ? '▲ Collapse' : '▼ Expand'}
                         </button>
@@ -410,13 +410,13 @@ export const TestCaseCoverageDashboard = () => {
 
                       {/* Expanded Details */}
                       {isExpanded && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                        <div className="mt-4 pt-4 border-t border-border space-y-3">
                           {testCase.preconditions && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                              <h4 className="text-sm font-semibold text-fg mb-1">
                                 Preconditions:
                               </h4>
-                              <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                              <p className="text-sm text-muted whitespace-pre-wrap">
                                 {testCase.preconditions}
                               </p>
                             </div>
@@ -424,10 +424,10 @@ export const TestCaseCoverageDashboard = () => {
 
                           {testCase.testSteps && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                              <h4 className="text-sm font-semibold text-fg mb-1">
                                 Test Steps:
                               </h4>
-                              <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                              <p className="text-sm text-muted whitespace-pre-wrap">
                                 {testCase.testSteps}
                               </p>
                             </div>
@@ -435,10 +435,10 @@ export const TestCaseCoverageDashboard = () => {
 
                           {testCase.expectedResults && (
                             <div>
-                              <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                              <h4 className="text-sm font-semibold text-fg mb-1">
                                 Expected Results:
                               </h4>
-                              <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                              <p className="text-sm text-muted whitespace-pre-wrap">
                                 {testCase.expectedResults}
                               </p>
                             </div>
@@ -467,9 +467,9 @@ export const TestCaseCoverageDashboard = () => {
 
       {/* Coverage Gaps */}
       {coverageGaps && coverageGaps.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Coverage Gaps</h2>
-          <p className="text-gray-600 mb-4">
+        <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold text-fg mb-4">Coverage Gaps</h2>
+          <p className="text-muted mb-4">
             ⚠️ Areas not fully covered by tests:
           </p>
 
@@ -484,27 +484,27 @@ export const TestCaseCoverageDashboard = () => {
                 <div className="flex items-start space-x-3">
                   <span className="text-2xl">{getSeverityIcon(gap.severity)}</span>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-semibold text-fg mb-1">
                       {gap.description}
                       {gap.level && (
-                        <span className="ml-2 text-sm font-normal text-gray-600">
+                        <span className="ml-2 text-sm font-normal text-muted">
                           ({gap.level} test)
                         </span>
                       )}
                     </h4>
-                    <p className="text-sm text-gray-700 mb-2">
+                    <p className="text-sm text-muted mb-2">
                       <span className="font-medium">Recommended:</span>{' '}
                       {gap.recommendation}
                     </p>
                     <span
                       className={`inline-block px-2 py-1 text-xs rounded font-medium ${
                         gap.severity === 'critical'
-                          ? 'bg-red-100 text-red-800'
+                          ? 'bg-red-500/10 text-red-600 border border-red-500/20'
                           : gap.severity === 'high'
-                          ? 'bg-orange-100 text-orange-800'
+                          ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20'
                           : gap.severity === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'bg-yellow-500/10 text-yellow-600 border border-yellow-500/20'
+                          : 'bg-accent/10 text-accent border border-accent/20'
                       }`}
                     >
                       {gap.severity.toUpperCase()} PRIORITY

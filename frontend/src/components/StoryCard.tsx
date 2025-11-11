@@ -31,15 +31,15 @@ const getTypeIcon = (type: StoryType) => {
 const getTypeColor = (type: StoryType) => {
   switch (type) {
     case 'bug':
-      return 'bg-red-100 text-red-800';
+      return 'bg-red-500/10 text-red-600 border-red-500/20';
     case 'feature':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
     case 'tech_debt':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
     case 'spike':
-      return 'bg-purple-100 text-purple-800';
+      return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
   }
 };
 
@@ -71,32 +71,29 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
       {...listeners}
       onClick={() => onClick(story)}
       className={clsx(
-        'bg-white rounded-lg border border-gray-200 p-3 mb-2 cursor-pointer',
-        'hover:shadow-md transition-shadow duration-200',
+        'bg-card border border-border rounded-lg shadow-md p-4 mb-2 cursor-pointer',
+        'hover:shadow-lg hover:scale-[1.02] transition-all',
         'select-none'
       )}
     >
       {/* Header: Key + Priority */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-mono text-gray-600">{story.key}</span>
+        <span className="text-sm font-mono text-muted">{story.key}</span>
         <span className="text-yellow-500 text-sm">
           {priorityStars(story.businessImpact || 3)}
         </span>
       </div>
 
       {/* Title */}
-      <h4 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">
+      <h4 className="text-sm font-medium text-fg mb-3 line-clamp-2">
         {getTypeIcon(story.type)} {story.title}
       </h4>
 
       {/* Epic Tag (if present) */}
       {story.epic && (
         <div className="mb-2">
-          <span
-            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
-            title={story.epic.title}
-          >
-            {story.epic.key}: {story.epic.title}
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent border border-accent/20">
+            {story.epic.key}
           </span>
         </div>
       )}
@@ -104,7 +101,7 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
       {/* Components/Tags */}
       {story.project && (
         <div className="mb-2 flex flex-wrap gap-1">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-500/10 text-gray-600 border border-gray-500/20">
             {story.project.name.substring(0, 20)}
           </span>
         </div>
@@ -112,20 +109,20 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
 
       {/* Assignee */}
       {story.assignedFramework && (
-        <div className="flex items-center mb-2 text-xs text-gray-600">
+        <div className="flex items-center mb-2 text-xs text-muted">
           <span className="mr-1">👤</span>
           <span className="truncate">{story.assignedFramework.name}</span>
         </div>
       )}
 
       {/* Footer: Subtasks + Comments */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-between text-xs text-muted">
+        <div className="flex items-center gap-3">
           {/* Subtasks */}
           {subtasksTotal > 0 && (
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center gap-1">
               {subtasksCompleted === subtasksTotal ? (
-                <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                <CheckCircleIcon className="w-4 h-4 text-green-600" />
               ) : (
                 <ExclamationTriangleIcon className="w-4 h-4 text-orange-500" />
               )}
@@ -137,7 +134,7 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
 
           {/* Comments */}
           {commentsCount > 0 && (
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center gap-1">
               <ChatBubbleLeftIcon className="w-4 h-4" />
               <span>{commentsCount}</span>
             </div>
@@ -146,7 +143,7 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
 
         {/* Type Badge */}
         <span className={clsx(
-          'px-2 py-0.5 rounded text-xs font-medium',
+          'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border',
           getTypeColor(story.type)
         )}>
           {story.type}
