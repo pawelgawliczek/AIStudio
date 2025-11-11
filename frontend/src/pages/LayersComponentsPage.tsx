@@ -139,6 +139,19 @@ export function LayersComponentsPage() {
               )
             }
           >
+            Architecture Overview
+          </Tab>
+          <Tab
+            className={({ selected }) =>
+              classNames(
+                'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                selected
+                  ? 'bg-white shadow text-blue-700'
+                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+              )
+            }
+          >
             Layers
           </Tab>
           <Tab
@@ -156,6 +169,226 @@ export function LayersComponentsPage() {
           </Tab>
         </Tab.List>
         <Tab.Panels>
+          {/* Architecture Overview Tab */}
+          <Tab.Panel>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Architecture Overview</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  View layers with their associated components
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setEditingLayer(null);
+                    setLayerModalOpen(true);
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Add Layer
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingComponent(null);
+                    setComponentModalOpen(true);
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Add Component
+                </button>
+              </div>
+            </div>
+
+            {layersLoading || componentsLoading ? (
+              <div className="text-center py-12 text-gray-500">Loading architecture...</div>
+            ) : layers.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <p className="text-gray-500">No layers configured yet</p>
+                <button
+                  onClick={() => {
+                    setEditingLayer(null);
+                    setLayerModalOpen(true);
+                  }}
+                  className="mt-4 text-indigo-600 hover:text-indigo-500"
+                >
+                  Create your first layer
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {layers
+                  .sort((a, b) => a.orderIndex - b.orderIndex)
+                  .map((layer) => {
+                    // Get components for this layer
+                    const layerComponents = components.filter((comp) =>
+                      comp.layers?.some((cl) => cl.layer.id === layer.id)
+                    );
+
+                    return (
+                      <div
+                        key={layer.id}
+                        className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                      >
+                        {/* Layer Header */}
+                        <div
+                          className="px-6 py-4 border-l-4"
+                          style={{ borderLeftColor: layer.color || '#3B82F6', backgroundColor: `${layer.color}08` }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              {layer.icon && <span className="text-3xl">{layer.icon}</span>}
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900">{layer.name}</h3>
+                                {layer.description && (
+                                  <p className="mt-1 text-sm text-gray-600">{layer.description}</p>
+                                )}
+                                {layer.techStack && layer.techStack.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {layer.techStack.map((tech, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700"
+                                      >
+                                        {tech}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span
+                                className={classNames(
+                                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                                  layer.status === 'active'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                )}
+                              >
+                                {layer.status}
+                              </span>
+                              <button
+                                onClick={() => handleEditLayer(layer)}
+                                className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-md hover:bg-gray-100"
+                                title="Edit layer"
+                              >
+                                <PencilIcon className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLayer(layer)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100"
+                                title="Delete layer"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Components in this Layer */}
+                        <div className="px-6 py-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-gray-700">
+                              Components ({layerComponents.length})
+                            </h4>
+                            <button
+                              onClick={() => {
+                                setEditingComponent({
+                                  ...({} as Component),
+                                  layers: [{ layer }],
+                                } as any);
+                                setComponentModalOpen(true);
+                              }}
+                              className="text-sm text-indigo-600 hover:text-indigo-500"
+                            >
+                              + Add component to layer
+                            </button>
+                          </div>
+
+                          {layerComponents.length === 0 ? (
+                            <p className="text-sm text-gray-500 italic">No components in this layer yet</p>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {layerComponents
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .map((component) => (
+                                  <div
+                                    key={component.id}
+                                    className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group"
+                                    style={{
+                                      borderLeftWidth: '3px',
+                                      borderLeftColor: component.color || '#10B981',
+                                    }}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                        {component.icon && (
+                                          <span className="text-xl flex-shrink-0">{component.icon}</span>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                          <h5 className="text-sm font-semibold text-gray-900 truncate">
+                                            {component.name}
+                                          </h5>
+                                          {component.description && (
+                                            <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">
+                                              {component.description}
+                                            </p>
+                                          )}
+                                          <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                                            {component._count && (
+                                              <>
+                                                <span>{component._count.storyComponents} stories</span>
+                                                <span>•</span>
+                                                <span>{component._count.useCases} use cases</span>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                          onClick={() => handleEditComponent(component)}
+                                          className="p-1 text-gray-400 hover:text-indigo-600"
+                                          title="Edit component"
+                                        >
+                                          <PencilIcon className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteComponent(component)}
+                                          className="p-1 text-gray-400 hover:text-red-600"
+                                          title="Delete component"
+                                        >
+                                          <TrashIcon className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                    {component.status && component.status !== 'active' && (
+                                      <span
+                                        className={classNames(
+                                          'mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+                                          component.status === 'planning'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : 'bg-gray-100 text-gray-800'
+                                        )}
+                                      >
+                                        {component.status}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </Tab.Panel>
+
           {/* Layers Tab */}
           <Tab.Panel>
             <div className="flex justify-between items-center mb-6">
@@ -643,13 +876,13 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
 
   useEffect(() => {
     if (component) {
-      setName(component.name);
+      setName(component.name || '');
       setDescription(component.description || '');
       setFilePatterns((component.filePatterns || []).join('\n'));
       setSelectedLayerIds(component.layers?.map(cl => cl.layer.id) || []);
       setColor(component.color || '#10B981');
       setIcon(component.icon || '');
-      setStatus(component.status);
+      setStatus(component.status || 'active');
     } else {
       setName('');
       setDescription('');
@@ -659,7 +892,7 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
       setIcon('');
       setStatus('active');
     }
-  }, [component]);
+  }, [component, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -675,8 +908,10 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
       status,
     };
 
-    const url = component ? `${API_BASE_URL}/components/${component.id}` : `${API_BASE_URL}/components`;
-    const method = component ? 'PATCH' : 'POST';
+    // Only update if component has an ID (is an existing component)
+    const isEditing = component && component.id;
+    const url = isEditing ? `${API_BASE_URL}/components/${component.id}` : `${API_BASE_URL}/components`;
+    const method = isEditing ? 'PATCH' : 'POST';
 
     try {
       const response = await fetch(url, {
