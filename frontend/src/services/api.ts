@@ -37,6 +37,12 @@ export const storiesApi = {
   updateStatus: (id: string, data: UpdateStoryStatusDto) =>
     api.patch<Story>(`/stories/${id}/status`, data),
 
+  updatePriority: (id: string, priority: number) =>
+    api.patch<Story>(`/stories/${id}/priority`, { priority }),
+
+  reassignEpic: (id: string, epicId: string | null, priority?: number) =>
+    api.patch<Story>(`/stories/${id}/epic`, { epicId, priority }),
+
   delete: (id: string) =>
     api.delete(`/stories/${id}`),
 };

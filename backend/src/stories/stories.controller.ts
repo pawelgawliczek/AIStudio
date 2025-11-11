@@ -112,4 +112,28 @@ export class StoriesController {
   remove(@Param('id') id: string) {
     return this.storiesService.remove(id);
   }
+
+  @Patch(':id/priority')
+  @Roles(UserRole.admin, UserRole.pm, UserRole.ba)
+  @ApiOperation({ summary: 'Update story priority (Admin, PM, BA)' })
+  @ApiResponse({ status: 200, description: 'Story priority successfully updated' })
+  @ApiResponse({ status: 404, description: 'Story not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  updatePriority(@Param('id') id: string, @Body('priority') priority: number) {
+    return this.storiesService.updatePriority(id, priority);
+  }
+
+  @Patch(':id/epic')
+  @Roles(UserRole.admin, UserRole.pm, UserRole.ba)
+  @ApiOperation({ summary: 'Reassign story to different epic (Admin, PM, BA)' })
+  @ApiResponse({ status: 200, description: 'Story reassigned successfully' })
+  @ApiResponse({ status: 404, description: 'Story or epic not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  reassignEpic(
+    @Param('id') id: string,
+    @Body('epicId') epicId: string | null,
+    @Body('priority') priority?: number
+  ) {
+    return this.storiesService.reassignEpic(id, epicId, priority);
+  }
 }
