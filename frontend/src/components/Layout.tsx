@@ -58,7 +58,7 @@ export function Layout() {
                   📋 Projects
                 </Link>
                 <Link
-                  to="/planning"
+                  to={selectedProject ? `/planning?projectId=${selectedProject.id}` : '/planning'}
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                 >
                   🎯 Planning
@@ -66,25 +66,31 @@ export function Layout() {
                 {selectedProject && (
                   <>
                     <Link
-                      to={`/projects/${selectedProject}/epics`}
+                      to={`/projects/${selectedProject.id}/stories`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                    >
+                      📖 Stories
+                    </Link>
+                    <Link
+                      to={`/projects/${selectedProject.id}/epics`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                     >
                       🟣 Epics
                     </Link>
                     <Link
-                      to={`/code-quality/${selectedProject}`}
+                      to={`/code-quality/${selectedProject.id}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                     >
                       🔍 Code Quality
                     </Link>
                     <Link
-                      to={`/agent-performance/${selectedProject}`}
+                      to={`/agent-performance/${selectedProject.id}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                     >
                       📈 Agent Performance
                     </Link>
                     <Link
-                      to={`/test-coverage/project/${selectedProject}`}
+                      to={`/test-coverage/project/${selectedProject.id}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                     >
                       🧪 Test Coverage
