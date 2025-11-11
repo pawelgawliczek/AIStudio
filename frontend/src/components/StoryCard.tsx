@@ -78,7 +78,14 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
     >
       {/* Header: Key + Priority */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-mono text-muted">{story.key}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-mono text-muted">{story.key}</span>
+          {story.status === 'blocked' && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 border border-red-200" title="Story is blocked">
+              ⚠️ Blocked
+            </span>
+          )}
+        </div>
         <span className="text-yellow-500 text-sm">
           {priorityStars(story.businessImpact || 3)}
         </span>

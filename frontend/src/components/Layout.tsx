@@ -51,6 +51,18 @@ export function Layout() {
                 >
                   📊 Dashboard
                 </Link>
+                <Link
+                  to="/timeline"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                >
+                  📅 Timeline
+                </Link>
+                <Link
+                  to="/use-cases"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                >
+                  📖 Use Cases
+                </Link>
                 {selectedProject && (
                   <>
                     <Link
@@ -69,7 +81,7 @@ export function Layout() {
                       to={`/projects/${selectedProject.id}/stories`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
-                      📖 Stories
+                      📝 Stories
                     </Link>
                     <Link
                       to={`/code-quality/${selectedProject.id}`}
