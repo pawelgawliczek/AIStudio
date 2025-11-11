@@ -2,6 +2,38 @@
 
 A unified platform for managing AI agentic frameworks, tracking their effectiveness, and providing complete traceability from requirements to code to metrics.
 
+---
+
+## 🚨 NEW: Remote Host Deployment
+
+**AI Studio is ready for production deployment!** Deploy to your remote host in **30-60 minutes** and start the self-development loop.
+
+### Quick Deployment
+
+```bash
+# On your remote host
+cd ~/projects
+git clone https://github.com/pawelgawliczek/AIStudio.git
+cd AIStudio
+
+# Configure and deploy
+cp .env.example .env
+nano .env  # Edit with your values
+./scripts/deploy.sh
+
+# Configure Claude Code MCP (see DEPLOYMENT_GUIDE.md)
+```
+
+### Documentation
+
+- **⚡ Fast Track:** [QUICK_START.md](./QUICK_START.md) - 30-60 minute deployment
+- **📚 Complete Guide:** [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Step-by-step instructions
+- **📊 Summary:** [DEPLOYMENT_PHASE_SUMMARY.md](./DEPLOYMENT_PHASE_SUMMARY.md) - What's included
+
+**Status:** Sprint 1-9 complete ✅ | Production-ready ✅ | Deploy now 🚀
+
+---
+
 ## 📋 Project Overview
 
 AI Studio is an MCP (Model Context Protocol) control plane designed to:
@@ -86,7 +118,7 @@ docker compose up -d
 
 ## 🔌 MCP Server Setup
 
-AI Studio includes an MCP (Model Context Protocol) server for integration with Claude Code and other MCP-compatible clients.
+Vibe Studio includes an MCP (Model Context Protocol) server for integration with Claude Code and other MCP-compatible clients.
 
 ### Quick MCP Setup
 

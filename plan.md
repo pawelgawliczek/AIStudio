@@ -10,17 +10,18 @@
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [Project Context](#project-context)
-3. [Development Phases](#development-phases)
-4. [Implementation Priority Matrix](#implementation-priority-matrix)
-5. [Technology Stack Decisions](#technology-stack-decisions)
-6. [Team Organization](#team-organization)
-7. [Sprint Plan (12 Sprints)](#sprint-plan-12-sprints)
-8. [Dependencies & Critical Path](#dependencies--critical-path)
-9. [Deliverables & Milestones](#deliverables--milestones)
-10. [Risk Management](#risk-management)
-11. [Success Criteria](#success-criteria)
-12. [Cross-Session Coordination](#cross-session-coordination)
+2. [🚨 PRIORITY: Remote Host Deployment Phase](#-priority-remote-host-deployment-phase)
+3. [Project Context](#project-context)
+4. [Development Phases](#development-phases)
+5. [Implementation Priority Matrix](#implementation-priority-matrix)
+6. [Technology Stack Decisions](#technology-stack-decisions)
+7. [Team Organization](#team-organization)
+8. [Sprint Plan (12 Sprints)](#sprint-plan-12-sprints)
+9. [Dependencies & Critical Path](#dependencies--critical-path)
+10. [Deliverables & Milestones](#deliverables--milestones)
+11. [Risk Management](#risk-management)
+12. [Success Criteria](#success-criteria)
+13. [Cross-Session Coordination](#cross-session-coordination)
 
 ---
 
@@ -50,7 +51,205 @@ Build the **AI Studio MCP Control Plane** - a unified platform for managing AI a
 
 ---
 
-## 2. Project Context
+## 2. 🚨 PRIORITY: Remote Host Deployment Phase
+
+**Status:** ✅ READY TO DEPLOY
+**Priority:** HIGHEST - Must complete before continuing development
+**Duration:** 1-2 hours
+**Date Added:** 2025-11-10
+
+### Overview
+
+**Current Situation:**
+- Development has been isolated to Claude Code Web
+- Sprint 1-9 complete (75% of sprints done!)
+- System is functional but not deployed
+
+**New Goal:**
+Transition from isolated development to production-ready deployment on a remote host where:
+1. All services run in Docker containers
+2. Caddy reverse proxy exposes services via HTTPS
+3. Claude Code (on the host) connects to the MCP server
+4. Continue development using the deployed system for self-hosting
+
+### Why This Is Priority #1
+
+This deployment enables a powerful **self-development loop**:
+- ✅ AI Studio will manage its own development
+- ✅ Real production environment testing
+- ✅ Claude Code can use MCP tools to improve itself
+- ✅ True dogfooding of the platform
+- ✅ Immediate value delivery
+
+### Implementation Checklist
+
+#### Phase 1: Remote Host Setup ⏸️ PENDING
+- [ ] SSH access to remote host confirmed
+- [ ] Docker + Docker Compose installed
+- [ ] Node.js 18+ installed
+- [ ] Port access verified (80, 443, 5432, 6379, 3000, 5173)
+- [ ] Domain name configured (optional, can use IP)
+
+#### Phase 2: Repository Setup ⏸️ PENDING
+- [ ] Clone repository to remote host
+- [ ] Checkout branch: `claude/new-priority-feature-011CUzSn4wxupZiNX6iahb2V`
+- [ ] Generate JWT secrets (crypto.randomBytes)
+- [ ] Configure `.env` with production values
+- [ ] Configure `backend/.env` with production values
+- [ ] Set OPENAI_API_KEY for embeddings
+
+#### Phase 3: Docker Build & Deploy ⏸️ PENDING
+- [ ] Run `npm install`
+- [ ] Run `npm run build:backend` (for MCP)
+- [ ] Build containers: `docker-compose -f docker-compose.prod.yml up -d --build`
+- [ ] Verify all 5 containers running (postgres, redis, backend, frontend, caddy)
+- [ ] Check health: `docker-compose -f docker-compose.prod.yml ps`
+- [ ] Database migrations applied automatically
+
+#### Phase 4: Service Verification ⏸️ PENDING
+- [ ] Frontend accessible: `http://your-host/`
+- [ ] API health check: `http://your-host/api/health`
+- [ ] Caddy reverse proxy working
+- [ ] WebSocket connections functional
+- [ ] Test login and authentication
+
+#### Phase 5: MCP Server Configuration ⏸️ PENDING
+- [ ] Locate Claude Code config: `~/.config/claude-code/config.json`
+- [ ] Add MCP server configuration with correct paths
+- [ ] Test MCP connection: `list_projects` tool
+- [ ] Verify all MCP tools accessible
+- [ ] Test creating project via MCP
+
+#### Phase 6: Production Ready ⏸️ PENDING
+- [ ] Set up firewall rules (UFW)
+- [ ] Configure automated backups
+- [ ] Set up log rotation
+- [ ] Document access credentials
+- [ ] Create recovery procedures
+
+### Deliverables Created ✅ COMPLETE
+
+All deployment artifacts have been created:
+
+1. **✅ DEPLOYMENT_GUIDE.md** - Comprehensive step-by-step guide (50+ pages)
+   - Prerequisites and installation
+   - Environment configuration
+   - Docker setup and builds
+   - MCP server configuration
+   - Troubleshooting guide
+   - Maintenance procedures
+
+2. **✅ QUICK_START.md** - Fast deployment for experienced users
+   - Condensed checklist format
+   - Quick command reference
+   - Essential troubleshooting only
+
+3. **✅ Caddyfile** - Reverse proxy configuration
+   - HTTP and HTTPS configurations
+   - WebSocket support
+   - Security headers
+   - Compression enabled
+   - Access logging
+
+4. **✅ docker-compose.prod.yml** - Production Docker setup
+   - All 5 services configured
+   - Health checks enabled
+   - Logging configured
+   - Volume persistence
+   - Network isolation
+
+5. **✅ backend/Dockerfile.prod** - Production backend image
+   - Multi-stage build
+   - Optimized for size
+   - Security hardened
+   - Auto-migrations
+
+6. **✅ frontend/Dockerfile.prod** - Production frontend image
+   - Multi-stage build with nginx
+   - SPA routing configured
+   - Gzip compression
+   - Static asset caching
+
+7. **✅ scripts/deploy.sh** - Automated deployment script
+   - Prerequisites checking
+   - Environment validation
+   - Docker build automation
+   - Health verification
+   - Status reporting
+
+### Quick Start Commands
+
+```bash
+# On remote host
+cd ~/projects
+git clone https://github.com/pawelgawliczek/AIStudio.git
+cd AIStudio
+git checkout claude/new-priority-feature-011CUzSn4wxupZiNX6iahb2V
+
+# Configure environment
+cp .env.example .env
+nano .env  # Edit with production values
+
+# Deploy
+./scripts/deploy.sh
+
+# Or manually
+npm install
+npm run build:backend
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Configure Claude Code MCP
+nano ~/.config/claude-code/config.json
+# Add MCP server config (see DEPLOYMENT_GUIDE.md)
+
+# Test
+curl http://localhost/
+curl http://localhost/api/health
+```
+
+### Success Criteria
+
+Deployment is successful when:
+- ✅ All Docker containers running and healthy
+- ✅ Frontend accessible via Caddy reverse proxy
+- ✅ Backend API responding to health checks
+- ✅ Database migrations completed
+- ✅ Claude Code MCP connection working
+- ✅ Can create project via MCP tools
+- ✅ Can use AI Studio to manage its own development
+
+### Next Actions
+
+**IMMEDIATE (Today):**
+1. SSH into remote host
+2. Follow QUICK_START.md or DEPLOYMENT_GUIDE.md
+3. Deploy all services
+4. Configure Claude Code MCP
+5. Test basic functionality
+6. Create first project using AI Studio itself!
+
+**AFTER DEPLOYMENT:**
+- Use AI Studio to track Sprint 10 development
+- Continue with Advanced Features (Sprint 10)
+- Monitor system performance
+- Set up automated backups
+
+### Time Estimate
+
+- **Fast track:** 30-60 minutes (experienced users with QUICK_START.md)
+- **Standard:** 1-2 hours (following DEPLOYMENT_GUIDE.md)
+- **With troubleshooting:** 2-3 hours (first-time deployment)
+
+### Documentation References
+
+- **Comprehensive:** [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - 50+ pages, step-by-step
+- **Quick:** [QUICK_START.md](./QUICK_START.md) - Fast deployment checklist
+- **Architecture:** [architecture.md](./architecture.md) - System design
+- **MCP Setup:** [backend/src/mcp/README.md](./backend/src/mcp/README.md) - MCP tools
+
+---
+
+## 3. Project Context
 
 ### What We Have
 ✅ **Requirements Document** (`req.md`) - Complete specification with data model
@@ -1400,18 +1599,19 @@ This plan provides a clear roadmap for building the AI Studio MCP Control Plane 
 8. ✅ **Cross-Session Coordination** - This plan!
 
 ### Next Steps:
-1. **Sprint 1 Kickoff** - Set up development environment
-2. **Daily Progress** - Follow sprint plan, update session notes
-3. **Weekly Reviews** - Check progress, adjust as needed
-4. **MVP Demo** - Sprint 6 (3 months)
+1. **🚨 IMMEDIATE PRIORITY: Remote Host Deployment** - Deploy to production host (1-2 hours)
+2. **Configure Claude Code MCP** - Connect to deployed system
+3. **Sprint 10 Start** - Begin Advanced Features using deployed system
+4. **Self-Development Loop** - Use AI Studio to manage its own development
 5. **Production Release** - Sprint 12 (6 months)
 
-**Let's build something amazing! 🚀**
+**Let's deploy and start the self-development loop! 🚀**
 
 ---
 
-**Document Version:** 1.9
-**Last Updated:** 2025-11-10 (Sprint 9 Complete - Backend & Frontend)
-**Current Sprint:** 9 - ✅ COMPLETE
-**Next Sprint:** 10 - Advanced Features
+**Document Version:** 2.0
+**Last Updated:** 2025-11-10 (Deployment Phase Added - TOP PRIORITY)
+**Current Phase:** 🚨 REMOTE HOST DEPLOYMENT (NEW TOP PRIORITY)
+**Current Sprint:** 9 - ✅ COMPLETE (Backend & Frontend)
+**Next Sprint:** 10 - Advanced Features (AFTER DEPLOYMENT)
 **Owner:** Project Manager

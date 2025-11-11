@@ -83,7 +83,7 @@ const AgentPerformanceView: React.FC = () => {
   useEffect(() => {
     const fetchFrameworks = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/projects/${projectId}`,
           {
@@ -102,6 +102,13 @@ const AgentPerformanceView: React.FC = () => {
         setSelectedFrameworks(['dev-only', 'full']);
       } catch (error) {
         console.error('Failed to fetch frameworks:', error);
+        // Set mock frameworks even if API fails
+        setAvailableFrameworks([
+          { id: 'dev-only', name: 'Dev-only' },
+          { id: 'full', name: 'BA+Arch+Dev+QA' },
+          { id: 'custom', name: 'Custom Framework' },
+        ]);
+        setSelectedFrameworks(['dev-only', 'full']);
       }
     };
 
@@ -117,7 +124,7 @@ const AgentPerformanceView: React.FC = () => {
 
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/agent-metrics/framework-comparison`,
           {
@@ -221,7 +228,7 @@ const AgentPerformanceView: React.FC = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-600">Loading metrics...</div>
+          <div className="text-muted">Loading metrics...</div>
         </div>
       );
     }
@@ -229,7 +236,7 @@ const AgentPerformanceView: React.FC = () => {
     if (!comparisonData) {
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-600">
+          <div className="text-muted">
             Select frameworks to compare
           </div>
         </div>
@@ -241,16 +248,16 @@ const AgentPerformanceView: React.FC = () => {
     return (
       <div className="space-y-8">
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
           <div className="flex flex-wrap gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-fg mb-2">
                 Complexity Band
               </label>
               <select
                 value={complexityBand}
                 onChange={(e) => setComplexityBand(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md"
+                className="px-4 py-2 border border-border rounded-md"
               >
                 <option value="all">All</option>
                 <option value="low">Low (1-2)</option>
@@ -259,13 +266,13 @@ const AgentPerformanceView: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-fg mb-2">
                 Date Range
               </label>
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md"
+                className="px-4 py-2 border border-border rounded-md"
               >
                 <option value="last_7_days">Last 7 days</option>
                 <option value="last_30_days">Last 30 days</option>
@@ -277,39 +284,39 @@ const AgentPerformanceView: React.FC = () => {
         </div>
 
         {/* Efficiency Metrics */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+          <h3 className="text-lg font-semibold text-fg mb-4">
             A. Efficiency Metrics
           </h3>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-secondary">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                     Metric
                   </th>
                   {comparisons.map((comp) => (
                     <th
                       key={comp.framework.id}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                     >
                       {comp.framework.name}
                     </th>
                   ))}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                     Better
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Avg tokens per story
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.efficiencyMetrics.avgTokensPerStory.toLocaleString()}
                     </td>
@@ -322,13 +329,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Avg token per LOC
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.efficiencyMetrics.avgTokenPerLoc.toFixed(1)}
                     </td>
@@ -341,13 +348,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Story cycle time (hours)
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.efficiencyMetrics.storyCycleTimeHours.toFixed(1)}
                     </td>
@@ -360,13 +367,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Prompt iterations per story
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.efficiencyMetrics.promptIterationsPerStory.toFixed(1)}
                     </td>
@@ -384,39 +391,39 @@ const AgentPerformanceView: React.FC = () => {
         </div>
 
         {/* Quality Metrics */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+          <h3 className="text-lg font-semibold text-fg mb-4">
             B. Quality Metrics
           </h3>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-secondary">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                     Metric
                   </th>
                   {comparisons.map((comp) => (
                     <th
                       key={comp.framework.id}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                     >
                       {comp.framework.name}
                     </th>
                   ))}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                     Better
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Defects per story
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.qualityMetrics.defectsPerStory.toFixed(1)}
                     </td>
@@ -429,13 +436,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Defect leakage %
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.qualityMetrics.defectLeakagePercent.toFixed(0)}%
                     </td>
@@ -448,13 +455,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Code churn % (rework)
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.qualityMetrics.codeChurnPercent.toFixed(0)}%
                     </td>
@@ -467,13 +474,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Test coverage %
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.qualityMetrics.testCoveragePercent.toFixed(0)}%
                     </td>
@@ -491,39 +498,39 @@ const AgentPerformanceView: React.FC = () => {
         </div>
 
         {/* Cost Metrics */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+          <h3 className="text-lg font-semibold text-fg mb-4">
             C. Cost & Value Metrics
           </h3>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-secondary">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                     Metric
                   </th>
                   {comparisons.map((comp) => (
                     <th
                       key={comp.framework.id}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider"
                     >
                       {comp.framework.name}
                     </th>
                   ))}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                     Better
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Cost per story ($)
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       ${comp.costMetrics.costPerStory.toFixed(2)}
                     </td>
@@ -536,13 +543,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Cost per accepted LOC ($)
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       ${comp.costMetrics.costPerAcceptedLoc.toFixed(4)}
                     </td>
@@ -555,13 +562,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Stories completed
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       {comp.costMetrics.storiesCompleted}
                     </td>
@@ -574,13 +581,13 @@ const AgentPerformanceView: React.FC = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-fg">
                     Net cost (incl rework)
                   </td>
                   {comparisons.map((comp) => (
                     <td
                       key={comp.framework.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-fg"
                     >
                       ${comp.costMetrics.netCost.toFixed(2)}
                     </td>
@@ -598,14 +605,14 @@ const AgentPerformanceView: React.FC = () => {
         </div>
 
         {/* AI Insights */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+        <div className="bg-accent/10 border border-accent rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-accent-fg mb-4 flex items-center">
             <span className="mr-2">🤖</span>
             AI-Powered Insights
           </h3>
           <ul className="space-y-2">
             {aiInsights.map((insight, index) => (
-              <li key={index} className="text-sm text-blue-900 flex items-start">
+              <li key={index} className="text-sm text-accent-fg flex items-start">
                 <span className="mr-2">•</span>
                 <span>{insight}</span>
               </li>
@@ -617,28 +624,28 @@ const AgentPerformanceView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
+    <div className="min-h-screen bg-secondary py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-fg">
             Agent Performance & Effectiveness
           </h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-muted">
             Project: {comparisonData?.projectName || 'Loading...'}
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-card border border-border rounded-lg shadow-md mb-6">
+          <div className="border-b border-border">
             <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
               <button
                 onClick={() => setActiveTab('comparison')}
                 className={`${
                   activeTab === 'comparison'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-accent text-accent'
+                    : 'border-transparent text-muted hover:text-fg hover:border-border'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 Framework Comparison
@@ -647,8 +654,8 @@ const AgentPerformanceView: React.FC = () => {
                 onClick={() => setActiveTab('story')}
                 className={`${
                   activeTab === 'story'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-accent text-accent'
+                    : 'border-transparent text-muted hover:text-fg hover:border-border'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 Per-Story Execution
@@ -657,8 +664,8 @@ const AgentPerformanceView: React.FC = () => {
                 onClick={() => setActiveTab('agent')}
                 className={`${
                   activeTab === 'agent'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-accent text-accent'
+                    : 'border-transparent text-muted hover:text-fg hover:border-border'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 Per-Agent Analytics
@@ -667,8 +674,8 @@ const AgentPerformanceView: React.FC = () => {
                 onClick={() => setActiveTab('weekly')}
                 className={`${
                   activeTab === 'weekly'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-accent text-accent'
+                    : 'border-transparent text-muted hover:text-fg hover:border-border'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 Week-over-Week
@@ -678,25 +685,25 @@ const AgentPerformanceView: React.FC = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-gray-100">
+        <div className="bg-secondary">
           {activeTab === 'comparison' && renderFrameworkComparisonTab()}
           {activeTab === 'story' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-gray-600">
+            <div className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+              <p className="text-muted">
                 Per-story execution view coming soon...
               </p>
             </div>
           )}
           {activeTab === 'agent' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-gray-600">
+            <div className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+              <p className="text-muted">
                 Per-agent analytics coming soon...
               </p>
             </div>
           )}
           {activeTab === 'weekly' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-gray-600">
+            <div className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+              <p className="text-muted">
                 Week-over-week analysis coming soon...
               </p>
             </div>

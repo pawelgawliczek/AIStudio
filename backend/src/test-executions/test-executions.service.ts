@@ -74,7 +74,19 @@ export class TestExecutionsService {
       });
     }
 
-    return execution;
+    return this.transformExecution(execution);
+  }
+
+  /**
+   * Transform execution to convert Decimal to number
+   */
+  private transformExecution(execution: any): any {
+    return {
+      ...execution,
+      coveragePercentage: execution.coveragePercentage
+        ? Number(execution.coveragePercentage)
+        : null
+    };
   }
 
   /**
@@ -264,6 +276,6 @@ export class TestExecutionsService {
       throw new NotFoundException(`Test execution with ID ${id} not found`);
     }
 
-    return execution;
+    return this.transformExecution(execution);
   }
 }

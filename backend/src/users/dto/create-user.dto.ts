@@ -33,6 +33,5 @@ export class CreateUserDto {
     default: UserRole.dev,
   })
   @IsEnum(UserRole)
-  @IsOptional()
-  role?: UserRole;
+  role: UserRole = UserRole.dev;
 }

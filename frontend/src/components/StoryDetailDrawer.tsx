@@ -13,16 +13,16 @@ interface StoryDetailDrawerProps {
 }
 
 const statusColors: Record<StoryStatus, string> = {
-  backlog: 'bg-gray-100 text-gray-800',
-  planning: 'bg-blue-100 text-blue-800',
-  analysis: 'bg-purple-100 text-purple-800',
-  architecture: 'bg-indigo-100 text-indigo-800',
-  design: 'bg-pink-100 text-pink-800',
-  implementation: 'bg-yellow-100 text-yellow-800',
-  review: 'bg-orange-100 text-orange-800',
-  qa: 'bg-green-100 text-green-800',
-  done: 'bg-gray-100 text-gray-800',
-  blocked: 'bg-red-100 text-red-800',
+  backlog: 'bg-muted text-fg border border-border',
+  planning: 'bg-blue-500/10 text-blue-600 border border-blue-500/20',
+  analysis: 'bg-purple-500/10 text-purple-600 border border-purple-500/20',
+  architecture: 'bg-accent/10 text-accent-dark border border-accent/20',
+  design: 'bg-pink-500/10 text-pink-600 border border-pink-500/20',
+  implementation: 'bg-yellow-500/10 text-yellow-600 border border-yellow-500/20',
+  review: 'bg-orange-500/10 text-orange-600 border border-orange-500/20',
+  qa: 'bg-green-500/10 text-green-600 border border-green-500/20',
+  done: 'bg-muted text-fg border border-border',
+  blocked: 'bg-red-500/10 text-red-600 border border-red-500/20',
 };
 
 export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [] }: StoryDetailDrawerProps) {
@@ -43,7 +43,7 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-all" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-hidden">
@@ -59,9 +59,9 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                 leaveTo="translate-x-full"
               >
                 <Dialog.Panel className="pointer-events-auto w-screen max-w-2xl">
-                  <div className="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                  <div className="flex h-full flex-col overflow-y-scroll bg-card border border-border shadow-xl">
                     {/* Header */}
-                    <div className="bg-indigo-700 px-4 py-6 sm:px-6">
+                    <div className="bg-accent px-4 py-6 sm:px-6">
                       <div className="flex items-start justify-between">
                         <Dialog.Title className="text-base font-semibold leading-6 text-white">
                           {story.key}: {story.title}
@@ -69,7 +69,7 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                         <div className="ml-3 flex h-7 items-center">
                           <button
                             type="button"
-                            className="rounded-md bg-indigo-700 text-indigo-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-white"
+                            className="rounded-md bg-accent text-accent-fg hover:text-white focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
                             onClick={onClose}
                           >
                             <span className="sr-only">Close panel</span>
@@ -78,7 +78,7 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                         </div>
                       </div>
                       <div className="mt-3">
-                        <p className="text-sm text-indigo-100">
+                        <p className="text-sm text-accent-fg">
                           {story.project?.name} {story.epic && `• ${story.epic.key}`}
                         </p>
                       </div>
@@ -90,7 +90,7 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                         {/* Status, Priority, Type */}
                         <div className="grid grid-cols-3 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">Status</label>
+                            <label className="block text-sm font-medium text-muted">Status</label>
                             <span className={clsx(
                               'mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
                               statusColors[story.status]
@@ -99,14 +99,14 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                             </span>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">Priority</label>
+                            <label className="block text-sm font-medium text-muted">Priority</label>
                             <div className="mt-1 text-yellow-500 text-lg">
                               {'★'.repeat(Math.min(story.businessImpact || 3, 5))}
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">Type</label>
-                            <span className="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            <label className="block text-sm font-medium text-muted">Type</label>
+                            <span className="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
                               {story.type}
                             </span>
                           </div>
@@ -114,24 +114,77 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
 
                         {/* Description */}
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">Description</h3>
-                          <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                          <h3 className="text-lg font-medium text-fg mb-2">Description</h3>
+                          <p className="text-sm text-muted whitespace-pre-wrap">
                             {story.description || 'No description provided.'}
                           </p>
                         </div>
 
+                        {/* Layers & Components */}
+                        {((story.layers && story.layers.length > 0) || (story.components && story.components.length > 0)) && (
+                          <div>
+                            <h3 className="text-lg font-medium text-fg mb-2">Architecture</h3>
+                            <div className="space-y-3">
+                              {story.layers && story.layers.length > 0 && (
+                                <div>
+                                  <div className="text-sm font-medium text-muted mb-2">Layers</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {story.layers.map((sl) => (
+                                      <span
+                                        key={sl.layer.id}
+                                        className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium"
+                                        style={{
+                                          backgroundColor: `${sl.layer.color}15`,
+                                          color: sl.layer.color || '#6366F1',
+                                          borderWidth: '1px',
+                                          borderColor: `${sl.layer.color}30`,
+                                        }}
+                                      >
+                                        <span className="mr-1.5">{sl.layer.icon}</span>
+                                        {sl.layer.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {story.components && story.components.length > 0 && (
+                                <div>
+                                  <div className="text-sm font-medium text-muted mb-2">Components</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {story.components.map((sc) => (
+                                      <span
+                                        key={sc.component.id}
+                                        className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium"
+                                        style={{
+                                          backgroundColor: `${sc.component.color}15`,
+                                          color: sc.component.color || '#10B981',
+                                          borderWidth: '1px',
+                                          borderColor: `${sc.component.color}30`,
+                                        }}
+                                      >
+                                        <span className="mr-1.5">{sc.component.icon}</span>
+                                        {sc.component.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Complexity Assessment */}
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">Complexity Assessment</h3>
+                          <h3 className="text-lg font-medium text-fg mb-2">Complexity Assessment</h3>
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <div className="text-sm font-medium text-gray-700">Business Complexity</div>
-                              <div className="mt-1 text-2xl font-bold text-indigo-600">
+                            <div className="bg-secondary p-3 rounded-lg">
+                              <div className="text-sm font-medium text-muted">Business Complexity</div>
+                              <div className="mt-1 text-2xl font-bold text-accent-dark">
                                 {story.businessComplexity || 'N/A'}
                               </div>
                             </div>
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <div className="text-sm font-medium text-gray-700">Technical Complexity</div>
+                            <div className="bg-secondary p-3 rounded-lg">
+                              <div className="text-sm font-medium text-muted">Technical Complexity</div>
                               <div className="mt-1 text-2xl font-bold text-purple-600">
                                 {story.technicalComplexity || 'N/A'}
                               </div>
@@ -142,24 +195,24 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                         {/* Subtasks */}
                         {subtasksTotal > 0 && (
                           <div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            <h3 className="text-lg font-medium text-fg mb-2">
                               Subtasks ({subtasksCompleted}/{subtasksTotal} completed)
                             </h3>
                             <div className="space-y-2">
                               {story.subtasks?.map((subtask) => (
                                 <div
                                   key={subtask.id}
-                                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                  className="flex items-center justify-between p-3 bg-secondary rounded-lg"
                                 >
                                   <div className="flex items-center space-x-3">
                                     {subtask.status === 'done' ? (
                                       <CheckCircleIcon className="w-5 h-5 text-green-500" />
                                     ) : (
-                                      <ClockIcon className="w-5 h-5 text-gray-400" />
+                                      <ClockIcon className="w-5 h-5 text-muted" />
                                     )}
                                     <div>
-                                      <div className="text-sm font-medium text-gray-900">{subtask.title}</div>
-                                      <div className="text-xs text-gray-500">
+                                      <div className="text-sm font-medium text-fg">{subtask.title}</div>
+                                      <div className="text-xs text-muted">
                                         {subtask.layer && `${subtask.layer} • `}
                                         {subtask.assigneeType || 'Unassigned'}
                                       </div>
@@ -167,7 +220,7 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                                   </div>
                                   <span className={clsx(
                                     'px-2 py-1 text-xs rounded-full',
-                                    subtask.status === 'done' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                    subtask.status === 'done' ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-muted text-fg border border-border'
                                   )}>
                                     {subtask.status}
                                   </span>
@@ -180,19 +233,19 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                         {/* Commits */}
                         {commits.length > 0 && (
                           <div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            <h3 className="text-lg font-medium text-fg mb-2">
                               Commits ({commits.length})
                             </h3>
                             <div className="space-y-2">
                               {commits.slice(0, 5).map((commit: any) => (
-                                <div key={commit.hash} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                                  <CodeBracketIcon className="w-5 h-5 text-gray-400 mt-0.5" />
+                                <div key={commit.hash} className="flex items-start space-x-3 p-3 bg-secondary rounded-lg">
+                                  <CodeBracketIcon className="w-5 h-5 text-muted mt-0.5" />
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-gray-900 font-mono">
+                                    <div className="text-sm font-medium text-fg font-mono">
                                       {commit.hash.substring(0, 7)}
                                     </div>
-                                    <div className="text-sm text-gray-600 truncate">{commit.message}</div>
-                                    <div className="text-xs text-gray-500 mt-1">
+                                    <div className="text-sm text-muted truncate">{commit.message}</div>
+                                    <div className="text-xs text-muted mt-1">
                                       {commit.author} • {new Date(commit.timestamp).toLocaleDateString()}
                                       {commit.filesChanged > 0 && ` • ${commit.filesChanged} files`}
                                       {commit.linesAdded > 0 && ` • +${commit.linesAdded} −${commit.linesDeleted}`}
@@ -207,24 +260,24 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                         {/* Agent Executions */}
                         {runs.length > 0 && (
                           <div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            <h3 className="text-lg font-medium text-fg mb-2">
                               Agent Executions ({runs.length})
                             </h3>
                             <div className="space-y-2">
                               {runs.slice(0, 5).map((run: any) => (
-                                <div key={run.id} className="p-3 bg-gray-50 rounded-lg">
+                                <div key={run.id} className="p-3 bg-secondary rounded-lg">
                                   <div className="flex items-center justify-between">
-                                    <div className="text-sm font-medium text-gray-900">
+                                    <div className="text-sm font-medium text-fg">
                                       {run.success ? '✓' : '✗'} Run {run.id.substring(0, 8)}
                                     </div>
                                     <span className={clsx(
                                       'px-2 py-1 text-xs rounded-full',
-                                      run.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                      run.success ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-red-500/10 text-red-600 border border-red-500/20'
                                     )}>
                                       {run.success ? 'Success' : 'Failed'}
                                     </span>
                                   </div>
-                                  <div className="text-xs text-gray-500 mt-1">
+                                  <div className="text-xs text-muted mt-1">
                                     Tokens: {run.tokensInput + run.tokensOutput} ({run.tokensInput} in, {run.tokensOutput} out)
                                     {run.iterations > 1 && ` • ${run.iterations} iterations`}
                                   </div>

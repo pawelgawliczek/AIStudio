@@ -2,7 +2,7 @@
   "name": "@aistudio/backend",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Studio Backend - NestJS REST API and MCP Server",
+  "description": "Vibe Studio Backend - NestJS REST API and MCP Server",
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",
@@ -73,7 +73,8 @@
     "ts-jest": "^29.1.1",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.6"
   },
   "jest": {
     "moduleFileExtensions": [
