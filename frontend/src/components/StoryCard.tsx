@@ -92,8 +92,11 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
       {/* Epic Tag (if present) */}
       {story.epic && (
         <div className="mb-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-            {story.epic.key}
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+            title={story.epic.title}
+          >
+            {story.epic.key}: {story.epic.title}
           </span>
         </div>
       )}

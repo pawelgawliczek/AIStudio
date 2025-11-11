@@ -225,7 +225,13 @@ export function StoryDetailPage() {
                 {story.status}
               </span>
               {story.epic && (
-                <span className="text-xs text-gray-500">{story.epic.key}</span>
+                <span
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                  data-testid="story-epic"
+                  title={story.epic.title}
+                >
+                  {story.epic.key}: {story.epic.title}
+                </span>
               )}
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{story.title}</h1>
