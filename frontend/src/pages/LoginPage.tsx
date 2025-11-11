@@ -31,7 +31,7 @@ export function LoginPage() {
         <div className="bg-card border border-border rounded-lg shadow-md p-6 sm:p-8">
           <div className="mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold text-center text-accent">
-              AI Studio
+              Vibe Studio
             </h2>
             <p className="mt-2 text-center text-sm text-muted">
               MCP Control Plane
