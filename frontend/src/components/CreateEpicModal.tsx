@@ -36,7 +36,8 @@ export function CreateEpicModal({
     if (initialData) {
       setTitle(initialData.title);
       setDescription(initialData.description || '');
-      setPriority(initialData.priority || 3);
+      // Clamp priority to valid range (1-5 for UI, backend accepts 0-10)
+      setPriority(Math.min(Math.max(initialData.priority || 3, 1), 5));
     } else {
       // Reset form when creating new
       setTitle('');
