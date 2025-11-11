@@ -5,33 +5,41 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
+import { EpicListPage } from './pages/EpicListPage';
 import { PlanningView } from './pages/PlanningView';
+import { LayersComponentsPage } from './pages/LayersComponentsPage';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
 import ComponentCoverageView from './pages/ComponentCoverageView';
+import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
 
 function App() {
   return (
     <BrowserRouter>
-      <ProjectProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="projects" element={<ProjectsPage />} />
-            <Route path="planning" element={<PlanningView />} />
-            <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
-            <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
-            <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
-            <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
-            <Route path="projects/:projectId/stories" element={<StoryListPage />} />
-            <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
-          </Route>
-        </Routes>
-      </ProjectProvider>
+      <AuthProvider>
+        <ProjectProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<Navigate to="stories" replace />} />
+              <Route path="planning" element={<PlanningView />} />
+              <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
+              <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
+              <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
+              <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
+              <Route path="projects/:projectId/stories" element={<StoryListPage />} />
+              <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
+              <Route path="projects/:projectId/epics" element={<EpicListPage />} />
+              <Route path="layers-components" element={<LayersComponentsPage />} />
+            </Route>
+          </Routes>
+        </ProjectProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

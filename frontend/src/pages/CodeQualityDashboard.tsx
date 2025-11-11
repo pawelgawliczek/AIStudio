@@ -93,7 +93,7 @@ const CodeQualityDashboard: React.FC = () => {
   const fetchMetrics = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const [projectRes, layersRes, componentsRes, hotspotsRes, issuesRes] = await Promise.all([
@@ -477,7 +477,7 @@ const CodeQualityDashboard: React.FC = () => {
                     </button>
                     {issue.severity === 'critical' || issue.severity === 'high' ? (
                       <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                        Create Story
+                        Create Item
                       </button>
                     ) : null}
                   </td>

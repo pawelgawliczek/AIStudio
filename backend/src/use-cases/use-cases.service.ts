@@ -4,7 +4,6 @@ import {
   CreateUseCaseDto,
   UpdateUseCaseDto,
   SearchUseCasesDto,
-  SearchMode,
   LinkUseCaseToStoryDto,
   UseCaseResponse,
 } from './dto';
@@ -79,16 +78,19 @@ export class UseCasesService {
         },
       });
 
-      await tx.useCaseVersion.create({
-        data: {
-          useCaseId: newUseCase.id,
-          version: 1,
-          summary: dto.summary,
-          content: dto.content,
-          embedding: embedding ? `[${embedding.join(',')}]` : null,
-          createdById,
-        },
-      });
+      // Create version with embedding using raw SQL since Prisma doesn't support Unsupported type
+      await tx.$executeRaw`
+        INSERT INTO use_case_versions (id, use_case_id, version, summary, content, embedding, created_by)
+        VALUES (
+          uuid_generate_v4(),
+          ${newUseCase.id}::uuid,
+          1,
+          ${dto.summary},
+          ${dto.content},
+          ${embedding ? `[${embedding.join(',')}]` : null}::vector,
+          ${createdById}::uuid
+        )
+      `;
 
       return newUseCase;
     });
@@ -290,16 +292,22 @@ export class UseCasesService {
 
       // Create new version if content changed
       if (dto.content || dto.summary) {
-        await tx.useCaseVersion.create({
-          data: {
-            useCaseId: id,
-            version: newVersion,
-            summary: dto.summary ?? latestVersion?.summary,
-            content: dto.content ?? latestVersion?.content,
-            embedding: embedding ? `[${embedding.join(',')}]` : null,
-            createdById,
-          },
-        });
+        const summary = dto.summary ?? latestVersion?.summary;
+        const content = dto.content ?? latestVersion?.content;
+
+        // Use raw SQL for embedding field
+        await tx.$executeRaw`
+          INSERT INTO use_case_versions (id, use_case_id, version, summary, content, embedding, created_by)
+          VALUES (
+            uuid_generate_v4(),
+            ${id}::uuid,
+            ${newVersion},
+            ${summary},
+            ${content},
+            ${embedding ? `[${embedding.join(',')}]` : null}::vector,
+            ${createdById}::uuid
+          )
+        `;
       }
     });
 
@@ -432,7 +440,7 @@ export class UseCasesService {
   /**
    * Semantic search using vector similarity
    */
-  private async searchSemantic(dto: SearchUseCasesDto): Promise<UseCaseResponse[]> {
+  private async searchSemantic(dto: SearchUseCasesDto & { minSimilarity?: number }): Promise<UseCaseResponse[]> {
     if (!this.openai) {
       throw new BadRequestException('Semantic search is not available (OpenAI API key not configured)');
     }
@@ -443,6 +451,9 @@ export class UseCasesService {
 
     // Generate embedding for query
     const queryEmbedding = await this.generateEmbedding(dto.query);
+
+    const minSimilarity = dto.minSimilarity || 0.7;
+    const limit = dto.limit || 20;
 
     // Use raw SQL for vector similarity search
     // Note: Prisma doesn't support pgvector operations natively yet
@@ -468,7 +479,7 @@ export class UseCasesService {
       ${dto.projectId ? 'AND uc.project_id = $3' : ''}
       ORDER BY similarity DESC
       LIMIT $${dto.projectId ? '4' : '3'}
-    `, `[${queryEmbedding.join(',')}]`, dto.minSimilarity || 0.7, ...(dto.projectId ? [dto.projectId] : []), dto.limit || 20);
+    `, `[${queryEmbedding.join(',')}]`, minSimilarity, ...(dto.projectId ? [dto.projectId] : []), limit);
 
     // Fetch full use case details for results
     const useCaseIds = results.map((r) => r.id);
@@ -837,12 +848,10 @@ export class UseCasesService {
     if (includeSemanticallySimilar && this.openai && story.description && results.length < limit) {
       try {
         const searchQuery = `${story.title}\n\n${story.description}`;
-        const semanticResults = await this.search({
+        const semanticResults = await this.searchSemantic({
           projectId: story.projectId,
           query: searchQuery,
-          mode: SearchMode.SEMANTIC,
           limit: limit - results.length,
-          minSimilarity,
         });
 
         for (const result of semanticResults) {
@@ -902,16 +911,12 @@ export class UseCasesService {
             },
           },
         },
-        testMappings: {
-          include: {
-            testCase: {
-              select: {
-                id: true,
-                key: true,
-                description: true,
-                type: true,
-              },
-            },
+        testCases: {
+          select: {
+            id: true,
+            key: true,
+            description: true,
+            testLevel: true,
           },
         },
       },
@@ -925,7 +930,7 @@ export class UseCasesService {
       ...useCase,
       versionCount: useCase.versions.length,
       linkedStoriesCount: useCase.storyLinks.length,
-      testCoverageCount: useCase.testMappings.length,
+      testCoverageCount: useCase.testCases.length,
       latestVersion: useCase.versions[0],
       changelog: useCase.versions.map((v, idx) => ({
         version: v.version,
@@ -1006,23 +1011,24 @@ export class UseCasesService {
       return;
     }
 
-    const versions = await this.prisma.useCaseVersion.findMany({
-      where: {
-        embedding: null,
-      },
-    });
+    // Query all versions without embedding using raw SQL since Prisma doesn't support Unsupported type in queries
+    const versions = await this.prisma.$queryRaw<Array<{ id: string; content: string }>>`
+      SELECT id, content
+      FROM use_case_versions
+      WHERE embedding IS NULL
+    `;
 
     this.logger.log(`Regenerating embeddings for ${versions.length} use case versions`);
 
     for (const version of versions) {
       try {
         const embedding = await this.generateEmbedding(version.content);
-        await this.prisma.useCaseVersion.update({
-          where: { id: version.id },
-          data: {
-            embedding: `[${embedding.join(',')}]`,
-          },
-        });
+        // Use raw SQL to update embedding since Prisma doesn't support Unsupported type in updates
+        await this.prisma.$executeRaw`
+          UPDATE use_case_versions
+          SET embedding = ${`[${embedding.join(',')}]`}::vector
+          WHERE id = ${version.id}::uuid
+        `;
         this.logger.log(`Generated embedding for use case version ${version.id}`);
       } catch (error) {
         this.logger.error(`Failed to generate embedding for version ${version.id}: ${error.message}`);

@@ -1,2 +1,11 @@
-export * from './get_use_case_coverage';
-export * from './get_component_test_coverage';
+export {
+  tool as getUseCaseCoverageTool,
+  handler as getUseCaseCoverageHandler,
+  metadata as getUseCaseCoverageMetadata
+} from './get_use_case_coverage';
+
+export {
+  tool as getComponentTestCoverageTool,
+  handler as getComponentTestCoverageHandler,
+  metadata as getComponentTestCoverageMetadata
+} from './get_component_test_coverage';

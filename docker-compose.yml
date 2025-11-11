@@ -4,13 +4,13 @@ services:
   # PostgreSQL Database with pgvector extension
   postgres:
     image: pgvector/pgvector:pg15
-    container_name: aistudio-postgres
+    container_name: vibe-studio-postgres
     environment:
-      POSTGRES_DB: aistudio
+      POSTGRES_DB: vibestudio
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-361a30c6d68396be29c7eddc3f9ff1b1cfe07675c707232a370bda33f7c8b518}
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
@@ -25,9 +25,9 @@ services:
   # Redis for caching and Bull queue
   redis:
     image: redis:7-alpine
-    container_name: aistudio-redis
+    container_name: vibe-studio-redis
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6380:6379'
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -44,15 +44,15 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: aistudio-backend
+    container_name: vibe-studio-backend
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/aistudio
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-361a30c6d68396be29c7eddc3f9ff1b1cfe07675c707232a370bda33f7c8b518}@postgres:5432/vibestudio
       REDIS_URL: redis://redis:6379
       JWT_SECRET: development-secret-change-in-production
       PORT: 3000
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3001:3000'
     volumes:
       - ./backend:/app/backend
       - ./shared:/app/shared
@@ -65,19 +65,20 @@ services:
         condition: service_healthy
     networks:
       - aistudio-network
-    command: npm run dev --workspace=backend
+      - stack_appnet
+    command: sh -c "cd backend && npx nest build && node dist/main.js"
 
   # Frontend (React + Vite)
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    container_name: aistudio-frontend
+    container_name: vibe-studio-frontend
     environment:
-      VITE_API_URL: http://localhost:3000
-      VITE_WS_URL: ws://localhost:3000
+      VITE_API_URL: /api
+      VITE_WS_URL: /socket.io
     ports:
-      - '5173:5173'
+      - '127.0.0.1:5174:5173'
     volumes:
       - ./frontend:/app/frontend
       - ./shared:/app/shared
@@ -87,6 +88,7 @@ services:
       - backend
     networks:
       - aistudio-network
+      - stack_appnet
     command: npm run dev --workspace=frontend
 
 volumes:
@@ -98,3 +100,5 @@ volumes:
 networks:
   aistudio-network:
     driver: bridge
+  stack_appnet:
+    external: true
