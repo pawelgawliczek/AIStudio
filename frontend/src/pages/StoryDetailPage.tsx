@@ -42,9 +42,13 @@ export function StoryDetailPage() {
   const { projectId, storyId } = useParams<{ projectId: string; storyId: string }>();
   const navigate = useNavigate();
 
+  console.log('[StoryDetailPage] Component mounted, params:', { projectId, storyId });
+
   const [story, setStory] = useState<Story | null>(null);
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  console.log('[StoryDetailPage] State:', { story, subtasks, isLoading });
   const [showOverride, setShowOverride] = useState(false);
   const [overrideStatus, setOverrideStatus] = useState<StoryStatus>(StoryStatus.PLANNING);
   const [layerFilter, setLayerFilter] = useState<SubtaskLayer | ''>('');
@@ -64,7 +68,10 @@ export function StoryDetailPage() {
   const isAdmin = currentUser.role === 'admin';
 
   const loadStory = async () => {
-    if (!storyId || storyId === 'new') return;
+    if (!storyId || storyId === 'new') {
+      setIsLoading(false);  // Set loading to false for 'new' story creation
+      return;
+    }
     try {
       setIsLoading(true);
       const data = await storiesService.getById(storyId);
@@ -87,6 +94,7 @@ export function StoryDetailPage() {
   };
 
   useEffect(() => {
+    console.log('[StoryDetailPage] useEffect triggered, storyId:', storyId);
     loadStory();
     loadSubtasks();
   }, [storyId]);

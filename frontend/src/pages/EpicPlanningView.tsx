@@ -17,14 +17,17 @@ import { EpicGroup } from '../components/planning/EpicGroup';
 import { PlanningFilters } from '../components/planning/PlanningFilters';
 import { PlanningItemCard } from '../components/planning/PlanningItemCard';
 import { StoryDetailDrawer } from '../components/StoryDetailDrawer';
+import { CreateStoryModal } from '../components/CreateStoryModal';
 import { useWebSocket, useStoryEvents, useEpicEvents } from '../services/websocket.service';
+import { useProject } from '../context/ProjectContext';
 
 type ViewMode = 'grouped' | 'flat';
 type SortOption = 'priority-high' | 'priority-low' | 'created-new' | 'created-old' | 'updated' | 'title-az' | 'title-za';
 
 export function EpicPlanningView() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const projectId = searchParams.get('projectId') || '';
+  const { selectedProject } = useProject();
+  const projectId = selectedProject?.id || '';
 
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('grouped');
@@ -40,6 +43,11 @@ export function EpicPlanningView() {
   // Modal/drawer state
   const [selectedItem, setSelectedItem] = useState<Story | Epic | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalEpicId, setCreateModalEpicId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStory, setEditingStory] = useState<Story | null>(null);
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -308,6 +316,48 @@ export function EpicPlanningView() {
     setTimeout(() => setSelectedItem(null), 300);
   };
 
+  const handleAddStory = (epicId: string | null) => {
+    setCreateModalEpicId(epicId);
+    setShowCreateModal(true);
+  };
+
+  const handleCreateStory = async (data: any) => {
+    if (!projectId) return;
+    try {
+      setIsCreating(true);
+      await storiesApi.create({ ...data, projectId, epicId: createModalEpicId });
+      setShowCreateModal(false);
+      queryClient.invalidateQueries({ queryKey: ['planning-overview'] });
+    } catch (error) {
+      console.error('Failed to create story:', error);
+      alert('Failed to create story');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleEditStory = (story: Story) => {
+    setEditingStory(story);
+    setDrawerOpen(false);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateStory = async (data: any) => {
+    if (!editingStory) return;
+    try {
+      setIsCreating(true);
+      await storiesApi.update(editingStory.id, data);
+      setShowEditModal(false);
+      setEditingStory(null);
+      queryClient.invalidateQueries({ queryKey: ['planning-overview'] });
+    } catch (error) {
+      console.error('Failed to update story:', error);
+      alert('Failed to update story');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const updateFilter = (key: string, value: string[]) => {
     const newParams = new URLSearchParams(searchParams);
     if (value.length > 0) {
@@ -473,6 +523,7 @@ export function EpicPlanningView() {
                       epic={epic}
                       onEpicClick={handleItemClick}
                       onStoryClick={handleItemClick}
+                      onAddStory={handleAddStory}
                     />
                   ))}
 
@@ -482,6 +533,7 @@ export function EpicPlanningView() {
                       epic={null}
                       stories={filteredAndSortedData.unassignedStories}
                       onStoryClick={handleItemClick}
+                      onAddStory={handleAddStory}
                     />
                   )}
 
@@ -526,6 +578,43 @@ export function EpicPlanningView() {
             story={selectedItem as Story}
             open={drawerOpen}
             onClose={handleDrawerClose}
+            onEdit={handleEditStory}
+          />
+        )}
+
+        {/* Create Story Modal */}
+        <CreateStoryModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreateStory}
+          epics={planningData?.epics || []}
+          projectId={projectId}
+          isLoading={isCreating}
+        />
+
+        {/* Edit Story Modal */}
+        {editingStory && (
+          <CreateStoryModal
+            open={showEditModal}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingStory(null);
+            }}
+            onSubmit={handleUpdateStory}
+            epics={planningData?.epics || []}
+            projectId={projectId}
+            isLoading={isCreating}
+            initialData={{
+              title: editingStory.title,
+              description: editingStory.description || '',
+              type: editingStory.type,
+              epicId: editingStory.epicId || undefined,
+              technicalComplexity: editingStory.technicalComplexity,
+              businessImpact: editingStory.businessImpact,
+              businessComplexity: editingStory.businessComplexity,
+              layerIds: editingStory.layers?.map(l => l.layerId) || [],
+              componentIds: editingStory.components?.map(c => c.componentId) || [],
+            }}
           />
         )}
       </div>

@@ -23,13 +23,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const refreshProjects = async () => {
     if (!isAuthenticated) {
+      console.log('[ProjectContext] Not authenticated, skipping refresh');
       return;
     }
 
     try {
+      console.log('[ProjectContext] Starting refreshProjects...');
       setIsLoading(true);
       setError(null);
       const data = await projectsService.getAll();
+      console.log('[ProjectContext] Got projects:', data);
       setProjects(data);
 
       // If there's a selected project, update it with fresh data
@@ -52,14 +55,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           }
         } else if (data.length > 0) {
           // Auto-select first project if none selected
+          console.log('[ProjectContext] Auto-selecting first project:', data[0]);
           setSelectedProject(data[0]);
           localStorage.setItem('selectedProjectId', data[0].id);
+        } else {
+          console.log('[ProjectContext] No projects available');
         }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load projects');
-      console.error('Error loading projects:', err);
+      console.error('[ProjectContext] Error loading projects:', err);
     } finally {
+      console.log('[ProjectContext] Finished refreshProjects, isLoading -> false');
       setIsLoading(false);
     }
   };
