@@ -51,31 +51,25 @@ export function Layout() {
                 >
                   📊 Dashboard
                 </Link>
-                <Link
-                  to="/projects"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
-                >
-                  📋 Projects
-                </Link>
-                <Link
-                  to={selectedProject ? `/planning?projectId=${selectedProject.id}` : '/planning'}
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
-                >
-                  🎯 Planning
-                </Link>
                 {selectedProject && (
                   <>
                     <Link
-                      to={`/projects/${selectedProject.id}/stories`}
+                      to={`/planning?projectId=${selectedProject.id}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                     >
-                      📖 Stories
+                      🎯 Planning
                     </Link>
                     <Link
                       to={`/projects/${selectedProject.id}/epics`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                     >
                       🟣 Epics
+                    </Link>
+                    <Link
+                      to={`/projects/${selectedProject.id}/stories`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                    >
+                      📖 Stories
                     </Link>
                     <Link
                       to={`/code-quality/${selectedProject.id}`}
