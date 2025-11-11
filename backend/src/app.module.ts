@@ -15,6 +15,7 @@ import { CodeMetricsModule } from './code-metrics/code-metrics.module';
 import { AgentMetricsModule } from './agent-metrics/agent-metrics.module';
 import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
+import { WorkersModule } from './workers/workers.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -38,6 +39,7 @@ import { HealthController } from './health.controller';
     AgentMetricsModule,
     TestCasesModule,
     TestExecutionsModule,
+    WorkersModule,
   ],
   controllers: [HealthController],
 })
