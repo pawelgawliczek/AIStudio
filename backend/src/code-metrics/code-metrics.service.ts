@@ -278,7 +278,7 @@ export class CodeMetricsService {
 
     // Use component and layer from CodeMetrics
     const component = fileMetric.component || 'Unknown';
-    const layer = fileMetric.layer || 'other';
+    const layer = (fileMetric.layer || 'other') as LayerType;
     const language = this.getLanguageFromPath(filePath);
 
     // Calculate risk score
@@ -636,7 +636,7 @@ export class CodeMetricsService {
         churnCount: metric.churnRate,
         lastModified: commitInfo?.timestamp || metric.lastAnalyzedAt,
         lastStoryKey: commitInfo?.storyKey,
-        criticalIssues: metric.codeSmells, // Use code smells as critical issues indicator
+        criticalIssues: metric.codeSmellCount, // Use code smell count as critical issues indicator
       };
     });
   }
