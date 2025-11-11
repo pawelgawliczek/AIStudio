@@ -23,7 +23,7 @@ export function Layout() {
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-8">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-lg sm:text-xl font-bold text-accent">AI Studio</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-accent">Vibe Studio</h1>
               </div>
               <div className="hidden md:flex gap-6">
                 <Link

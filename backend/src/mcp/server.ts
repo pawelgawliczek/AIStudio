@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * AI Studio MCP Server (Sprint 4.5 - Progressive Disclosure)
+ * Vibe Studio MCP Server
  *
  * Implements progressive disclosure pattern with file-based tool discovery.
- * See: docs/sprint-4.5-technical-spec.md
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -139,7 +138,7 @@ async function main() {
   // Start MCP server with stdio transport
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('✅ AI Studio MCP Server started (Sprint 4.5)');
+  console.error('✅ Vibe Studio MCP Server started');
   console.error('💡 Use search_tools for progressive discovery');
   console.error('Listening for MCP requests...\n');
 }
