@@ -101,7 +101,7 @@ export class SubtasksService {
           },
         },
         runs: {
-          orderBy: { startTime: 'desc' },
+          orderBy: { startedAt: 'desc' },
           take: 5,
         },
       },
