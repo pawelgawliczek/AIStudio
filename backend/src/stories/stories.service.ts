@@ -19,7 +19,8 @@ import { AppWebSocketGateway } from '../websocket/websocket.gateway';
  * Defines valid state transitions for stories
  */
 const STORY_WORKFLOW: Record<StoryStatus, StoryStatus[]> = {
-  planning: [StoryStatus.analysis],
+  backlog: [StoryStatus.planning],
+  planning: [StoryStatus.backlog, StoryStatus.analysis],
   analysis: [StoryStatus.planning, StoryStatus.architecture],
   architecture: [StoryStatus.analysis, StoryStatus.design],
   design: [StoryStatus.architecture, StoryStatus.implementation],
@@ -27,6 +28,7 @@ const STORY_WORKFLOW: Record<StoryStatus, StoryStatus[]> = {
   review: [StoryStatus.implementation, StoryStatus.qa],
   qa: [StoryStatus.review, StoryStatus.done, StoryStatus.implementation],
   done: [], // Terminal state - can only be changed by admin override
+  blocked: [], // Can be moved from any state, but cannot transition forward until unblocked
 };
 
 @Injectable()

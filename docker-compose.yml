@@ -65,7 +65,7 @@ services:
         condition: service_healthy
     networks:
       - aistudio-network
-    command: npm run dev --workspace=backend
+    command: sh -c "cd backend && npx nest build && node dist/main.js"
 
   # Frontend (React + Vite)
   frontend:

@@ -263,7 +263,7 @@ export class AgentMetricsService {
           : undefined,
       },
       include: {
-        defects: true,
+        defect: true,
         commits: {
           include: {
             files: true,
@@ -273,17 +273,17 @@ export class AgentMetricsService {
     });
 
     const defectsPerStory =
-      stories.reduce((sum, s) => sum + s.defects.length, 0) / stories.length ||
+      stories.reduce((sum, s) => sum + (s.defect ? 1 : 0), 0) / stories.length ||
       0;
 
     // Defect leakage: prod/uat defects vs total
     const totalDefects = stories.reduce(
-      (sum, s) => sum + s.defects.length,
+      (sum, s) => sum + (s.defect ? 1 : 0),
       0,
     );
     const leakedDefects = stories.reduce(
       (sum, s) =>
-        sum + s.defects.filter((d) => d.status === 'production').length,
+        sum + (s.defect && s.defect.discoveryStage === 'production' ? 1 : 0),
       0,
     );
     const defectLeakagePercent =
@@ -296,7 +296,7 @@ export class AgentMetricsService {
     // Critical defects
     const criticalDefects = stories.reduce(
       (sum, s) =>
-        sum + s.defects.filter((d) => d.severity === 'critical').length,
+        sum + (s.defect && s.defect.severity === 'critical' ? 1 : 0),
       0,
     );
 
@@ -639,18 +639,20 @@ export class AgentMetricsService {
           ? (run.finishedAt.getTime() - run.startedAt.getTime()) / 1000
           : 0;
 
+      const locGenerated = (run.metadata as any)?.locGenerated || 0;
+
       const metrics = {
         tokensPerLoc:
-          run.locGenerated && run.locGenerated > 0
-            ? (run.tokensInput + run.tokensOutput) / run.locGenerated
+          locGenerated > 0
+            ? (run.tokensInput + run.tokensOutput) / locGenerated
             : undefined,
         locPerPrompt:
-          run.locGenerated && run.iterations
-            ? run.locGenerated / run.iterations
+          locGenerated && run.iterations
+            ? locGenerated / run.iterations
             : undefined,
         runtimePerLoc:
-          run.locGenerated && run.locGenerated > 0
-            ? duration / run.locGenerated
+          locGenerated > 0
+            ? duration / locGenerated
             : undefined,
         runtimePerToken:
           run.tokensInput + run.tokensOutput > 0
@@ -670,7 +672,7 @@ export class AgentMetricsService {
         tokensOutput: run.tokensOutput || 0,
         tokensTotal: (run.tokensInput || 0) + (run.tokensOutput || 0),
         iterations: run.iterations || 0,
-        locGenerated: run.locGenerated,
+        locGenerated: locGenerated,
         success: run.success || false,
         metrics,
         outputs: {
@@ -723,14 +725,14 @@ export class AgentMetricsService {
 
     // Transform commits if included
     const commits = dto.includeCommits
-      ? story.commits.map((commit) => ({
+      ? story.commits.map((commit: any) => ({
           hash: commit.hash,
           author: commit.author,
           message: commit.message,
           timestamp: commit.timestamp.toISOString(),
-          locAdded: commit.locAdded || 0,
-          locDeleted: commit.locDeleted || 0,
-          filesChanged: commit.files?.map((f) => f.filePath) || [],
+          locAdded: commit.files?.reduce((sum: number, f: any) => sum + (f.locAdded || 0), 0) || 0,
+          locDeleted: commit.files?.reduce((sum: number, f: any) => sum + (f.locDeleted || 0), 0) || 0,
+          filesChanged: commit.files?.map((f: any) => f.filePath) || [],
         }))
       : undefined;
 
@@ -744,7 +746,7 @@ export class AgentMetricsService {
         epic: {
           id: story.epic.id,
           key: story.epic.key,
-          name: story.epic.name,
+          name: story.epic.title,
         },
       },
       executions,

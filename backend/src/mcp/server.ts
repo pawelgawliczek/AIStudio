@@ -15,11 +15,11 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// @ts-ignore - __dirname is available in CommonJS
+const __dirname = typeof __dirname !== 'undefined' ? __dirname : path.resolve();
 
 // Initialize Prisma client
 const prisma = new PrismaClient({
@@ -124,6 +124,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // ============================================================================
 
 async function main() {
+  // Debug: Log DATABASE_URL and config test
+  console.error(`🔍 DATABASE_URL: ${process.env.DATABASE_URL || 'NOT SET'}`);
+  console.error(`🔍 MCP_CONFIG_TEST: ${process.env.MCP_CONFIG_TEST || 'NOT SET'}`);
+
   // Connect to database
   await prisma.$connect();
   console.error('✅ Connected to database');
