@@ -65,6 +65,7 @@ services:
         condition: service_healthy
     networks:
       - aistudio-network
+      - stack_appnet
     command: sh -c "cd backend && npx nest build && node dist/main.js"
 
   # Frontend (React + Vite)
@@ -74,8 +75,8 @@ services:
       dockerfile: frontend/Dockerfile
     container_name: aistudio-frontend
     environment:
-      VITE_API_URL: http://localhost:3000
-      VITE_WS_URL: ws://localhost:3000
+      VITE_API_URL: /api
+      VITE_WS_URL: /socket.io
     ports:
       - '127.0.0.1:5174:5173'
     volumes:
@@ -87,6 +88,7 @@ services:
       - backend
     networks:
       - aistudio-network
+      - stack_appnet
     command: npm run dev --workspace=frontend
 
 volumes:
@@ -98,3 +100,5 @@ volumes:
 networks:
   aistudio-network:
     driver: bridge
+  stack_appnet:
+    external: true
