@@ -4,10 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { storiesApi, epicsApi } from '../services/api';
 import { Story, Epic, StoryStatus } from '../types';
 import { format, parseISO, differenceInDays, addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { useProject } from '../context/ProjectContext';
 
 export function TimelineView() {
   const [searchParams] = useSearchParams();
-  const projectId = searchParams.get('projectId') || '';
+  const { selectedProject } = useProject();
+  const projectId = searchParams.get('projectId') || selectedProject?.id || '';
 
   const [selectedEpic, setSelectedEpic] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<StoryStatus | 'all'>('all');
