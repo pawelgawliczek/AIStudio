@@ -541,4 +541,88 @@ export class StoriesService {
 
     return { message: 'Story deleted successfully' };
   }
+
+  /**
+   * Update story priority
+   * @param id - Story ID
+   * @param priority - New priority value
+   * @returns Updated story
+   */
+  async updatePriority(id: string, priority: number) {
+    const story = await this.prisma.story.findUnique({ where: { id } });
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID ${id} not found`);
+    }
+
+    const updatedStory = await this.prisma.story.update({
+      where: { id },
+      data: { priority },
+      include: {
+        epic: {
+          select: { id: true, title: true },
+        },
+        _count: {
+          select: {
+            subtasks: true,
+            commits: true,
+          },
+        },
+      },
+    });
+
+    // Broadcast story updated
+    this.wsGateway.broadcastStoryUpdated(id, updatedStory.projectId, updatedStory);
+
+    return updatedStory;
+  }
+
+  /**
+   * Reassign story to a different epic
+   * @param id - Story ID
+   * @param epicId - New epic ID (or null to unassign)
+   * @param priority - Optional new priority
+   * @returns Updated story
+   */
+  async reassignEpic(id: string, epicId: string | null, priority?: number) {
+    const story = await this.prisma.story.findUnique({ where: { id } });
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID ${id} not found`);
+    }
+
+    // If epicId is provided, verify it exists
+    if (epicId) {
+      const epic = await this.prisma.epic.findUnique({ where: { id: epicId } });
+      if (!epic) {
+        throw new NotFoundException(`Epic with ID ${epicId} not found`);
+      }
+    }
+
+    const updateData: any = { epicId };
+    if (priority !== undefined) {
+      updateData.priority = priority;
+    }
+
+    const updatedStory = await this.prisma.story.update({
+      where: { id },
+      data: updateData,
+      include: {
+        epic: {
+          select: { id: true, title: true },
+        },
+        _count: {
+          select: {
+            subtasks: true,
+            commits: true,
+          },
+        },
+      },
+    });
+
+    // Broadcast story updated
+    this.wsGateway.broadcastStoryUpdated(id, updatedStory.projectId, updatedStory);
+
+    return updatedStory;
+  }
 }

@@ -18,11 +18,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check if user is logged in on mount
+    console.log('[AuthContext] Initializing...');
     const currentUser = authService.getCurrentUser();
+    console.log('[AuthContext] Current user:', currentUser);
     if (currentUser) {
       setUser(currentUser);
     }
     setLoading(false);
+    console.log('[AuthContext] Loading complete, user:', currentUser ? 'authenticated' : 'not authenticated');
   }, []);
 
   const login = async (credentials: LoginCredentials) => {

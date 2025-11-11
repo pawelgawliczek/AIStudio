@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -11,6 +11,11 @@ interface CreateEpicModalProps {
     priority?: number;
   }) => void;
   isLoading?: boolean;
+  initialData?: {
+    title: string;
+    description?: string;
+    priority?: number;
+  };
 }
 
 export function CreateEpicModal({
@@ -18,10 +23,29 @@ export function CreateEpicModal({
   onClose,
   onSubmit,
   isLoading = false,
+  initialData,
 }: CreateEpicModalProps) {
+  const isEditing = !!initialData;
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<number>(3);
+
+  // Populate form with initial data when editing
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title);
+      setDescription(initialData.description || '');
+      // Clamp priority to valid range (0-10) to match backend validation
+      // This prevents validation errors while preserving the value when possible
+      setPriority(Math.min(Math.max(initialData.priority ?? 3, 0), 10));
+    } else {
+      // Reset form when creating new
+      setTitle('');
+      setDescription('');
+      setPriority(3);
+    }
+  }, [initialData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +54,7 @@ export function CreateEpicModal({
       description,
       priority,
     });
-    // Reset form
-    setTitle('');
-    setDescription('');
-    setPriority(3);
+    // Form will be reset via useEffect when modal closes
   };
 
   return (
@@ -80,7 +101,7 @@ export function CreateEpicModal({
                       as="h3"
                       className="text-xl font-semibold leading-6 text-gray-900 mb-6"
                     >
-                      Create New Epic
+                      {isEditing ? 'Edit Epic' : 'Create New Epic'}
                     </Dialog.Title>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -135,11 +156,17 @@ export function CreateEpicModal({
                           onChange={(e) => setPriority(Number(e.target.value))}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
                         >
-                          <option value="1">1 - Low</option>
-                          <option value="2">2 - Minor</option>
-                          <option value="3">3 - Medium</option>
-                          <option value="4">4 - High</option>
-                          <option value="5">5 - Critical</option>
+                          <option value="0">0 - Lowest</option>
+                          <option value="1">1 - Very Low</option>
+                          <option value="2">2 - Low</option>
+                          <option value="3">3 - Below Normal</option>
+                          <option value="4">4 - Normal</option>
+                          <option value="5">5 - Above Normal</option>
+                          <option value="6">6 - Elevated</option>
+                          <option value="7">7 - High</option>
+                          <option value="8">8 - Very High</option>
+                          <option value="9">9 - Critical</option>
+                          <option value="10">10 - Highest</option>
                         </select>
                       </div>
 
@@ -158,7 +185,7 @@ export function CreateEpicModal({
                           className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                           disabled={isLoading}
                         >
-                          {isLoading ? 'Creating...' : 'Create Epic'}
+                          {isLoading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Epic' : 'Create Epic')}
                         </button>
                       </div>
                     </form>

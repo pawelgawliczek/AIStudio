@@ -36,6 +36,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[DashboardPage] selectedProject changed:', selectedProject);
     if (selectedProject) {
       loadDashboardStats();
     }
@@ -45,6 +46,7 @@ export function DashboardPage() {
     if (!selectedProject) return;
 
     try {
+      console.log('[DashboardPage] Loading stats for project:', selectedProject.id);
       setLoading(true);
 
       // Fetch stories and epics
@@ -52,6 +54,8 @@ export function DashboardPage() {
         storiesApi.getAll({ projectId: selectedProject.id }),
         epicsApi.getAll(selectedProject.id),
       ]);
+
+      console.log('[DashboardPage] Got responses:', { storiesResponse, epicsResponse });
 
       // Extract data from responses
       const stories = Array.isArray(storiesResponse.data)
@@ -79,9 +83,11 @@ export function DashboardPage() {
         bugCount: bugs,
         completionRate: stories.length > 0 ? Math.round((completed / stories.length) * 100) : 0,
       });
+      console.log('[DashboardPage] Stats calculated:', stats);
     } catch (error) {
-      console.error('Failed to load dashboard stats:', error);
+      console.error('[DashboardPage] Failed to load dashboard stats:', error);
     } finally {
+      console.log('[DashboardPage] Loading complete, setting loading -> false');
       setLoading(false);
     }
   };

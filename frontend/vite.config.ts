@@ -19,11 +19,12 @@ export default defineConfig({
       'vibestudio.pawelgawliczek.cloud',
       'localhost',
       '127.0.0.1',
+      '.pawelgawliczek.cloud'
     ],
     hmr: {
       clientPort: 443,
       protocol: 'wss',
-      host: 'aistudio.pawelgawliczek.cloud',
+      host: 'vibestudio.pawelgawliczek.cloud',
     },
     proxy: {
       '/api': {

@@ -3,10 +3,8 @@ import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
-import { StoryListPage } from './pages/StoryListPage';
-import { StoryDetailPage } from './pages/StoryDetailPage';
-import { EpicListPage } from './pages/EpicListPage';
 import { PlanningView } from './pages/PlanningView';
+import { EpicPlanningView } from './pages/EpicPlanningView';
 import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
@@ -28,17 +26,14 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="projects" element={<ProjectsPage />} />
-              <Route path="projects/:projectId" element={<Navigate to="stories" replace />} />
               <Route path="planning" element={<PlanningView />} />
+              <Route path="epic-planning" element={<EpicPlanningView />} />
               <Route path="timeline" element={<TimelineView />} />
               <Route path="use-cases" element={<UseCaseLibraryView />} />
               <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
               <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
               <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
-              <Route path="projects/:projectId/stories" element={<StoryListPage />} />
-              <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
-              <Route path="projects/:projectId/epics" element={<EpicListPage />} />
               <Route path="layers-components" element={<LayersComponentsPage />} />
             </Route>
           </Routes>

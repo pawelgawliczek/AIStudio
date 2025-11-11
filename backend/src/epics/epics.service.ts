@@ -212,4 +212,104 @@ export class EpicsService {
 
     return { message: 'Epic deleted successfully' };
   }
+
+  /**
+   * Update epic priority
+   * @param id - Epic ID
+   * @param priority - New priority value
+   * @returns Updated epic
+   */
+  async updatePriority(id: string, priority: number) {
+    const existingEpic = await this.prisma.epic.findUnique({ where: { id } });
+
+    if (!existingEpic) {
+      throw new NotFoundException(`Epic with ID ${id} not found`);
+    }
+
+    const epic = await this.prisma.epic.update({
+      where: { id },
+      data: { priority },
+      include: {
+        project: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: {
+            stories: true,
+            commits: true,
+          },
+        },
+      },
+    });
+
+    // Broadcast epic updated
+    this.wsGateway.broadcastEpicUpdated(id, epic.projectId, epic);
+
+    return epic;
+  }
+
+  /**
+   * Get planning overview with all epics and their nested stories/bugs
+   * @param projectId - Optional project ID filter
+   * @returns Hierarchical planning data
+   */
+  async getPlanningOverview(projectId?: string) {
+    const where: any = {};
+    if (projectId) where.projectId = projectId;
+
+    const epics = await this.prisma.epic.findMany({
+      where,
+      include: {
+        project: {
+          select: { id: true, name: true },
+        },
+        stories: {
+          include: {
+            subtasks: {
+              orderBy: { createdAt: 'asc' },
+            },
+            _count: {
+              select: {
+                subtasks: true,
+                commits: true,
+              },
+            },
+          },
+          orderBy: { priority: 'desc' },
+        },
+        _count: {
+          select: {
+            stories: true,
+            commits: true,
+          },
+        },
+      },
+      orderBy: { priority: 'desc' },
+    });
+
+    // Get unassigned stories (no epic)
+    const unassignedStories = await this.prisma.story.findMany({
+      where: {
+        epicId: null,
+        ...(projectId && { projectId }),
+      },
+      include: {
+        subtasks: {
+          orderBy: { createdAt: 'asc' },
+        },
+        _count: {
+          select: {
+            subtasks: true,
+            commits: true,
+          },
+        },
+      },
+      orderBy: { priority: 'desc' },
+    });
+
+    return {
+      epics,
+      unassignedStories,
+    };
+  }
 }

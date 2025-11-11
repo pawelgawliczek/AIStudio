@@ -14,12 +14,24 @@ interface CreateStoryModalProps {
     epicId?: string;
     technicalComplexity?: number;
     businessImpact?: number;
+    businessComplexity?: number;
     layerIds?: string[];
     componentIds?: string[];
   }) => void;
   epics: Epic[];
   projectId: string;
   isLoading?: boolean;
+  initialData?: {
+    title: string;
+    description: string;
+    type: StoryType;
+    epicId?: string;
+    technicalComplexity?: number;
+    businessImpact?: number;
+    businessComplexity?: number;
+    layerIds?: string[];
+    componentIds?: string[];
+  };
 }
 
 function classNames(...classes: string[]) {
@@ -33,13 +45,17 @@ export function CreateStoryModal({
   epics,
   projectId,
   isLoading = false,
+  initialData,
 }: CreateStoryModalProps) {
+  const isEditing = !!initialData;
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<StoryType>(StoryType.FEATURE);
   const [epicId, setEpicId] = useState('');
   const [technicalComplexity, setTechnicalComplexity] = useState<number>(3);
   const [businessImpact, setBusinessImpact] = useState<number>(3);
+  const [businessComplexity, setBusinessComplexity] = useState<number>(3);
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
 
@@ -47,6 +63,33 @@ export function CreateStoryModal({
   const [components, setComponents] = useState<Component[]>([]);
   const [loadingLayers, setLoadingLayers] = useState(false);
   const [loadingComponents, setLoadingComponents] = useState(false);
+
+  // Populate form with initial data when editing
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title);
+      setDescription(initialData.description);
+      setType(initialData.type);
+      setEpicId(initialData.epicId || '');
+      // Clamp complexity and impact values to valid range (1-5)
+      setTechnicalComplexity(Math.min(Math.max(initialData.technicalComplexity || 3, 1), 5));
+      setBusinessImpact(Math.min(Math.max(initialData.businessImpact || 3, 1), 5));
+      setBusinessComplexity(Math.min(Math.max(initialData.businessComplexity || 3, 1), 5));
+      setSelectedLayerIds(initialData.layerIds || []);
+      setSelectedComponentIds(initialData.componentIds || []);
+    } else {
+      // Reset form when creating new
+      setTitle('');
+      setDescription('');
+      setType(StoryType.FEATURE);
+      setEpicId('');
+      setTechnicalComplexity(3);
+      setBusinessImpact(3);
+      setBusinessComplexity(3);
+      setSelectedLayerIds([]);
+      setSelectedComponentIds([]);
+    }
+  }, [initialData, open]);
 
   // Fetch layers and components when modal opens
   useEffect(() => {
@@ -127,18 +170,11 @@ export function CreateStoryModal({
       epicId: epicId || undefined,
       technicalComplexity,
       businessImpact,
+      businessComplexity,
       layerIds: selectedLayerIds.length > 0 ? selectedLayerIds : undefined,
       componentIds: selectedComponentIds.length > 0 ? selectedComponentIds : undefined,
     });
-    // Reset form
-    setTitle('');
-    setDescription('');
-    setType(StoryType.FEATURE);
-    setEpicId('');
-    setTechnicalComplexity(3);
-    setBusinessImpact(3);
-    setSelectedLayerIds([]);
-    setSelectedComponentIds([]);
+    // Form will be reset via useEffect when modal closes
   };
 
   return (
@@ -185,7 +221,7 @@ export function CreateStoryModal({
                       as="h3"
                       className="text-xl font-semibold leading-6 text-fg mb-6"
                     >
-                      Create New Story
+                      {isEditing ? 'Edit Story' : 'Create New Story'}
                     </Dialog.Title>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -481,7 +517,7 @@ export function CreateStoryModal({
                           className="inline-flex justify-center rounded-md border border-transparent bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-sm hover:bg-accent-dark focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 transition-all"
                           disabled={isLoading}
                         >
-                          {isLoading ? 'Creating...' : 'Create Story'}
+                          {isLoading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Story' : 'Create Story')}
                         </button>
                       </div>
                     </form>
