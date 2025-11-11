@@ -52,8 +52,8 @@ export function EpicPlanningView() {
   const [showEditEpicModal, setShowEditEpicModal] = useState(false);
   const [editingEpic, setEditingEpic] = useState<Epic | null>(null);
 
-  // Epic expansion state (persists across re-renders)
-  const [expandedEpics, setExpandedEpics] = useState<Set<string>>(new Set());
+  // Epic collapse state (track which epics are collapsed, all others are expanded by default)
+  const [collapsedEpics, setCollapsedEpics] = useState<Set<string>>(new Set());
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -89,13 +89,6 @@ export function EpicPlanningView() {
     queryFn: () => epicsApi.getPlanningOverview(projectId).then(res => res.data),
     enabled: !!projectId,
   });
-
-  // Initialize all epics as expanded when data loads
-  useEffect(() => {
-    if (planningData?.epics) {
-      setExpandedEpics(new Set(planningData.epics.map(e => e.id)));
-    }
-  }, [planningData?.epics.length]); // Only run when epic count changes
 
   // Update epic priority mutation
   const updateEpicPriorityMutation = useMutation({
@@ -393,11 +386,13 @@ export function EpicPlanningView() {
   };
 
   const toggleEpicExpansion = (epicId: string) => {
-    setExpandedEpics(prev => {
+    setCollapsedEpics(prev => {
       const next = new Set(prev);
       if (next.has(epicId)) {
+        // Currently collapsed, so expand it (remove from set)
         next.delete(epicId);
       } else {
+        // Currently expanded, so collapse it (add to set)
         next.add(epicId);
       }
       return next;
@@ -570,7 +565,7 @@ export function EpicPlanningView() {
                       onEpicClick={handleEditEpic}
                       onStoryClick={handleItemClick}
                       onAddStory={handleAddStory}
-                      isExpanded={expandedEpics.has(epic.id)}
+                      isExpanded={!collapsedEpics.has(epic.id)}
                       onToggleExpand={() => toggleEpicExpansion(epic.id)}
                     />
                   ))}
