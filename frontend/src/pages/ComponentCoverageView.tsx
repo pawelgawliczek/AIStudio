@@ -25,7 +25,9 @@ export const ComponentCoverageView = () => {
       setLoading(true);
       setError(null);
       const data = await testCasesService.getComponentCoverage(projectId);
-      setComponentCoverages(data);
+      // Handle both array and wrapped response formats
+      const coverages = Array.isArray(data) ? data : (data?.data || []);
+      setComponentCoverages(coverages);
     } catch (err: any) {
       console.error('Error loading component coverage:', err);
       setError(err.response?.data?.message || 'Failed to load component coverage');
