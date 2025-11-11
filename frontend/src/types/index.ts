@@ -60,23 +60,24 @@ export interface Epic {
 
 // Story types
 export enum StoryStatus {
-  backlog = 'backlog',
-  planning = 'planning',
-  analysis = 'analysis',
-  architecture = 'architecture',
-  design = 'design',
-  implementation = 'implementation',
-  review = 'review',
-  qa = 'qa',
-  done = 'done',
-  blocked = 'blocked',
+  BACKLOG = 'backlog',
+  PLANNING = 'planning',
+  ANALYSIS = 'analysis',
+  ARCHITECTURE = 'architecture',
+  DESIGN = 'design',
+  IMPLEMENTATION = 'implementation',
+  REVIEW = 'review',
+  QA = 'qa',
+  DONE = 'done',
+  BLOCKED = 'blocked',
 }
 
 export enum StoryType {
-  feature = 'feature',
-  bug = 'bug',
-  tech_debt = 'tech_debt',
-  spike = 'spike',
+  FEATURE = 'feature',
+  BUG = 'bug',
+  DEFECT = 'defect',
+  CHORE = 'chore',
+  SPIKE = 'spike',
 }
 
 export interface Story {
@@ -113,6 +114,80 @@ export interface Story {
     subtasks: number;
     commits: number;
     runs: number;
+  };
+  layers?: Array<{
+    layer: Layer;
+  }>;
+  components?: Array<{
+    component: Component;
+  }>;
+  baAnalysis?: string;
+  architectAnalysis?: string;
+}
+
+// Layer types
+export enum LayerStatus {
+  ACTIVE = 'active',
+  DEPRECATED = 'deprecated',
+}
+
+export interface Layer {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  techStack: string[];
+  orderIndex: number;
+  color?: string;
+  icon?: string;
+  status: LayerStatus;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    storyLayers: number;
+    componentLayers: number;
+    useCases: number;
+    testCases: number;
+  };
+}
+
+// Component types
+export enum ComponentStatus {
+  ACTIVE = 'active',
+  DEPRECATED = 'deprecated',
+  PLANNING = 'planning',
+}
+
+export interface Component {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  ownerId?: string;
+  filePatterns: string[];
+  color?: string;
+  icon?: string;
+  status: ComponentStatus;
+  createdAt: string;
+  updatedAt: string;
+  owner?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  layers?: Array<{
+    layer: {
+      id: string;
+      name: string;
+      icon?: string;
+      color?: string;
+      orderIndex: number;
+    };
+  }>;
+  _count?: {
+    storyComponents: number;
+    useCases: number;
+    testCases: number;
   };
 }
 
@@ -248,6 +323,63 @@ export interface FilterSubtaskDto {
   status?: SubtaskStatus;
   layer?: SubtaskLayer;
   assigneeType?: AssigneeType;
+}
+
+// Use Case types
+export interface UseCaseVersion {
+  id: string;
+  version: number;
+  summary?: string;
+  content: string;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  linkedStoryId?: string;
+  linkedDefectId?: string;
+}
+
+export interface UseCase {
+  id: string;
+  projectId: string;
+  key: string;
+  title: string;
+  area?: string;
+  componentId?: string;
+  layerId?: string;
+  createdAt: string;
+  updatedAt: string;
+  latestVersion?: UseCaseVersion;
+  versions?: UseCaseVersion[];
+  storyLinks?: {
+    storyId: string;
+    relation: string;
+    story: {
+      id: string;
+      key: string;
+      title: string;
+      status: string;
+    };
+  }[];
+  similarity?: number;  // For semantic search results
+}
+
+export interface CreateUseCaseDto {
+  projectId: string;
+  key: string;
+  title: string;
+  area?: string;
+  content: string;
+  summary?: string;
+}
+
+export interface UpdateUseCaseDto {
+  title?: string;
+  area?: string;
+  content?: string;
+  summary?: string;
 }
 
 // Paginated response

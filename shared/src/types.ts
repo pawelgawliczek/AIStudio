@@ -16,14 +16,16 @@ export enum ProjectStatus {
 }
 
 export enum StoryStatus {
+  BACKLOG = 'backlog',
   PLANNING = 'planning',
   ANALYSIS = 'analysis',
   ARCHITECTURE = 'architecture',
   DESIGN = 'design',
-  IMPL = 'impl',
+  IMPLEMENTATION = 'implementation',
   REVIEW = 'review',
   QA = 'qa',
   DONE = 'done',
+  BLOCKED = 'blocked',
 }
 
 export enum StoryType {
@@ -40,6 +42,17 @@ export enum LayerType {
   INFRA = 'infra',
   TEST = 'test',
   OTHER = 'other',
+}
+
+export enum LayerStatus {
+  ACTIVE = 'active',
+  DEPRECATED = 'deprecated',
+}
+
+export enum ComponentStatus {
+  ACTIVE = 'active',
+  DEPRECATED = 'deprecated',
+  PLANNING = 'planning',
 }
 
 export interface Project {

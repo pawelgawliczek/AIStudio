@@ -1,8 +1,8 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Roles } from '../auth/roles.decorator';
-import { RolesGuard } from '../auth/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { CodeMetricsService } from './code-metrics.service';
 import {
   ProjectMetricsDto,
@@ -94,5 +94,30 @@ export class CodeMetricsController {
     @Query('filePath') filePath: string,
   ): Promise<FileDetailDto> {
     return this.codeMetricsService.getFileDetail(projectId, filePath);
+  }
+
+  @Post('project/:projectId/analyze')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @Roles('admin', 'pm', 'architect')
+  @ApiOperation({ summary: 'Trigger full code analysis for project' })
+  @ApiResponse({
+    status: 202,
+    description: 'Analysis job started',
+    schema: {
+      type: 'object',
+      properties: {
+        jobId: { type: 'string' },
+        status: { type: 'string' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  @ApiResponse({ status: 400, description: 'Project has no repository path configured' })
+  @ApiResponse({ status: 409, description: 'Analysis already running for this project' })
+  async triggerAnalysis(
+    @Param('projectId') projectId: string,
+  ): Promise<{ jobId: string; status: string; message: string }> {
+    return this.codeMetricsService.triggerAnalysis(projectId);
   }
 }

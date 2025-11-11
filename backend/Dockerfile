@@ -1,6 +1,12 @@
 # Development Dockerfile for Backend
 FROM node:18-alpine
 
+# Install OpenSSL for Prisma and git for code analysis
+RUN apk add --no-cache openssl openssl-dev git
+
+# Configure git to allow reading repositories owned by different users
+RUN git config --global --add safe.directory '*'
+
 WORKDIR /app
 
 # Install dependencies

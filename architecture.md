@@ -292,33 +292,64 @@ The system follows a 4-tier layered architecture:
 
 #### **4.2.3 Background Workers**
 
+**Status:** ✅ **IMPLEMENTED** (Sprint 9, 2025-11-11)
+
+**Implementation Details:**
+- Framework: Bull (Redis-based queue) with @nestjs/bull
+- Location: `backend/src/workers/`
+- Queue Configuration: WorkersModule with 5 dedicated queues
+- Trigger: Automatically on commit via CommitsService
+
 **Job Types:**
 
-1. **CodeAnalysisWorker**
-   - Parse git commits
-   - Calculate complexity metrics
-   - Detect code smells
-   - Update quality dashboard
+1. **CodeAnalysisWorker** ✅ **IMPLEMENTED**
+   - Parse git commits and analyze code changes
+   - Calculate complexity metrics (cyclomatic, cognitive, maintainability)
+   - Detect code smells (long functions, high complexity, TODO comments)
+   - Organize metrics by Project → Layer → Component → File → Function
+   - Calculate code churn (90-day window)
+   - Support MCP queries for architecture agent (UC-ARCH-002, UC-ARCH-004)
+   - Auto-triggered on every commit linkage
+   - Implementation: `backend/src/workers/processors/code-analysis.processor.ts`
 
-2. **EmbeddingWorker**
-   - Generate use case embeddings
-   - Update vector store
-   - Reindex on changes
+2. **EmbeddingWorker** ✅ **IMPLEMENTED**
+   - Generate use case embeddings via OpenAI API (text-embedding-3-small)
+   - Update pgvector store for semantic search
+   - Batch processing with rate limiting
+   - Reindex on use case changes
+   - Support semantic search via MCP (UC-BA-004)
+   - Implementation: `backend/src/workers/processors/embedding.processor.ts`
 
-3. **MetricsAggregator**
-   - Roll up agent metrics
-   - Calculate framework comparisons
-   - Generate reports
+3. **MetricsAggregator** ✅ **IMPLEMENTED**
+   - Roll up agent metrics by story/epic/project
+   - Calculate framework effectiveness comparisons
+   - Compute: tokens/LOC, LOC/prompt, cost estimates, duration
+   - Generate weekly trends (UC-METRICS-004)
+   - Normalize by complexity for fair comparison
+   - Implementation: `backend/src/workers/processors/metrics-aggregator.processor.ts`
 
-4. **NotificationWorker**
-   - Send email alerts
-   - Push WebSocket updates
-   - Create in-app notifications
+4. **NotificationWorker** ✅ **IMPLEMENTED**
+   - Send real-time WebSocket updates via existing WebSocketGateway
+   - Email alerts (integration-ready, requires SMTP configuration)
+   - In-app notifications (stored in database)
+   - Story assignment notifications
+   - Quality degradation alerts
+   - Test failure notifications
+   - Implementation: `backend/src/workers/processors/notification.processor.ts`
 
-5. **TestAnalyzer**
-   - Parse test results from CI/CD
-   - Calculate coverage
-   - Identify gaps
+5. **TestAnalyzer** ✅ **IMPLEMENTED**
+   - Parse test results from CI/CD webhooks
+   - Calculate test coverage by component/layer
+   - Identify coverage gaps and prioritize by risk
+   - Generate test recommendations based on complexity
+   - Support UC-QA-003 coverage tracking
+   - Implementation: `backend/src/workers/processors/test-analyzer.processor.ts`
+
+**Service Layer:**
+- `WorkersService`: Central service for enqueueing jobs
+- Methods: `analyzeCommit()`, `generateEmbedding()`, `aggregateStoryMetrics()`, etc.
+- Priority levels: High (notifications), Normal (analysis), Low (bulk operations)
+- Retry logic: 3 attempts with exponential backoff
 
 ---
 
@@ -1825,6 +1856,12 @@ This architecture provides a solid foundation for the AIStudio MCP Control Plane
 ✅ **Scalable** with background workers and caching
 ✅ **Extensible** with plugin architecture
 ✅ **Secure** with JWT auth, RBAC, and audit logging
+✅ **Background Workers** - 5 processors implemented (Sprint 9)
+  - CodeAnalysisWorker: Code quality metrics with layer/component drill-down
+  - EmbeddingWorker: Semantic search for use cases
+  - MetricsAggregator: Framework effectiveness tracking
+  - NotificationWorker: Real-time alerts and updates
+  - TestAnalyzer: Coverage gaps and test recommendations
 
 **Next Steps:**
 1. Review and approve architecture

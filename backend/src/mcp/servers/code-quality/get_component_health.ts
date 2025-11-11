@@ -176,7 +176,7 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
     acc[f.layer] = (acc[f.layer] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  const dominantLayer = Object.entries(layerCounts).sort((a, b) => b[1] - a[1])[0][0];
+  const dominantLayer = Object.entries(layerCounts).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0];
 
   // Generate insights
   const insights: string[] = [];

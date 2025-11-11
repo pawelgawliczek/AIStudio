@@ -6,13 +6,13 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEpicDto, UpdateEpicDto, FilterEpicDto } from './dto';
 import { EpicStatus } from '@prisma/client';
-import { WebSocketGateway } from '../websocket/websocket.gateway';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 @Injectable()
 export class EpicsService {
   constructor(
     private prisma: PrismaService,
-    private wsGateway: WebSocketGateway,
+    private wsGateway: AppWebSocketGateway,
   ) {}
 
   /**
