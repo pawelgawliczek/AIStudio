@@ -14,11 +14,13 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
 
-// @ts-ignore - __dirname is available in CommonJS
-const __dirname = typeof __dirname !== 'undefined' ? __dirname : path.resolve();
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Initialize Prisma client
 const prisma = new PrismaClient({
@@ -32,7 +34,7 @@ const registry = new ToolRegistry(serversPath, prisma);
 // Initialize MCP server
 const server = new Server(
   {
-    name: 'aistudio-mcp-server',
+    name: 'vibestudio-mcp-server',
     version: '0.2.0', // Sprint 4.5
   },
   {
