@@ -98,7 +98,46 @@ export function StoryCard({ story, onClick }: StoryCardProps) {
         </div>
       )}
 
-      {/* Components/Tags */}
+      {/* Layers & Components */}
+      {(story.layers && story.layers.length > 0) || (story.components && story.components.length > 0) ? (
+        <div className="mb-2 flex flex-wrap gap-1">
+          {story.layers && story.layers.slice(0, 2).map((sl) => (
+            <span
+              key={sl.layer.id}
+              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+              style={{
+                backgroundColor: `${sl.layer.color}15`,
+                color: sl.layer.color || '#6366F1',
+                borderWidth: '1px',
+                borderColor: `${sl.layer.color}30`,
+              }}
+            >
+              {sl.layer.icon} {sl.layer.name}
+            </span>
+          ))}
+          {story.components && story.components.slice(0, 2).map((sc) => (
+            <span
+              key={sc.component.id}
+              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+              style={{
+                backgroundColor: `${sc.component.color}15`,
+                color: sc.component.color || '#10B981',
+                borderWidth: '1px',
+                borderColor: `${sc.component.color}30`,
+              }}
+            >
+              {sc.component.icon} {sc.component.name}
+            </span>
+          ))}
+          {((story.layers?.length || 0) + (story.components?.length || 0)) > 4 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-500/10 text-gray-600">
+              +{((story.layers?.length || 0) + (story.components?.length || 0)) - 4}
+            </span>
+          )}
+        </div>
+      ) : null}
+
+      {/* Project Tag */}
       {story.project && (
         <div className="mb-2 flex flex-wrap gap-1">
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-500/10 text-gray-600 border border-gray-500/20">
