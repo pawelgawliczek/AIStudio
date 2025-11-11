@@ -24,17 +24,17 @@ export function StoryFilters({
   onSearchChange,
 }: StoryFiltersProps) {
   return (
-    <div className="bg-white shadow rounded-lg p-4 mb-4">
+    <div className="bg-card border border-border rounded-lg shadow-md p-4 mb-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Epic Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Epic
           </label>
           <select
             value={selectedEpic}
             onChange={(e) => onEpicChange(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           >
             <option value="all">All Epics</option>
             {epics.map((epic) => (
@@ -47,13 +47,13 @@ export function StoryFilters({
 
         {/* Status Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Status
           </label>
           <select
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value as StoryStatus | 'all')}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           >
             <option value="all">All Statuses</option>
             <option value="backlog">Backlog</option>
@@ -70,13 +70,13 @@ export function StoryFilters({
 
         {/* Type Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Type
           </label>
           <select
             value={selectedType}
             onChange={(e) => onTypeChange(e.target.value as StoryType | 'all')}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           >
             <option value="all">All Types</option>
             <option value="feature">Feature</option>
@@ -88,7 +88,7 @@ export function StoryFilters({
 
         {/* Search */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-fg mb-2">
             Search
           </label>
           <input
@@ -96,7 +96,7 @@ export function StoryFilters({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search stories..."
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="block w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
           />
         </div>
       </div>

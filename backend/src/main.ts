@@ -39,7 +39,7 @@ async function bootstrap() {
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle('AI Studio API')
+    .setTitle('Vibe Studio API')
     .setDescription('MCP Control Plane API for managing AI agentic frameworks')
     .setVersion('0.1.0')
     .addTag('auth', 'Authentication and authorization endpoints')
