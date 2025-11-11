@@ -70,8 +70,9 @@ export function CreateStoryModal({
       setDescription(initialData.description);
       setType(initialData.type);
       setEpicId(initialData.epicId || '');
-      setTechnicalComplexity(initialData.technicalComplexity || 3);
-      setBusinessImpact(initialData.businessImpact || 3);
+      // Clamp complexity and impact values to valid range (1-5)
+      setTechnicalComplexity(Math.min(Math.max(initialData.technicalComplexity || 3, 1), 5));
+      setBusinessImpact(Math.min(Math.max(initialData.businessImpact || 3, 1), 5));
       setSelectedLayerIds(initialData.layerIds || []);
       setSelectedComponentIds(initialData.componentIds || []);
     } else {
