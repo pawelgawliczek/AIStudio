@@ -18,7 +18,7 @@ export function EpicListPage() {
   const { data: epics = [], isLoading } = useQuery({
     queryKey: ['epics', projectId],
     queryFn: () => epicsApi.getAll(projectId!).then(res => {
-      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      return Array.isArray(res.data) ? res.data : ((res.data as any)?.data || []);
     }),
     enabled: !!projectId,
   });

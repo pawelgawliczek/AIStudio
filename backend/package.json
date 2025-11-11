@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
+    "@nestjs/bull": "^11.0.4",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.3.0",
@@ -39,6 +40,7 @@
     "@nestjs/swagger": "^7.2.0",
     "@nestjs/websockets": "^10.4.20",
     "@prisma/client": "^5.9.0",
+    "@types/bull": "^3.15.9",
     "bcrypt": "^5.1.1",
     "bull": "^4.12.0",
     "class-transformer": "^0.5.1",

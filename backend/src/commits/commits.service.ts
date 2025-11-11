@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LinkCommitDto, CommitResponseDto } from './dto';
+import { WorkersService } from '../workers/workers.service';
 
 @Injectable()
 export class CommitsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(CommitsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private workersService: WorkersService,
+  ) {}
 
   /**
    * Link a commit to a story/epic
@@ -65,6 +71,19 @@ export class CommitsService {
         files: true,
       },
     });
+
+    // Trigger background code analysis worker
+    try {
+      await this.workersService.analyzeCommit({
+        commitHash: commit.hash,
+        projectId: commit.projectId,
+        storyId: commit.storyId || undefined,
+      });
+      this.logger.log(`Enqueued code analysis for commit ${commit.hash}`);
+    } catch (error) {
+      this.logger.error(`Failed to enqueue code analysis for commit ${commit.hash}:`, error);
+      // Don't fail the request if worker enqueue fails
+    }
 
     return this.transformCommit(commit);
   }

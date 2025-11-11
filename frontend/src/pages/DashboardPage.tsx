@@ -56,11 +56,11 @@ export function DashboardPage() {
       // Extract data from responses
       const stories = Array.isArray(storiesResponse.data)
         ? storiesResponse.data
-        : (storiesResponse.data?.data || []);
+        : ((storiesResponse.data as any)?.data || []);
 
       const epics = Array.isArray(epicsResponse.data)
         ? epicsResponse.data
-        : (epicsResponse.data?.data || []);
+        : ((epicsResponse.data as any)?.data || []);
 
       // Calculate stats
       const completed = stories.filter((s: any) => s.status === 'done').length;
