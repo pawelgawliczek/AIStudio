@@ -12,6 +12,7 @@ export interface ToolMetadata {
   domain?: string;
   version?: string;
   since?: string;
+  lastUpdated?: string;
   tags?: string[];
   aiHints?: string[];
   dependencies?: string[];

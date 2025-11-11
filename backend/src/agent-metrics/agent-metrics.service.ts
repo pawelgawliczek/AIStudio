@@ -95,7 +95,7 @@ export class AgentMetricsService {
     );
 
     // Generate AI insights
-    const aiInsights = this.generateAIInsights(comparisons, overheadAnalysis);
+    const aiInsights = this.generateAIInsights(comparisons);
 
     return {
       projectId: dto.projectId,
@@ -256,7 +256,7 @@ export class AgentMetricsService {
     const stories = await this.prisma.story.findMany({
       where: {
         projectId,
-        frameworkId,
+        assignedFrameworkId: frameworkId,
         updatedAt: { gte: startDate, lte: endDate },
         technicalComplexity: complexityFilter
           ? { in: complexityFilter }
@@ -272,16 +272,19 @@ export class AgentMetricsService {
       },
     });
 
+    // Type assertion for defect property
+    const storiesWithDefect = stories as any[];
+
     const defectsPerStory =
-      stories.reduce((sum, s) => sum + (s.defect ? 1 : 0), 0) / stories.length ||
+      storiesWithDefect.reduce((sum, s) => sum + (s.defect ? 1 : 0), 0) / storiesWithDefect.length ||
       0;
 
     // Defect leakage: prod/uat defects vs total
-    const totalDefects = stories.reduce(
+    const totalDefects = storiesWithDefect.reduce(
       (sum, s) => sum + (s.defect ? 1 : 0),
       0,
     );
-    const leakedDefects = stories.reduce(
+    const leakedDefects = storiesWithDefect.reduce(
       (sum, s) =>
         sum + (s.defect && s.defect.discoveryStage === 'production' ? 1 : 0),
       0,
@@ -294,7 +297,7 @@ export class AgentMetricsService {
       await this.calculateCodeQualityMetrics(stories);
 
     // Critical defects
-    const criticalDefects = stories.reduce(
+    const criticalDefects = storiesWithDefect.reduce(
       (sum, s) =>
         sum + (s.defect && s.defect.severity === 'critical' ? 1 : 0),
       0,
