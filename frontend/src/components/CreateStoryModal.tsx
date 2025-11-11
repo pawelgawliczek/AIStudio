@@ -95,7 +95,7 @@ export function CreateStoryModal({
                       as="h3"
                       className="text-xl font-semibold leading-6 text-gray-900 mb-6"
                     >
-                      Create New Story
+                      Create New Item
                     </Dialog.Title>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -242,7 +242,7 @@ export function CreateStoryModal({
                           className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                           disabled={isLoading}
                         >
-                          {isLoading ? 'Creating...' : 'Create Story'}
+                          {isLoading ? 'Creating...' : 'Create Item'}
                         </button>
                       </div>
                     </form>
