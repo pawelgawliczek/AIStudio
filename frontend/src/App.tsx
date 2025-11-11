@@ -6,6 +6,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
 import { PlanningView } from './pages/PlanningView';
+import { EpicPlanningView } from './pages/EpicPlanningView';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
@@ -23,6 +24,7 @@ function App() {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="planning" element={<PlanningView />} />
+            <Route path="epic-planning" element={<EpicPlanningView />} />
             <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
             <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
             <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />

@@ -78,6 +78,12 @@ export const epicsApi = {
 
   getOne: (id: string) =>
     api.get<Epic>(`/epics/${id}`),
+
+  updatePriority: (id: string, priority: number) =>
+    api.patch<Epic>(`/epics/${id}/priority`, { priority }),
+
+  getPlanningOverview: (projectId?: string) =>
+    api.get('/epics/planning/overview', { params: projectId ? { projectId } : {} }),
 };
 
 // Subtasks API
