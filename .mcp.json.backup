@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "aistudio": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "backend/src/mcp/server.ts"
+      ],
+      "cwd": "/opt/stack/AIStudio",
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:361a30c6d68396be29c7eddc3f9ff1b1cfe07675c707232a370bda33f7c8b518@127.0.0.1:5432/aistudio?schema=public",
+        "NODE_ENV": "development",
+        "MCP_CONFIG_TEST": "CONFIG_UPDATED_AT_20_14"
+      },
+      "description": "AI Studio MCP Server for project and story management (Development Mode)"
+    }
+  }
+}

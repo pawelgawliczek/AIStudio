@@ -79,8 +79,17 @@ export const epicsApi = {
   getOne: (id: string) =>
     api.get<Epic>(`/epics/${id}`),
 
+  create: (data: { projectId: string; title: string; description: string; priority?: number }) =>
+    api.post<Epic>('/epics', data),
+
+  update: (id: string, data: Partial<Epic>) =>
+    api.patch<Epic>(`/epics/${id}`, data),
+
   updatePriority: (id: string, priority: number) =>
     api.patch<Epic>(`/epics/${id}/priority`, { priority }),
+
+  delete: (id: string) =>
+    api.delete(`/epics/${id}`),
 
   getPlanningOverview: (projectId?: string) =>
     api.get('/epics/planning/overview', { params: projectId ? { projectId } : {} }),
@@ -90,6 +99,18 @@ export const epicsApi = {
 export const subtasksApi = {
   getAll: (storyId: string) =>
     api.get<Subtask[]>('/subtasks', { params: { storyId } }),
+};
+
+// Layers API
+export const layersApi = {
+  getAll: (projectId: string) =>
+    api.get('/layers', { params: { projectId } }),
+};
+
+// Components API
+export const componentsApi = {
+  getAll: (projectId: string) =>
+    api.get('/components', { params: { projectId } }),
 };
 
 export default api;

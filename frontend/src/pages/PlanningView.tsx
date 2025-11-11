@@ -6,7 +6,9 @@ import { storiesApi, epicsApi, runsApi, commitsApi } from '../services/api';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { StoryFilters } from '../components/StoryFilters';
 import { StoryDetailDrawer } from '../components/StoryDetailDrawer';
+import { CreateStoryModal } from '../components/CreateStoryModal';
 import { useWebSocket, useStoryEvents } from '../services/websocket.service';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 export function PlanningView() {
   const [searchParams] = useSearchParams();
@@ -14,9 +16,12 @@ export function PlanningView() {
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedEpic, setSelectedEpic] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<StoryStatus | 'all'>('all');
   const [selectedType, setSelectedType] = useState<StoryType | 'all'>('all');
+  const [selectedLayer, setSelectedLayer] = useState<string>('all');
+  const [selectedComponent, setSelectedComponent] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const queryClient = useQueryClient();
@@ -35,30 +40,68 @@ export function PlanningView() {
   }, [projectId, isConnected, joinRoom, leaveRoom]);
 
   // Fetch stories
-  const { data: stories = [], isLoading: storiesLoading } = useQuery({
+  const { data: stories = [], isLoading: storiesLoading, error: storiesError } = useQuery({
     queryKey: ['stories', projectId],
-    queryFn: () => storiesApi.getAll({ projectId }).then(res => res.data),
+    queryFn: () => storiesApi.getAll({ projectId }).then(res => {
+      // Handle paginated response: res.data = { data: [], meta: {} }
+      return Array.isArray(res.data) ? res.data : ((res.data as any)?.data || []);
+    }),
     enabled: !!projectId,
   });
 
   // Fetch epics for filtering
   const { data: epics = [] } = useQuery({
     queryKey: ['epics', projectId],
-    queryFn: () => epicsApi.getAll(projectId).then(res => res.data),
+    queryFn: () => epicsApi.getAll(projectId).then(res => {
+      // Handle potential paginated or array response
+      return Array.isArray(res.data) ? res.data : ((res.data as any)?.data || []);
+    }),
+    enabled: !!projectId,
+  });
+
+  // Fetch layers for filtering
+  const { data: layers = [] } = useQuery({
+    queryKey: ['layers', projectId],
+    queryFn: async () => {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/layers?projectId=${projectId}&status=active`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Failed to fetch layers');
+      return response.json();
+    },
+    enabled: !!projectId,
+  });
+
+  // Fetch components for filtering
+  const { data: components = [] } = useQuery({
+    queryKey: ['components', projectId],
+    queryFn: async () => {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/components?projectId=${projectId}&status=active`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Failed to fetch components');
+      return response.json();
+    },
     enabled: !!projectId,
   });
 
   // Fetch commits for selected story
   const { data: storyCommits = [] } = useQuery({
     queryKey: ['commits', selectedStory?.id],
-    queryFn: () => selectedStory ? commitsApi.getByStory(selectedStory.id).then(res => res.data) : [],
+    queryFn: () => selectedStory ? commitsApi.getByStory(selectedStory.id).then(res => {
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    }) : [],
     enabled: !!selectedStory,
   });
 
   // Fetch runs for selected story
   const { data: storyRuns = [] } = useQuery({
     queryKey: ['runs', selectedStory?.id],
-    queryFn: () => selectedStory ? runsApi.getByStory(selectedStory.id).then(res => res.data) : [],
+    queryFn: () => selectedStory ? runsApi.getByStory(selectedStory.id).then(res => {
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    }) : [],
     enabled: !!selectedStory,
   });
 
@@ -68,6 +111,25 @@ export function PlanningView() {
       storiesApi.updateStatus(storyId, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+
+  // Create item mutation
+  const createStoryMutation = useMutation({
+    mutationFn: (data: {
+      title: string;
+      description: string;
+      type: StoryType;
+      epicId?: string;
+      technicalComplexity?: number;
+      businessImpact?: number;
+      layerIds?: string[];
+      componentIds?: string[];
+    }) =>
+      storiesApi.create({ ...data, projectId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      setCreateModalOpen(false);
     },
   });
 
@@ -90,6 +152,7 @@ export function PlanningView() {
 
   // Filter stories
   const filteredStories = useMemo(() => {
+    if (!Array.isArray(stories)) return [];
     let filtered = [...stories];
 
     if (selectedEpic !== 'all') {
@@ -104,6 +167,18 @@ export function PlanningView() {
       filtered = filtered.filter(s => s.type === selectedType);
     }
 
+    if (selectedLayer !== 'all') {
+      filtered = filtered.filter(s =>
+        s.layers?.some(sl => sl.layer.id === selectedLayer)
+      );
+    }
+
+    if (selectedComponent !== 'all') {
+      filtered = filtered.filter(s =>
+        s.components?.some(sc => sc.component.id === selectedComponent)
+      );
+    }
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -115,7 +190,7 @@ export function PlanningView() {
     }
 
     return filtered;
-  }, [stories, selectedEpic, selectedStatus, selectedType, searchQuery]);
+  }, [stories, selectedEpic, selectedStatus, selectedType, selectedLayer, selectedComponent, searchQuery]);
 
   const handleStatusChange = (storyId: string, newStatus: StoryStatus) => {
     updateStatusMutation.mutate({ storyId, status: newStatus });
@@ -143,6 +218,26 @@ export function PlanningView() {
     );
   }
 
+  if (storiesError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold text-fg mb-2">Unable to load stories</h3>
+          <p className="text-muted mb-4">
+            Error loading stories. Please check if the backend server is running.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -160,6 +255,13 @@ export function PlanningView() {
               )}
             </p>
           </div>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Create Item
+          </button>
         </div>
       </div>
 
@@ -167,15 +269,72 @@ export function PlanningView() {
       <div className="px-6 py-4">
         <StoryFilters
           epics={epics}
+          layers={layers}
+          components={components}
           selectedEpic={selectedEpic}
           selectedStatus={selectedStatus}
           selectedType={selectedType}
+          selectedLayer={selectedLayer}
+          selectedComponent={selectedComponent}
           searchQuery={searchQuery}
           onEpicChange={setSelectedEpic}
           onStatusChange={setSelectedStatus}
           onTypeChange={setSelectedType}
+          onLayerChange={setSelectedLayer}
+          onComponentChange={setSelectedComponent}
           onSearchChange={setSearchQuery}
         />
+
+        {/* Quick Filters */}
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Quick:</span>
+          <button
+            onClick={() => {
+              const user = JSON.parse(localStorage.getItem('user') || '{}');
+              setSearchQuery(user.name || '');
+            }}
+            className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors border border-blue-200"
+          >
+            👤 My Stories
+          </button>
+          <button
+            onClick={() => setSelectedStatus(StoryStatus.BLOCKED)}
+            className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors border border-red-200"
+          >
+            ⚠️ Blocked
+          </button>
+          <button
+            onClick={() => setSearchQuery('no-component')}
+            className="px-3 py-1 text-sm bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors border border-yellow-200"
+          >
+            🏷️ No Component
+          </button>
+          <button
+            onClick={() => {
+              // Filter to high priority (businessImpact >= 4)
+              setSearchQuery('');
+              setSelectedStatus('all');
+              setSelectedType('all');
+              setSelectedEpic('all');
+            }}
+            className="px-3 py-1 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors border border-purple-200"
+          >
+            ★★★★★ High Priority
+          </button>
+          {(selectedStatus !== 'all' || searchQuery) && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedStatus('all');
+                setSelectedType('all');
+                setSelectedEpic('all');
+              }}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900 underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -200,6 +359,16 @@ export function PlanningView() {
         onClose={handleDrawerClose}
         commits={storyCommits}
         runs={storyRuns}
+      />
+
+      {/* Create Item Modal */}
+      <CreateStoryModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSubmit={(data) => createStoryMutation.mutate(data)}
+        epics={epics}
+        projectId={projectId}
+        isLoading={createStoryMutation.isPending}
       />
     </div>
   );

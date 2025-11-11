@@ -83,7 +83,7 @@ const AgentPerformanceView: React.FC = () => {
   useEffect(() => {
     const fetchFrameworks = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/projects/${projectId}`,
           {
@@ -102,6 +102,13 @@ const AgentPerformanceView: React.FC = () => {
         setSelectedFrameworks(['dev-only', 'full']);
       } catch (error) {
         console.error('Failed to fetch frameworks:', error);
+        // Set mock frameworks even if API fails
+        setAvailableFrameworks([
+          { id: 'dev-only', name: 'Dev-only' },
+          { id: 'full', name: 'BA+Arch+Dev+QA' },
+          { id: 'custom', name: 'Custom Framework' },
+        ]);
+        setSelectedFrameworks(['dev-only', 'full']);
       }
     };
 
@@ -117,7 +124,7 @@ const AgentPerformanceView: React.FC = () => {
 
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/agent-metrics/framework-comparison`,
           {

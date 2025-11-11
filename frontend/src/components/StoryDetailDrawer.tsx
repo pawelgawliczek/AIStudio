@@ -120,6 +120,59 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                           </p>
                         </div>
 
+                        {/* Layers & Components */}
+                        {((story.layers && story.layers.length > 0) || (story.components && story.components.length > 0)) && (
+                          <div>
+                            <h3 className="text-lg font-medium text-fg mb-2">Architecture</h3>
+                            <div className="space-y-3">
+                              {story.layers && story.layers.length > 0 && (
+                                <div>
+                                  <div className="text-sm font-medium text-muted mb-2">Layers</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {story.layers.map((sl) => (
+                                      <span
+                                        key={sl.layer.id}
+                                        className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium"
+                                        style={{
+                                          backgroundColor: `${sl.layer.color}15`,
+                                          color: sl.layer.color || '#6366F1',
+                                          borderWidth: '1px',
+                                          borderColor: `${sl.layer.color}30`,
+                                        }}
+                                      >
+                                        <span className="mr-1.5">{sl.layer.icon}</span>
+                                        {sl.layer.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {story.components && story.components.length > 0 && (
+                                <div>
+                                  <div className="text-sm font-medium text-muted mb-2">Components</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {story.components.map((sc) => (
+                                      <span
+                                        key={sc.component.id}
+                                        className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium"
+                                        style={{
+                                          backgroundColor: `${sc.component.color}15`,
+                                          color: sc.component.color || '#10B981',
+                                          borderWidth: '1px',
+                                          borderColor: `${sc.component.color}30`,
+                                        }}
+                                      >
+                                        <span className="mr-1.5">{sc.component.icon}</span>
+                                        {sc.component.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Complexity Assessment */}
                         <div>
                           <h3 className="text-lg font-medium text-fg mb-2">Complexity Assessment</h3>

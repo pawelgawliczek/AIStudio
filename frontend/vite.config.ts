@@ -12,18 +12,29 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true,
+    host: '0.0.0.0',
+    strictPort: true,
     allowedHosts: [
-      'vibestudio.pawelgawliczek.cloud',
       'aistudio.pawelgawliczek.cloud',
+      'vibestudio.pawelgawliczek.cloud',
       'localhost',
+      '127.0.0.1',
       '.pawelgawliczek.cloud'
     ],
+    hmr: {
+      clientPort: 443,
+      protocol: 'wss',
+      host: 'vibestudio.pawelgawliczek.cloud',
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://backend:3000',
         changeOrigin: true,
       },
     },
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 5173,
   },
 });

@@ -1,19 +1,38 @@
+import { useEffect } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { ProjectSelector } from './ProjectSelector';
 import { ConnectionStatus } from './ConnectionStatus';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useProject } from '../context/ProjectContext';
+import { useAuth } from '../context/AuthContext';
 
 export function Layout() {
   const navigate = useNavigate();
   const { selectedProject } = useProject();
+  const { isAuthenticated, loading, logout } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('selectedProjectId');
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
@@ -33,33 +52,51 @@ export function Layout() {
                   📊 Dashboard
                 </Link>
                 <Link
-                  to="/projects"
+                  to="/timeline"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                 >
-                  📋 Projects
+                  📅 Timeline
                 </Link>
                 <Link
-                  to="/planning"
+                  to="/use-cases"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                 >
-                  🎯 Planning
+                  📖 Use Cases
                 </Link>
                 {selectedProject && (
                   <>
                     <Link
-                      to={`/code-quality/${selectedProject}`}
+                      to={`/planning?projectId=${selectedProject.id}`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                    >
+                      🎯 Planning
+                    </Link>
+                    <Link
+                      to={`/projects/${selectedProject.id}/epics`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                    >
+                      🟣 Epics
+                    </Link>
+                    <Link
+                      to={`/projects/${selectedProject.id}/stories`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                    >
+                      📝 Stories
+                    </Link>
+                    <Link
+                      to={`/code-quality/${selectedProject.id}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
                       🔍 Code Quality
                     </Link>
                     <Link
-                      to={`/agent-performance/${selectedProject}`}
+                      to={`/agent-performance/${selectedProject.id}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
                       📈 Agent Performance
                     </Link>
                     <Link
-                      to={`/test-coverage/project/${selectedProject}`}
+                      to={`/test-coverage/project/${selectedProject.id}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
                       🧪 Test Coverage
