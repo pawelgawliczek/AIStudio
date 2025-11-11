@@ -167,11 +167,11 @@ export function CreateStoryModal({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:p-6">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-card px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:p-6">
                 <div className="absolute right-0 top-0 pr-4 pt-4">
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    className="rounded-md bg-card text-muted hover:text-fg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onClick={onClose}
                   >
                     <span className="sr-only">Close</span>
@@ -183,22 +183,22 @@ export function CreateStoryModal({
                   <div className="w-full mt-3 text-center sm:mt-0 sm:text-left">
                     <Dialog.Title
                       as="h3"
-                      className="text-xl font-semibold leading-6 text-gray-900 mb-6"
+                      className="text-xl font-semibold leading-6 text-fg mb-6"
                     >
                       Create New Story
                     </Dialog.Title>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <Tab.Group>
-                        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+                        <Tab.List className="flex space-x-1 rounded-xl bg-accent/10 p-1">
                           <Tab
                             className={({ selected }) =>
                               classNames(
                                 'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-accent focus:outline-none focus:ring-2',
                                 selected
-                                  ? 'bg-white shadow text-blue-700'
-                                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                                  ? 'bg-card shadow text-accent'
+                                  : 'text-accent hover:bg-card/50 hover:text-accent'
                               )
                             }
                           >
@@ -208,10 +208,10 @@ export function CreateStoryModal({
                             className={({ selected }) =>
                               classNames(
                                 'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-accent focus:outline-none focus:ring-2',
                                 selected
-                                  ? 'bg-white shadow text-blue-700'
-                                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                                  ? 'bg-card shadow text-accent'
+                                  : 'text-accent hover:bg-card/50 hover:text-accent'
                               )
                             }
                           >
@@ -225,7 +225,7 @@ export function CreateStoryModal({
                             <div>
                               <label
                                 htmlFor="title"
-                                className="block text-sm font-medium text-gray-700 mb-2"
+                                className="block text-sm font-medium text-fg mb-2"
                               >
                                 Title <span className="text-red-500">*</span>
                               </label>
@@ -235,7 +235,7 @@ export function CreateStoryModal({
                                 required
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
                                 placeholder="Enter story title..."
                               />
                             </div>
@@ -244,7 +244,7 @@ export function CreateStoryModal({
                             <div>
                               <label
                                 htmlFor="description"
-                                className="block text-sm font-medium text-gray-700 mb-2"
+                                className="block text-sm font-medium text-fg mb-2"
                               >
                                 Description
                               </label>
@@ -253,7 +253,7 @@ export function CreateStoryModal({
                                 rows={4}
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                                 placeholder="Describe the story..."
                               />
                             </div>
@@ -263,7 +263,7 @@ export function CreateStoryModal({
                               <div>
                                 <label
                                   htmlFor="type"
-                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                  className="block text-sm font-medium text-fg mb-2"
                                 >
                                   Type <span className="text-red-500">*</span>
                                 </label>
@@ -272,7 +272,7 @@ export function CreateStoryModal({
                                   required
                                   value={type}
                                   onChange={(e) => setType(e.target.value as StoryType)}
-                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
                                 >
                                   <option value="feature">Feature</option>
                                   <option value="bug">Bug</option>
@@ -285,7 +285,7 @@ export function CreateStoryModal({
                               <div>
                                 <label
                                   htmlFor="epic"
-                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                  className="block text-sm font-medium text-fg mb-2"
                                 >
                                   Epic
                                 </label>
@@ -293,7 +293,7 @@ export function CreateStoryModal({
                                   id="epic"
                                   value={epicId}
                                   onChange={(e) => setEpicId(e.target.value)}
-                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
                                 >
                                   <option value="">No Epic</option>
                                   {epics.map((epic) => (
@@ -308,7 +308,7 @@ export function CreateStoryModal({
                               <div>
                                 <label
                                   htmlFor="complexity"
-                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                  className="block text-sm font-medium text-fg mb-2"
                                 >
                                   Technical Complexity
                                 </label>
@@ -316,7 +316,7 @@ export function CreateStoryModal({
                                   id="complexity"
                                   value={technicalComplexity}
                                   onChange={(e) => setTechnicalComplexity(Number(e.target.value))}
-                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
                                 >
                                   <option value="1">1 - Simple</option>
                                   <option value="2">2 - Easy</option>
@@ -330,7 +330,7 @@ export function CreateStoryModal({
                               <div>
                                 <label
                                   htmlFor="impact"
-                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                  className="block text-sm font-medium text-fg mb-2"
                                 >
                                   Business Impact
                                 </label>
@@ -338,7 +338,7 @@ export function CreateStoryModal({
                                   id="impact"
                                   value={businessImpact}
                                   onChange={(e) => setBusinessImpact(Number(e.target.value))}
-                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
                                 >
                                   <option value="1">1 - Low</option>
                                   <option value="2">2 - Minor</option>
@@ -354,16 +354,16 @@ export function CreateStoryModal({
                           <Tab.Panel className="space-y-6">
                             {/* Layers Selection */}
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                              <label className="block text-sm font-medium text-fg mb-3">
                                 Layers (Technical Stack)
                               </label>
-                              <p className="text-xs text-gray-500 mb-3">
+                              <p className="text-xs text-muted mb-3">
                                 Select the technical layers this story spans
                               </p>
                               {loadingLayers ? (
-                                <div className="text-sm text-gray-500">Loading layers...</div>
+                                <div className="text-sm text-muted">Loading layers...</div>
                               ) : layers.length === 0 ? (
-                                <div className="text-sm text-gray-500">
+                                <div className="text-sm text-muted">
                                   No active layers found. Please configure layers in project settings.
                                 </div>
                               ) : (
@@ -376,18 +376,18 @@ export function CreateStoryModal({
                                       className={classNames(
                                         'flex items-center justify-between p-3 rounded-lg border-2 transition-colors',
                                         selectedLayerIds.includes(layer.id)
-                                          ? 'border-blue-500 bg-blue-50'
-                                          : 'border-gray-200 hover:border-gray-300'
+                                          ? 'border-accent bg-accent/10'
+                                          : 'border-border hover:border-accent/50'
                                       )}
                                     >
                                       <div className="flex items-center space-x-2">
                                         {layer.icon && <span className="text-lg">{layer.icon}</span>}
                                         <div className="text-left">
-                                          <div className="text-sm font-medium text-gray-900">
+                                          <div className="text-sm font-medium text-fg">
                                             {layer.name}
                                           </div>
                                           {layer.techStack && layer.techStack.length > 0 && (
-                                            <div className="text-xs text-gray-500">
+                                            <div className="text-xs text-muted">
                                               {layer.techStack.slice(0, 2).join(', ')}
                                               {layer.techStack.length > 2 && '...'}
                                             </div>
@@ -395,14 +395,14 @@ export function CreateStoryModal({
                                         </div>
                                       </div>
                                       {selectedLayerIds.includes(layer.id) && (
-                                        <span className="text-blue-500">✓</span>
+                                        <span className="text-accent">✓</span>
                                       )}
                                     </button>
                                   ))}
                                 </div>
                               )}
                               {selectedLayerIds.length > 0 && (
-                                <div className="mt-2 text-xs text-gray-600">
+                                <div className="mt-2 text-xs text-muted">
                                   {selectedLayerIds.length} layer(s) selected
                                 </div>
                               )}
@@ -410,16 +410,16 @@ export function CreateStoryModal({
 
                             {/* Components Selection */}
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                              <label className="block text-sm font-medium text-fg mb-3">
                                 Components (Business Domains)
                               </label>
-                              <p className="text-xs text-gray-500 mb-3">
+                              <p className="text-xs text-muted mb-3">
                                 Select the business components this story affects
                               </p>
                               {loadingComponents ? (
-                                <div className="text-sm text-gray-500">Loading components...</div>
+                                <div className="text-sm text-muted">Loading components...</div>
                               ) : components.length === 0 ? (
-                                <div className="text-sm text-gray-500">
+                                <div className="text-sm text-muted">
                                   No active components found. Please configure components in project settings.
                                 </div>
                               ) : (
@@ -432,18 +432,18 @@ export function CreateStoryModal({
                                       className={classNames(
                                         'flex items-center justify-between p-3 rounded-lg border-2 transition-colors',
                                         selectedComponentIds.includes(component.id)
-                                          ? 'border-green-500 bg-green-50'
-                                          : 'border-gray-200 hover:border-gray-300'
+                                          ? 'border-green-500 bg-green-500/10'
+                                          : 'border-border hover:border-green-500/50'
                                       )}
                                     >
                                       <div className="flex items-center space-x-2">
                                         {component.icon && <span className="text-lg">{component.icon}</span>}
                                         <div className="text-left">
-                                          <div className="text-sm font-medium text-gray-900">
+                                          <div className="text-sm font-medium text-fg">
                                             {component.name}
                                           </div>
                                           {component.description && (
-                                            <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                                            <div className="text-xs text-muted truncate max-w-[150px]">
                                               {component.description}
                                             </div>
                                           )}
@@ -457,7 +457,7 @@ export function CreateStoryModal({
                                 </div>
                               )}
                               {selectedComponentIds.length > 0 && (
-                                <div className="mt-2 text-xs text-gray-600">
+                                <div className="mt-2 text-xs text-muted">
                                   {selectedComponentIds.length} component(s) selected
                                 </div>
                               )}
@@ -470,7 +470,7 @@ export function CreateStoryModal({
                       <div className="mt-6 flex justify-end gap-3">
                         <button
                           type="button"
-                          className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          className="inline-flex justify-center rounded-md border border-border bg-bg-secondary px-4 py-2 text-sm font-medium text-fg shadow-sm hover:bg-accent hover:text-accent-fg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all"
                           onClick={onClose}
                           disabled={isLoading}
                         >
@@ -478,7 +478,7 @@ export function CreateStoryModal({
                         </button>
                         <button
                           type="submit"
-                          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                          className="inline-flex justify-center rounded-md border border-transparent bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-sm hover:bg-accent-dark focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 transition-all"
                           disabled={isLoading}
                         >
                           {isLoading ? 'Creating...' : 'Create Story'}

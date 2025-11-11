@@ -120,22 +120,22 @@ export function LayersComponentsPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Layers & Components</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-fg">Layers & Components</h1>
+        <p className="mt-1 text-sm text-muted">
           Manage architectural layers and business components for your project
         </p>
       </div>
 
       <Tab.Group>
-        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1 mb-6">
+        <Tab.List className="flex space-x-1 rounded-xl bg-accent/10 p-1 mb-6">
           <Tab
             className={({ selected }) =>
               classNames(
                 'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                'ring-white ring-opacity-60 ring-offset-2 ring-offset-accent focus:outline-none focus:ring-2',
                 selected
-                  ? 'bg-white shadow text-blue-700'
-                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                  ? 'bg-card shadow text-accent'
+                  : 'text-accent hover:bg-card/50 hover:text-accent'
               )
             }
           >
@@ -145,10 +145,10 @@ export function LayersComponentsPage() {
             className={({ selected }) =>
               classNames(
                 'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                'ring-white ring-opacity-60 ring-offset-2 ring-offset-accent focus:outline-none focus:ring-2',
                 selected
-                  ? 'bg-white shadow text-blue-700'
-                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                  ? 'bg-card shadow text-accent'
+                  : 'text-accent hover:bg-card/50 hover:text-accent'
               )
             }
           >
@@ -158,10 +158,10 @@ export function LayersComponentsPage() {
             className={({ selected }) =>
               classNames(
                 'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                'ring-white ring-opacity-60 ring-offset-2 ring-offset-accent focus:outline-none focus:ring-2',
                 selected
-                  ? 'bg-white shadow text-blue-700'
-                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                  ? 'bg-card shadow text-accent'
+                  : 'text-accent hover:bg-card/50 hover:text-accent'
               )
             }
           >
@@ -173,8 +173,8 @@ export function LayersComponentsPage() {
           <Tab.Panel>
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Architecture Overview</h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 className="text-lg font-semibold text-fg">Architecture Overview</h2>
+                <p className="mt-1 text-sm text-muted">
                   View layers with their associated components
                 </p>
               </div>
@@ -184,7 +184,7 @@ export function LayersComponentsPage() {
                     setEditingLayer(null);
                     setLayerModalOpen(true);
                   }}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md shadow-sm text-fg bg-bg-secondary hover:bg-accent hover:text-accent-fg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-all"
                 >
                   <PlusIcon className="h-5 w-5 mr-2" />
                   Add Layer
@@ -194,7 +194,7 @@ export function LayersComponentsPage() {
                     setEditingComponent(null);
                     setComponentModalOpen(true);
                   }}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-accent-fg bg-accent hover:bg-accent-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-all"
                 >
                   <PlusIcon className="h-5 w-5 mr-2" />
                   Add Component
@@ -203,16 +203,16 @@ export function LayersComponentsPage() {
             </div>
 
             {layersLoading || componentsLoading ? (
-              <div className="text-center py-12 text-gray-500">Loading architecture...</div>
+              <div className="text-center py-12 text-muted">Loading architecture...</div>
             ) : layers.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <p className="text-gray-500">No layers configured yet</p>
+              <div className="text-center py-12 bg-bg-secondary rounded-lg border-2 border-dashed border-border">
+                <p className="text-muted">No layers configured yet</p>
                 <button
                   onClick={() => {
                     setEditingLayer(null);
                     setLayerModalOpen(true);
                   }}
-                  className="mt-4 text-indigo-600 hover:text-indigo-500"
+                  className="mt-4 text-accent hover:text-accent-dark"
                 >
                   Create your first layer
                 </button>
@@ -230,7 +230,7 @@ export function LayersComponentsPage() {
                     return (
                       <div
                         key={layer.id}
-                        className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                        className="bg-card rounded-lg border border-border overflow-hidden shadow-md"
                       >
                         {/* Layer Header */}
                         <div
@@ -241,16 +241,16 @@ export function LayersComponentsPage() {
                             <div className="flex items-center space-x-3">
                               {layer.icon && <span className="text-3xl">{layer.icon}</span>}
                               <div>
-                                <h3 className="text-lg font-semibold text-gray-900">{layer.name}</h3>
+                                <h3 className="text-lg font-semibold text-fg">{layer.name}</h3>
                                 {layer.description && (
-                                  <p className="mt-1 text-sm text-gray-600">{layer.description}</p>
+                                  <p className="mt-1 text-sm text-muted">{layer.description}</p>
                                 )}
                                 {layer.techStack && layer.techStack.length > 0 && (
                                   <div className="mt-2 flex flex-wrap gap-1">
                                     {layer.techStack.map((tech, idx) => (
                                       <span
                                         key={idx}
-                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700"
+                                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent/10 text-accent border border-accent/20"
                                       >
                                         {tech}
                                       </span>
@@ -272,14 +272,14 @@ export function LayersComponentsPage() {
                               </span>
                               <button
                                 onClick={() => handleEditLayer(layer)}
-                                className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-md hover:bg-gray-100"
+                                className="p-1.5 text-muted hover:text-accent rounded-md hover:bg-bg-secondary"
                                 title="Edit layer"
                               >
                                 <PencilIcon className="h-5 w-5" />
                               </button>
                               <button
                                 onClick={() => handleDeleteLayer(layer)}
-                                className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-gray-100"
+                                className="p-1.5 text-muted hover:text-red-600 rounded-md hover:bg-bg-secondary"
                                 title="Delete layer"
                               >
                                 <TrashIcon className="h-5 w-5" />
@@ -289,9 +289,9 @@ export function LayersComponentsPage() {
                         </div>
 
                         {/* Components in this Layer */}
-                        <div className="px-6 py-4 bg-gray-50">
+                        <div className="px-6 py-4 bg-bg-secondary">
                           <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-medium text-gray-700">
+                            <h4 className="text-sm font-medium text-fg">
                               Components ({layerComponents.length})
                             </h4>
                             <button
@@ -302,14 +302,14 @@ export function LayersComponentsPage() {
                                 } as any);
                                 setComponentModalOpen(true);
                               }}
-                              className="text-sm text-indigo-600 hover:text-indigo-500"
+                              className="text-sm text-accent hover:text-accent-dark"
                             >
                               + Add component to layer
                             </button>
                           </div>
 
                           {layerComponents.length === 0 ? (
-                            <p className="text-sm text-gray-500 italic">No components in this layer yet</p>
+                            <p className="text-sm text-muted italic">No components in this layer yet</p>
                           ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {layerComponents
@@ -317,7 +317,7 @@ export function LayersComponentsPage() {
                                 .map((component) => (
                                   <div
                                     key={component.id}
-                                    className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow group"
+                                    className="bg-card rounded-lg border border-border p-3 hover:shadow-md transition-shadow group"
                                     style={{
                                       borderLeftWidth: '3px',
                                       borderLeftColor: component.color || '#10B981',
@@ -329,15 +329,15 @@ export function LayersComponentsPage() {
                                           <span className="text-xl flex-shrink-0">{component.icon}</span>
                                         )}
                                         <div className="min-w-0 flex-1">
-                                          <h5 className="text-sm font-semibold text-gray-900 truncate">
+                                          <h5 className="text-sm font-semibold text-fg truncate">
                                             {component.name}
                                           </h5>
                                           {component.description && (
-                                            <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">
+                                            <p className="mt-0.5 text-xs text-muted line-clamp-2">
                                               {component.description}
                                             </p>
                                           )}
-                                          <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                                          <div className="mt-1 flex items-center gap-2 text-xs text-muted">
                                             {component._count && (
                                               <>
                                                 <span>{component._count.storyComponents} stories</span>
@@ -351,14 +351,14 @@ export function LayersComponentsPage() {
                                       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                           onClick={() => handleEditComponent(component)}
-                                          className="p-1 text-gray-400 hover:text-indigo-600"
+                                          className="p-1 text-muted hover:text-accent"
                                           title="Edit component"
                                         >
                                           <PencilIcon className="h-4 w-4" />
                                         </button>
                                         <button
                                           onClick={() => handleDeleteComponent(component)}
-                                          className="p-1 text-gray-400 hover:text-red-600"
+                                          className="p-1 text-muted hover:text-red-600"
                                           title="Delete component"
                                         >
                                           <TrashIcon className="h-4 w-4" />
@@ -392,13 +392,13 @@ export function LayersComponentsPage() {
           {/* Layers Tab */}
           <Tab.Panel>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Architectural Layers</h2>
+              <h2 className="text-lg font-semibold text-fg">Architectural Layers</h2>
               <button
                 onClick={() => {
                   setEditingLayer(null);
                   setLayerModalOpen(true);
                 }}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-accent-fg bg-accent hover:bg-accent-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-all"
               >
                 <PlusIcon className="h-5 w-5 mr-2" />
                 Add Layer
@@ -406,16 +406,16 @@ export function LayersComponentsPage() {
             </div>
 
             {layersLoading ? (
-              <div className="text-center py-12 text-gray-500">Loading layers...</div>
+              <div className="text-center py-12 text-muted">Loading layers...</div>
             ) : layers.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <p className="text-gray-500">No layers configured yet</p>
+              <div className="text-center py-12 bg-bg-secondary rounded-lg border-2 border-dashed border-border">
+                <p className="text-muted">No layers configured yet</p>
                 <button
                   onClick={() => {
                     setEditingLayer(null);
                     setLayerModalOpen(true);
                   }}
-                  className="mt-4 text-indigo-600 hover:text-indigo-500"
+                  className="mt-4 text-accent hover:text-accent-dark"
                 >
                   Create your first layer
                 </button>
@@ -427,14 +427,14 @@ export function LayersComponentsPage() {
                   .map((layer) => (
                     <div
                       key={layer.id}
-                      className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                      className="bg-card rounded-lg border border-border p-4 hover:shadow-md transition-shadow"
                       style={{ borderLeftWidth: '4px', borderLeftColor: layer.color || '#3B82F6' }}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-2">
                           {layer.icon && <span className="text-2xl">{layer.icon}</span>}
                           <div>
-                            <h3 className="text-sm font-semibold text-gray-900">{layer.name}</h3>
+                            <h3 className="text-sm font-semibold text-fg">{layer.name}</h3>
                             <span
                               className={classNames(
                                 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
@@ -450,27 +450,27 @@ export function LayersComponentsPage() {
                         <div className="flex space-x-1">
                           <button
                             onClick={() => handleEditLayer(layer)}
-                            className="p-1 text-gray-400 hover:text-indigo-600"
+                            className="p-1 text-muted hover:text-accent"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteLayer(layer)}
-                            className="p-1 text-gray-400 hover:text-red-600"
+                            className="p-1 text-muted hover:text-red-600"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
                       {layer.description && (
-                        <p className="mt-2 text-xs text-gray-600">{layer.description}</p>
+                        <p className="mt-2 text-xs text-muted">{layer.description}</p>
                       )}
                       {layer.techStack && layer.techStack.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1">
                           {layer.techStack.map((tech, idx) => (
                             <span
                               key={idx}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700"
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent/10 text-accent border border-accent/20"
                             >
                               {tech}
                             </span>
@@ -478,7 +478,7 @@ export function LayersComponentsPage() {
                         </div>
                       )}
                       {layer._count && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                        <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2 text-xs text-muted">
                           <div>Stories: {layer._count.storyLayers}</div>
                           <div>Components: {layer._count.componentLayers}</div>
                           <div>Use Cases: {layer._count.useCases}</div>
@@ -494,13 +494,13 @@ export function LayersComponentsPage() {
           {/* Components Tab */}
           <Tab.Panel>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Business Components</h2>
+              <h2 className="text-lg font-semibold text-fg">Business Components</h2>
               <button
                 onClick={() => {
                   setEditingComponent(null);
                   setComponentModalOpen(true);
                 }}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-accent-fg bg-accent hover:bg-accent-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-all"
               >
                 <PlusIcon className="h-5 w-5 mr-2" />
                 Add Component
@@ -508,16 +508,16 @@ export function LayersComponentsPage() {
             </div>
 
             {componentsLoading ? (
-              <div className="text-center py-12 text-gray-500">Loading components...</div>
+              <div className="text-center py-12 text-muted">Loading components...</div>
             ) : components.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <p className="text-gray-500">No components configured yet</p>
+              <div className="text-center py-12 bg-bg-secondary rounded-lg border-2 border-dashed border-border">
+                <p className="text-muted">No components configured yet</p>
                 <button
                   onClick={() => {
                     setEditingComponent(null);
                     setComponentModalOpen(true);
                   }}
-                  className="mt-4 text-indigo-600 hover:text-indigo-500"
+                  className="mt-4 text-accent hover:text-accent-dark"
                 >
                   Create your first component
                 </button>
@@ -529,14 +529,14 @@ export function LayersComponentsPage() {
                   .map((component) => (
                     <div
                       key={component.id}
-                      className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                      className="bg-card rounded-lg border border-border p-4 hover:shadow-md transition-shadow"
                       style={{ borderLeftWidth: '4px', borderLeftColor: component.color || '#10B981' }}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-2">
                           {component.icon && <span className="text-2xl">{component.icon}</span>}
                           <div>
-                            <h3 className="text-sm font-semibold text-gray-900">{component.name}</h3>
+                            <h3 className="text-sm font-semibold text-fg">{component.name}</h3>
                             <span
                               className={classNames(
                                 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
@@ -554,30 +554,30 @@ export function LayersComponentsPage() {
                         <div className="flex space-x-1">
                           <button
                             onClick={() => handleEditComponent(component)}
-                            className="p-1 text-gray-400 hover:text-indigo-600"
+                            className="p-1 text-muted hover:text-accent"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteComponent(component)}
-                            className="p-1 text-gray-400 hover:text-red-600"
+                            className="p-1 text-muted hover:text-red-600"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
                       {component.description && (
-                        <p className="mt-2 text-xs text-gray-600">{component.description}</p>
+                        <p className="mt-2 text-xs text-muted">{component.description}</p>
                       )}
                       {component.owner && (
-                        <p className="mt-2 text-xs text-gray-500">Owner: {component.owner.name}</p>
+                        <p className="mt-2 text-xs text-muted">Owner: {component.owner.name}</p>
                       )}
                       {component.layers && component.layers.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1">
                           {component.layers.map((cl) => (
                             <span
                               key={cl.layer.id}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700"
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-accent/10 text-accent border border-accent/20"
                             >
                               {cl.layer.icon} {cl.layer.name}
                             </span>
@@ -585,7 +585,7 @@ export function LayersComponentsPage() {
                         </div>
                       )}
                       {component._count && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                        <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2 text-xs text-muted">
                           <div>Stories: {component._count.storyComponents}</div>
                           <div>Use Cases: {component._count.useCases}</div>
                           <div>Test Cases: {component._count.testCases}</div>
@@ -737,14 +737,14 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900 mb-4">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-card px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-fg mb-4">
                   {layer ? 'Edit Layer' : 'Create New Layer'}
                 </Dialog.Title>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-fg">
                       Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -752,37 +752,37 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                       placeholder="e.g., Frontend, Backend API"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                    <label className="block text-sm font-medium text-fg">Description</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={2}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-fg">
                       Tech Stack (comma-separated)
                     </label>
                     <input
                       type="text"
                       value={techStack}
                       onChange={(e) => setTechStack(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                       placeholder="React, TypeScript, Vite"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-sm font-medium text-fg">
                         Order Index <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -790,16 +790,16 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
                         required
                         value={orderIndex}
                         onChange={(e) => setOrderIndex(Number(e.target.value))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Status</label>
+                      <label className="block text-sm font-medium text-fg">Status</label>
                       <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value as LayerStatus)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                       >
                         <option value="active">Active</option>
                         <option value="deprecated">Deprecated</option>
@@ -809,22 +809,22 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Color</label>
+                      <label className="block text-sm font-medium text-fg">Color</label>
                       <input
                         type="color"
                         value={color}
                         onChange={(e) => setColor(e.target.value)}
-                        className="mt-1 block w-full h-10 rounded-md border-gray-300"
+                        className="mt-1 block w-full h-10 rounded-md border-border"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Icon (emoji)</label>
+                      <label className="block text-sm font-medium text-fg">Icon (emoji)</label>
                       <input
                         type="text"
                         value={icon}
                         onChange={(e) => setIcon(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                         placeholder="🌐"
                       />
                     </div>
@@ -834,13 +834,13 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex-1 inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                      className="flex-1 inline-flex justify-center rounded-md border border-border bg-bg-secondary px-4 py-2 text-sm font-medium text-fg shadow-sm hover:bg-accent hover:text-accent-fg transition-all"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                      className="flex-1 inline-flex justify-center rounded-md border border-transparent bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-sm hover:bg-accent-dark transition-all"
                     >
                       {layer ? 'Update' : 'Create'}
                     </button>
@@ -960,14 +960,14 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900 mb-4">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-card px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-fg mb-4">
                   {component ? 'Edit Component' : 'Create New Component'}
                 </Dialog.Title>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-fg">
                       Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -975,39 +975,39 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                       placeholder="e.g., Authentication, Billing"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                    <label className="block text-sm font-medium text-fg">Description</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={2}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-fg">
                       File Patterns (one per line)
                     </label>
                     <textarea
                       value={filePatterns}
                       onChange={(e) => setFilePatterns(e.target.value)}
                       rows={3}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono text-xs"
+                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm font-mono text-xs px-4 py-2 bg-bg-secondary text-fg"
                       placeholder="**/auth/**&#10;**/*auth*"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-fg mb-2">
                       Layers (select all that apply)
                     </label>
-                    <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
+                    <div className="space-y-2 max-h-40 overflow-y-auto border border-border rounded-md p-2 bg-bg-secondary">
                       {layers.filter(l => l.status === 'active').map((layer) => (
                         <label key={layer.id} className="flex items-center">
                           <input
@@ -1020,9 +1020,9 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
                                 setSelectedLayerIds(selectedLayerIds.filter(id => id !== layer.id));
                               }
                             }}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="h-4 w-4 text-accent focus:ring-ring border-border rounded"
                           />
-                          <span className="ml-2 text-sm text-gray-700">
+                          <span className="ml-2 text-sm text-fg">
                             {layer.icon} {layer.name}
                           </span>
                         </label>
@@ -1032,33 +1032,33 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Color</label>
+                      <label className="block text-sm font-medium text-fg">Color</label>
                       <input
                         type="color"
                         value={color}
                         onChange={(e) => setColor(e.target.value)}
-                        className="mt-1 block w-full h-10 rounded-md border-gray-300"
+                        className="mt-1 block w-full h-10 rounded-md border-border"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Icon (emoji)</label>
+                      <label className="block text-sm font-medium text-fg">Icon (emoji)</label>
                       <input
                         type="text"
                         value={icon}
                         onChange={(e) => setIcon(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                         placeholder="🔐"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <label className="block text-sm font-medium text-fg">Status</label>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value as ComponentStatus)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
                     >
                       <option value="active">Active</option>
                       <option value="planning">Planning</option>
@@ -1070,13 +1070,13 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex-1 inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                      className="flex-1 inline-flex justify-center rounded-md border border-border bg-bg-secondary px-4 py-2 text-sm font-medium text-fg shadow-sm hover:bg-accent hover:text-accent-fg transition-all"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                      className="flex-1 inline-flex justify-center rounded-md border border-transparent bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-sm hover:bg-accent-dark transition-all"
                     >
                       {component ? 'Update' : 'Create'}
                     </button>
