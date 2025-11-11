@@ -13,6 +13,12 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    allowedHosts: [
+      'vibestudio.example.com',
+      'aistudio.example.com',
+      'localhost',
+      '.example.com'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
