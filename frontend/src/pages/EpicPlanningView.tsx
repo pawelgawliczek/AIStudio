@@ -572,8 +572,8 @@ export function EpicPlanningView() {
           )}
         </DragOverlay>
 
-        {/* Detail Drawer */}
-        {selectedItem && 'status' in selectedItem && (
+        {/* Detail Drawer - Only show for Stories (check for 'type' property) */}
+        {selectedItem && 'type' in selectedItem && (
           <StoryDetailDrawer
             story={selectedItem as Story}
             open={drawerOpen}
