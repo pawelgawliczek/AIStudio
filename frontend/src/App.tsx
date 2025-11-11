@@ -24,6 +24,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<Navigate to="stories" replace />} />
               <Route path="planning" element={<PlanningView />} />
               <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
               <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
