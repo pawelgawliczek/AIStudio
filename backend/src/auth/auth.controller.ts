@@ -40,7 +40,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'User successfully logged out' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logout(@Request() req) {
-    return this.authService.logout(req.user.sub);
+    return this.authService.logout(req.user.userId);
   }
 
   @UseGuards(AuthGuard('jwt-refresh'))
@@ -50,6 +50,6 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Tokens successfully refreshed' })
   @ApiResponse({ status: 403, description: 'Forbidden - invalid refresh token' })
   async refreshTokens(@Request() req, @Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refreshTokens(req.user.sub, req.user.refreshToken);
+    return this.authService.refreshTokens(req.user.userId, req.user.refreshToken);
   }
 }

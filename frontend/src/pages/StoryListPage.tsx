@@ -5,6 +5,7 @@ import { epicsService } from '../services/epics.service';
 import { useStoryEvents } from '../services/websocket.service';
 import { useProject } from '../context/ProjectContext';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { CreateStoryModal } from '../components/CreateStoryModal';
 import type { Story, Epic, StoryStatus, StoryType, FilterStoryDto } from '../types';
 import {
   MagnifyingGlassIcon,
@@ -35,6 +36,8 @@ export function StoryListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -125,6 +128,21 @@ export function StoryListPage() {
     setCurrentPage(1);
   };
 
+  const handleCreateStory = async (data: any) => {
+    if (!projectId) return;
+    try {
+      setIsCreating(true);
+      await storiesService.create({ ...data, projectId });
+      setShowCreateModal(false);
+      loadStories(); // Reload the list
+    } catch (error) {
+      console.error('Failed to create story:', error);
+      alert('Failed to create story');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const hasFilters = search || statusFilter || epicFilter || minComplexity !== '' || maxComplexity !== '';
 
   return (
@@ -142,7 +160,7 @@ export function StoryListPage() {
         <button
           data-testid="create-story"
           className="inline-flex items-center px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-          onClick={() => navigate(`/projects/${projectId}/stories/new`)}
+          onClick={() => setShowCreateModal(true)}
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           Create Story
@@ -358,6 +376,16 @@ export function StoryListPage() {
           </div>
         </div>
       )}
+
+      {/* Create Story Modal */}
+      <CreateStoryModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateStory}
+        epics={epics}
+        projectId={projectId!}
+        isLoading={isCreating}
+      />
     </div>
   );
 }

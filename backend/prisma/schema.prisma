@@ -94,6 +94,7 @@ model Story {
   title                String
   description          String?
   status               StoryStatus  @default(planning)
+  priority             Int          @default(0)
   businessImpact       Int?         @map("business_impact")
   businessComplexity   Int?         @map("business_complexity")
   technicalComplexity  Int?         @map("technical_complexity")

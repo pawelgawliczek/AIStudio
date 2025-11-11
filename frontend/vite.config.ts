@@ -19,11 +19,12 @@ export default defineConfig({
       'vibestudio.example.com',
       'localhost',
       '127.0.0.1',
+      '.example.com'
     ],
     hmr: {
       clientPort: 443,
       protocol: 'wss',
-      host: 'aistudio.example.com',
+      host: 'vibestudio.example.com',
     },
     proxy: {
       '/api': {

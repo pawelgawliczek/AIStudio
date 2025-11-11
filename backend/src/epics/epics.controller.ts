@@ -77,4 +77,22 @@ export class EpicsController {
   remove(@Param('id') id: string) {
     return this.epicsService.remove(id);
   }
+
+  @Patch(':id/priority')
+  @Roles(UserRole.admin, UserRole.pm, UserRole.architect)
+  @ApiOperation({ summary: 'Update epic priority (Admin, PM, Architect)' })
+  @ApiResponse({ status: 200, description: 'Epic priority successfully updated' })
+  @ApiResponse({ status: 404, description: 'Epic not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  updatePriority(@Param('id') id: string, @Body('priority') priority: number) {
+    return this.epicsService.updatePriority(id, priority);
+  }
+
+  @Get('planning/overview')
+  @ApiOperation({ summary: 'Get planning overview with all epics and stories' })
+  @ApiResponse({ status: 200, description: 'Return planning overview' })
+  @ApiQuery({ name: 'projectId', required: false })
+  getPlanningOverview(@Query('projectId') projectId?: string) {
+    return this.epicsService.getPlanningOverview(projectId);
+  }
 }
