@@ -6,10 +6,12 @@ import { UseCase } from '../types';
 import { UseCaseSearchBar } from '../components/UseCaseSearchBar';
 import { UseCaseCard } from '../components/UseCaseCard';
 import { UseCaseDetailModal } from '../components/UseCaseDetailModal';
+import { useProject } from '../context/ProjectContext';
 
 export function UseCaseLibraryView() {
   const [searchParams] = useSearchParams();
-  const projectId = searchParams.get('projectId') || '';
+  const { selectedProject } = useProject();
+  const projectId = searchParams.get('projectId') || selectedProject?.id || '';
 
   const queryClient = useQueryClient();
 
