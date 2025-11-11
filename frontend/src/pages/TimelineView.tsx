@@ -16,14 +16,14 @@ export function TimelineView() {
   const [viewMode, setViewMode] = useState<'week' | 'month' | 'quarter'>('month');
 
   // Fetch stories
-  const { data: stories = [], isLoading: storiesLoading } = useQuery({
+  const { data: stories = [], isLoading: storiesLoading, error: storiesError } = useQuery({
     queryKey: ['stories', projectId],
     queryFn: () => storiesApi.getAll({ projectId }).then(res => res.data),
     enabled: !!projectId,
   });
 
   // Fetch epics
-  const { data: epics = [] } = useQuery({
+  const { data: epics = [], error: epicsError } = useQuery({
     queryKey: ['epics', projectId],
     queryFn: () => epicsApi.getAll(projectId).then(res => res.data),
     enabled: !!projectId,
@@ -31,6 +31,7 @@ export function TimelineView() {
 
   // Filter stories
   const filteredStories = useMemo(() => {
+    if (!Array.isArray(stories)) return [];
     let filtered = [...stories];
 
     if (selectedEpic !== 'all') {
@@ -232,7 +233,25 @@ export function TimelineView() {
 
       {/* Timeline */}
       <div className="flex-1 overflow-auto p-6">
-        {storiesLoading ? (
+        {storiesError || epicsError ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="text-red-500 text-5xl mb-4">⚠️</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to load timeline</h3>
+              <p className="text-gray-600 mb-4">
+                {storiesError ? 'Error loading stories. ' : ''}
+                {epicsError ? 'Error loading epics. ' : ''}
+                Please check if the backend server is running.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Reload Page
+              </button>
+            </div>
+          </div>
+        ) : storiesLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
