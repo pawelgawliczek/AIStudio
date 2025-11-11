@@ -218,6 +218,11 @@ export interface FilterEpicDto {
   status?: EpicStatus;
 }
 
+export interface PlanningOverview {
+  epics: Epic[];
+  unassignedStories: Story[];
+}
+
 export interface CreateSubtaskDto {
   storyId: string;
   title: string;
