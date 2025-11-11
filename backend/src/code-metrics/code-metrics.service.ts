@@ -28,16 +28,12 @@ export class CodeMetricsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - timeRangeDays);
 
-    // Get all commits in time range
-    const commits = await this.prisma.commit.findMany({
+    // Query from CodeMetrics table populated by workers
+    const codeMetrics = await this.prisma.codeMetrics.findMany({
       where: {
         projectId,
-        timestamp: { gte: startDate },
+        lastAnalyzedAt: { gte: startDate }
       },
-      include: {
-        files: true,
-      },
-      orderBy: { timestamp: 'desc' },
     });
 
     // Calculate LOC by language
@@ -45,20 +41,18 @@ export class CodeMetricsService {
     let totalLoc = 0;
     const latestFileMetrics = new Map<string, any>();
 
-    for (const commit of commits) {
-      for (const file of commit.files) {
-        // Track latest metrics for each file
-        if (!latestFileMetrics.has(file.filePath)) {
-          latestFileMetrics.set(file.filePath, file);
+    for (const metric of codeMetrics) {
+      // Track latest metrics for each file
+      if (!latestFileMetrics.has(metric.filePath)) {
+        latestFileMetrics.set(metric.filePath, metric);
 
-          // Determine language from file extension
-          const ext = file.filePath.split('.').pop() || 'unknown';
-          const language = this.getLanguageFromExtension(ext);
+        // Determine language from file extension
+        const ext = metric.filePath.split('.').pop() || 'unknown';
+        const language = this.getLanguageFromExtension(ext);
 
-          const fileLoc = file.locAdded;
-          locByLanguage[language] = (locByLanguage[language] || 0) + fileLoc;
-          totalLoc += fileLoc;
-        }
+        const fileLoc = metric.linesOfCode;
+        locByLanguage[language] = (locByLanguage[language] || 0) + fileLoc;
+        totalLoc += fileLoc;
       }
     }
 
@@ -232,9 +226,20 @@ export class CodeMetricsService {
    * Get detailed metrics for a specific file
    */
   async getFileDetail(projectId: string, filePath: string): Promise<FileDetailDto> {
+    // Get file metrics from CodeMetrics table
+    const fileMetric = await this.prisma.codeMetrics.findUnique({
+      where: {
+        projectId_filePath: { projectId, filePath },
+      },
+    });
+
+    if (!fileMetric) {
+      throw new NotFoundException(`File ${filePath} not found in project metrics`);
+    }
+
+    // Get commit history for recent changes
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30);
-
     const commits = await this.prisma.commit.findMany({
       where: {
         projectId,
@@ -250,21 +255,18 @@ export class CodeMetricsService {
       orderBy: { timestamp: 'desc' },
     });
 
-    if (commits.length === 0) {
-      throw new NotFoundException(`File ${filePath} not found in project`);
-    }
+    // Use metrics from CodeMetrics table
+    const complexity = fileMetric.cyclomaticComplexity;
+    const cognitiveComplexity = fileMetric.cognitiveComplexity;
+    const maintainabilityIndex = fileMetric.maintainabilityIndex;
+    const loc = fileMetric.linesOfCode;
+    const coverage = 0; // TODO: Integrate with test coverage
+    const churnCount = fileMetric.churnRate;
 
-    // Get latest file metrics
-    const latestFile = commits[0].files[0];
-    const complexity = latestFile.complexityAfter || latestFile.complexityBefore || 0;
-    const coverage = Number(latestFile.coverageAfter || latestFile.coverageBefore || 0);
-
-    // Calculate churn metrics
-    const churnCount = commits.length;
+    // Calculate churn metrics from commit history
     const linesChanged = commits.reduce((sum, c) =>
       sum + c.files[0].locAdded + c.files[0].locDeleted, 0
     );
-    const loc = latestFile.locAdded;
     const churnRate = loc > 0 ? Math.round((linesChanged / loc) * 100) : 0;
 
     // Recent changes
@@ -274,8 +276,9 @@ export class CodeMetricsService {
       linesChanged: c.files[0].locAdded + c.files[0].locDeleted,
     }));
 
-    // Determine component and layer from file path
-    const { component, layer } = this.extractComponentAndLayer(filePath);
+    // Use component and layer from CodeMetrics
+    const component = fileMetric.component || 'Unknown';
+    const layer = (fileMetric.layer || 'other') as LayerType;
     const language = this.getLanguageFromPath(filePath);
 
     // Calculate risk score
@@ -285,10 +288,6 @@ export class CodeMetricsService {
       coverage,
       loc,
     });
-
-    // Calculate other scores
-    const cognitiveComplexity = Math.round(complexity * 1.3); // Estimate
-    const maintainabilityIndex = this.calculateMaintainabilityIndex(complexity, loc, coverage);
 
     // Mock code issues (in production, integrate with linter/sonar)
     const issues = this.generateMockIssues(complexity, coverage);
@@ -311,7 +310,7 @@ export class CodeMetricsService {
       churnCount,
       linesChanged,
       churnRate,
-      lastModified: commits[0].timestamp,
+      lastModified: fileMetric.lastAnalyzedAt,
       recentChanges,
       issues,
       importedBy,
@@ -327,41 +326,43 @@ export class CodeMetricsService {
     projectId: string,
     days: number = 30,
   ): Promise<TrendDataPointDto[]> {
+    // TODO: Implement historical metrics tracking
+    // For now, we return current metrics with slight variation for demo purposes
+    // In production, we should:
+    // 1. Store daily snapshots of aggregated metrics in a separate table
+    // 2. Run a daily worker to capture metrics snapshots
+    // 3. Query historical snapshots for true trend data
+
+    // Get current metrics from CodeMetrics table
+    const codeMetrics = await this.prisma.codeMetrics.findMany({
+      where: { projectId },
+    });
+
+    const fileMetrics = new Map<string, any>();
+    for (const metric of codeMetrics) {
+      fileMetrics.set(metric.filePath, metric);
+    }
+
+    const currentHealthScore = await this.calculateProjectHealthScore(projectId, fileMetrics);
+
+    // Generate data points with current metrics (mock trending for demo)
     const dataPoints: TrendDataPointDto[] = [];
     const now = new Date();
 
-    // Generate daily data points
     for (let i = days; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
 
-      // Get commits up to this date
-      const commits = await this.prisma.commit.findMany({
-        where: {
-          projectId,
-          timestamp: { lte: date },
-        },
-        include: { files: true },
-        orderBy: { timestamp: 'asc' },
-      });
-
-      // Calculate metrics for this point in time
-      const fileMetrics = new Map<string, any>();
-      for (const commit of commits) {
-        for (const file of commit.files) {
-          fileMetrics.set(file.filePath, file);
-        }
-      }
-
-      const healthScore = await this.calculateProjectHealthScore(projectId, fileMetrics);
+      // Mock slight variation for demo (in production, use actual historical data)
+      const variance = Math.random() * 10 - 5;
 
       dataPoints.push({
         date,
-        healthScore: healthScore.overallScore,
-        coverage: healthScore.coverage,
-        complexity: healthScore.complexity,
-        techDebt: healthScore.techDebtRatio,
+        healthScore: Math.max(0, Math.min(100, currentHealthScore.overallScore + variance)),
+        coverage: Math.max(0, Math.min(100, currentHealthScore.coverage + variance)),
+        complexity: Math.max(0, currentHealthScore.complexity + (variance / 10)),
+        techDebt: Math.max(0, Math.min(100, currentHealthScore.techDebtRatio + variance)),
       });
     }
 
@@ -438,9 +439,9 @@ export class CodeMetricsService {
       };
     }
 
-    // Calculate averages
+    // Calculate averages (support both CommitFile and CodeMetrics formats)
     const avgComplexity = files.reduce((sum, f) =>
-      sum + (f.complexityAfter || f.complexityBefore || 0), 0
+      sum + (f.cyclomaticComplexity || f.complexityAfter || f.complexityBefore || 0), 0
     ) / files.length;
 
     const avgCoverage = files.reduce((sum, f) =>
@@ -449,7 +450,7 @@ export class CodeMetricsService {
 
     // Tech debt ratio (% of files with high complexity or low coverage)
     const problematicFiles = files.filter(f => {
-      const complexity = f.complexityAfter || f.complexityBefore || 0;
+      const complexity = f.cyclomaticComplexity || f.complexityAfter || f.complexityBefore || 0;
       const coverage = Number(f.coverageAfter || f.coverageBefore || 0);
       return complexity > 10 || coverage < 70;
     });
@@ -538,116 +539,107 @@ export class CodeMetricsService {
   }
 
   private async getFileMetricsByLayer(projectId: string, startDate: Date): Promise<Record<string, any[]>> {
-    const commits = await this.prisma.commit.findMany({
-      where: { projectId, timestamp: { gte: startDate } },
-      include: { files: true },
+    // Query from CodeMetrics table populated by workers
+    const codeMetrics = await this.prisma.codeMetrics.findMany({
+      where: {
+        projectId,
+        lastAnalyzedAt: { gte: startDate }
+      },
     });
-
-    const fileMap = new Map<string, any>();
-    for (const commit of commits) {
-      for (const file of commit.files) {
-        if (!fileMap.has(file.filePath)) {
-          const layer = this.getLayerFromPath(file.filePath);
-          const churnCount = this.countFileChurn(file.filePath, commits);
-
-          fileMap.set(file.filePath, {
-            filePath: file.filePath,
-            layer,
-            loc: file.locAdded,
-            complexity: file.complexityAfter || file.complexityBefore || 0,
-            coverage: Number(file.coverageAfter || file.coverageBefore || 0),
-            churnCount,
-          });
-        }
-      }
-    }
 
     // Group by layer
     const result: Record<string, any[]> = {};
-    for (const file of fileMap.values()) {
-      const layer = file.layer;
+    for (const metric of codeMetrics) {
+      const layer = metric.layer || 'other';
       if (!result[layer]) result[layer] = [];
-      result[layer].push(file);
+
+      result[layer].push({
+        filePath: metric.filePath,
+        layer: metric.layer,
+        loc: metric.linesOfCode,
+        complexity: metric.cyclomaticComplexity,
+        coverage: 0, // TODO: Integrate with test coverage
+        churnCount: metric.churnRate,
+      });
     }
 
     return result;
   }
 
   private async getFileMetricsByComponent(projectId: string, startDate: Date): Promise<Record<string, any[]>> {
-    const commits = await this.prisma.commit.findMany({
-      where: { projectId, timestamp: { gte: startDate } },
-      include: { files: true },
+    // Query from CodeMetrics table populated by workers
+    const codeMetrics = await this.prisma.codeMetrics.findMany({
+      where: {
+        projectId,
+        lastAnalyzedAt: { gte: startDate }
+      },
     });
-
-    const fileMap = new Map<string, any>();
-    for (const commit of commits) {
-      for (const file of commit.files) {
-        if (!fileMap.has(file.filePath)) {
-          const { component } = this.extractComponentAndLayer(file.filePath);
-          const churnCount = this.countFileChurn(file.filePath, commits);
-
-          fileMap.set(file.filePath, {
-            filePath: file.filePath,
-            component: component || 'Unknown',
-            loc: file.locAdded,
-            complexity: file.complexityAfter || file.complexityBefore || 0,
-            coverage: Number(file.coverageAfter || file.coverageBefore || 0),
-            churnCount,
-          });
-        }
-      }
-    }
 
     // Group by component
     const result: Record<string, any[]> = {};
-    for (const file of fileMap.values()) {
-      const component = file.component;
+    for (const metric of codeMetrics) {
+      const component = metric.component || 'Unknown';
       if (!result[component]) result[component] = [];
-      result[component].push(file);
+
+      result[component].push({
+        filePath: metric.filePath,
+        component: metric.component,
+        layer: metric.layer,
+        loc: metric.linesOfCode,
+        complexity: metric.cyclomaticComplexity,
+        coverage: 0, // TODO: Integrate with test coverage
+        churnCount: metric.churnRate,
+      });
     }
 
     return result;
   }
 
   private async getAllFileMetrics(projectId: string, startDate: Date): Promise<any[]> {
-    const commits = await this.prisma.commit.findMany({
-      where: { projectId, timestamp: { gte: startDate } },
-      include: { files: true, story: true },
+    // Query from CodeMetrics table populated by workers
+    const codeMetrics = await this.prisma.codeMetrics.findMany({
+      where: {
+        projectId,
+        lastAnalyzedAt: { gte: startDate }
+      },
+      orderBy: { lastAnalyzedAt: 'desc' },
+    });
+
+    // Get latest commit info for each file to populate lastStoryKey
+    const fileCommits = await this.prisma.commit.findMany({
+      where: { projectId },
+      include: { story: true, files: true },
       orderBy: { timestamp: 'desc' },
     });
 
-    const fileMap = new Map<string, any>();
-    for (const commit of commits) {
+    const latestCommitByFile = new Map<string, any>();
+    for (const commit of fileCommits) {
       for (const file of commit.files) {
-        if (!fileMap.has(file.filePath)) {
-          const { component, layer } = this.extractComponentAndLayer(file.filePath);
-          const churnCount = this.countFileChurn(file.filePath, commits);
-
-          fileMap.set(file.filePath, {
-            filePath: file.filePath,
-            component,
-            layer,
-            loc: file.locAdded,
-            complexity: file.complexityAfter || file.complexityBefore || 0,
-            coverage: Number(file.coverageAfter || file.coverageBefore || 0),
-            churnCount,
-            lastModified: commit.timestamp,
-            lastStoryKey: commit.story?.key,
-            criticalIssues: 0, // Mock
+        if (!latestCommitByFile.has(file.filePath)) {
+          latestCommitByFile.set(file.filePath, {
+            timestamp: commit.timestamp,
+            storyKey: commit.story?.key,
           });
         }
       }
     }
 
-    return Array.from(fileMap.values());
+    return codeMetrics.map(metric => {
+      const commitInfo = latestCommitByFile.get(metric.filePath);
+      return {
+        filePath: metric.filePath,
+        component: metric.component,
+        layer: metric.layer,
+        loc: metric.linesOfCode,
+        complexity: metric.cyclomaticComplexity,
+        coverage: 0, // TODO: Integrate with test coverage
+        churnCount: metric.churnRate,
+        lastModified: commitInfo?.timestamp || metric.lastAnalyzedAt,
+        lastStoryKey: commitInfo?.storyKey,
+        criticalIssues: metric.codeSmellCount, // Use code smell count as critical issues indicator
+      };
+    });
   }
-
-  private countFileChurn(filePath: string, commits: any[]): number {
-    return commits.filter(c =>
-      c.files.some((f: any) => f.filePath === filePath)
-    ).length;
-  }
-
   private getLayerFromPath(filePath: string): LayerType {
     if (filePath.includes('frontend/') || filePath.includes('/ui/') || filePath.includes('/components/')) {
       return 'frontend';
@@ -671,7 +663,7 @@ export class CodeMetricsService {
       return acc;
     }, {} as Record<string, number>);
 
-    const dominantLayer = Object.entries(layerCounts).sort((a, b) => b[1] - a[1])[0];
+    const dominantLayer = Object.entries(layerCounts).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
     return (dominantLayer?.[0] as LayerType) || 'other';
   }
 

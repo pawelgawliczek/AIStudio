@@ -651,7 +651,7 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
   const [orderIndex, setOrderIndex] = useState(1);
   const [color, setColor] = useState('#3B82F6');
   const [icon, setIcon] = useState('');
-  const [status, setStatus] = useState<LayerStatus>('active');
+  const [status, setStatus] = useState<LayerStatus>(LayerStatus.ACTIVE);
 
   useEffect(() => {
     if (layer) {
@@ -669,7 +669,7 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
       setOrderIndex(1);
       setColor('#3B82F6');
       setIcon('');
-      setStatus('active');
+      setStatus(LayerStatus.ACTIVE);
     }
   }, [layer]);
 
@@ -872,7 +872,7 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [color, setColor] = useState('#10B981');
   const [icon, setIcon] = useState('');
-  const [status, setStatus] = useState<ComponentStatus>('active');
+  const [status, setStatus] = useState<ComponentStatus>(ComponentStatus.ACTIVE);
 
   useEffect(() => {
     if (component) {
@@ -882,7 +882,7 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
       setSelectedLayerIds(component.layers?.map(cl => cl.layer.id) || []);
       setColor(component.color || '#10B981');
       setIcon(component.icon || '');
-      setStatus(component.status || 'active');
+      setStatus(component.status || ComponentStatus.ACTIVE);
     } else {
       setName('');
       setDescription('');
@@ -890,7 +890,7 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
       setSelectedLayerIds([]);
       setColor('#10B981');
       setIcon('');
-      setStatus('active');
+      setStatus(ComponentStatus.ACTIVE);
     }
   }, [component, open]);
 

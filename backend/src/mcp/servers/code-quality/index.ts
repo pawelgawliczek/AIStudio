@@ -9,3 +9,21 @@ export {
   handler as getComponentHealthHandler,
   metadata as getComponentHealthMetadata
 } from './get_component_health';
+
+export {
+  tool as getComponentHealthV2Tool,
+  handler as getComponentHealthV2Handler,
+  metadata as getComponentHealthV2Metadata
+} from './get_component_health_v2';
+
+export {
+  tool as getFileHealthTool,
+  handler as getFileHealthHandler,
+  metadata as getFileHealthMetadata
+} from './get_file_health';
+
+export {
+  tool as getProjectHealthTool,
+  handler as getProjectHealthHandler,
+  metadata as getProjectHealthMetadata
+} from './get_project_health';

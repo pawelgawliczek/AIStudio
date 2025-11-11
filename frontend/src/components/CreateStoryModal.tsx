@@ -36,7 +36,7 @@ export function CreateStoryModal({
 }: CreateStoryModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState<StoryType>('feature');
+  const [type, setType] = useState<StoryType>(StoryType.FEATURE);
   const [epicId, setEpicId] = useState('');
   const [technicalComplexity, setTechnicalComplexity] = useState<number>(3);
   const [businessImpact, setBusinessImpact] = useState<number>(3);
@@ -133,7 +133,7 @@ export function CreateStoryModal({
     // Reset form
     setTitle('');
     setDescription('');
-    setType('feature');
+    setType(StoryType.FEATURE);
     setEpicId('');
     setTechnicalComplexity(3);
     setBusinessImpact(3);

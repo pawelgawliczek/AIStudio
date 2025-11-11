@@ -41,6 +41,7 @@ model Project {
   name        String        @unique
   description String?
   repositoryUrl String?     @map("repository_url")
+  localPath   String?       @map("local_path") // Local path to git repository for code analysis
   status      ProjectStatus @default(active)
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
@@ -58,6 +59,7 @@ model Project {
   auditLogs     AuditLog[]
   layers        Layer[]
   components    Component[]
+  codeMetrics   CodeMetrics[]
 
   @@map("projects")
 }
@@ -102,6 +104,9 @@ model Story {
   // Analysis fields (filled by agents)
   baAnalysis           String?      @map("ba_analysis")  // Rich text from BA agent
   architectAnalysis    String?      @map("architect_analysis")  // Rich text from Architect agent
+
+  // Metadata (metrics, framework info, etc.)
+  metadata             Json?        // Stores aggregated metrics, framework info, and other dynamic data
 
   createdAt            DateTime     @default(now()) @map("created_at")
   updatedAt            DateTime     @updatedAt @map("updated_at")
@@ -236,6 +241,37 @@ model StoryComponent {
 
   @@id([storyId, componentId])
   @@map("story_components")
+}
+
+// ============================================================================
+// CODE QUALITY METRICS
+// ============================================================================
+
+model CodeMetrics {
+  id                    String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  filePath              String   @map("file_path")
+  layer                 String   // Inferred layer (frontend, backend, etc.)
+  component             String   // Inferred component (auth, api, etc.)
+  linesOfCode           Int      @map("lines_of_code")
+  cyclomaticComplexity  Float    @map("cyclomatic_complexity")
+  cognitiveComplexity   Float    @map("cognitive_complexity")
+  maintainabilityIndex  Float    @map("maintainability_index") // 0-100 scale
+  churnRate             Int      @map("churn_rate") // Number of changes in last 90 days
+  codeSmellCount        Int      @map("code_smell_count")
+  lastAnalyzedAt        DateTime @map("last_analyzed_at")
+  metadata              Json?    // Stores code smells, function metrics, etc.
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, filePath], name: "projectId_filePath")
+  @@index([projectId, layer])
+  @@index([projectId, component])
+  @@index([projectId, maintainabilityIndex])
+  @@map("code_metrics")
 }
 
 // ============================================================================
@@ -388,6 +424,9 @@ model TestCase {
   status       TestCaseStatus @default(pending)
   testFilePath String?        @map("test_file_path")
   assignedToId String?        @map("assigned_to") @db.Uuid
+
+  // Metadata (coverage stats, execution history, etc.)
+  metadata     Json?          // Additional test case data
 
   // Audit
   createdById String   @map("created_by") @db.Uuid
