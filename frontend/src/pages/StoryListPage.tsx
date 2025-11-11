@@ -302,8 +302,12 @@ export function StoryListPage() {
                       {story.status}
                     </span>
                     {story.epic && (
-                      <span className="text-xs text-gray-500">
-                        {story.epic.key}
+                      <span
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                        data-testid="story-epic"
+                        title={story.epic.title}
+                      >
+                        {story.epic.key}: {story.epic.title}
                       </span>
                     )}
                   </div>
