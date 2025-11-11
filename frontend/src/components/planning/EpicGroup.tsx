@@ -10,10 +10,13 @@ interface EpicGroupProps {
   onEpicClick?: (epic: Epic) => void;
   onStoryClick: (story: Story) => void;
   onAddStory?: (epicId: string | null) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClick, onAddStory }: EpicGroupProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClick, onAddStory, isExpanded: propIsExpanded, onToggleExpand }: EpicGroupProps) {
+  // Use prop isExpanded if provided, otherwise default to true for unassigned group
+  const isExpanded = propIsExpanded !== undefined ? propIsExpanded : true;
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
 
   const stories = propStories || epic?.stories || [];
@@ -53,7 +56,7 @@ export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClic
           <div className="flex items-center gap-3 flex-1">
             {/* Expand/Collapse Button */}
             <button
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => onToggleExpand && onToggleExpand()}
               className="text-blue-600 hover:text-blue-800 transition-colors"
             >
               <svg
