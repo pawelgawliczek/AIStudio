@@ -114,6 +114,80 @@ export interface Story {
     commits: number;
     runs: number;
   };
+  layers?: Array<{
+    layer: Layer;
+  }>;
+  components?: Array<{
+    component: Component;
+  }>;
+  baAnalysis?: string;
+  architectAnalysis?: string;
+}
+
+// Layer types
+export enum LayerStatus {
+  active = 'active',
+  deprecated = 'deprecated',
+}
+
+export interface Layer {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  techStack: string[];
+  orderIndex: number;
+  color?: string;
+  icon?: string;
+  status: LayerStatus;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    storyLayers: number;
+    componentLayers: number;
+    useCases: number;
+    testCases: number;
+  };
+}
+
+// Component types
+export enum ComponentStatus {
+  active = 'active',
+  deprecated = 'deprecated',
+  planning = 'planning',
+}
+
+export interface Component {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  ownerId?: string;
+  filePatterns: string[];
+  color?: string;
+  icon?: string;
+  status: ComponentStatus;
+  createdAt: string;
+  updatedAt: string;
+  owner?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  layers?: Array<{
+    layer: {
+      id: string;
+      name: string;
+      icon?: string;
+      color?: string;
+      orderIndex: number;
+    };
+  }>;
+  _count?: {
+    storyComponents: number;
+    useCases: number;
+    testCases: number;
+  };
 }
 
 // Subtask types

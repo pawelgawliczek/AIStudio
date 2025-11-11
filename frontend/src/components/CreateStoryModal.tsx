@@ -1,7 +1,8 @@
-import { Fragment, useState } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import { Fragment, useState, useEffect } from 'react';
+import { Dialog, Transition, Tab } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { Epic, StoryType } from '../types';
+import { Epic, StoryType, Layer, Component } from '../types';
+import { API_BASE_URL } from '../config';
 
 interface CreateStoryModalProps {
   open: boolean;
@@ -13,9 +14,16 @@ interface CreateStoryModalProps {
     epicId?: string;
     technicalComplexity?: number;
     businessImpact?: number;
+    layerIds?: string[];
+    componentIds?: string[];
   }) => void;
   epics: Epic[];
+  projectId: string;
   isLoading?: boolean;
+}
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(' ');
 }
 
 export function CreateStoryModal({
@@ -23,6 +31,7 @@ export function CreateStoryModal({
   onClose,
   onSubmit,
   epics,
+  projectId,
   isLoading = false,
 }: CreateStoryModalProps) {
   const [title, setTitle] = useState('');
@@ -31,6 +40,83 @@ export function CreateStoryModal({
   const [epicId, setEpicId] = useState('');
   const [technicalComplexity, setTechnicalComplexity] = useState<number>(3);
   const [businessImpact, setBusinessImpact] = useState<number>(3);
+  const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
+  const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
+
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const [components, setComponents] = useState<Component[]>([]);
+  const [loadingLayers, setLoadingLayers] = useState(false);
+  const [loadingComponents, setLoadingComponents] = useState(false);
+
+  // Fetch layers and components when modal opens
+  useEffect(() => {
+    if (open && projectId) {
+      fetchLayers();
+      fetchComponents();
+    }
+  }, [open, projectId]);
+
+  const fetchLayers = async () => {
+    setLoadingLayers(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_BASE_URL}/layers?projectId=${projectId}&status=active`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setLayers(data.sort((a: Layer, b: Layer) => a.orderIndex - b.orderIndex));
+      }
+    } catch (error) {
+      console.error('Failed to fetch layers:', error);
+    } finally {
+      setLoadingLayers(false);
+    }
+  };
+
+  const fetchComponents = async () => {
+    setLoadingComponents(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_BASE_URL}/components?projectId=${projectId}&status=active`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setComponents(data.sort((a: Component, b: Component) => a.name.localeCompare(b.name)));
+      }
+    } catch (error) {
+      console.error('Failed to fetch components:', error);
+    } finally {
+      setLoadingComponents(false);
+    }
+  };
+
+  const toggleLayer = (layerId: string) => {
+    setSelectedLayerIds((prev) =>
+      prev.includes(layerId)
+        ? prev.filter((id) => id !== layerId)
+        : [...prev, layerId]
+    );
+  };
+
+  const toggleComponent = (componentId: string) => {
+    setSelectedComponentIds((prev) =>
+      prev.includes(componentId)
+        ? prev.filter((id) => id !== componentId)
+        : [...prev, componentId]
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +127,8 @@ export function CreateStoryModal({
       epicId: epicId || undefined,
       technicalComplexity,
       businessImpact,
+      layerIds: selectedLayerIds.length > 0 ? selectedLayerIds : undefined,
+      componentIds: selectedComponentIds.length > 0 ? selectedComponentIds : undefined,
     });
     // Reset form
     setTitle('');
@@ -49,6 +137,8 @@ export function CreateStoryModal({
     setEpicId('');
     setTechnicalComplexity(3);
     setBusinessImpact(3);
+    setSelectedLayerIds([]);
+    setSelectedComponentIds([]);
   };
 
   return (
@@ -77,7 +167,7 @@ export function CreateStoryModal({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl sm:p-6">
                 <div className="absolute right-0 top-0 pr-4 pt-4">
                   <button
                     type="button"
@@ -95,137 +185,286 @@ export function CreateStoryModal({
                       as="h3"
                       className="text-xl font-semibold leading-6 text-gray-900 mb-6"
                     >
-                      Create New Item
+                      Create New Story
                     </Dialog.Title>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                      {/* Title */}
-                      <div>
-                        <label
-                          htmlFor="title"
-                          className="block text-sm font-medium text-gray-700 mb-2"
-                        >
-                          Title <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          id="title"
-                          required
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
-                          placeholder="Enter story title..."
-                        />
-                      </div>
+                      <Tab.Group>
+                        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+                          <Tab
+                            className={({ selected }) =>
+                              classNames(
+                                'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                                selected
+                                  ? 'bg-white shadow text-blue-700'
+                                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                              )
+                            }
+                          >
+                            Details
+                          </Tab>
+                          <Tab
+                            className={({ selected }) =>
+                              classNames(
+                                'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                                selected
+                                  ? 'bg-white shadow text-blue-700'
+                                  : 'text-blue-600 hover:bg-white/[0.12] hover:text-blue-700'
+                              )
+                            }
+                          >
+                            Organization
+                          </Tab>
+                        </Tab.List>
+                        <Tab.Panels className="mt-6">
+                          {/* Details Tab */}
+                          <Tab.Panel className="space-y-6">
+                            {/* Title */}
+                            <div>
+                              <label
+                                htmlFor="title"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                              >
+                                Title <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                id="title"
+                                required
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                placeholder="Enter story title..."
+                              />
+                            </div>
 
-                      {/* Description */}
-                      <div>
-                        <label
-                          htmlFor="description"
-                          className="block text-sm font-medium text-gray-700 mb-2"
-                        >
-                          Description
-                        </label>
-                        <textarea
-                          id="description"
-                          rows={4}
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                          placeholder="Describe the story..."
-                        />
-                      </div>
+                            {/* Description */}
+                            <div>
+                              <label
+                                htmlFor="description"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                              >
+                                Description
+                              </label>
+                              <textarea
+                                id="description"
+                                rows={4}
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                placeholder="Describe the story..."
+                              />
+                            </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Type */}
-                        <div>
-                          <label
-                            htmlFor="type"
-                            className="block text-sm font-medium text-gray-700 mb-2"
-                          >
-                            Type <span className="text-red-500">*</span>
-                          </label>
-                          <select
-                            id="type"
-                            required
-                            value={type}
-                            onChange={(e) => setType(e.target.value as StoryType)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
-                          >
-                            <option value="feature">Feature</option>
-                            <option value="bug">Bug</option>
-                            <option value="tech_debt">Tech Debt</option>
-                            <option value="spike">Spike</option>
-                          </select>
-                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Type */}
+                              <div>
+                                <label
+                                  htmlFor="type"
+                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                  Type <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                  id="type"
+                                  required
+                                  value={type}
+                                  onChange={(e) => setType(e.target.value as StoryType)}
+                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                >
+                                  <option value="feature">Feature</option>
+                                  <option value="bug">Bug</option>
+                                  <option value="tech_debt">Tech Debt</option>
+                                  <option value="spike">Spike</option>
+                                </select>
+                              </div>
 
-                        {/* Epic */}
-                        <div>
-                          <label
-                            htmlFor="epic"
-                            className="block text-sm font-medium text-gray-700 mb-2"
-                          >
-                            Epic
-                          </label>
-                          <select
-                            id="epic"
-                            value={epicId}
-                            onChange={(e) => setEpicId(e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
-                          >
-                            <option value="">No Epic</option>
-                            {epics.map((epic) => (
-                              <option key={epic.id} value={epic.id}>
-                                {epic.key} - {epic.title}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                              {/* Epic */}
+                              <div>
+                                <label
+                                  htmlFor="epic"
+                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                  Epic
+                                </label>
+                                <select
+                                  id="epic"
+                                  value={epicId}
+                                  onChange={(e) => setEpicId(e.target.value)}
+                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                >
+                                  <option value="">No Epic</option>
+                                  {epics.map((epic) => (
+                                    <option key={epic.id} value={epic.id}>
+                                      {epic.key} - {epic.title}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
 
-                        {/* Technical Complexity */}
-                        <div>
-                          <label
-                            htmlFor="complexity"
-                            className="block text-sm font-medium text-gray-700 mb-2"
-                          >
-                            Technical Complexity
-                          </label>
-                          <select
-                            id="complexity"
-                            value={technicalComplexity}
-                            onChange={(e) => setTechnicalComplexity(Number(e.target.value))}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
-                          >
-                            <option value="1">1 - Simple</option>
-                            <option value="2">2 - Easy</option>
-                            <option value="3">3 - Medium</option>
-                            <option value="4">4 - Complex</option>
-                            <option value="5">5 - Very Complex</option>
-                          </select>
-                        </div>
+                              {/* Technical Complexity */}
+                              <div>
+                                <label
+                                  htmlFor="complexity"
+                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                  Technical Complexity
+                                </label>
+                                <select
+                                  id="complexity"
+                                  value={technicalComplexity}
+                                  onChange={(e) => setTechnicalComplexity(Number(e.target.value))}
+                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                >
+                                  <option value="1">1 - Simple</option>
+                                  <option value="2">2 - Easy</option>
+                                  <option value="3">3 - Medium</option>
+                                  <option value="4">4 - Complex</option>
+                                  <option value="5">5 - Very Complex</option>
+                                </select>
+                              </div>
 
-                        {/* Business Impact */}
-                        <div>
-                          <label
-                            htmlFor="impact"
-                            className="block text-sm font-medium text-gray-700 mb-2"
-                          >
-                            Business Impact
-                          </label>
-                          <select
-                            id="impact"
-                            value={businessImpact}
-                            onChange={(e) => setBusinessImpact(Number(e.target.value))}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
-                          >
-                            <option value="1">1 - Low</option>
-                            <option value="2">2 - Minor</option>
-                            <option value="3">3 - Medium</option>
-                            <option value="4">4 - High</option>
-                            <option value="5">5 - Critical</option>
-                          </select>
-                        </div>
-                      </div>
+                              {/* Business Impact */}
+                              <div>
+                                <label
+                                  htmlFor="impact"
+                                  className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                  Business Impact
+                                </label>
+                                <select
+                                  id="impact"
+                                  value={businessImpact}
+                                  onChange={(e) => setBusinessImpact(Number(e.target.value))}
+                                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                >
+                                  <option value="1">1 - Low</option>
+                                  <option value="2">2 - Minor</option>
+                                  <option value="3">3 - Medium</option>
+                                  <option value="4">4 - High</option>
+                                  <option value="5">5 - Critical</option>
+                                </select>
+                              </div>
+                            </div>
+                          </Tab.Panel>
+
+                          {/* Organization Tab */}
+                          <Tab.Panel className="space-y-6">
+                            {/* Layers Selection */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Layers (Technical Stack)
+                              </label>
+                              <p className="text-xs text-gray-500 mb-3">
+                                Select the technical layers this story spans
+                              </p>
+                              {loadingLayers ? (
+                                <div className="text-sm text-gray-500">Loading layers...</div>
+                              ) : layers.length === 0 ? (
+                                <div className="text-sm text-gray-500">
+                                  No active layers found. Please configure layers in project settings.
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-3">
+                                  {layers.map((layer) => (
+                                    <button
+                                      key={layer.id}
+                                      type="button"
+                                      onClick={() => toggleLayer(layer.id)}
+                                      className={classNames(
+                                        'flex items-center justify-between p-3 rounded-lg border-2 transition-colors',
+                                        selectedLayerIds.includes(layer.id)
+                                          ? 'border-blue-500 bg-blue-50'
+                                          : 'border-gray-200 hover:border-gray-300'
+                                      )}
+                                    >
+                                      <div className="flex items-center space-x-2">
+                                        {layer.icon && <span className="text-lg">{layer.icon}</span>}
+                                        <div className="text-left">
+                                          <div className="text-sm font-medium text-gray-900">
+                                            {layer.name}
+                                          </div>
+                                          {layer.techStack && layer.techStack.length > 0 && (
+                                            <div className="text-xs text-gray-500">
+                                              {layer.techStack.slice(0, 2).join(', ')}
+                                              {layer.techStack.length > 2 && '...'}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {selectedLayerIds.includes(layer.id) && (
+                                        <span className="text-blue-500">✓</span>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {selectedLayerIds.length > 0 && (
+                                <div className="mt-2 text-xs text-gray-600">
+                                  {selectedLayerIds.length} layer(s) selected
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Components Selection */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Components (Business Domains)
+                              </label>
+                              <p className="text-xs text-gray-500 mb-3">
+                                Select the business components this story affects
+                              </p>
+                              {loadingComponents ? (
+                                <div className="text-sm text-gray-500">Loading components...</div>
+                              ) : components.length === 0 ? (
+                                <div className="text-sm text-gray-500">
+                                  No active components found. Please configure components in project settings.
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-3">
+                                  {components.map((component) => (
+                                    <button
+                                      key={component.id}
+                                      type="button"
+                                      onClick={() => toggleComponent(component.id)}
+                                      className={classNames(
+                                        'flex items-center justify-between p-3 rounded-lg border-2 transition-colors',
+                                        selectedComponentIds.includes(component.id)
+                                          ? 'border-green-500 bg-green-50'
+                                          : 'border-gray-200 hover:border-gray-300'
+                                      )}
+                                    >
+                                      <div className="flex items-center space-x-2">
+                                        {component.icon && <span className="text-lg">{component.icon}</span>}
+                                        <div className="text-left">
+                                          <div className="text-sm font-medium text-gray-900">
+                                            {component.name}
+                                          </div>
+                                          {component.description && (
+                                            <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                                              {component.description}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {selectedComponentIds.includes(component.id) && (
+                                        <span className="text-green-500">✓</span>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {selectedComponentIds.length > 0 && (
+                                <div className="mt-2 text-xs text-gray-600">
+                                  {selectedComponentIds.length} component(s) selected
+                                </div>
+                              )}
+                            </div>
+                          </Tab.Panel>
+                        </Tab.Panels>
+                      </Tab.Group>
 
                       {/* Action Buttons */}
                       <div className="mt-6 flex justify-end gap-3">
@@ -242,7 +481,7 @@ export function CreateStoryModal({
                           className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                           disabled={isLoading}
                         >
-                          {isLoading ? 'Creating...' : 'Create Item'}
+                          {isLoading ? 'Creating...' : 'Create Story'}
                         </button>
                       </div>
                     </form>

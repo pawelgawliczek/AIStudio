@@ -7,6 +7,7 @@ import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
 import { EpicListPage } from './pages/EpicListPage';
 import { PlanningView } from './pages/PlanningView';
+import { LayersComponentsPage } from './pages/LayersComponentsPage';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
@@ -34,6 +35,7 @@ function App() {
               <Route path="projects/:projectId/stories" element={<StoryListPage />} />
               <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
               <Route path="projects/:projectId/epics" element={<EpicListPage />} />
+              <Route path="layers-components" element={<LayersComponentsPage />} />
             </Route>
           </Routes>
         </ProjectProvider>
