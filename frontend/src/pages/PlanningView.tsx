@@ -37,28 +37,38 @@ export function PlanningView() {
   // Fetch stories
   const { data: stories = [], isLoading: storiesLoading } = useQuery({
     queryKey: ['stories', projectId],
-    queryFn: () => storiesApi.getAll({ projectId }).then(res => res.data),
+    queryFn: () => storiesApi.getAll({ projectId }).then(res => {
+      // Handle paginated response: res.data = { data: [], meta: {} }
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    }),
     enabled: !!projectId,
   });
 
   // Fetch epics for filtering
   const { data: epics = [] } = useQuery({
     queryKey: ['epics', projectId],
-    queryFn: () => epicsApi.getAll(projectId).then(res => res.data),
+    queryFn: () => epicsApi.getAll(projectId).then(res => {
+      // Handle potential paginated or array response
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    }),
     enabled: !!projectId,
   });
 
   // Fetch commits for selected story
   const { data: storyCommits = [] } = useQuery({
     queryKey: ['commits', selectedStory?.id],
-    queryFn: () => selectedStory ? commitsApi.getByStory(selectedStory.id).then(res => res.data) : [],
+    queryFn: () => selectedStory ? commitsApi.getByStory(selectedStory.id).then(res => {
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    }) : [],
     enabled: !!selectedStory,
   });
 
   // Fetch runs for selected story
   const { data: storyRuns = [] } = useQuery({
     queryKey: ['runs', selectedStory?.id],
-    queryFn: () => selectedStory ? runsApi.getByStory(selectedStory.id).then(res => res.data) : [],
+    queryFn: () => selectedStory ? runsApi.getByStory(selectedStory.id).then(res => {
+      return Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    }) : [],
     enabled: !!selectedStory,
   });
 
