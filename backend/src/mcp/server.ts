@@ -51,15 +51,16 @@ const server = new Server(
 /**
  * List available tools
  *
- * Note: For progressive disclosure, agents should use search_tools instead.
- * This handler now returns only meta tools by default.
+ * Note: Returns all tools for Claude Code compatibility.
+ * Progressive disclosure is still encouraged via search_tools for token efficiency.
  */
 server.setRequestHandler(ListToolsRequestSchema, async (request) => {
   try {
-    // Return only meta tools by default to encourage progressive disclosure
-    const tools = await registry.listTools('meta');
+    // Return all tools to make them callable in Claude Code
+    // (Claude Code creates functions based on ListToolsRequest response)
+    const tools = await registry.listTools();
 
-    console.error(`📋 Listing ${tools.length} meta tools (use search_tools for all)`);
+    console.error(`📋 Listing ${tools.length} tools (all available for Claude Code)`);
 
     return { tools };
   } catch (error: any) {
