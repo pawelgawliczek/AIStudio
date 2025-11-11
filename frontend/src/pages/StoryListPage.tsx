@@ -150,34 +150,36 @@ export function StoryListPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <FunnelIcon className="h-5 w-5 text-gray-400" />
-          <span className="text-sm font-medium text-gray-700">Filters</span>
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <FunnelIcon className="h-6 w-6 text-indigo-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+          </div>
           {hasFilters && (
             <button
               data-testid="clear-filters"
               onClick={handleClearFilters}
-              className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center"
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <XMarkIcon className="h-4 w-4 mr-1" />
+              <XMarkIcon className="h-4 w-4 mr-1.5" />
               Clear all
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {/* Search */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+          <div className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Search Stories</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   data-testid="search-stories"
-                  className="w-full rounded-md border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  placeholder="Search stories..."
+                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Search by title, description..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -185,7 +187,7 @@ export function StoryListPage() {
               </div>
               <button
                 onClick={handleSearch}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium"
+                className="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Search
               </button>
@@ -193,11 +195,11 @@ export function StoryListPage() {
           </div>
 
           {/* Status filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
             <select
               data-testid="filter-status"
-              className="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StoryStatus | '')}
             >
@@ -214,11 +216,11 @@ export function StoryListPage() {
           </div>
 
           {/* Epic filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Epic</label>
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Epic</label>
             <select
               data-testid="filter-epic"
-              className="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               value={epicFilter}
               onChange={(e) => setEpicFilter(e.target.value)}
             >
@@ -230,29 +232,29 @@ export function StoryListPage() {
           </div>
 
           {/* Complexity filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Min Complexity</label>
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Min Complexity</label>
             <select
               data-testid="filter-tech-complexity"
-              className="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               value={minComplexity}
               onChange={(e) => setMinComplexity(e.target.value ? Number(e.target.value) : '')}
             >
               <option value="">Any</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
+              <option value="1">1 - Simple</option>
+              <option value="2">2 - Easy</option>
+              <option value="3">3 - Medium</option>
+              <option value="4">4 - Complex</option>
+              <option value="5">5 - Very Complex</option>
             </select>
           </div>
 
           {/* Sort */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
             <select
               data-testid="sort-by"
-              className="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               value={`${sortBy}:${sortOrder}`}
               onChange={(e) => {
                 const [field, order] = e.target.value.split(':');
