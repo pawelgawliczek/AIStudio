@@ -560,7 +560,7 @@ export class StoriesService {
       data: { priority },
       include: {
         epic: {
-          select: { id: true, name: true },
+          select: { id: true, title: true },
         },
         _count: {
           select: {
@@ -609,7 +609,7 @@ export class StoriesService {
       data: updateData,
       include: {
         epic: {
-          select: { id: true, name: true },
+          select: { id: true, title: true },
         },
         _count: {
           select: {
