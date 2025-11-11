@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
+import { EpicListPage } from './pages/EpicListPage';
 import { PlanningView } from './pages/PlanningView';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
@@ -32,6 +33,7 @@ function App() {
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
               <Route path="projects/:projectId/stories" element={<StoryListPage />} />
               <Route path="projects/:projectId/stories/:storyId" element={<StoryDetailPage />} />
+              <Route path="projects/:projectId/epics" element={<EpicListPage />} />
             </Route>
           </Routes>
         </ProjectProvider>
