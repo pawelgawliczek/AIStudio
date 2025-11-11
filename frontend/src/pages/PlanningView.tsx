@@ -6,7 +6,9 @@ import { storiesApi, epicsApi, runsApi, commitsApi } from '../services/api';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { StoryFilters } from '../components/StoryFilters';
 import { StoryDetailDrawer } from '../components/StoryDetailDrawer';
+import { CreateStoryModal } from '../components/CreateStoryModal';
 import { useWebSocket, useStoryEvents } from '../services/websocket.service';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 export function PlanningView() {
   const [searchParams] = useSearchParams();
@@ -14,6 +16,7 @@ export function PlanningView() {
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedEpic, setSelectedEpic] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<StoryStatus | 'all'>('all');
   const [selectedType, setSelectedType] = useState<StoryType | 'all'>('all');
@@ -78,6 +81,23 @@ export function PlanningView() {
       storiesApi.updateStatus(storyId, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+
+  // Create story mutation
+  const createStoryMutation = useMutation({
+    mutationFn: (data: {
+      title: string;
+      description: string;
+      type: StoryType;
+      epicId?: string;
+      technicalComplexity?: number;
+      businessImpact?: number;
+    }) =>
+      storiesApi.create({ ...data, projectId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      setCreateModalOpen(false);
     },
   });
 
@@ -170,6 +190,13 @@ export function PlanningView() {
               )}
             </p>
           </div>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Create Story
+          </button>
         </div>
       </div>
 
@@ -210,6 +237,15 @@ export function PlanningView() {
         onClose={handleDrawerClose}
         commits={storyCommits}
         runs={storyRuns}
+      />
+
+      {/* Create Story Modal */}
+      <CreateStoryModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSubmit={(data) => createStoryMutation.mutate(data)}
+        epics={epics}
+        isLoading={createStoryMutation.isPending}
       />
     </div>
   );
