@@ -36,8 +36,9 @@ export function CreateEpicModal({
     if (initialData) {
       setTitle(initialData.title);
       setDescription(initialData.description || '');
-      // Clamp priority to valid range (1-5 for UI, backend accepts 0-10)
-      setPriority(Math.min(Math.max(initialData.priority || 3, 1), 5));
+      // Clamp priority to valid range (0-10) to match backend validation
+      // This prevents validation errors while preserving the value when possible
+      setPriority(Math.min(Math.max(initialData.priority ?? 3, 0), 10));
     } else {
       // Reset form when creating new
       setTitle('');
@@ -155,11 +156,17 @@ export function CreateEpicModal({
                           onChange={(e) => setPriority(Number(e.target.value))}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
                         >
-                          <option value="1">1 - Low</option>
-                          <option value="2">2 - Minor</option>
-                          <option value="3">3 - Medium</option>
-                          <option value="4">4 - High</option>
-                          <option value="5">5 - Critical</option>
+                          <option value="0">0 - Lowest</option>
+                          <option value="1">1 - Very Low</option>
+                          <option value="2">2 - Low</option>
+                          <option value="3">3 - Below Normal</option>
+                          <option value="4">4 - Normal</option>
+                          <option value="5">5 - Above Normal</option>
+                          <option value="6">6 - Elevated</option>
+                          <option value="7">7 - High</option>
+                          <option value="8">8 - Very High</option>
+                          <option value="9">9 - Critical</option>
+                          <option value="10">10 - Highest</option>
                         </select>
                       </div>
 
