@@ -52,6 +52,9 @@ export function EpicPlanningView() {
   const [showEditEpicModal, setShowEditEpicModal] = useState(false);
   const [editingEpic, setEditingEpic] = useState<Epic | null>(null);
 
+  // Epic expansion state (persists across re-renders)
+  const [expandedEpics, setExpandedEpics] = useState<Set<string>>(new Set());
+
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeDragItem, setActiveDragItem] = useState<Story | Epic | null>(null);
@@ -86,6 +89,13 @@ export function EpicPlanningView() {
     queryFn: () => epicsApi.getPlanningOverview(projectId).then(res => res.data),
     enabled: !!projectId,
   });
+
+  // Initialize all epics as expanded when data loads
+  useEffect(() => {
+    if (planningData?.epics) {
+      setExpandedEpics(new Set(planningData.epics.map(e => e.id)));
+    }
+  }, [planningData?.epics.length]); // Only run when epic count changes
 
   // Update epic priority mutation
   const updateEpicPriorityMutation = useMutation({
@@ -382,6 +392,18 @@ export function EpicPlanningView() {
     }
   };
 
+  const toggleEpicExpansion = (epicId: string) => {
+    setExpandedEpics(prev => {
+      const next = new Set(prev);
+      if (next.has(epicId)) {
+        next.delete(epicId);
+      } else {
+        next.add(epicId);
+      }
+      return next;
+    });
+  };
+
   const updateFilter = (key: string, value: string[]) => {
     const newParams = new URLSearchParams(searchParams);
     if (value.length > 0) {
@@ -548,6 +570,8 @@ export function EpicPlanningView() {
                       onEpicClick={handleEditEpic}
                       onStoryClick={handleItemClick}
                       onAddStory={handleAddStory}
+                      isExpanded={expandedEpics.has(epic.id)}
+                      onToggleExpand={() => toggleEpicExpansion(epic.id)}
                     />
                   ))}
 
