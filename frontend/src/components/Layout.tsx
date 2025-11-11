@@ -16,31 +16,31 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-bg flex flex-col">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+      <nav className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center gap-8">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-indigo-600">AI Studio</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-accent">AI Studio</h1>
               </div>
-              <div className="flex space-x-8">
+              <div className="hidden md:flex gap-6">
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                 >
                   📊 Dashboard
                 </Link>
                 <Link
                   to="/projects"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                 >
                   📋 Projects
                 </Link>
                 <Link
                   to="/planning"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                 >
                   🎯 Planning
                 </Link>
@@ -48,19 +48,19 @@ export function Layout() {
                   <>
                     <Link
                       to={`/code-quality/${selectedProject}`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
                       🔍 Code Quality
                     </Link>
                     <Link
                       to={`/agent-performance/${selectedProject}`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
                       📈 Agent Performance
                     </Link>
                     <Link
                       to={`/test-coverage/project/${selectedProject}`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
                       🧪 Test Coverage
                     </Link>
@@ -69,12 +69,13 @@ export function Layout() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <ProjectSelector />
               <ConnectionStatus />
               <button
                 onClick={handleLogout}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                className="inline-flex items-center p-2 text-sm font-medium text-muted hover:text-fg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded-md"
+                aria-label="Logout"
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
               </button>
@@ -84,7 +85,7 @@ export function Layout() {
       </nav>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Outlet />
       </main>
     </div>
