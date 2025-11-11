@@ -47,6 +47,7 @@ Unassigned Items
 - **Status**: Multi-select (Backlog, Planning, In Progress, Done, etc.)
 - **Type**: Multi-select (Feature, Bug, Defect, Chore, Spike)
 - **Epic**: Multi-select epic names
+- **Layer/Component**: Multi-select (Frontend, Backend, Infrastructure, Test)
 - **Assignee**: Multi-select (Agent, Human, Unassigned)
 - **Priority Range**: Slider (1-10+)
 - **Search**: Full-text search across title and description
@@ -65,9 +66,14 @@ Unassigned Items
 ┌─────────────────────────────────────────┐
 │ ⋮⋮ Epic: Authentication System   [▼]  │
 │ Priority: 1 | Status: In Progress      │
-│ 5 Stories | 2 Bugs | 45% Complete      │
+│ 5 Stories | 2 Bugs | Complete: 45%     │
+│ (by story count OR by estimates if set)│
 └─────────────────────────────────────────┘
 ```
+
+**Completion Calculation:**
+- **No estimates**: Done stories / Total stories × 100%
+- **With estimates**: Sum(done story tokens) / Sum(all story tokens) × 100%
 
 #### Story/Bug Card
 ```
@@ -79,8 +85,11 @@ Unassigned Items
 └─────────────────────────────────────────┘
 ```
 
-#### Subtask Display (Indented)
+#### Subtask Display (Indented, Collapsed by Default)
 ```
+  [▶ 3 Subtasks]  ← Click to expand
+
+  When expanded:
   ├─ [Frontend] Build login form
   ├─ [Backend] Implement JWT auth
   └─ [Test] E2E login tests
@@ -92,23 +101,33 @@ Unassigned Items
 ┌────────────────────────────────────────────────────────────┐
 │ Epic Planning                                              │
 ├────────────────────────────────────────────────────────────┤
-│ [Grouped by Epics ▼] [Filter ⚙] [Sort ⬍] [+ New Epic]    │
+│ [Grouped by Epics ▼] [Filter ⚙] [Sort ⬍] [+ Epic]        │
 ├────────────────────────────────────────────────────────────┤
 │ Filters Applied: Status: Backlog, Planning | Type: All    │
 │ [Clear All]                                                │
 ├────────────────────────────────────────────────────────────┤
 │                                                            │
-│  Epic Cards (Collapsible)                                 │
-│  ├─ Story Cards (with subtasks)                           │
-│  ├─ Bug Cards (with subtasks)                             │
+│  Epic Cards (Collapsible)                      [+ Story]   │  ← Compact button
+│  ├─ Story Cards (collapsed subtasks by default)           │
+│  ├─ Bug Cards (collapsed subtasks by default)             │
 │  └─ ...                                                    │
 │                                                            │
-│  Unassigned Items                                          │
+│  Unassigned Items                              [+ Story]   │
 │  ├─ Story Cards                                            │
 │  └─ Bug Cards                                              │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
 ```
+
+### 7. Detail Modal/Popup
+
+**When clicking on any card**, open a modal/drawer with:
+- Full details (title, description, status, priority, etc.)
+- Edit capabilities (inline editing)
+- Subtask list (expanded view)
+- Activity/history
+- Comments section
+- Quick actions (Delete, Clone, Move to Epic, etc.)
 
 ## Technical Implementation
 
@@ -189,3 +208,22 @@ When an item is dropped:
 - Memoized filter/sort functions
 - Lazy loading for subtask details
 - Request deduplication with React Query
+
+## Mobile Responsiveness
+- **Desktop (1024px+)**: Full layout with side-by-side controls
+- **Tablet (768px-1023px)**: Stacked controls, full card width
+- **Mobile (< 768px)**:
+  - Hamburger menu for filters
+  - Bottom sheet for sort options
+  - Compact cards (hide non-essential info)
+  - Touch-optimized drag handles
+  - Swipe gestures for quick actions
+  - Modal detail view takes full screen
+
+## Future Enhancements (Phase 2)
+- Batch selection with checkboxes
+- Bulk operations (move, delete, update priority)
+- Export to CSV/Excel
+- Saved filter presets
+- Custom views
+- Keyboard shortcuts
