@@ -4,9 +4,9 @@ services:
   # PostgreSQL Database with pgvector extension
   postgres:
     image: pgvector/pgvector:pg15
-    container_name: aistudio-postgres
+    container_name: vibe-studio-postgres
     environment:
-      POSTGRES_DB: aistudio
+      POSTGRES_DB: vibestudio
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}
     ports:
@@ -25,7 +25,7 @@ services:
   # Redis for caching and Bull queue
   redis:
     image: redis:7-alpine
-    container_name: aistudio-redis
+    container_name: vibe-studio-redis
     ports:
       - '127.0.0.1:6380:6379'
     volumes:
@@ -44,10 +44,10 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: aistudio-backend
+    container_name: vibe-studio-backend
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/aistudio
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/vibestudio
       REDIS_URL: redis://redis:6379
       JWT_SECRET: development-secret-change-in-production
       PORT: 3000
@@ -73,7 +73,7 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    container_name: aistudio-frontend
+    container_name: vibe-studio-frontend
     environment:
       VITE_API_URL: /api
       VITE_WS_URL: /socket.io
