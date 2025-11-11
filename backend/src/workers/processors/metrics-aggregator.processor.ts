@@ -50,13 +50,13 @@ export class MetricsAggregatorProcessor {
       }
 
       // Calculate total tokens
-      const totalTokensInput = story.runs.reduce((sum, run) => sum + (run.tokensInput || 0), 0);
-      const totalTokensOutput = story.runs.reduce((sum, run) => sum + (run.tokensOutput || 0), 0);
+      const totalTokensInput = story.runs.reduce((sum: number, run: any) => sum + (run.tokensInput || 0), 0);
+      const totalTokensOutput = story.runs.reduce((sum: number, run: any) => sum + (run.tokensOutput || 0), 0);
       const totalTokens = totalTokensInput + totalTokensOutput;
 
       // Calculate total LOC from commits
       const totalLOC = story.commits.reduce(
-        (sum, commit) => sum + (commit.linesAdded || 0) + Math.abs(commit.linesDeleted || 0),
+        (sum: number, commit: any) => sum + (commit.linesAdded || 0) + Math.abs(commit.linesDeleted || 0),
         0,
       );
 
@@ -65,9 +65,9 @@ export class MetricsAggregatorProcessor {
 
       // Calculate total duration
       const durations = story.runs
-        .filter((run) => run.startedAt && run.finishedAt)
-        .map((run) => run.finishedAt!.getTime() - run.startedAt!.getTime());
-      const totalDuration = durations.reduce((sum, d) => sum + d, 0);
+        .filter((run: any) => run.startedAt && run.finishedAt)
+        .map((run: any) => run.finishedAt!.getTime() - run.startedAt!.getTime());
+      const totalDuration = durations.reduce((sum: number, d: number) => sum + d, 0);
 
       // Calculate efficiency metrics
       const tokensPerLOC = totalLOC > 0 ? totalTokens / totalLOC : 0;
