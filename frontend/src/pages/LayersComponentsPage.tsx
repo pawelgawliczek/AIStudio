@@ -442,7 +442,7 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const data = {
       projectId,
       name,
@@ -663,7 +663,7 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     const data = {
       projectId,
       name,
