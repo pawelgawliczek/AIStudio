@@ -14,6 +14,12 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0',
     strictPort: true,
+    allowedHosts: [
+      'aistudio.example.com',
+      'vibestudio.example.com',
+      'localhost',
+      '127.0.0.1',
+    ],
     hmr: {
       clientPort: 443,
       protocol: 'wss',
