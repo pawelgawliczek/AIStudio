@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { QUEUE_NAMES } from './workers.module';
+import { QUEUE_NAMES } from './constants';
 
 /**
  * Service for enqueueing background jobs

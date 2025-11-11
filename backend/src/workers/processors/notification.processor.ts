@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
-import { QUEUE_NAMES } from '../workers.module';
+import { QUEUE_NAMES } from '../constants';
 
 /**
  * NotificationProcessor

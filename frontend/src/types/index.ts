@@ -60,23 +60,24 @@ export interface Epic {
 
 // Story types
 export enum StoryStatus {
-  backlog = 'backlog',
-  planning = 'planning',
-  analysis = 'analysis',
-  architecture = 'architecture',
-  design = 'design',
-  implementation = 'implementation',
-  review = 'review',
-  qa = 'qa',
-  done = 'done',
-  blocked = 'blocked',
+  BACKLOG = 'backlog',
+  PLANNING = 'planning',
+  ANALYSIS = 'analysis',
+  ARCHITECTURE = 'architecture',
+  DESIGN = 'design',
+  IMPLEMENTATION = 'implementation',
+  REVIEW = 'review',
+  QA = 'qa',
+  DONE = 'done',
+  BLOCKED = 'blocked',
 }
 
 export enum StoryType {
-  feature = 'feature',
-  bug = 'bug',
-  tech_debt = 'tech_debt',
-  spike = 'spike',
+  FEATURE = 'feature',
+  BUG = 'bug',
+  DEFECT = 'defect',
+  CHORE = 'chore',
+  SPIKE = 'spike',
 }
 
 export interface Story {
@@ -126,8 +127,8 @@ export interface Story {
 
 // Layer types
 export enum LayerStatus {
-  active = 'active',
-  deprecated = 'deprecated',
+  ACTIVE = 'active',
+  DEPRECATED = 'deprecated',
 }
 
 export interface Layer {
@@ -152,9 +153,9 @@ export interface Layer {
 
 // Component types
 export enum ComponentStatus {
-  active = 'active',
-  deprecated = 'deprecated',
-  planning = 'planning',
+  ACTIVE = 'active',
+  DEPRECATED = 'deprecated',
+  PLANNING = 'planning',
 }
 
 export interface Component {
@@ -341,6 +342,8 @@ export interface UseCase {
   key: string;
   title: string;
   area?: string;
+  componentId?: string;
+  layerId?: string;
   createdAt: string;
   updatedAt: string;
   latestVersion?: UseCaseVersion;

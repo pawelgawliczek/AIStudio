@@ -4,6 +4,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 
+// Constants
+import { QUEUE_NAMES } from './constants';
+
 // Processors
 import { CodeAnalysisProcessor } from './processors/code-analysis.processor';
 import { EmbeddingProcessor } from './processors/embedding.processor';
@@ -13,17 +16,6 @@ import { TestAnalyzerProcessor } from './processors/test-analyzer.processor';
 
 // Services
 import { WorkersService } from './workers.service';
-
-/**
- * Queue names as constants for consistency
- */
-export const QUEUE_NAMES = {
-  CODE_ANALYSIS: 'code-analysis',
-  EMBEDDING: 'embedding',
-  METRICS_AGGREGATION: 'metrics-aggregation',
-  NOTIFICATION: 'notification',
-  TEST_ANALYSIS: 'test-analysis',
-} as const;
 
 @Module({
   imports: [

@@ -15,13 +15,15 @@ const priorityStars = (priority: number) => {
 
 const getTypeIcon = (type: StoryType) => {
   switch (type) {
-    case 'bug':
+    case StoryType.BUG:
       return '🐛';
-    case 'feature':
+    case StoryType.FEATURE:
       return '✨';
-    case 'tech_debt':
+    case StoryType.CHORE:
       return '🔧';
-    case 'spike':
+    case StoryType.DEFECT:
+      return '❌';
+    case StoryType.SPIKE:
       return '🔬';
     default:
       return '📋';
@@ -30,13 +32,15 @@ const getTypeIcon = (type: StoryType) => {
 
 const getTypeColor = (type: StoryType) => {
   switch (type) {
-    case 'bug':
+    case StoryType.BUG:
       return 'bg-red-500/10 text-red-600 border-red-500/20';
-    case 'feature':
+    case StoryType.FEATURE:
       return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-    case 'tech_debt':
+    case StoryType.CHORE:
       return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-    case 'spike':
+    case StoryType.DEFECT:
+      return 'bg-red-600/10 text-red-700 border-red-600/20';
+    case StoryType.SPIKE:
       return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
     default:
       return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
