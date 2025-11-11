@@ -66,6 +66,12 @@ export function Layout() {
                 {selectedProject && (
                   <>
                     <Link
+                      to={`/projects/${selectedProject}/epics`}
+                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                    >
+                      🟣 Epics
+                    </Link>
+                    <Link
                       to={`/code-quality/${selectedProject}`}
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
                     >
