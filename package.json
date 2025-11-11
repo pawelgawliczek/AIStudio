@@ -2,7 +2,7 @@
   "name": "aistudio",
   "version": "0.1.0",
   "private": true,
-  "description": "AI Studio MCP Control Plane - A unified platform for managing AI agentic frameworks",
+  "description": "Vibe Studio MCP Control Plane - A unified platform for managing AI agentic frameworks",
   "workspaces": [
     "backend",
     "frontend",
@@ -67,6 +67,6 @@
     "control-plane",
     "agentic-framework"
   ],
-  "author": "AI Studio Team",
+  "author": "Vibe Studio Team",
   "license": "MIT"
 }

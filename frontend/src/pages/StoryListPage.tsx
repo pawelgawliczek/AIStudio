@@ -138,48 +138,46 @@ export function StoryListPage() {
       </div>
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Stories</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-fg">Stories</h1>
         <button
           data-testid="create-story"
-          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-          onClick={() => navigate(`/planning?projectId=${projectId}`)}
+          className="inline-flex items-center px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
+          onClick={() => navigate(`/projects/${projectId}/stories/new`)}
         >
           <PlusIcon className="h-5 w-5 mr-2" />
-          Create Item
+          Create Story
         </button>
       </div>
 
       {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <FunnelIcon className="h-6 w-6 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-          </div>
+      <div className="bg-card border border-border rounded-lg shadow-md p-4 mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <FunnelIcon className="h-5 w-5 text-muted" />
+          <span className="text-sm font-medium text-fg">Filters</span>
           {hasFilters && (
             <button
               data-testid="clear-filters"
               onClick={handleClearFilters}
-              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="text-sm text-accent hover:text-accent-dark flex items-center"
             >
-              <XMarkIcon className="h-4 w-4 mr-1.5" />
+              <XMarkIcon className="h-4 w-4 mr-1" />
               Clear all
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
-          <div className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search Stories</label>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-fg mb-1">Search</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
                 <input
                   type="text"
                   data-testid="search-stories"
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Search by title, description..."
+                  className="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg pl-10 focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
+                  placeholder="Search stories..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -187,7 +185,7 @@ export function StoryListPage() {
               </div>
               <button
                 onClick={handleSearch}
-                className="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
               >
                 Search
               </button>
@@ -195,11 +193,11 @@ export function StoryListPage() {
           </div>
 
           {/* Status filter */}
-          <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <div>
+            <label className="block text-sm font-medium text-fg mb-1">Status</label>
             <select
               data-testid="filter-status"
-              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StoryStatus | '')}
             >
@@ -216,11 +214,11 @@ export function StoryListPage() {
           </div>
 
           {/* Epic filter */}
-          <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Epic</label>
+          <div>
+            <label className="block text-sm font-medium text-fg mb-1">Epic</label>
             <select
               data-testid="filter-epic"
-              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
               value={epicFilter}
               onChange={(e) => setEpicFilter(e.target.value)}
             >
@@ -232,29 +230,29 @@ export function StoryListPage() {
           </div>
 
           {/* Complexity filter */}
-          <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Min Complexity</label>
+          <div>
+            <label className="block text-sm font-medium text-fg mb-1">Min Complexity</label>
             <select
               data-testid="filter-tech-complexity"
-              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
               value={minComplexity}
               onChange={(e) => setMinComplexity(e.target.value ? Number(e.target.value) : '')}
             >
               <option value="">Any</option>
-              <option value="1">1 - Simple</option>
-              <option value="2">2 - Easy</option>
-              <option value="3">3 - Medium</option>
-              <option value="4">4 - Complex</option>
-              <option value="5">5 - Very Complex</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
             </select>
           </div>
 
           {/* Sort */}
-          <div className="col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+          <div>
+            <label className="block text-sm font-medium text-fg mb-1">Sort By</label>
             <select
               data-testid="sort-by"
-              className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              className="w-full px-4 py-2 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
               value={`${sortBy}:${sortOrder}`}
               onChange={(e) => {
                 const [field, order] = e.target.value.split(':');
@@ -275,11 +273,11 @@ export function StoryListPage() {
       {/* Story List */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
         </div>
       ) : stories.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">No stories found</p>
+          <p className="text-muted">No stories found</p>
         </div>
       ) : (
         <div className="space-y-4" data-testid="story-list">
@@ -288,12 +286,12 @@ export function StoryListPage() {
               key={story.id}
               to={`/projects/${projectId}/stories/${story.id}`}
               data-testid={`story-${story.id}`}
-              className="block bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow"
+              className="block bg-card border border-border rounded-lg shadow-md p-6 hover:shadow-lg hover:scale-[1.02] transition-all"
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-sm font-mono text-gray-500">{story.key}</span>
+                    <span className="text-sm font-mono text-muted">{story.key}</span>
                     <span
                       data-testid="story-status"
                       className={clsx(
@@ -304,22 +302,18 @@ export function StoryListPage() {
                       {story.status}
                     </span>
                     {story.epic && (
-                      <span
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
-                        data-testid="story-epic"
-                        title={story.epic.title}
-                      >
-                        {story.epic.key}: {story.epic.title}
+                      <span className="text-xs text-muted">
+                        {story.epic.key}
                       </span>
                     )}
                   </div>
-                  <h3 data-testid="story-title" className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 data-testid="story-title" className="text-lg font-medium text-fg mb-2">
                     {story.title}
                   </h3>
                   {story.description && (
-                    <p className="text-sm text-gray-600 line-clamp-2">{story.description}</p>
+                    <p className="text-sm text-muted line-clamp-2">{story.description}</p>
                   )}
-                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-4 mt-3 text-xs text-muted">
                     {story.technicalComplexity && (
                       <span>Tech: {story.technicalComplexity}/5</span>
                     )}
@@ -343,21 +337,21 @@ export function StoryListPage() {
       {/* Pagination */}
       {total > limit && (
         <div className="mt-6 flex justify-between items-center">
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-fg">
             Showing {(currentPage - 1) * limit + 1} to {Math.min(currentPage * limit, total)} of {total} results
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 border border-border rounded-md font-semibold text-fg bg-bg-secondary hover:bg-accent hover:text-accent-fg shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:hover:bg-bg-secondary disabled:hover:text-fg"
             >
               Previous
             </button>
             <button
               onClick={() => setCurrentPage(p => p + 1)}
               disabled={currentPage * limit >= total}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 border border-border rounded-md font-semibold text-fg bg-bg-secondary hover:bg-accent hover:text-accent-fg shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:hover:bg-bg-secondary disabled:hover:text-fg"
             >
               Next
             </button>
