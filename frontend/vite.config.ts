@@ -13,6 +13,12 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    allowedHosts: [
+      'vibestudio.pawelgawliczek.cloud',
+      'aistudio.pawelgawliczek.cloud',
+      'localhost',
+      '.pawelgawliczek.cloud'
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
