@@ -7,6 +7,8 @@ import { StoryListPage } from './pages/StoryListPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
 import { EpicListPage } from './pages/EpicListPage';
 import { PlanningView } from './pages/PlanningView';
+import { TimelineView } from './pages/TimelineView';
+import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
@@ -28,6 +30,8 @@ function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:projectId" element={<Navigate to="stories" replace />} />
               <Route path="planning" element={<PlanningView />} />
+              <Route path="timeline" element={<TimelineView />} />
+              <Route path="use-cases" element={<UseCaseLibraryView />} />
               <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
               <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
               <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />

@@ -40,7 +40,7 @@ export function PlanningView() {
   }, [projectId, isConnected, joinRoom, leaveRoom]);
 
   // Fetch stories
-  const { data: stories = [], isLoading: storiesLoading } = useQuery({
+  const { data: stories = [], isLoading: storiesLoading, error: storiesError } = useQuery({
     queryKey: ['stories', projectId],
     queryFn: () => storiesApi.getAll({ projectId }).then(res => {
       // Handle paginated response: res.data = { data: [], meta: {} }
@@ -152,6 +152,7 @@ export function PlanningView() {
 
   // Filter stories
   const filteredStories = useMemo(() => {
+    if (!Array.isArray(stories)) return [];
     let filtered = [...stories];
 
     if (selectedEpic !== 'all') {
@@ -217,6 +218,26 @@ export function PlanningView() {
     );
   }
 
+  if (storiesError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold text-fg mb-2">Unable to load stories</h3>
+          <p className="text-muted mb-4">
+            Error loading stories. Please check if the backend server is running.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -263,6 +284,57 @@ export function PlanningView() {
           onComponentChange={setSelectedComponent}
           onSearchChange={setSearchQuery}
         />
+
+        {/* Quick Filters */}
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Quick:</span>
+          <button
+            onClick={() => {
+              const user = JSON.parse(localStorage.getItem('user') || '{}');
+              setSearchQuery(user.name || '');
+            }}
+            className="px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors border border-blue-200"
+          >
+            👤 My Stories
+          </button>
+          <button
+            onClick={() => setSelectedStatus('blocked')}
+            className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors border border-red-200"
+          >
+            ⚠️ Blocked
+          </button>
+          <button
+            onClick={() => setSearchQuery('no-component')}
+            className="px-3 py-1 text-sm bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors border border-yellow-200"
+          >
+            🏷️ No Component
+          </button>
+          <button
+            onClick={() => {
+              // Filter to high priority (businessImpact >= 4)
+              setSearchQuery('');
+              setSelectedStatus('all');
+              setSelectedType('all');
+              setSelectedEpic('all');
+            }}
+            className="px-3 py-1 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors border border-purple-200"
+          >
+            ★★★★★ High Priority
+          </button>
+          {(selectedStatus !== 'all' || searchQuery) && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedStatus('all');
+                setSelectedType('all');
+                setSelectedEpic('all');
+              }}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900 underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Kanban Board */}
