@@ -90,7 +90,7 @@ export async function handler(prisma: PrismaClient, params: any) {
           title: true,
         },
       },
-      framework: {
+      assignedFramework: {
         select: {
           id: true,
           name: true,
@@ -106,23 +106,15 @@ export async function handler(prisma: PrismaClient, params: any) {
             },
           }
         : false,
-      useCases: includeUseCases
+      useCaseLinks: includeUseCases
         ? {
-            select: {
-              useCase: {
-                select: {
-                  id: true,
-                  key: true,
-                  title: true,
-                  area: true,
-                },
-              },
-              relation: true,
+            include: {
+              useCase: true,
             },
           }
         : false,
     },
-    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    orderBy: [{ createdAt: 'asc' }],
     take: limit,
   });
 
@@ -134,12 +126,9 @@ export async function handler(prisma: PrismaClient, params: any) {
     description: story.description,
     status: story.status,
     type: story.type,
-    priority: story.priority,
     businessComplexity: story.businessComplexity,
     technicalComplexity: story.technicalComplexity,
-    estimatedTokens: story.estimatedTokens,
-    components: story.components,
-    layers: story.layers,
+    estimatedTokenCost: story.estimatedTokenCost,
     epic: story.epic
       ? {
           id: story.epic.id,
@@ -147,10 +136,10 @@ export async function handler(prisma: PrismaClient, params: any) {
           title: story.epic.title,
         }
       : null,
-    framework: story.framework
+    assignedFramework: story.assignedFramework
       ? {
-          id: story.framework.id,
-          name: story.framework.name,
+          id: story.assignedFramework.id,
+          name: story.assignedFramework.name,
         }
       : null,
     subtasks: includeSubtasks
@@ -161,8 +150,8 @@ export async function handler(prisma: PrismaClient, params: any) {
           assigneeType: st.assigneeType,
         }))
       : undefined,
-    useCases: includeUseCases
-      ? story.useCases.map((uc) => ({
+    useCaseLinks: includeUseCases && story.useCaseLinks
+      ? story.useCaseLinks.map((uc: any) => ({
           id: uc.useCase.id,
           key: uc.useCase.key,
           title: uc.useCase.title,

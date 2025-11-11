@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Project } from '../types';
 import { projectsService } from '../services/projects.service';
+import { useAuth } from './AuthContext';
 
 interface ProjectContextType {
   projects: Project[];
@@ -16,10 +17,15 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const refreshProjects = async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -59,8 +65,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    refreshProjects();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      refreshProjects();
+    }
+  }, [authLoading, isAuthenticated]);
 
   const handleSetSelectedProject = (project: Project | null) => {
     setSelectedProject(project);
