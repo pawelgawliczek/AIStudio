@@ -64,7 +64,7 @@ export function StoryDetailPage() {
   const isAdmin = currentUser.role === 'admin';
 
   const loadStory = async () => {
-    if (!storyId) return;
+    if (!storyId || storyId === 'new') return;
     try {
       setIsLoading(true);
       const data = await storiesService.getById(storyId);
@@ -77,7 +77,7 @@ export function StoryDetailPage() {
   };
 
   const loadSubtasks = async () => {
-    if (!storyId) return;
+    if (!storyId || storyId === 'new') return;
     try {
       const data = await subtasksService.getAll({ storyId });
       setSubtasks(data);
