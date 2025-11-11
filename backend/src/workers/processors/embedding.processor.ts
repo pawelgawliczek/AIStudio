@@ -84,15 +84,22 @@ export class EmbeddingProcessor {
     this.logger.log(`Regenerating all embeddings for project ${projectId}`);
 
     try {
-      // Get all use cases for the project
+      // Get all use cases for the project with their latest version
       const useCases = await this.prisma.useCase.findMany({
         where: { projectId },
         select: {
           id: true,
-          code: true,
+          key: true,
           title: true,
-          description: true,
-          mainFlow: true,
+          area: true,
+          versions: {
+            orderBy: { version: 'desc' },
+            take: 1,
+            select: {
+              content: true,
+              summary: true,
+            },
+          },
         },
       });
 
@@ -107,7 +114,13 @@ export class EmbeddingProcessor {
 
         await Promise.all(
           batch.map(async (useCase: any) => {
-            const content = this.buildUseCaseContent(useCase);
+            const latestVersion = useCase.versions[0];
+            const content = this.buildUseCaseContent({
+              code: useCase.key,
+              title: useCase.title,
+              description: latestVersion?.summary || useCase.area || '',
+              mainFlow: latestVersion?.content || '',
+            });
             return this.generateEmbedding({
               data: { useCaseId: useCase.id, content },
             } as Job);

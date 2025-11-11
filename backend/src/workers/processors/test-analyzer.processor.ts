@@ -161,9 +161,9 @@ export class TestAnalyzerProcessor {
 
         const data = componentCoverage.get(key);
         if (data) {
-          if (testCase.type === 'unit') data.testCases.unit++;
-          else if (testCase.type === 'integration') data.testCases.integration++;
-          else if (testCase.type === 'e2e') data.testCases.e2e++;
+          if (testCase.testLevel === 'unit') data.testCases.unit++;
+          else if (testCase.testLevel === 'integration') data.testCases.integration++;
+          else if (testCase.testLevel === 'e2e') data.testCases.e2e++;
         }
       }
 
@@ -314,17 +314,28 @@ export class TestAnalyzerProcessor {
       select: { metadata: true },
     });
 
+    const existingMetadata = story?.metadata as any || {};
     await this.prisma.story.update({
       where: { id: storyId },
       data: {
         metadata: {
-          ...(story?.metadata as object),
+          ...existingMetadata,
           lastTestExecution: {
-            ...testStats,
-            coverage: coverageStats,
+            total: testStats.total,
+            passed: testStats.passed,
+            failed: testStats.failed,
+            skipped: testStats.skipped,
+            duration: testStats.duration,
+            coverage: coverageStats ? {
+              overall: coverageStats.overall,
+              statements: coverageStats.statements,
+              branches: coverageStats.branches,
+              functions: coverageStats.functions,
+              lines: coverageStats.lines,
+            } : null,
             timestamp: new Date().toISOString(),
           },
-        },
+        } as any,
       },
     });
   }

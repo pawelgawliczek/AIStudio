@@ -553,7 +553,7 @@ export class CodeAnalysisProcessor {
         metadata: {
           codeSmells: metrics.codeSmells,
           functions: metrics.complexity.functions,
-        },
+        } as any,
       },
       update: {
         layer: metrics.layer,
@@ -568,7 +568,7 @@ export class CodeAnalysisProcessor {
         metadata: {
           codeSmells: metrics.codeSmells,
           functions: metrics.complexity.functions,
-        },
+        } as any,
       },
     });
   }
