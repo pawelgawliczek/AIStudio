@@ -9,9 +9,10 @@ interface EpicGroupProps {
   stories?: Story[];
   onEpicClick?: (epic: Epic) => void;
   onStoryClick: (story: Story) => void;
+  onAddStory?: (epicId: string | null) => void;
 }
 
-export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClick }: EpicGroupProps) {
+export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClick, onAddStory }: EpicGroupProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
 
@@ -90,7 +91,10 @@ export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClic
             </div>
 
             {/* Add Story Button */}
-            <button className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 rounded transition-colors">
+            <button
+              onClick={() => onAddStory && onAddStory(epic?.id || null)}
+              className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 rounded transition-colors"
+            >
               + Story
             </button>
           </div>

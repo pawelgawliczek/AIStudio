@@ -72,16 +72,10 @@ export function Layout() {
                       🎯 Planning
                     </Link>
                     <Link
-                      to={`/projects/${selectedProject.id}/epics`}
+                      to="/epic-planning"
                       className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
                     >
-                      🟣 Epics
-                    </Link>
-                    <Link
-                      to={`/projects/${selectedProject.id}/stories`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                    >
-                      📝 Stories
+                      🎨 Epic Planning
                     </Link>
                     <Link
                       to={`/code-quality/${selectedProject.id}`}

@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon, CheckCircleIcon, ClockIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckCircleIcon, ClockIcon, CodeBracketIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { Story, StoryStatus, StoryType, Subtask } from '../types';
 import clsx from 'clsx';
 
@@ -8,6 +8,7 @@ interface StoryDetailDrawerProps {
   story: Story | null;
   open: boolean;
   onClose: () => void;
+  onEdit?: (story: Story) => void;
   commits?: any[];
   runs?: any[];
 }
@@ -25,11 +26,17 @@ const statusColors: Record<StoryStatus, string> = {
   blocked: 'bg-red-500/10 text-red-600 border border-red-500/20',
 };
 
-export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [] }: StoryDetailDrawerProps) {
+export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], runs = [] }: StoryDetailDrawerProps) {
   if (!story) return null;
 
   const subtasksCompleted = story.subtasks?.filter(st => st.status === 'done').length || 0;
   const subtasksTotal = story.subtasks?.length || 0;
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(story);
+    }
+  };
 
   return (
     <Transition.Root show={open} as={Fragment}>
@@ -66,7 +73,18 @@ export function StoryDetailDrawer({ story, open, onClose, commits = [], runs = [
                         <Dialog.Title className="text-base font-semibold leading-6 text-white">
                           {story.key}: {story.title}
                         </Dialog.Title>
-                        <div className="ml-3 flex h-7 items-center">
+                        <div className="ml-3 flex h-7 items-center gap-2">
+                          {onEdit && (
+                            <button
+                              type="button"
+                              className="rounded-md bg-accent text-accent-fg hover:text-white focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+                              onClick={handleEdit}
+                              title="Edit Story"
+                            >
+                              <span className="sr-only">Edit story</span>
+                              <PencilIcon className="h-6 w-6" aria-hidden="true" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="rounded-md bg-accent text-accent-fg hover:text-white focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
