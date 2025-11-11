@@ -44,6 +44,18 @@ export function Layout() {
                 >
                   🎯 Planning
                 </Link>
+                <Link
+                  to="/timeline"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                >
+                  📅 Timeline
+                </Link>
+                <Link
+                  to="/use-cases"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600"
+                >
+                  📖 Use Cases
+                </Link>
                 {selectedProject && (
                   <>
                     <Link

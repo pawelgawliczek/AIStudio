@@ -245,6 +245,61 @@ export interface FilterSubtaskDto {
   assigneeType?: AssigneeType;
 }
 
+// Use Case types
+export interface UseCaseVersion {
+  id: string;
+  version: number;
+  summary?: string;
+  content: string;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  linkedStoryId?: string;
+  linkedDefectId?: string;
+}
+
+export interface UseCase {
+  id: string;
+  projectId: string;
+  key: string;
+  title: string;
+  area?: string;
+  createdAt: string;
+  updatedAt: string;
+  latestVersion?: UseCaseVersion;
+  versions?: UseCaseVersion[];
+  storyLinks?: {
+    storyId: string;
+    relation: string;
+    story: {
+      id: string;
+      key: string;
+      title: string;
+      status: string;
+    };
+  }[];
+  similarity?: number;  // For semantic search results
+}
+
+export interface CreateUseCaseDto {
+  projectId: string;
+  key: string;
+  title: string;
+  area?: string;
+  content: string;
+  summary?: string;
+}
+
+export interface UpdateUseCaseDto {
+  title?: string;
+  area?: string;
+  content?: string;
+  summary?: string;
+}
+
 // Paginated response
 export interface PaginatedResponse<T> {
   data: T[];
