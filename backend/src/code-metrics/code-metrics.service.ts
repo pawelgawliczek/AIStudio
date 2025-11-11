@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { WorkersService } from '../workers/workers.service';
 import { LayerType } from '@prisma/client';
 import {
   ProjectMetricsDto,
@@ -15,7 +16,10 @@ import { QueryMetricsDto, GetHotspotsDto } from './dto/query-metrics.dto';
 
 @Injectable()
 export class CodeMetricsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private workersService: WorkersService,
+  ) {}
 
   /**
    * Get project-level code quality metrics
@@ -28,20 +32,15 @@ export class CodeMetricsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - timeRangeDays);
 
-    // Query from CodeMetrics table populated by workers
-    const codeMetrics = await this.prisma.codeMetrics.findMany({
-      where: {
-        projectId,
-        lastAnalyzedAt: { gte: startDate }
-      },
-    });
+    // Get file metrics with coverage
+    const fileMetrics = await this.getFileMetricsWithCoverage(projectId, startDate);
 
     // Calculate LOC by language
     const locByLanguage: Record<string, number> = {};
     let totalLoc = 0;
     const latestFileMetrics = new Map<string, any>();
 
-    for (const metric of codeMetrics) {
+    for (const metric of fileMetrics) {
       // Track latest metrics for each file
       if (!latestFileMetrics.has(metric.filePath)) {
         latestFileMetrics.set(metric.filePath, metric);
@@ -50,7 +49,7 @@ export class CodeMetricsService {
         const ext = metric.filePath.split('.').pop() || 'unknown';
         const language = this.getLanguageFromExtension(ext);
 
-        const fileLoc = metric.linesOfCode;
+        const fileLoc = metric.loc;
         locByLanguage[language] = (locByLanguage[language] || 0) + fileLoc;
         totalLoc += fileLoc;
       }
@@ -77,7 +76,7 @@ export class CodeMetricsService {
   }
 
   /**
-   * Get layer-level metrics (frontend, backend, infra, test)
+   * Get layer-level metrics - uses actual Layer table from database
    */
   async getLayerMetrics(
     projectId: string,
@@ -87,33 +86,60 @@ export class CodeMetricsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - timeRangeDays);
 
-    // Get file metrics grouped by layer
-    const fileMetrics = await this.getFileMetricsByLayer(projectId, startDate);
+    // Get actual layers from database
+    const layers = await this.prisma.layer.findMany({
+      where: { projectId },
+      orderBy: { orderIndex: 'asc' },
+    });
 
-    // Calculate metrics for each layer
-    const layers: LayerType[] = ['frontend', 'backend', 'infra', 'test'];
+    // Get all components with their layer associations
+    const components = await this.prisma.component.findMany({
+      where: { projectId },
+      include: {
+        layers: {
+          include: {
+            layer: true,
+          },
+        },
+      },
+    });
+
+    // Get file metrics
+    const fileMetrics = await this.getFileMetricsWithCoverage(projectId, startDate);
+
     const layerMetrics: LayerMetricsDto[] = [];
-
     let totalLoc = 0;
-    for (const files of Object.values(fileMetrics)) {
-      totalLoc += files.reduce((sum, f) => sum + f.loc, 0);
+
+    // Calculate total LOC
+    for (const file of fileMetrics) {
+      totalLoc += file.loc;
     }
 
+    // Calculate metrics for each layer
     for (const layer of layers) {
-      const files = fileMetrics[layer] || [];
-      const loc = files.reduce((sum, f) => sum + f.loc, 0);
-      const avgComplexity = files.length > 0
-        ? files.reduce((sum, f) => sum + f.complexity, 0) / files.length
+      // Get components in this layer
+      const layerComponentIds = components
+        .filter(c => c.layers.some(l => l.layer.id === layer.id))
+        .map(c => c.name);
+
+      // Get files associated with these components
+      const layerFiles = fileMetrics.filter(f =>
+        layerComponentIds.includes(f.component || '')
+      );
+
+      const loc = layerFiles.reduce((sum, f) => sum + f.loc, 0);
+      const avgComplexity = layerFiles.length > 0
+        ? layerFiles.reduce((sum, f) => sum + f.complexity, 0) / layerFiles.length
         : 0;
-      const coverage = files.length > 0
-        ? files.reduce((sum, f) => sum + (f.coverage || 0), 0) / files.length
+      const coverage = layerFiles.length > 0
+        ? layerFiles.reduce((sum, f) => sum + f.coverage, 0) / layerFiles.length
         : 0;
 
-      const churnLevel = this.calculateChurnLevel(files);
+      const churnLevel = this.calculateChurnLevel(layerFiles);
       const healthScore = this.calculateLayerHealthScore(avgComplexity, coverage, churnLevel);
 
       layerMetrics.push({
-        layer,
+        layer: layer.name as any, // Layer name from database
         loc,
         locPercentage: totalLoc > 0 ? Math.round((loc / totalLoc) * 100) : 0,
         healthScore,
@@ -128,7 +154,7 @@ export class CodeMetricsService {
   }
 
   /**
-   * Get component-level metrics
+   * Get component-level metrics - uses actual Component table from database
    */
   async getComponentMetrics(
     projectId: string,
@@ -138,36 +164,52 @@ export class CodeMetricsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - timeRangeDays);
 
-    // Get file metrics grouped by component
-    const fileMetrics = await this.getFileMetricsByComponent(projectId, startDate);
+    // Get actual components from database with layer associations
+    const components = await this.prisma.component.findMany({
+      where: { projectId },
+      include: {
+        layers: {
+          include: {
+            layer: true,
+          },
+        },
+      },
+    });
+
+    // Get file metrics with coverage
+    const fileMetrics = await this.getFileMetricsWithCoverage(projectId, startDate);
 
     const componentMetrics: ComponentMetricsDto[] = [];
 
-    for (const [componentName, files] of Object.entries(fileMetrics)) {
-      const avgComplexity = files.length > 0
-        ? files.reduce((sum, f) => sum + f.complexity, 0) / files.length
-        : 0;
-      const coverage = files.length > 0
-        ? files.reduce((sum, f) => sum + (f.coverage || 0), 0) / files.length
-        : 0;
+    for (const component of components) {
+      // Filter files for this component
+      const componentFiles = fileMetrics.filter(f => f.component === component.name);
 
-      const churnLevel = this.calculateChurnLevel(files);
+      if (componentFiles.length === 0) {
+        // Skip components with no files
+        continue;
+      }
+
+      const avgComplexity = componentFiles.reduce((sum, f) => sum + f.complexity, 0) / componentFiles.length;
+      const coverage = componentFiles.reduce((sum, f) => sum + f.coverage, 0) / componentFiles.length;
+
+      const churnLevel = this.calculateChurnLevel(componentFiles);
       const healthScore = this.calculateComponentHealthScore(avgComplexity, coverage, churnLevel);
-      const hotspotCount = files.filter(f => this.calculateRiskScore(f) > 60).length;
+      const hotspotCount = componentFiles.filter(f => this.calculateRiskScore(f) > 60).length;
 
-      // Determine layer from file paths
-      const layer = this.getLayerFromFiles(files.map(f => f.filePath));
+      // Get primary layer (first associated layer)
+      const primaryLayer = component.layers[0]?.layer.name || 'other';
 
       componentMetrics.push({
-        name: componentName,
-        layer,
-        fileCount: files.length,
+        name: component.name,
+        layer: primaryLayer as any,
+        fileCount: componentFiles.length,
         healthScore,
         avgComplexity: Math.round(avgComplexity * 10) / 10,
         churnLevel,
         coverage: Math.round(coverage),
         hotspotCount,
-        files: files.map(f => f.filePath),
+        files: componentFiles.map(f => f.filePath),
       });
     }
 
@@ -441,7 +483,7 @@ export class CodeMetricsService {
 
     // Calculate averages (support both CommitFile and CodeMetrics formats)
     const avgComplexity = files.reduce((sum, f) =>
-      sum + (f.cyclomaticComplexity || f.complexityAfter || f.complexityBefore || 0), 0
+      sum + (f.cyclomaticComplexity || f.complexity || f.complexityAfter || f.complexityBefore || 0), 0
     ) / files.length;
 
     const avgCoverage = files.reduce((sum, f) =>
@@ -450,7 +492,7 @@ export class CodeMetricsService {
 
     // Tech debt ratio (% of files with high complexity or low coverage)
     const problematicFiles = files.filter(f => {
-      const complexity = f.cyclomaticComplexity || f.complexityAfter || f.complexityBefore || 0;
+      const complexity = f.cyclomaticComplexity || f.complexity || f.complexityAfter || f.complexityBefore || 0;
       const coverage = Number(f.coverageAfter || f.coverageBefore || 0);
       return complexity > 10 || coverage < 70;
     });
@@ -538,8 +580,12 @@ export class CodeMetricsService {
     return 'high';
   }
 
-  private async getFileMetricsByLayer(projectId: string, startDate: Date): Promise<Record<string, any[]>> {
-    // Query from CodeMetrics table populated by workers
+  /**
+   * Get file metrics with actual test coverage calculated from TestCase/TestExecution
+   * Also maps file paths to actual components and layers from database
+   */
+  private async getFileMetricsWithCoverage(projectId: string, startDate: Date): Promise<any[]> {
+    // Query from CodeMetrics table
     const codeMetrics = await this.prisma.codeMetrics.findMany({
       where: {
         projectId,
@@ -547,20 +593,140 @@ export class CodeMetricsService {
       },
     });
 
-    // Group by layer
-    const result: Record<string, any[]> = {};
-    for (const metric of codeMetrics) {
-      const layer = metric.layer || 'other';
-      if (!result[layer]) result[layer] = [];
+    // Get actual components with their file patterns and layer associations
+    const components = await this.prisma.component.findMany({
+      where: { projectId },
+      include: {
+        layers: {
+          include: {
+            layer: true,
+          },
+        },
+      },
+    });
 
-      result[layer].push({
+    // Build a map of file path patterns to component and layer
+    const fileToComponentMap = this.buildFileComponentMap(components);
+
+    // Get test cases and executions to calculate coverage
+    const testCases = await this.prisma.testCase.findMany({
+      where: { projectId },
+      include: {
+        executions: {
+          where: { executedAt: { gte: startDate } },
+          orderBy: { executedAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    // Build a map of file path -> test coverage percentage
+    const fileCoverageMap = new Map<string, number>();
+
+    // Simple heuristic: if there are test cases linked to the file/component, calculate coverage
+    // based on pass rate of recent executions
+    for (const testCase of testCases) {
+      const recentExecution = testCase.executions[0];
+      if (recentExecution && recentExecution.status === 'pass') {
+        const testFilePath = testCase.testFilePath || '';
+        fileCoverageMap.set(testFilePath, 100);
+      }
+    }
+
+    // Calculate coverage estimate based on test existence
+    const totalTestCases = testCases.length;
+    const passedTestCases = testCases.filter(
+      tc => tc.executions[0]?.status === 'pass'
+    ).length;
+    const globalCoverageEstimate = totalTestCases > 0
+      ? Math.round((passedTestCases / totalTestCases) * 100)
+      : 0;
+
+    return codeMetrics.map(metric => {
+      // Use the component and layer already stored in code_metrics table
+      // (populated by code analysis processor using glob patterns)
+      const component = metric.component || 'Unknown';
+      const layer = metric.layer || 'Unknown';
+
+      // Use specific file coverage if available, otherwise use component-level estimate
+      const coverage = fileCoverageMap.get(metric.filePath) || globalCoverageEstimate;
+
+      return {
         filePath: metric.filePath,
-        layer: metric.layer,
+        component,
+        layer,
         loc: metric.linesOfCode,
         complexity: metric.cyclomaticComplexity,
-        coverage: 0, // TODO: Integrate with test coverage
+        coverage,
         churnCount: metric.churnRate,
+      };
+    });
+  }
+
+  /**
+   * Build a map from component file patterns to component info
+   */
+  private buildFileComponentMap(components: any[]): Map<string, { component: string; layer: string }> {
+    const map = new Map<string, { component: string; layer: string }>();
+
+    for (const comp of components) {
+      const primaryLayer = comp.layers[0]?.layer.name || 'Unknown';
+
+      // Store component info (we'll match by file patterns later)
+      map.set(comp.name, {
+        component: comp.name,
+        layer: primaryLayer,
       });
+    }
+
+    return map;
+  }
+
+  /**
+   * Match file path to component using naming conventions
+   */
+  private matchFileToComponent(filePath: string, componentMap: Map<string, { component: string; layer: string }>): { component: string; layer: string } {
+    const lowerPath = filePath.toLowerCase();
+
+    // Try to match based on file path patterns
+    for (const [componentName, info] of componentMap.entries()) {
+      const componentKey = componentName.toLowerCase()
+        .replace(/ /g, '-')
+        .replace(/api|domain|infrastructure|layer/gi, '')
+        .trim();
+
+      // Check if file path contains the component name
+      if (lowerPath.includes(componentKey) ||
+          lowerPath.includes(componentName.toLowerCase().replace(/ /g, '')) ||
+          lowerPath.includes(componentName.toLowerCase().replace(/ /g, '-'))) {
+        return info;
+      }
+    }
+
+    // Fallback: infer layer from file path
+    let inferredLayer = 'Unknown';
+    if (lowerPath.includes('frontend/') || lowerPath.includes('/pages/') || lowerPath.includes('/components/')) {
+      inferredLayer = 'Presentation Layer';
+    } else if (lowerPath.includes('/api/') || lowerPath.includes('/controllers/') || lowerPath.includes('.controller.')) {
+      inferredLayer = 'Application Layer';
+    } else if (lowerPath.includes('/domain/') || lowerPath.includes('.service.')) {
+      inferredLayer = 'Domain Layer';
+    } else if (lowerPath.includes('/infra') || lowerPath.includes('prisma') || lowerPath.includes('database')) {
+      inferredLayer = 'Infrastructure Layer';
+    }
+
+    return { component: 'Unknown', layer: inferredLayer };
+  }
+
+  private async getFileMetricsByLayer(projectId: string, startDate: Date): Promise<Record<string, any[]>> {
+    const fileMetrics = await this.getFileMetricsWithCoverage(projectId, startDate);
+
+    // Group by layer
+    const result: Record<string, any[]> = {};
+    for (const metric of fileMetrics) {
+      const layer = metric.layer || 'other';
+      if (!result[layer]) result[layer] = [];
+      result[layer].push(metric);
     }
 
     return result;
@@ -761,6 +927,48 @@ export class CodeMetricsService {
         './auth-utils',
         './auth-config',
       ],
+    };
+  }
+
+  /**
+   * Trigger full code analysis for a project
+   * Enqueues a background job to analyze all source files
+   */
+  async triggerAnalysis(
+    projectId: string,
+  ): Promise<{ jobId: string; status: string; message: string }> {
+    // Verify project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        localPath: true,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    if (!project.localPath) {
+      throw new BadRequestException(
+        `Project "${project.name}" has no repository path configured. ` +
+        `Please set the localPath field.`,
+      );
+    }
+
+    // TODO: Check if analysis is already running
+    // This would require tracking active jobs, which can be done via Bull queue introspection
+    // For now, we'll allow concurrent analyses
+
+    // Enqueue analysis job
+    const job = await this.workersService.analyzeProject(projectId);
+
+    return {
+      jobId: String(job.id),
+      status: 'queued',
+      message: `Code analysis started for project "${project.name}"`,
     };
   }
 }

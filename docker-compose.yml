@@ -58,6 +58,7 @@ services:
       - ./shared:/app/shared
       - /app/backend/node_modules
       - /app/shared/node_modules
+      - .:/opt/stack/AIStudio  # Mount full repository for code analysis
     depends_on:
       postgres:
         condition: service_healthy

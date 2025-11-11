@@ -68,7 +68,7 @@ export class CodeAnalysisProcessor {
       // 4. Analyze each file
       const fileMetrics = await Promise.all(
         changedFiles.map((file: string) =>
-          this.analyzeFile(project.localPath!, file, commitHash),
+          this.analyzeFile(projectId, project.localPath!, file, commitHash),
         ),
       );
 
@@ -123,7 +123,7 @@ export class CodeAnalysisProcessor {
         await job.progress((i / allFiles.length) * 100);
 
         const fileMetrics = await Promise.all(
-          batch.map((file: string) => this.analyzeFile(project.localPath!, file)),
+          batch.map((file: string) => this.analyzeFile(projectId, project.localPath!, file)),
         );
 
         for (const fileMetric of fileMetrics) {
@@ -197,6 +197,7 @@ export class CodeAnalysisProcessor {
    * Analyze a single file and calculate metrics
    */
   private async analyzeFile(
+    projectId: string,
     repoPath: string,
     filePath: string,
     commitHash?: string,
@@ -211,7 +212,7 @@ export class CodeAnalysisProcessor {
       const loc = this.calculateLOC(fileContent);
 
       // Determine layer and component from file path
-      const { layer, component } = this.inferLayerAndComponent(filePath);
+      const { layer, component } = await this.inferLayerAndComponent(projectId, filePath);
 
       // Calculate complexity metrics
       const complexity = await this.calculateComplexity(fileContent, filePath);
@@ -241,8 +242,8 @@ export class CodeAnalysisProcessor {
       // Return default metrics on error
       return {
         filePath,
-        layer: 'unknown',
-        component: 'unknown',
+        layer: 'Unknown',
+        component: 'Unknown',
         loc: 0,
         complexity: { cyclomatic: 0, cognitive: 0, maxComplexity: 0 },
         codeSmells: [],
@@ -301,47 +302,84 @@ export class CodeAnalysisProcessor {
 
   /**
    * Infer layer and component from file path
-   * Based on project structure conventions
+   * Uses database components and layers with pattern matching
    */
-  private inferLayerAndComponent(filePath: string): {
+  private async inferLayerAndComponent(projectId: string, filePath: string): Promise<{
     layer: string;
     component: string;
-  } {
-    // Determine layer
-    let layer = 'unknown';
-    if (filePath.includes('frontend/') || filePath.includes('ui/')) {
-      layer = 'frontend';
-    } else if (filePath.includes('backend/') || filePath.includes('api/') || filePath.includes('server/')) {
-      layer = 'backend';
-    } else if (filePath.includes('infrastructure/') || filePath.includes('infra/')) {
-      layer = 'infrastructure';
-    } else if (filePath.includes('test/') || filePath.includes('tests/')) {
-      layer = 'tests';
-    } else if (filePath.includes('docs/') || filePath.endsWith('.md')) {
-      layer = 'documentation';
+  }> {
+    const lowerPath = filePath.toLowerCase();
+
+    // Get components with their layers and file patterns from database
+    const components = await this.prisma.component.findMany({
+      where: { projectId },
+      include: {
+        layers: {
+          include: { layer: true },
+        },
+      },
+    });
+
+    // Try to match file path to component using file patterns or name matching
+    for (const comp of components) {
+      // Check file patterns if defined
+      if (comp.filePatterns && comp.filePatterns.length > 0) {
+        for (const pattern of comp.filePatterns) {
+          // Convert glob pattern to regex properly
+          // Handle **/ as optional directory path to match both direct and nested files
+          const regexPattern = pattern
+            .replace(/\./g, '\\.')  // Escape dots first
+            .replace(/\*\*\//g, ':::GLOBSTAR_SLASH:::')  // Placeholder for **/
+            .replace(/\*\*/g, ':::GLOBSTAR:::')  // Placeholder for ** (without slash)
+            .replace(/\*/g, '[^/]*')  // Single * matches non-slash chars
+            .replace(/:::GLOBSTAR_SLASH:::/g, '(.*\/)?')  // **/ becomes optional path with trailing slash
+            .replace(/:::GLOBSTAR:::/g, '.*');  // ** matches everything
+          const regex = new RegExp(`^${regexPattern}$`, 'i');
+          if (regex.test(filePath)) {
+            return {
+              component: comp.name,
+              layer: comp.layers[0]?.layer.name || 'Unknown',
+            };
+          }
+        }
+      }
+
+      // Fallback: match by component name in path
+      const componentKey = comp.name
+        .toLowerCase()
+        .replace(/ api$/i, '')
+        .replace(/ domain$/i, '')
+        .replace(/ infrastructure$/i, '')
+        .replace(/ /g, '-');
+
+      if (
+        lowerPath.includes(componentKey) ||
+        lowerPath.includes(comp.name.toLowerCase().replace(/ /g, '')) ||
+        lowerPath.includes(comp.name.toLowerCase().replace(/ /g, '-'))
+      ) {
+        return {
+          component: comp.name,
+          layer: comp.layers[0]?.layer.name || 'Unknown',
+        };
+      }
     }
 
-    // Determine component (directory name after layer)
-    let component = 'core';
-    if (filePath.includes('/auth/') || filePath.includes('auth.')) {
-      component = 'authentication';
-    } else if (filePath.includes('/api/')) {
-      component = 'api-gateway';
-    } else if (filePath.includes('/db/') || filePath.includes('/database/')) {
-      component = 'database';
-    } else if (filePath.includes('/mcp/')) {
-      component = 'mcp-server';
-    } else if (filePath.includes('/websocket/')) {
-      component = 'websocket';
-    } else if (filePath.includes('/stories/')) {
-      component = 'stories';
-    } else if (filePath.includes('/projects/')) {
-      component = 'projects';
-    } else if (filePath.includes('/use-cases/')) {
-      component = 'use-cases';
+    // Fallback: Infer layer from path patterns
+    let inferredLayer = 'Unknown';
+    if (lowerPath.includes('frontend/') || lowerPath.includes('/pages/') || lowerPath.includes('/components/')) {
+      inferredLayer = 'Presentation Layer';
+    } else if (lowerPath.includes('/api/') || lowerPath.includes('.controller.') || lowerPath.includes('/controllers/')) {
+      inferredLayer = 'Application Layer';
+    } else if (lowerPath.includes('/domain/') || lowerPath.includes('.service.') || lowerPath.includes('/services/')) {
+      inferredLayer = 'Domain Layer';
+    } else if (lowerPath.includes('/infrastructure/') || lowerPath.includes('/prisma/') || lowerPath.includes('/database/')) {
+      inferredLayer = 'Infrastructure Layer';
     }
 
-    return { layer, component };
+    return {
+      layer: inferredLayer,
+      component: 'Unknown',
+    };
   }
 
   /**
