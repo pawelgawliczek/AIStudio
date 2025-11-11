@@ -35,21 +35,21 @@ export function Breadcrumbs({ items = [] }: BreadcrumbsProps) {
 
   return (
     <nav className="flex" aria-label="Breadcrumb" data-testid="breadcrumbs">
-      <ol className="flex items-center space-x-2">
+      <ol className="flex items-center gap-2">
         {breadcrumbs.map((item, index) => {
           const isLast = index === breadcrumbs.length - 1;
 
           return (
             <li key={index} className="flex items-center">
               {index > 0 && (
-                <ChevronRightIcon className="h-5 w-5 flex-shrink-0 text-gray-400" aria-hidden="true" />
+                <ChevronRightIcon className="h-5 w-5 flex-shrink-0 text-muted" aria-hidden="true" />
               )}
               {item.href && !isLast ? (
                 <Link
                   to={item.href}
                   className={clsx(
-                    'text-sm font-medium hover:text-gray-700',
-                    index === 0 ? 'text-gray-500' : 'ml-2 text-gray-500'
+                    'text-sm font-medium text-muted hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded',
+                    index > 0 && 'ml-2'
                   )}
                   data-testid={item.testId}
                 >
@@ -63,7 +63,7 @@ export function Breadcrumbs({ items = [] }: BreadcrumbsProps) {
                 <span
                   className={clsx(
                     'text-sm font-medium',
-                    isLast ? 'text-gray-700' : 'text-gray-500',
+                    isLast ? 'text-fg' : 'text-muted',
                     index > 0 && 'ml-2'
                   )}
                   data-testid={item.testId}

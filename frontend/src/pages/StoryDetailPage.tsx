@@ -16,14 +16,14 @@ import {
 import clsx from 'clsx';
 
 const STATUS_COLORS: Record<string, string> = {
-  planning: 'bg-gray-100 text-gray-800',
-  analysis: 'bg-blue-100 text-blue-800',
-  architecture: 'bg-purple-100 text-purple-800',
-  design: 'bg-pink-100 text-pink-800',
-  implementation: 'bg-yellow-100 text-yellow-800',
-  review: 'bg-orange-100 text-orange-800',
-  qa: 'bg-indigo-100 text-indigo-800',
-  done: 'bg-green-100 text-green-800',
+  planning: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  analysis: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  architecture: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+  design: 'bg-pink-500/10 text-pink-600 border-pink-500/20',
+  implementation: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+  review: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  qa: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+  done: 'bg-green-500/10 text-green-600 border-green-500/20',
 };
 
 const STATUS_TRANSITIONS: Record<string, StoryStatus[]> = {
@@ -173,7 +173,7 @@ export function StoryDetailPage() {
   if (isLoading || !story) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
       </div>
     );
   }
@@ -209,27 +209,27 @@ export function StoryDetailPage() {
       </div>
 
       {/* Story Header */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-sm font-mono text-gray-500">{story.key}</span>
+              <span className="text-sm font-mono text-muted">{story.key}</span>
               <span
                 data-testid="current-status"
                 className={clsx(
-                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                  'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border',
                   STATUS_COLORS[story.status]
                 )}
               >
                 {story.status}
               </span>
               {story.epic && (
-                <span className="text-xs text-gray-500">{story.epic.key}</span>
+                <span className="text-xs text-muted">{story.epic.key}</span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{story.title}</h1>
+            <h1 className="text-2xl font-bold text-fg mb-2">{story.title}</h1>
             {story.description && (
-              <p className="text-gray-600">{story.description}</p>
+              <p className="text-muted">{story.description}</p>
             )}
           </div>
         </div>
@@ -258,7 +258,7 @@ export function StoryDetailPage() {
               key={nextStatus}
               data-testid={`move-to-${nextStatus}`}
               onClick={() => handleStatusTransition(nextStatus)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
+              className="px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm"
             >
               Move to {nextStatus}
             </button>
@@ -268,7 +268,7 @@ export function StoryDetailPage() {
             <button
               data-testid="override-status"
               onClick={() => setShowOverride(!showOverride)}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+              className="px-4 py-2 rounded-md font-semibold bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm"
             >
               Admin Override
             </button>
@@ -278,7 +278,7 @@ export function StoryDetailPage() {
         {/* Override Form */}
         {showOverride && isAdmin && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-fg mb-2">
               Override Status
             </label>
             <div className="flex gap-2">
@@ -286,7 +286,7 @@ export function StoryDetailPage() {
                 data-testid="status-select"
                 value={overrideStatus}
                 onChange={(e) => setOverrideStatus(e.target.value as StoryStatus)}
-                className="flex-1 rounded-md border-gray-300 focus:border-red-500 focus:ring-red-500"
+                className="flex-1 px-4 py-3 bg-bg-secondary border border-border rounded-lg text-fg focus:border-red-500 focus:ring-2 focus:ring-red-500 transition-colors"
               >
                 <option value="planning">Planning</option>
                 <option value="analysis">Analysis</option>
@@ -300,7 +300,7 @@ export function StoryDetailPage() {
               <button
                 data-testid="confirm-override"
                 onClick={handleOverrideStatus}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="px-4 py-2 rounded-md font-semibold bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
               >
                 Confirm
               </button>
@@ -309,32 +309,32 @@ export function StoryDetailPage() {
         )}
 
         {/* Story Details */}
-        <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
           <div>
-            <span className="text-sm text-gray-500">Technical Complexity</span>
-            <p className="text-lg font-medium">{story.technicalComplexity || 'Not set'}</p>
+            <span className="text-sm text-muted">Technical Complexity</span>
+            <p className="text-lg font-medium text-fg">{story.technicalComplexity || 'Not set'}</p>
           </div>
           <div>
-            <span className="text-sm text-gray-500">Business Impact</span>
-            <p className="text-lg font-medium">{story.businessImpact || 'Not set'}</p>
+            <span className="text-sm text-muted">Business Impact</span>
+            <p className="text-lg font-medium text-fg">{story.businessImpact || 'Not set'}</p>
           </div>
           <div>
-            <span className="text-sm text-gray-500">Business Complexity</span>
-            <p className="text-lg font-medium">{story.businessComplexity || 'Not set'}</p>
+            <span className="text-sm text-muted">Business Complexity</span>
+            <p className="text-lg font-medium text-fg">{story.businessComplexity || 'Not set'}</p>
           </div>
         </div>
       </div>
 
       {/* Subtasks Section */}
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-card border border-border rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Subtasks</h2>
+          <h2 className="text-xl font-bold text-fg">Subtasks</h2>
           <div className="flex gap-2">
             <select
               data-testid="filter-layer"
               value={layerFilter}
               onChange={(e) => setLayerFilter(e.target.value as SubtaskLayer | '')}
-              className="rounded-md border-gray-300 text-sm"
+              className="px-4 py-3 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors text-sm"
             >
               <option value="">All layers</option>
               <option value="frontend">Frontend</option>
@@ -346,7 +346,7 @@ export function StoryDetailPage() {
             <button
               data-testid="add-subtask"
               onClick={() => setShowAddSubtask(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium inline-flex items-center"
+              className="px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm inline-flex items-center"
             >
               <PlusIcon className="h-4 w-4 mr-1" />
               Add Subtask
@@ -356,21 +356,21 @@ export function StoryDetailPage() {
 
         {/* Add Subtask Form */}
         {showAddSubtask && (
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-4 mb-4">
+          <div className="bg-bg-secondary border border-border rounded-md p-4 mb-4">
             <input
               data-testid="subtask-title"
               type="text"
               placeholder="Subtask title"
               value={newSubtask.title}
               onChange={(e) => setNewSubtask({ ...newSubtask, title: e.target.value })}
-              className="w-full rounded-md border-gray-300 mb-2"
+              className="w-full px-4 py-3 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors mb-2"
             />
             <textarea
               data-testid="subtask-description"
               placeholder="Description"
               value={newSubtask.description}
               onChange={(e) => setNewSubtask({ ...newSubtask, description: e.target.value })}
-              className="w-full rounded-md border-gray-300 mb-2"
+              className="w-full px-4 py-3 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors mb-2"
               rows={2}
             />
             <div className="flex gap-2 mb-2">
@@ -378,7 +378,7 @@ export function StoryDetailPage() {
                 data-testid="subtask-layer"
                 value={newSubtask.layer || ''}
                 onChange={(e) => setNewSubtask({ ...newSubtask, layer: e.target.value as SubtaskLayer | undefined })}
-                className="flex-1 rounded-md border-gray-300"
+                className="flex-1 px-4 py-3 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
               >
                 <option value="">Select layer</option>
                 <option value="frontend">Frontend</option>
@@ -393,14 +393,14 @@ export function StoryDetailPage() {
                 placeholder="Component"
                 value={newSubtask.component}
                 onChange={(e) => setNewSubtask({ ...newSubtask, component: e.target.value })}
-                className="flex-1 rounded-md border-gray-300"
+                className="flex-1 px-4 py-3 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
               />
             </div>
             <div className="flex gap-2">
               <button
                 data-testid="save-subtask"
                 onClick={handleCreateSubtask}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+                className="px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm"
               >
                 Save
               </button>
@@ -409,7 +409,7 @@ export function StoryDetailPage() {
                   setShowAddSubtask(false);
                   setNewSubtask({ storyId: storyId!, title: '', description: '', layer: undefined, component: '' });
                 }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+                className="px-4 py-2 rounded-md font-semibold bg-bg-secondary text-fg hover:bg-muted shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm"
               >
                 Cancel
               </button>
@@ -421,7 +421,7 @@ export function StoryDetailPage() {
         <div className="space-y-6">
           {(['todo', 'in_progress', 'review', 'done'] as SubtaskStatus[]).map(status => (
             <div key={status} data-testid={`status-group-${status}`}>
-              <h3 className="text-sm font-medium text-gray-700 mb-2 capitalize">
+              <h3 className="text-sm font-medium text-fg mb-2 capitalize">
                 {status.replace('_', ' ')} ({groupedSubtasks[status].length})
               </h3>
               <div className="space-y-2">
@@ -429,15 +429,15 @@ export function StoryDetailPage() {
                   <div
                     key={subtask.id}
                     data-testid={`subtask-${subtask.id}`}
-                    className="bg-white border border-gray-200 rounded-md p-4"
+                    className="bg-card border border-border rounded-md p-4"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{subtask.title}</h4>
+                        <h4 className="font-medium text-fg">{subtask.title}</h4>
                         {subtask.description && (
-                          <p className="text-sm text-gray-600 mt-1">{subtask.description}</p>
+                          <p className="text-sm text-muted mt-1">{subtask.description}</p>
                         )}
-                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                        <div className="flex gap-4 mt-2 text-xs text-muted">
                           {subtask.layer && <span>Layer: {subtask.layer}</span>}
                           {subtask.component && <span>Component: {subtask.component}</span>}
                         </div>
@@ -447,7 +447,7 @@ export function StoryDetailPage() {
                           data-testid="status-dropdown"
                           value={subtask.status}
                           onChange={(e) => handleUpdateSubtask(subtask.id, { status: e.target.value as SubtaskStatus })}
-                          className="text-xs rounded border-gray-300"
+                          className="text-xs px-4 py-3 bg-bg-secondary border border-border rounded-lg text-fg focus:border-accent focus:ring-2 focus:ring-ring transition-colors"
                         >
                           <option value="todo">Todo</option>
                           <option value="in_progress">In Progress</option>
@@ -456,7 +456,7 @@ export function StoryDetailPage() {
                         </select>
                         <button
                           data-testid={`edit-subtask-${subtask.id}`}
-                          className="text-indigo-600 hover:text-indigo-700"
+                          className="text-accent hover:text-accent-dark"
                         >
                           <PencilIcon className="h-4 w-4" />
                         </button>
@@ -472,7 +472,7 @@ export function StoryDetailPage() {
                   </div>
                 ))}
                 {groupedSubtasks[status].length === 0 && (
-                  <p className="text-sm text-gray-400 italic">No subtasks</p>
+                  <p className="text-sm text-muted italic">No subtasks</p>
                 )}
               </div>
             </div>
