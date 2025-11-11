@@ -205,6 +205,64 @@ const health = await mcp.call('get_project_health', {
 - UseCase query updated to use `versions.content`
 - Added type casting for JSON metadata fields
 
+### Latest Updates (2025-11-11)
+
+#### CodeMetricsService Updated ✅
+**Problem**: Dashboard showed no metrics because CodeMetricsService was querying wrong tables.
+- **Before**: Queried `Commit` and `CommitFile` tables
+- **After**: Queries `CodeMetrics` table populated by workers
+
+**Files Updated**:
+- `backend/src/code-metrics/code-metrics.service.ts`:
+  - `getProjectMetrics()` - Now queries CodeMetrics for LOC and health scores
+  - `getFileMetricsByLayer()` - Groups metrics by layer from CodeMetrics
+  - `getFileMetricsByComponent()` - Groups metrics by component from CodeMetrics
+  - `getAllFileMetrics()` - Returns file metrics from CodeMetrics
+  - `getFileDetail()` - Gets detailed metrics from CodeMetrics
+  - `getTrendData()` - Uses CodeMetrics with mock historical trending (TODO: implement snapshots)
+  - `calculateProjectHealthScore()` - Updated to support both formats
+  - Removed unused `countFileChurn()` method
+
+**Impact**: Code Quality Dashboard now displays:
+- Project-level health scores
+- Layer metrics (frontend/backend/infra/test)
+- Component metrics with drill-down
+- File hotspots by risk score
+- Trend data (mock for MVP)
+
+#### Data Model Clarification ✅
+**Two Separate Systems Working Together**:
+
+1. **Commit/CommitFile Tables** (Traceability)
+   - Purpose: Track story-to-commit relationships
+   - Data: commit hash, author, timestamp, files changed, LOC added/deleted
+   - Use case: "Which commits belong to Story X?"
+   - Queried by: CommitsService, CommitsController
+
+2. **CodeMetrics Table** (Quality Analysis)
+   - Purpose: Store code quality metrics from background workers
+   - Data: complexity, maintainability, code smells, layer/component
+   - Use case: "What's the code quality of Component X?"
+   - Populated by: CodeAnalysisWorker
+   - Queried by: CodeMetricsService, MCP tools
+
+**Integration Flow**:
+```
+1. User links commit to story (CommitsService)
+   ↓
+2. Create Commit record (traceability)
+   ↓
+3. Trigger CodeAnalysisWorker
+   ↓
+4. Worker analyzes code quality
+   ↓
+5. Store results in CodeMetrics table
+   ↓
+6. Dashboard queries CodeMetrics for display
+```
+
+**Both tables are needed**: Commit for traceability, CodeMetrics for quality analysis.
+
 ---
 
 ## Next Steps
