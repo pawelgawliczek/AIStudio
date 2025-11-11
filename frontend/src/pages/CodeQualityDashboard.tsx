@@ -93,7 +93,7 @@ const CodeQualityDashboard: React.FC = () => {
   const fetchMetrics = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const [projectRes, layersRes, componentsRes, hotspotsRes, issuesRes] = await Promise.all([
