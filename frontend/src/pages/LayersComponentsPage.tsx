@@ -25,7 +25,7 @@ export function LayersComponentsPage() {
   const { data: layers = [], isLoading: layersLoading } = useQuery({
     queryKey: ['layers', projectId],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE_URL}/layers?projectId=${projectId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -39,7 +39,7 @@ export function LayersComponentsPage() {
   const { data: components = [], isLoading: componentsLoading } = useQuery({
     queryKey: ['components', projectId],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE_URL}/components?projectId=${projectId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -52,7 +52,7 @@ export function LayersComponentsPage() {
   // Delete layer mutation
   const deleteLayerMutation = useMutation({
     mutationFn: async (layerId: string) => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE_URL}/layers/${layerId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -71,7 +71,7 @@ export function LayersComponentsPage() {
   // Delete component mutation
   const deleteComponentMutation = useMutation({
     mutationFn: async (componentId: string) => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const response = await fetch(`${API_BASE_URL}/components/${componentId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
