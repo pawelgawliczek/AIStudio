@@ -89,4 +89,16 @@ export const subtasksApi = {
     api.get<Subtask[]>('/subtasks', { params: { storyId } }),
 };
 
+// Layers API
+export const layersApi = {
+  getAll: (projectId: string) =>
+    api.get('/layers', { params: { projectId } }),
+};
+
+// Components API
+export const componentsApi = {
+  getAll: (projectId: string) =>
+    api.get('/components', { params: { projectId } }),
+};
+
 export default api;
