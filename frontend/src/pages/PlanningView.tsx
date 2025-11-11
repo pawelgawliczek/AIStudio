@@ -93,6 +93,8 @@ export function PlanningView() {
       epicId?: string;
       technicalComplexity?: number;
       businessImpact?: number;
+      layerIds?: string[];
+      componentIds?: string[];
     }) =>
       storiesApi.create({ ...data, projectId }),
     onSuccess: () => {
@@ -245,6 +247,7 @@ export function PlanningView() {
         onClose={() => setCreateModalOpen(false)}
         onSubmit={(data) => createStoryMutation.mutate(data)}
         epics={epics}
+        projectId={projectId}
         isLoading={createStoryMutation.isPending}
       />
     </div>
