@@ -88,6 +88,24 @@ export function Layout() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Outlet />
       </main>
+
+      {/* Footer */}
+      <footer className="bg-card border-t border-border mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p className="text-center text-sm text-muted">
+            Created by{' '}
+            <a
+              href="https://example.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent hover:text-accent-dark transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+            >
+              Paweł Gawliczek
+            </a>
+            {' '}@2025
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
