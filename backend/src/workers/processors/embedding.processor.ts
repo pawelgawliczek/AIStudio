@@ -106,7 +106,7 @@ export class EmbeddingProcessor {
         const batch = useCases.slice(i, i + batchSize);
 
         await Promise.all(
-          batch.map(async (useCase) => {
+          batch.map(async (useCase: any) => {
             const content = this.buildUseCaseContent(useCase);
             return this.generateEmbedding({
               data: { useCaseId: useCase.id, content },

@@ -174,7 +174,8 @@ export class NotificationProcessor {
       throw new Error(`Project ${projectId} not found`);
     }
 
-    this.logger.warn(`Quality alert for ${project.name}: ${message}`);
+    this.logger.warn(`[${severity.toUpperCase()}] Quality alert for ${project.name}: ${message}`);
+    this.logger.debug('Alert details:', details);
 
     // TODO: Get actual project members with architect/admin roles
     // For now, just log the alert
@@ -203,7 +204,8 @@ export class NotificationProcessor {
       throw new Error(`Story ${storyId} not found`);
     }
 
-    this.logger.warn(`Test failures in ${story.storyKey}: ${story.title}`);
+    const failureCount = testResults?.failed || 0;
+    this.logger.warn(`Test failures in ${story.storyKey}: ${story.title} (${failureCount} failed)`);
 
     // TODO: Notify story assignees
     return { success: true };

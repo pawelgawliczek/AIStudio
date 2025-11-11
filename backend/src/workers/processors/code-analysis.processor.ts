@@ -57,6 +57,7 @@ export class CodeAnalysisProcessor {
         project.localPath,
         commitHash,
       );
+      this.logger.debug(`Analyzing commit by ${commitDetails.author}: ${commitDetails.message}`);
 
       // 3. Get list of changed files
       const changedFiles = await this.getChangedFiles(
@@ -66,7 +67,7 @@ export class CodeAnalysisProcessor {
 
       // 4. Analyze each file
       const fileMetrics = await Promise.all(
-        changedFiles.map((file) =>
+        changedFiles.map((file: string) =>
           this.analyzeFile(project.localPath!, file, commitHash),
         ),
       );
@@ -122,7 +123,7 @@ export class CodeAnalysisProcessor {
         await job.progress((i / allFiles.length) * 100);
 
         const fileMetrics = await Promise.all(
-          batch.map((file) => this.analyzeFile(project.localPath!, file)),
+          batch.map((file: string) => this.analyzeFile(project.localPath!, file)),
         );
 
         for (const fileMetric of fileMetrics) {
@@ -306,8 +307,6 @@ export class CodeAnalysisProcessor {
     layer: string;
     component: string;
   } {
-    const parts = filePath.split('/');
-
     // Determine layer
     let layer = 'unknown';
     if (filePath.includes('frontend/') || filePath.includes('ui/')) {
@@ -351,7 +350,7 @@ export class CodeAnalysisProcessor {
    */
   private async calculateComplexity(
     content: string,
-    filePath: string,
+    _filePath: string,
   ): Promise<ComplexityMetrics> {
     // Simplified cyclomatic complexity calculation
     // Count decision points: if, else, for, while, case, catch, &&, ||, ?
@@ -427,13 +426,13 @@ export class CodeAnalysisProcessor {
    */
   private async detectCodeSmells(
     content: string,
-    filePath: string,
+    _filePath: string,
   ): Promise<CodeSmell[]> {
     const smells: CodeSmell[] = [];
 
     // Check for long functions (>50 LOC)
     const functions = this.extractFunctions(content);
-    functions.forEach((func) => {
+    functions.forEach((func: FunctionMetric) => {
       if (func.loc > 50) {
         smells.push({
           type: 'long-function',
@@ -445,7 +444,7 @@ export class CodeAnalysisProcessor {
     });
 
     // Check for high complexity
-    functions.forEach((func) => {
+    functions.forEach((func: FunctionMetric) => {
       if (func.complexity > 10) {
         smells.push({
           type: 'high-complexity',
@@ -529,7 +528,7 @@ export class CodeAnalysisProcessor {
   private async saveFileMetrics(
     projectId: string,
     metrics: FileMetrics,
-    storyId?: string,
+    _storyId?: string,
   ) {
     // Store in code_metrics table (or create new table structure)
     await this.prisma.codeMetrics.upsert({

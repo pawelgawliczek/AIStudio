@@ -338,7 +338,9 @@ export class TestAnalyzerProcessor {
     coverageStats: CoverageStats | null,
   ) {
     // Store aggregate test metrics for project
-    this.logger.debug(`Updated test metrics for project ${projectId}`);
+    const summary = `Tests: ${testStats.passed}/${testStats.total} passed`;
+    const coverage = coverageStats ? `, Coverage: ${coverageStats.overall}%` : '';
+    this.logger.debug(`Updated test metrics for project ${projectId} - ${summary}${coverage}`);
   }
 }
 
