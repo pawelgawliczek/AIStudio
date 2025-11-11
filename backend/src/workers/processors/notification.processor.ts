@@ -2,7 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
-import { WebSocketGateway } from '../../websocket/websocket.gateway';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 import { QUEUE_NAMES } from '../workers.module';
 
 /**
@@ -20,7 +20,7 @@ export class NotificationProcessor {
 
   constructor(
     private prisma: PrismaService,
-    private websocketGateway: WebSocketGateway,
+    private websocketGateway: AppWebSocketGateway,
   ) {}
 
   /**
@@ -136,7 +136,7 @@ export class NotificationProcessor {
 
     const story = await this.prisma.story.findUnique({
       where: { id: storyId },
-      select: { title: true, storyKey: true },
+      select: { title: true, key: true },
     });
 
     if (!story) {
@@ -145,8 +145,8 @@ export class NotificationProcessor {
 
     await this.sendWebSocketNotification(
       [assignedTo],
-      `New story assigned: ${story.storyKey} - ${story.title}`,
-      { storyId, storyKey: story.storyKey },
+      `New story assigned: ${story.key} - ${story.title}`,
+      { storyId, storyKey: story.key },
     );
 
     return { success: true };
@@ -196,7 +196,7 @@ export class NotificationProcessor {
       where: { id: storyId },
       select: {
         title: true,
-        storyKey: true,
+        key: true,
       },
     });
 
@@ -205,7 +205,7 @@ export class NotificationProcessor {
     }
 
     const failureCount = testResults?.failed || 0;
-    this.logger.warn(`Test failures in ${story.storyKey}: ${story.title} (${failureCount} failed)`);
+    this.logger.warn(`Test failures in ${story.key}: ${story.title} (${failureCount} failed)`);
 
     // TODO: Notify story assignees
     return { success: true };
