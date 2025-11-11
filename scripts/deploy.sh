@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# AI Studio Deployment Script
+# Vibe Studio Deployment Script
 # Version: 1.0
-# Last Updated: 2025-11-10
+# Last Updated: 2025-11-11
 #
-# This script automates the deployment process for AI Studio on a remote host.
+# This script automates the deployment process for Vibe Studio on a remote host.
 # It handles environment setup, Docker builds, and service startup.
 
 set -e  # Exit on error
@@ -43,7 +43,7 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-info "AI Studio Deployment Script"
+info "Vibe Studio Deployment Script"
 info "Project directory: $PROJECT_DIR"
 echo ""
 
@@ -58,11 +58,11 @@ fi
 success "Docker is installed: $(docker --version)"
 
 # Check Docker Compose
-if ! command -v docker-compose &> /dev/null; then
+if ! docker compose version &> /dev/null; then
     error "Docker Compose is not installed. Please install Docker Compose first."
     exit 1
 fi
-success "Docker Compose is installed: $(docker-compose --version)"
+success "Docker Compose is installed: $(docker compose version)"
 
 # Check Node.js
 if ! command -v node &> /dev/null; then
@@ -140,8 +140,8 @@ echo ""
 # Step 5: Stop existing containers
 info "Step 5/8: Stopping existing containers (if any)..."
 
-if docker-compose -f docker-compose.prod.yml ps -q 2>/dev/null | grep -q .; then
-    docker-compose -f docker-compose.prod.yml down
+if docker compose -f docker-compose.prod.yml ps -q 2>/dev/null | grep -q .; then
+    docker compose -f docker-compose.prod.yml down
     success "Existing containers stopped"
 else
     info "No existing containers found"
@@ -153,7 +153,7 @@ echo ""
 info "Step 6/8: Building and starting Docker containers..."
 info "This may take several minutes..."
 
-docker-compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build
 
 success "Docker containers started"
 
@@ -168,7 +168,7 @@ INTERVAL=5
 
 while [ $ELAPSED -lt $MAX_WAIT ]; do
     # Check if postgres is healthy
-    if docker-compose -f docker-compose.prod.yml ps postgres | grep -q "healthy"; then
+    if docker compose -f docker-compose.prod.yml ps postgres | grep -q "healthy"; then
         success "PostgreSQL is healthy"
         break
     fi
@@ -180,7 +180,7 @@ done
 
 if [ $ELAPSED -ge $MAX_WAIT ]; then
     error "PostgreSQL did not become healthy in time"
-    error "Check logs: docker-compose -f docker-compose.prod.yml logs postgres"
+    error "Check logs: docker compose -f docker-compose.prod.yml logs postgres"
     exit 1
 fi
 
@@ -200,11 +200,11 @@ echo ""
 # Step 8: Show deployment status
 info "Step 8/8: Checking deployment status..."
 
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 echo ""
 success "========================================"
-success "AI Studio deployed successfully!"
+success "Vibe Studio deployed successfully!"
 success "========================================"
 echo ""
 
@@ -219,14 +219,14 @@ info "Next steps:"
 info "  1. Test the frontend: curl http://localhost/"
 info "  2. Test the API: curl http://localhost:3000/health"
 info "  3. Configure Claude Code MCP server (see DEPLOYMENT_GUIDE.md)"
-info "  4. View logs: docker-compose -f docker-compose.prod.yml logs -f"
+info "  4. View logs: docker compose -f docker-compose.prod.yml logs -f"
 echo ""
 
 info "Useful commands:"
-info "  - View logs: docker-compose -f docker-compose.prod.yml logs -f"
-info "  - Stop services: docker-compose -f docker-compose.prod.yml down"
-info "  - Restart services: docker-compose -f docker-compose.prod.yml restart"
-info "  - Access database: docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d aistudio"
+info "  - View logs: docker compose -f docker-compose.prod.yml logs -f"
+info "  - Stop services: docker compose -f docker-compose.prod.yml down"
+info "  - Restart services: docker compose -f docker-compose.prod.yml restart"
+info "  - Access database: docker compose -f docker-compose.prod.yml exec postgres psql -U postgres -d vibestudio"
 echo ""
 
 info "For detailed instructions, see: DEPLOYMENT_GUIDE.md"
