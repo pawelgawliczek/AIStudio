@@ -160,11 +160,55 @@ docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d aist
 
 ---
 
+## Code Quality Analysis
+
+### Trigger Full Project Scan
+
+```bash
+# Via API
+curl -X POST http://localhost:3001/api/code-metrics/project/YOUR_PROJECT_ID/analyze \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
+
+# Returns:
+# {"jobId":"1","status":"queued","message":"Code analysis started for project \"AI Studio\""}
+```
+
+### Via Web UI
+
+1. Navigate to **Code Quality Dashboard** for your project
+2. Click **🔄 Refresh Analysis** button in the top right
+3. Analysis runs in background (typically 5-30 seconds depending on project size)
+4. Dashboard auto-refreshes when complete
+
+### What Gets Analyzed
+
+- **Code Metrics**: Lines of code, cyclomatic complexity, cognitive complexity
+- **File Mapping**: Automatic component and layer detection using patterns
+- **Code Quality**: Maintainability index, code smells, hotspots
+- **Trends**: Historical tracking for visualizing code health over time
+
+### Requirements for Analysis
+
+The Docker backend container needs:
+- Git installed (`git` package)
+- Repository mounted at `/opt/stack/AIStudio`
+- Git safe.directory configured for permission handling
+
+Already configured in `backend/Dockerfile`:
+```dockerfile
+RUN apk add --no-cache openssl openssl-dev git
+RUN git config --global --add safe.directory '*'
+```
+
+---
+
 ## Next Steps
 
 - ✅ Test all MCP tools
 - ✅ Create your first project
 - ✅ Start development using Claude Code
+- ✅ Trigger code analysis to baseline your metrics
 - ⏭️ Continue with Sprint 10 (Advanced Features)
 
 ---

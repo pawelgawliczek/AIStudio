@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { storiesService } from '../services/stories.service';
 
 interface HealthScore {
   overallScore: number;
@@ -68,6 +69,39 @@ interface CodeIssue {
   sampleFiles: string[];
 }
 
+interface FileDetail {
+  filePath: string;
+  component: string;
+  layer: string;
+  language: string;
+  riskScore: number;
+  loc: number;
+  complexity: number;
+  cognitiveComplexity: number;
+  maintainabilityIndex: number;
+  coverage: number;
+  churnCount: number;
+  linesChanged: number;
+  churnRate: number;
+  lastModified: Date;
+  recentChanges: Array<{
+    storyKey: string;
+    date: Date;
+    linesChanged: number;
+  }>;
+  issues: Array<{
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    type: string;
+    line?: number;
+    message: string;
+  }>;
+  importedBy: string[];
+  imports: string[];
+  couplingScore: 'low' | 'medium' | 'high';
+}
+
+type DrillDownLevel = 'project' | 'layer' | 'component' | 'file';
+
 const CodeQualityDashboard: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -80,11 +114,29 @@ const CodeQualityDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Drill-down state
+  const [drillDownLevel, setDrillDownLevel] = useState<DrillDownLevel>('project');
+  const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<FileDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const [filters, setFilters] = useState({
     timeRange: 30,
     layer: '',
     component: '',
   });
+
+  // Story creation state
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [storyContext, setStoryContext] = useState<{
+    type: 'component' | 'file' | 'issue';
+    data: any;
+  } | null>(null);
+  const [storyTitle, setStoryTitle] = useState('');
+  const [storyDescription, setStoryDescription] = useState('');
+  const [creatingStory, setCreatingStory] = useState(false);
 
   useEffect(() => {
     fetchMetrics();
@@ -116,6 +168,214 @@ const CodeQualityDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefreshAnalysis = async () => {
+    if (isAnalyzing) return; // Prevent double-clicks
+
+    setIsAnalyzing(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.post(
+        `/api/code-metrics/project/${projectId}/analyze`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert(`Analysis started! Job ID: ${response.data.jobId}\n${response.data.message}`);
+
+      // Optionally refresh metrics after a delay to show updated data
+      setTimeout(() => {
+        fetchMetrics();
+      }, 5000);
+
+    } catch (error: any) {
+      console.error('Failed to trigger analysis:', error);
+      alert(`Failed to start analysis: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Drill-down handlers
+  const handleLayerClick = (layerName: string) => {
+    setSelectedLayer(layerName);
+    setDrillDownLevel('layer');
+    setSelectedComponent(null);
+    setSelectedFile(null);
+  };
+
+  const handleComponentClick = (componentName: string) => {
+    setSelectedComponent(componentName);
+    setDrillDownLevel('component');
+    setSelectedFile(null);
+  };
+
+  const handleFileClick = async (filePath: string) => {
+    try {
+      setLoadingDetail(true);
+      const token = localStorage.getItem('accessToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      const response = await axios.get(
+        `/api/code-metrics/file/${projectId}?filePath=${encodeURIComponent(filePath)}`,
+        config
+      );
+
+      setSelectedFile(response.data);
+      setDrillDownLevel('file');
+    } catch (err: any) {
+      console.error('Failed to fetch file detail:', err);
+      alert('Failed to load file details');
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleBackClick = () => {
+    if (drillDownLevel === 'file') {
+      setDrillDownLevel('component');
+      setSelectedFile(null);
+    } else if (drillDownLevel === 'component') {
+      setDrillDownLevel('layer');
+      setSelectedComponent(null);
+    } else if (drillDownLevel === 'layer') {
+      setDrillDownLevel('project');
+      setSelectedLayer(null);
+    }
+  };
+
+  // Story creation handlers
+  const handleCreateStoryForComponent = (component: ComponentMetrics) => {
+    const title = `Improve code quality in ${component.name} component`;
+    const description = `## Component Health Issues\n\n` +
+      `**Component:** ${component.name}\n` +
+      `**Layer:** ${component.layer}\n` +
+      `**Health Score:** ${component.healthScore}/100\n` +
+      `**Complexity:** ${component.avgComplexity}\n` +
+      `**Coverage:** ${component.coverage}%\n` +
+      `**Hotspots:** ${component.hotspotCount}\n` +
+      `**Files:** ${component.fileCount}\n\n` +
+      `### Recommendations:\n` +
+      `- ${component.avgComplexity > 15 ? '⚠️ Reduce complexity by refactoring complex functions' : '✓ Complexity is acceptable'}\n` +
+      `- ${component.coverage < 70 ? '⚠️ Increase test coverage to at least 70%' : component.coverage < 80 ? '⚠️ Increase test coverage to 80%' : '✓ Test coverage is good'}\n` +
+      `- ${component.hotspotCount > 0 ? `⚠️ Address ${component.hotspotCount} high-risk file(s)` : '✓ No high-risk files detected'}\n\n` +
+      `### Acceptance Criteria:\n` +
+      `- [ ] Health score improved to at least ${Math.min(component.healthScore + 20, 80)}/100\n` +
+      `- [ ] All functions have complexity < 15\n` +
+      `- [ ] Test coverage >= ${component.coverage < 70 ? '70' : '80'}%\n` +
+      `- [ ] No high-risk hotspots remaining`;
+
+    setStoryTitle(title);
+    setStoryDescription(description);
+    setStoryContext({ type: 'component', data: component });
+    setIsStoryModalOpen(true);
+  };
+
+  const handleCreateStoryForFile = (file: FileHotspot) => {
+    const title = `Refactor high-risk file: ${file.filePath.split('/').pop()}`;
+    const description = `## File Hotspot Analysis\n\n` +
+      `**File:** \`${file.filePath}\`\n` +
+      `**Component:** ${file.component}\n` +
+      `**Layer:** ${file.layer}\n` +
+      `**Risk Score:** ${file.riskScore}/100\n` +
+      `**Complexity:** ${file.complexity}\n` +
+      `**Churn Count:** ${file.churnCount}\n` +
+      `**Coverage:** ${file.coverage}%\n` +
+      `**LOC:** ${file.loc}\n` +
+      `**Critical Issues:** ${file.criticalIssues}\n\n` +
+      `### Identified Problems:\n` +
+      `- ${file.complexity > 20 ? '🔴 Very high complexity - needs significant refactoring' : file.complexity > 10 ? '⚠️ High complexity - consider breaking into smaller functions' : '✓ Complexity is acceptable'}\n` +
+      `- ${file.churnCount > 5 ? '🔴 Very high churn rate - unstable code' : file.churnCount > 3 ? '⚠️ High churn rate - needs stabilization' : '✓ Churn rate is acceptable'}\n` +
+      `- ${file.coverage < 50 ? '🔴 Critical: Very low test coverage' : file.coverage < 70 ? '⚠️ Low test coverage' : '✓ Test coverage is acceptable'}\n\n` +
+      `### Refactoring Goals:\n` +
+      `- [ ] Reduce complexity to < 10\n` +
+      `- [ ] Add comprehensive unit tests (target: ${file.coverage < 50 ? '70' : '80'}%+ coverage)\n` +
+      `- [ ] ${file.criticalIssues > 0 ? `Fix ${file.criticalIssues} critical issue(s)` : 'No critical issues'}\n` +
+      `- [ ] Reduce risk score to < 50`;
+
+    setStoryTitle(title);
+    setStoryDescription(description);
+    setStoryContext({ type: 'file', data: file });
+    setIsStoryModalOpen(true);
+  };
+
+  const handleCreateStoryForIssue = (issue: CodeIssue) => {
+    const title = `Fix ${issue.severity} ${issue.type.toLowerCase()}`;
+    const description = `## Code Issue Report\n\n` +
+      `**Severity:** ${issue.severity.toUpperCase()}\n` +
+      `**Issue Type:** ${issue.type}\n` +
+      `**Occurrences:** ${issue.count}\n` +
+      `**Files Affected:** ${issue.filesAffected}\n\n` +
+      `${issue.sampleFiles.length > 0 ? `### Sample Files:\n${issue.sampleFiles.map(f => `- \`${f}\``).join('\n')}\n\n` : ''}` +
+      `### Description:\n` +
+      `${issue.type === 'Security Vulnerabilities' ? 'Security vulnerabilities have been detected that could expose the application to attacks.' : ''}` +
+      `${issue.type === 'Bug Risks' ? 'Code patterns that are likely to cause bugs have been identified.' : ''}` +
+      `${issue.type === 'Performance Issues' ? 'Performance bottlenecks have been detected that could impact user experience.' : ''}` +
+      `${issue.type === 'Code Duplication' ? 'Duplicate code has been found that should be refactored into reusable components.' : ''}` +
+      `${issue.type === 'Maintainability Issues' ? 'Code maintainability problems have been identified.' : ''}` +
+      `${issue.type === 'Code Style Issues' ? 'Code style inconsistencies have been detected.' : ''}\n\n` +
+      `### Tasks:\n` +
+      `- [ ] Review all affected files\n` +
+      `- [ ] Fix or refactor the ${issue.count} occurrence(s)\n` +
+      `- [ ] Add tests to prevent regression\n` +
+      `- [ ] Update documentation if needed\n\n` +
+      `### Acceptance Criteria:\n` +
+      `- [ ] All occurrences resolved\n` +
+      `- [ ] No new issues introduced\n` +
+      `- [ ] Tests passing`;
+
+    setStoryTitle(title);
+    setStoryDescription(description);
+    setStoryContext({ type: 'issue', data: issue });
+    setIsStoryModalOpen(true);
+  };
+
+  const handleSaveStory = async () => {
+    if (!storyTitle.trim()) {
+      alert('Please enter a story title');
+      return;
+    }
+
+    try {
+      setCreatingStory(true);
+      await storiesService.createStory({
+        projectId: projectId!,
+        title: storyTitle,
+        description: storyDescription,
+        type: 'chore', // Code quality improvements are chores
+        status: 'planning',
+      });
+
+      alert('Story created successfully!');
+      setIsStoryModalOpen(false);
+      setStoryTitle('');
+      setStoryDescription('');
+      setStoryContext(null);
+
+      // Optionally navigate to the story or refresh
+      navigate(`/projects/${projectId}/planning`);
+    } catch (error: any) {
+      console.error('Failed to create story:', error);
+      alert(`Failed to create story: ${error.message}`);
+    } finally {
+      setCreatingStory(false);
+    }
+  };
+
+  // Get filtered data based on drill-down level
+  const getFilteredComponents = () => {
+    if (!selectedLayer) return componentMetrics;
+    return componentMetrics.filter(c => c.layer === selectedLayer);
+  };
+
+  const getFilteredFiles = () => {
+    if (!selectedComponent) return hotspots;
+    return hotspots.filter(f => f.component === selectedComponent);
   };
 
   const getHealthColor = (score: number): string => {
@@ -164,11 +424,77 @@ const CodeQualityDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-bg p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-fg">Code Quality Dashboard</h1>
-        <p className="text-muted mt-2">
-          Last updated: {new Date(projectMetrics.lastUpdate).toLocaleString()}
-        </p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-fg">Code Quality Dashboard</h1>
+          <p className="text-muted mt-2">
+            Last updated: {new Date(projectMetrics.lastUpdate).toLocaleString()}
+          </p>
+        </div>
+        <button
+          onClick={handleRefreshAnalysis}
+          disabled={isAnalyzing}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent ${
+            isAnalyzing
+              ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+              : 'bg-accent text-white hover:bg-accent-dark'
+          }`}
+        >
+          {isAnalyzing ? (
+            <>
+              <span className="inline-block animate-spin mr-2">⟳</span>
+              Analyzing...
+            </>
+          ) : (
+            <>🔄 Refresh Analysis</>
+          )}
+        </button>
+      </div>
+
+      {/* Breadcrumbs */}
+      <div className="mb-6 flex items-center gap-2 text-sm">
+        <button
+          onClick={() => { setDrillDownLevel('project'); setSelectedLayer(null); setSelectedComponent(null); setSelectedFile(null); }}
+          className={`hover:text-accent ${drillDownLevel === 'project' ? 'text-accent font-bold' : 'text-muted'}`}
+        >
+          Project
+        </button>
+        {selectedLayer && (
+          <>
+            <span className="text-muted">/</span>
+            <button
+              onClick={() => { setDrillDownLevel('layer'); setSelectedComponent(null); setSelectedFile(null); }}
+              className={`hover:text-accent ${drillDownLevel === 'layer' ? 'text-accent font-bold' : 'text-muted'}`}
+            >
+              {selectedLayer}
+            </button>
+          </>
+        )}
+        {selectedComponent && (
+          <>
+            <span className="text-muted">/</span>
+            <button
+              onClick={() => { setDrillDownLevel('component'); setSelectedFile(null); }}
+              className={`hover:text-accent ${drillDownLevel === 'component' ? 'text-accent font-bold' : 'text-muted'}`}
+            >
+              {selectedComponent}
+            </button>
+          </>
+        )}
+        {selectedFile && (
+          <>
+            <span className="text-muted">/</span>
+            <span className="text-accent font-bold">{selectedFile.filePath.split('/').pop()}</span>
+          </>
+        )}
+        {drillDownLevel !== 'project' && (
+          <button
+            onClick={handleBackClick}
+            className="ml-4 text-accent hover:text-accent-dark text-sm font-medium"
+          >
+            ← Back
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -190,9 +516,10 @@ const CodeQualityDashboard: React.FC = () => {
       </div>
 
       {/* Project-Level Metrics */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-fg mb-4">Project-Level Metrics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {drillDownLevel === 'project' && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-fg mb-4">Project-Level Metrics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Overall Health */}
           <div className="bg-card border border-border rounded-lg shadow-md p-6">
             <h3 className="text-sm font-medium text-muted mb-2">OVERALL CODE HEALTH</h3>
@@ -296,161 +623,330 @@ const CodeQualityDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Layer Metrics */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-fg mb-4">Layer-Level Metrics</h2>
-        <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-bg-secondary">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Layer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">LOC</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Defects</th>
-              </tr>
-            </thead>
-            <tbody className="bg-card divide-y divide-border">
-              {layerMetrics.map((layer) => (
-                <tr key={layer.layer} className="hover:bg-bg">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium text-fg">{layer.layer}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">
-                    {layer.loc.toLocaleString()} ({layer.locPercentage}%)
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(layer.healthScore)}`}>
-                      {layer.healthScore}/100
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.avgComplexity}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">
-                    {getChurnIcon(layer.churnLevel)} {layer.churnLevel}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.coverage}%</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.defectCount}</td>
+      {drillDownLevel === 'project' && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-fg mb-4">Layer-Level Metrics (Click to drill down)</h2>
+          <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-bg-secondary">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Layer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">LOC</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Defects</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-card divide-y divide-border">
+                {layerMetrics.map((layer) => (
+                  <tr
+                    key={layer.layer}
+                    onClick={() => handleLayerClick(layer.layer)}
+                    className="hover:bg-bg cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-accent hover:text-accent-dark">{layer.layer}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg">
+                      {layer.loc.toLocaleString()} ({layer.locPercentage}%)
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(layer.healthScore)}`}>
+                        {layer.healthScore}/100
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.avgComplexity}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg">
+                      {getChurnIcon(layer.churnLevel)} {layer.churnLevel}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.coverage}%</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.defectCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Component Metrics */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-fg mb-4">Component-Level Metrics</h2>
-        <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-bg-secondary">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Component</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Hotspots</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Action</th>
-              </tr>
-            </thead>
-            <tbody className="bg-card divide-y divide-border">
-              {componentMetrics.slice(0, 10).map((component) => (
-                <tr key={component.name} className="hover:bg-bg">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-fg">{component.name}</div>
-                    <div className="text-sm text-muted">🏷️ {component.layer} • {component.fileCount} files</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(component.healthScore)}`}>
-                      {component.healthScore}/100
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">{component.avgComplexity}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">
-                    {getChurnIcon(component.churnLevel)} {component.churnLevel}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">{component.coverage}%</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">
-                    {component.hotspotCount > 0 ? `🔥`.repeat(Math.min(component.hotspotCount, 3)) : '─'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button className="text-accent hover:text-accent-dark text-sm font-medium">
-                      Drill
-                    </button>
-                  </td>
+      {drillDownLevel === 'layer' && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-fg mb-4">
+            {selectedLayer ? `Components in ${selectedLayer} Layer` : 'Component-Level Metrics'} (Click to drill down)
+          </h2>
+          <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-bg-secondary">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Component</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Hotspots</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-card divide-y divide-border">
+                {getFilteredComponents().slice(0, 20).map((component) => (
+                  <tr
+                    key={component.name}
+                    className="hover:bg-bg transition-colors"
+                  >
+                    <td
+                      className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                      onClick={() => handleComponentClick(component.name)}
+                    >
+                      <div className="font-medium text-accent hover:text-accent-dark">{component.name}</div>
+                      <div className="text-sm text-muted">🏷️ {component.layer} • {component.fileCount} files</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => handleComponentClick(component.name)}>
+                      <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(component.healthScore)}`}>
+                        {component.healthScore}/100
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>{component.avgComplexity}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>
+                      {getChurnIcon(component.churnLevel)} {component.churnLevel}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>{component.coverage}%</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>
+                      {component.hotspotCount > 0 ? `🔥`.repeat(Math.min(component.hotspotCount, 3)) : '─'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCreateStoryForComponent(component);
+                        }}
+                        className="px-3 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors"
+                      >
+                        📝 Create Story
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Hotspots */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-fg mb-4">File-Level Hotspots (Top 10 by Risk)</h2>
-        <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-bg-secondary">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Rank</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">File</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Risk</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complex</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Cover</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Action</th>
-              </tr>
-            </thead>
-            <tbody className="bg-card divide-y divide-border">
-              {hotspots.slice(0, 10).map((hotspot, index) => (
-                <tr key={hotspot.filePath} className="hover:bg-bg">
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">
-                    {hotspot.riskScore >= 80 ? '🔥' : '⚠️'} {index + 1}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-sm text-fg">{hotspot.filePath.split('/').pop()}</div>
-                    <div className="text-xs text-muted">{hotspot.component}</div>
-                    <div className="text-xs text-muted">
-                      {hotspot.loc} LOC | Last: {hotspot.lastStoryKey || 'Unknown'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(100 - hotspot.riskScore)}`}>
-                      {hotspot.riskScore}/100
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={hotspot.complexity > 15 ? 'text-red-600' : hotspot.complexity > 10 ? 'text-yellow-600' : 'text-green-600'}>
-                      {hotspot.complexity}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={hotspot.churnCount > 5 ? 'text-red-600' : hotspot.churnCount > 3 ? 'text-yellow-600' : 'text-green-600'}>
-                      {hotspot.churnCount}×
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={hotspot.coverage < 70 ? 'text-red-600' : hotspot.coverage < 80 ? 'text-yellow-600' : 'text-green-600'}>
-                      {hotspot.coverage}%
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                    <button className="text-accent hover:text-accent-dark text-sm font-medium">
-                      View
-                    </button>
-                  </td>
+      {/* Hotspots / Files */}
+      {(drillDownLevel === 'component' || drillDownLevel === 'project') && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-fg mb-4">
+            {selectedComponent ? `Files in ${selectedComponent} Component` : 'File-Level Hotspots (Top 20 by Risk)'} (Click to view details)
+          </h2>
+          <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-bg-secondary">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Rank</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">File</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Risk</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complex</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Cover</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-card divide-y divide-border">
+                {getFilteredFiles().slice(0, 20).map((hotspot, index) => (
+                  <tr
+                    key={hotspot.filePath}
+                    onClick={() => handleFileClick(hotspot.filePath)}
+                    className="hover:bg-bg cursor-pointer transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-fg">
+                      {hotspot.riskScore >= 80 ? '🔥' : '⚠️'} {index + 1}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-sm text-accent hover:text-accent-dark">{hotspot.filePath.split('/').pop()}</div>
+                      <div className="text-xs text-muted">{hotspot.component}</div>
+                      <div className="text-xs text-muted">
+                        {hotspot.loc} LOC | Last: {hotspot.lastStoryKey || 'Unknown'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(100 - hotspot.riskScore)}`}>
+                        {hotspot.riskScore}/100
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={hotspot.complexity > 15 ? 'text-red-600' : hotspot.complexity > 10 ? 'text-yellow-600' : 'text-green-600'}>
+                        {hotspot.complexity}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={hotspot.churnCount > 5 ? 'text-red-600' : hotspot.churnCount > 3 ? 'text-yellow-600' : 'text-green-600'}>
+                        {hotspot.churnCount}×
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={hotspot.coverage < 70 ? 'text-red-600' : hotspot.coverage < 80 ? 'text-yellow-600' : 'text-green-600'}>
+                        {hotspot.coverage}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* File Detail View */}
+      {drillDownLevel === 'file' && selectedFile && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-fg mb-4">File Details</h2>
+
+          {/* File Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-card border border-border rounded-lg shadow-md p-4">
+              <h3 className="text-sm font-medium text-muted mb-2">RISK SCORE</h3>
+              <div className="text-2xl font-bold text-fg">{selectedFile.riskScore}/100</div>
+              <div className={`text-sm ${selectedFile.riskScore >= 70 ? 'text-red-600' : selectedFile.riskScore >= 50 ? 'text-yellow-600' : 'text-green-600'}`}>
+                {selectedFile.riskScore >= 70 ? 'HIGH RISK' : selectedFile.riskScore >= 50 ? 'MEDIUM RISK' : 'LOW RISK'}
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg shadow-md p-4">
+              <h3 className="text-sm font-medium text-muted mb-2">COMPLEXITY</h3>
+              <div className="text-2xl font-bold text-fg">{selectedFile.complexity}</div>
+              <div className="text-sm text-muted">Cognitive: {selectedFile.cognitiveComplexity}</div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg shadow-md p-4">
+              <h3 className="text-sm font-medium text-muted mb-2">COVERAGE</h3>
+              <div className="text-2xl font-bold text-fg">{selectedFile.coverage}%</div>
+              <div className={`text-sm ${selectedFile.coverage < 70 ? 'text-red-600' : 'text-green-600'}`}>
+                {selectedFile.coverage < 70 ? 'NEEDS IMPROVEMENT' : 'GOOD'}
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg shadow-md p-4">
+              <h3 className="text-sm font-medium text-muted mb-2">CHURN RATE</h3>
+              <div className="text-2xl font-bold text-fg">{selectedFile.churnRate}%</div>
+              <div className="text-sm text-muted">{selectedFile.churnCount} changes</div>
+            </div>
+          </div>
+
+          {/* File Info */}
+          <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-md font-bold text-fg mb-4">File Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-muted">Path:</span>
+                <span className="ml-2 text-fg font-mono text-sm">{selectedFile.filePath}</span>
+              </div>
+              <div>
+                <span className="text-muted">Component:</span>
+                <span className="ml-2 text-fg">{selectedFile.component}</span>
+              </div>
+              <div>
+                <span className="text-muted">Layer:</span>
+                <span className="ml-2 text-fg">{selectedFile.layer}</span>
+              </div>
+              <div>
+                <span className="text-muted">Language:</span>
+                <span className="ml-2 text-fg">{selectedFile.language}</span>
+              </div>
+              <div>
+                <span className="text-muted">Lines of Code:</span>
+                <span className="ml-2 text-fg">{selectedFile.loc.toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-muted">Maintainability Index:</span>
+                <span className="ml-2 text-fg">{selectedFile.maintainabilityIndex}/100</span>
+              </div>
+              <div>
+                <span className="text-muted">Coupling:</span>
+                <span className={`ml-2 ${selectedFile.couplingScore === 'high' ? 'text-red-600' : selectedFile.couplingScore === 'medium' ? 'text-yellow-600' : 'text-green-600'}`}>
+                  {selectedFile.couplingScore.toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted">Last Modified:</span>
+                <span className="ml-2 text-fg">{new Date(selectedFile.lastModified).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Changes */}
+          {selectedFile.recentChanges && selectedFile.recentChanges.length > 0 && (
+            <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
+              <h3 className="text-md font-bold text-fg mb-4">Recent Changes</h3>
+              <div className="space-y-2">
+                {selectedFile.recentChanges.map((change, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm">
+                    <span className="text-fg">{change.storyKey}</span>
+                    <span className="text-muted">{new Date(change.date).toLocaleDateString()}</span>
+                    <span className="text-fg">{change.linesChanged} lines changed</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Code Issues */}
+          {selectedFile.issues && selectedFile.issues.length > 0 && (
+            <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
+              <h3 className="text-md font-bold text-fg mb-4">Code Issues</h3>
+              <div className="space-y-3">
+                {selectedFile.issues.map((issue, idx) => (
+                  <div key={idx} className="border-l-4 border-red-500 pl-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-bold ${issue.severity === 'critical' ? 'text-red-600' : issue.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'}`}>
+                        {issue.severity.toUpperCase()}
+                      </span>
+                      <span className="text-sm text-muted">{issue.type}</span>
+                      {issue.line && <span className="text-xs text-muted">Line {issue.line}</span>}
+                    </div>
+                    <p className="text-sm text-fg mt-1">{issue.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Dependencies */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-card border border-border rounded-lg shadow-md p-6">
+              <h3 className="text-md font-bold text-fg mb-4">Imports ({selectedFile.imports.length})</h3>
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {selectedFile.imports.slice(0, 10).map((imp, idx) => (
+                  <div key={idx} className="text-sm text-muted font-mono">{imp}</div>
+                ))}
+                {selectedFile.imports.length > 10 && (
+                  <div className="text-sm text-muted italic">... and {selectedFile.imports.length - 10} more</div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg shadow-md p-6">
+              <h3 className="text-md font-bold text-fg mb-4">Imported By ({selectedFile.importedBy.length})</h3>
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                {selectedFile.importedBy.slice(0, 10).map((imp, idx) => (
+                  <div key={idx} className="text-sm text-muted font-mono">{imp}</div>
+                ))}
+                {selectedFile.importedBy.length > 10 && (
+                  <div className="text-sm text-muted italic">... and {selectedFile.importedBy.length - 10} more</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Code Issues */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-fg mb-4">Code Smells & Issues</h2>
+      {drillDownLevel === 'project' && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-fg mb-4">Code Smells & Issues</h2>
         <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-bg-secondary">
@@ -486,7 +982,8 @@ const CodeQualityDashboard: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 };
