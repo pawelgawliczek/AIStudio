@@ -11,6 +11,7 @@ import { LayersComponentsPage } from './pages/LayersComponentsPage';
 import { ComponentLibraryView } from './pages/ComponentLibraryView';
 import { CoordinatorLibraryView } from './pages/CoordinatorLibraryView';
 import { WorkflowManagementView } from './pages/WorkflowManagementView';
+import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
@@ -41,6 +42,7 @@ function App() {
               <Route path="components" element={<ComponentLibraryView />} />
               <Route path="coordinators" element={<CoordinatorLibraryView />} />
               <Route path="workflows" element={<WorkflowManagementView />} />
+              <Route path="workflow-runs/:runId/results" element={<WorkflowResultsView />} />
             </Route>
           </Routes>
         </ProjectProvider>
