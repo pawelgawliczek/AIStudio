@@ -63,6 +63,24 @@ export function Layout() {
                 >
                   📖 Use Cases
                 </Link>
+                <Link
+                  to="/components"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                >
+                  🧩 Components
+                </Link>
+                <Link
+                  to="/coordinators"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                >
+                  🤖 Coordinators
+                </Link>
+                <Link
+                  to="/workflows"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
+                >
+                  ⚡ Workflows
+                </Link>
                 {selectedProject && (
                   <>
                     <Link

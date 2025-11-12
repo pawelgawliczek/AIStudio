@@ -8,6 +8,9 @@ import { EpicPlanningView } from './pages/EpicPlanningView';
 import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
+import { ComponentLibraryView } from './pages/ComponentLibraryView';
+import { CoordinatorLibraryView } from './pages/CoordinatorLibraryView';
+import { WorkflowManagementView } from './pages/WorkflowManagementView';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
@@ -35,6 +38,9 @@ function App() {
               <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
               <Route path="layers-components" element={<LayersComponentsPage />} />
+              <Route path="components" element={<ComponentLibraryView />} />
+              <Route path="coordinators" element={<CoordinatorLibraryView />} />
+              <Route path="workflows" element={<WorkflowManagementView />} />
             </Route>
           </Routes>
         </ProjectProvider>
