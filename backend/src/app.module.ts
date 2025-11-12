@@ -11,13 +11,13 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { UseCasesModule } from './use-cases/use-cases.module';
 import { RunsModule } from './runs/runs.module';
 import { CommitsModule } from './commits/commits.module';
-import { CodeMetricsModule } from './code-metrics/code-metrics.module';
+// import { CodeMetricsModule } from './code-metrics/code-metrics.module'; // Temporarily disabled
 import { AgentMetricsModule } from './agent-metrics/agent-metrics.module';
 import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
 import { WorkersModule } from './workers/workers.module';
-import { LayersModule } from './layers/layers.module';
-import { ComponentsModule } from './components/components.module';
+// import { LayersModule } from './layers/layers.module'; // Removed - layers deprecated
+// import { ComponentsModule } from './components/components.module'; // Removed - components deprecated
 import { HealthController } from './health.controller';
 
 @Module({
@@ -37,13 +37,13 @@ import { HealthController } from './health.controller';
     UseCasesModule,
     RunsModule,
     CommitsModule,
-    CodeMetricsModule,
+    // CodeMetricsModule, // Temporarily disabled
     AgentMetricsModule,
     TestCasesModule,
     TestExecutionsModule,
     WorkersModule,
-    LayersModule,
-    ComponentsModule,
+    // LayersModule, // Removed - layers deprecated
+    // ComponentsModule, // Removed - components deprecated
   ],
   controllers: [HealthController],
 })
