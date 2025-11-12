@@ -60,12 +60,11 @@ export class SubtasksService {
    * @returns List of subtasks
    */
   async findAll(filterDto: FilterSubtaskDto) {
-    const { storyId, status, layer, assigneeType } = filterDto;
+    const { storyId, status, assigneeType } = filterDto;
 
     const where: any = {};
     if (storyId) where.storyId = storyId;
     if (status) where.status = status;
-    if (layer) where.layer = layer;
     if (assigneeType) where.assigneeType = assigneeType;
 
     return this.prisma.subtask.findMany({

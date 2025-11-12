@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LayerType, AssigneeType } from '@prisma/client';
+import { AssigneeType } from '@prisma/client';
 import { IsString, IsOptional, IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
 
 export class CreateSubtaskDto {
@@ -17,16 +17,6 @@ export class CreateSubtaskDto {
   @IsString()
   @IsOptional()
   description?: string;
-
-  @ApiPropertyOptional({ enum: LayerType, description: 'Layer (frontend, backend, etc.)' })
-  @IsEnum(LayerType)
-  @IsOptional()
-  layer?: LayerType;
-
-  @ApiPropertyOptional({ description: 'Component name' })
-  @IsString()
-  @IsOptional()
-  component?: string;
 
   @ApiPropertyOptional({
     enum: AssigneeType,

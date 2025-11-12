@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { SubtaskStatus, LayerType, AssigneeType } from '@prisma/client';
+import { SubtaskStatus, AssigneeType } from '@prisma/client';
 import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 
 export class FilterSubtaskDto {
@@ -12,11 +12,6 @@ export class FilterSubtaskDto {
   @IsEnum(SubtaskStatus)
   @IsOptional()
   status?: SubtaskStatus;
-
-  @ApiPropertyOptional({ enum: LayerType, description: 'Filter by layer' })
-  @IsEnum(LayerType)
-  @IsOptional()
-  layer?: LayerType;
 
   @ApiPropertyOptional({ enum: AssigneeType, description: 'Filter by assignee type' })
   @IsEnum(AssigneeType)
