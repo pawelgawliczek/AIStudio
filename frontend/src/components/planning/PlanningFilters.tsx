@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import { StoryStatus, StoryType, SubtaskLayer, Epic } from '../../types';
+import { StoryStatus, StoryType, Epic } from '../../types';
 
 interface PlanningFiltersProps {
   statusFilter: string[];
   typeFilter: string[];
   epicFilter: string[];
-  layerFilter: string[];
   searchQuery: string;
   epics: Epic[];
   onStatusChange: (value: string[]) => void;
   onTypeChange: (value: string[]) => void;
   onEpicChange: (value: string[]) => void;
-  onLayerChange: (value: string[]) => void;
   onSearchChange: (value: string) => void;
 }
 
@@ -19,13 +17,11 @@ export function PlanningFilters({
   statusFilter,
   typeFilter,
   epicFilter,
-  layerFilter,
   searchQuery,
   epics,
   onStatusChange,
   onTypeChange,
   onEpicChange,
-  onLayerChange,
   onSearchChange,
 }: PlanningFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -55,14 +51,6 @@ export function PlanningFilters({
     }
   };
 
-  const toggleLayer = (layer: string) => {
-    if (layerFilter.includes(layer)) {
-      onLayerChange(layerFilter.filter(l => l !== layer));
-    } else {
-      onLayerChange([...layerFilter, layer]);
-    }
-  };
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearchChange(searchValue);
@@ -70,7 +58,6 @@ export function PlanningFilters({
 
   const statusOptions = Object.values(StoryStatus);
   const typeOptions = Object.values(StoryType);
-  const layerOptions = Object.values(SubtaskLayer);
 
   return (
     <div className="relative">
@@ -83,9 +70,9 @@ export function PlanningFilters({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
         </svg>
         <span className="text-sm font-medium">Filters</span>
-        {(statusFilter.length + typeFilter.length + epicFilter.length + layerFilter.length) > 0 && (
+        {(statusFilter.length + typeFilter.length + epicFilter.length) > 0 && (
           <span className="flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-primary rounded-full">
-            {statusFilter.length + typeFilter.length + epicFilter.length + layerFilter.length}
+            {statusFilter.length + typeFilter.length + epicFilter.length}
           </span>
         )}
       </button>
@@ -171,24 +158,6 @@ export function PlanningFilters({
                         className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                       />
                       <span className="text-sm">{epic.title}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Layer/Component Filter */}
-              <div>
-                <label className="block text-sm font-medium text-fg mb-2">Layer/Component</label>
-                <div className="space-y-1">
-                  {layerOptions.map((layer) => (
-                    <label key={layer} className="flex items-center gap-2 cursor-pointer hover:bg-muted px-2 py-1 rounded">
-                      <input
-                        type="checkbox"
-                        checked={layerFilter.includes(layer)}
-                        onChange={() => toggleLayer(layer)}
-                        className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
-                      />
-                      <span className="text-sm capitalize">{layer}</span>
                     </label>
                   ))}
                 </div>

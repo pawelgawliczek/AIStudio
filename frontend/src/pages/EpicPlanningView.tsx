@@ -11,7 +11,7 @@ import {
   useSensors,
   PointerSensor,
 } from '@dnd-kit/core';
-import { Story, Epic, StoryStatus, StoryType, SubtaskLayer, PlanningOverview } from '../types';
+import { Story, Epic, StoryStatus, StoryType, PlanningOverview } from '../types';
 import { storiesApi, epicsApi } from '../services/api';
 import { EpicGroup } from '../components/planning/EpicGroup';
 import { PlanningFilters } from '../components/planning/PlanningFilters';
@@ -38,7 +38,6 @@ export function EpicPlanningView() {
   const statusFilter = searchParams.get('status')?.split(',') || [];
   const typeFilter = searchParams.get('type')?.split(',') || [];
   const epicFilter = searchParams.get('epic')?.split(',') || [];
-  const layerFilter = searchParams.get('layer')?.split(',') || [];
   const searchQuery = searchParams.get('search') || '';
 
   // Modal/drawer state
@@ -165,14 +164,6 @@ export function EpicPlanningView() {
           return false;
         }
 
-        // Layer filter (check subtasks)
-        if (layerFilter.length > 0) {
-          const hasMatchingLayer = story.subtasks?.some(st =>
-            layerFilter.includes(st.layer || '')
-          );
-          if (!hasMatchingLayer) return false;
-        }
-
         // Search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
@@ -233,7 +224,7 @@ export function EpicPlanningView() {
     unassignedStories = sortStories(unassignedStories);
 
     return { epics, unassignedStories };
-  }, [planningData, statusFilter, typeFilter, epicFilter, layerFilter, searchQuery, sortOption]);
+  }, [planningData, statusFilter, typeFilter, epicFilter, searchQuery, sortOption]);
 
   // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -435,7 +426,7 @@ export function EpicPlanningView() {
   }
 
   const hasActiveFilters = statusFilter.length > 0 || typeFilter.length > 0 ||
-                          epicFilter.length > 0 || layerFilter.length > 0 || searchQuery;
+                          epicFilter.length > 0 || searchQuery;
 
   return (
     <DndContext
@@ -494,13 +485,11 @@ export function EpicPlanningView() {
                 statusFilter={statusFilter}
                 typeFilter={typeFilter}
                 epicFilter={epicFilter}
-                layerFilter={layerFilter}
                 searchQuery={searchQuery}
                 epics={planningData?.epics || []}
                 onStatusChange={(value) => updateFilter('status', value)}
                 onTypeChange={(value) => updateFilter('type', value)}
                 onEpicChange={(value) => updateFilter('epic', value)}
-                onLayerChange={(value) => updateFilter('layer', value)}
                 onSearchChange={updateSearch}
               />
             </div>
@@ -523,11 +512,6 @@ export function EpicPlanningView() {
               {epicFilter.length > 0 && (
                 <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
                   Epic: {epicFilter.length} selected
-                </span>
-              )}
-              {layerFilter.length > 0 && (
-                <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">
-                  Layer: {layerFilter.join(', ')}
                 </span>
               )}
               {searchQuery && (
@@ -655,8 +639,6 @@ export function EpicPlanningView() {
               technicalComplexity: editingStory.technicalComplexity,
               businessImpact: editingStory.businessImpact,
               businessComplexity: editingStory.businessComplexity,
-              layerIds: editingStory.layers?.map(l => l.layerId) || [],
-              componentIds: editingStory.components?.map(c => c.componentId) || [],
             }}
           />
         )}
