@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { storiesService } from '../services/stories.service';
+import { StoryType } from '../types';
 
 interface HealthScore {
   overallScore: number;
@@ -25,32 +26,8 @@ interface ProjectMetrics {
   lastUpdate: Date;
 }
 
-interface LayerMetrics {
-  layer: string;
-  loc: number;
-  locPercentage: number;
-  healthScore: number;
-  avgComplexity: number;
-  churnLevel: 'low' | 'medium' | 'high';
-  coverage: number;
-  defectCount: number;
-}
-
-interface ComponentMetrics {
-  name: string;
-  layer: string;
-  fileCount: number;
-  healthScore: number;
-  avgComplexity: number;
-  churnLevel: 'low' | 'medium' | 'high';
-  coverage: number;
-  hotspotCount: number;
-}
-
 interface FileHotspot {
   filePath: string;
-  component: string;
-  layer: string;
   riskScore: number;
   complexity: number;
   churnCount: number;
@@ -71,8 +48,6 @@ interface CodeIssue {
 
 interface FileDetail {
   filePath: string;
-  component: string;
-  layer: string;
   language: string;
   riskScore: number;
   loc: number;
@@ -100,38 +75,67 @@ interface FileDetail {
   couplingScore: 'low' | 'medium' | 'high';
 }
 
-type DrillDownLevel = 'project' | 'layer' | 'component' | 'file';
+interface FolderMetrics {
+  fileCount: number;
+  totalLoc: number;
+  avgComplexity: number;
+  avgCognitiveComplexity: number;
+  avgMaintainability: number;
+  avgCoverage: number;
+  avgRiskScore: number;
+  uncoveredFiles: number;
+  criticalIssues: number;
+  healthScore: number;
+}
+
+interface FolderNode {
+  path: string;
+  name: string;
+  type: 'folder' | 'file';
+  metrics: FolderMetrics;
+  children?: FolderNode[];
+}
+
+interface CoverageGap {
+  filePath: string;
+  loc: number;
+  complexity: number;
+  riskScore: number;
+  coverage: number;
+  priority: number;
+  reason: string;
+}
+
+type DrillDownLevel = 'project' | 'file';
 
 const CodeQualityDashboard: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
 
   const [projectMetrics, setProjectMetrics] = useState<ProjectMetrics | null>(null);
-  const [layerMetrics, setLayerMetrics] = useState<LayerMetrics[]>([]);
-  const [componentMetrics, setComponentMetrics] = useState<ComponentMetrics[]>([]);
   const [hotspots, setHotspots] = useState<FileHotspot[]>([]);
+  const [folderHierarchy, setFolderHierarchy] = useState<FolderNode | null>(null);
+  const [coverageGaps, setCoverageGaps] = useState<CoverageGap[]>([]);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [codeIssues, setCodeIssues] = useState<CodeIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Drill-down state
   const [drillDownLevel, setDrillDownLevel] = useState<DrillDownLevel>('project');
-  const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
-  const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<FileDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [expandedIssues, setExpandedIssues] = useState<Set<number>>(new Set());
 
   const [filters, setFilters] = useState({
     timeRange: 30,
-    layer: '',
-    component: '',
   });
 
   // Story creation state
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [storyContext, setStoryContext] = useState<{
-    type: 'component' | 'file' | 'issue';
+    type: 'file' | 'issue';
     data: any;
   } | null>(null);
   const [storyTitle, setStoryTitle] = useState('');
@@ -145,19 +149,19 @@ const CodeQualityDashboard: React.FC = () => {
   const fetchMetrics = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const [projectRes, hotspotsRes, issuesRes] = await Promise.all([
-        axios.get(`/api/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}`, config),
-        axios.get(`/api/code-metrics/project/${projectId}/hotspots?limit=10`, config),
-        axios.get(`/api/code-metrics/project/${projectId}/issues`, config),
+      const [projectRes, hotspotsRes, hierarchyRes, coverageGapsRes, issuesRes] = await Promise.all([
+        axios.get(`/api/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}`),
+        axios.get(`/api/code-metrics/project/${projectId}/hotspots?limit=50`),
+        axios.get(`/api/code-metrics/project/${projectId}/hierarchy`),
+        axios.get(`/api/code-metrics/project/${projectId}/coverage-gaps?limit=20`),
+        axios.get(`/api/code-metrics/project/${projectId}/issues`),
       ]);
 
       setProjectMetrics(projectRes.data);
-      setLayerMetrics([]);
-      setComponentMetrics([]);
       setHotspots(hotspotsRes.data);
+      setFolderHierarchy(hierarchyRes.data);
+      setCoverageGaps(coverageGapsRes.data);
       setCodeIssues(issuesRes.data);
       setError(null);
     } catch (err: any) {
@@ -169,24 +173,14 @@ const CodeQualityDashboard: React.FC = () => {
   };
 
   const handleRefreshAnalysis = async () => {
-    if (isAnalyzing) return; // Prevent double-clicks
+    if (isAnalyzing) return;
 
     setIsAnalyzing(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await axios.post(
-        `/api/code-metrics/project/${projectId}/analyze`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.post(`/api/code-metrics/project/${projectId}/analyze`, {});
 
       alert(`Analysis started! Job ID: ${response.data.jobId}\n${response.data.message}`);
 
-      // Optionally refresh metrics after a delay to show updated data
       setTimeout(() => {
         fetchMetrics();
       }, 5000);
@@ -199,30 +193,11 @@ const CodeQualityDashboard: React.FC = () => {
     }
   };
 
-  // Drill-down handlers
-  const handleLayerClick = (layerName: string) => {
-    setSelectedLayer(layerName);
-    setDrillDownLevel('layer');
-    setSelectedComponent(null);
-    setSelectedFile(null);
-  };
-
-  const handleComponentClick = (componentName: string) => {
-    setSelectedComponent(componentName);
-    setDrillDownLevel('component');
-    setSelectedFile(null);
-  };
-
   const handleFileClick = async (filePath: string) => {
     try {
       setLoadingDetail(true);
-      const token = localStorage.getItem('accessToken');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get(
-        `/api/code-metrics/file/${projectId}?filePath=${encodeURIComponent(filePath)}`,
-        config
-      );
+      const response = await axios.get(`/api/code-metrics/file/${projectId}?filePath=${encodeURIComponent(filePath)}`);
 
       setSelectedFile(response.data);
       setDrillDownLevel('file');
@@ -236,50 +211,15 @@ const CodeQualityDashboard: React.FC = () => {
 
   const handleBackClick = () => {
     if (drillDownLevel === 'file') {
-      setDrillDownLevel('component');
-      setSelectedFile(null);
-    } else if (drillDownLevel === 'component') {
-      setDrillDownLevel('layer');
-      setSelectedComponent(null);
-    } else if (drillDownLevel === 'layer') {
       setDrillDownLevel('project');
-      setSelectedLayer(null);
+      setSelectedFile(null);
     }
-  };
-
-  // Story creation handlers
-  const handleCreateStoryForComponent = (component: ComponentMetrics) => {
-    const title = `Improve code quality in ${component.name} component`;
-    const description = `## Component Health Issues\n\n` +
-      `**Component:** ${component.name}\n` +
-      `**Layer:** ${component.layer}\n` +
-      `**Health Score:** ${component.healthScore}/100\n` +
-      `**Complexity:** ${component.avgComplexity}\n` +
-      `**Coverage:** ${component.coverage}%\n` +
-      `**Hotspots:** ${component.hotspotCount}\n` +
-      `**Files:** ${component.fileCount}\n\n` +
-      `### Recommendations:\n` +
-      `- ${component.avgComplexity > 15 ? '⚠️ Reduce complexity by refactoring complex functions' : '✓ Complexity is acceptable'}\n` +
-      `- ${component.coverage < 70 ? '⚠️ Increase test coverage to at least 70%' : component.coverage < 80 ? '⚠️ Increase test coverage to 80%' : '✓ Test coverage is good'}\n` +
-      `- ${component.hotspotCount > 0 ? `⚠️ Address ${component.hotspotCount} high-risk file(s)` : '✓ No high-risk files detected'}\n\n` +
-      `### Acceptance Criteria:\n` +
-      `- [ ] Health score improved to at least ${Math.min(component.healthScore + 20, 80)}/100\n` +
-      `- [ ] All functions have complexity < 15\n` +
-      `- [ ] Test coverage >= ${component.coverage < 70 ? '70' : '80'}%\n` +
-      `- [ ] No high-risk hotspots remaining`;
-
-    setStoryTitle(title);
-    setStoryDescription(description);
-    setStoryContext({ type: 'component', data: component });
-    setIsStoryModalOpen(true);
   };
 
   const handleCreateStoryForFile = (file: FileHotspot) => {
     const title = `Refactor high-risk file: ${file.filePath.split('/').pop()}`;
     const description = `## File Hotspot Analysis\n\n` +
       `**File:** \`${file.filePath}\`\n` +
-      `**Component:** ${file.component}\n` +
-      `**Layer:** ${file.layer}\n` +
       `**Risk Score:** ${file.riskScore}/100\n` +
       `**Complexity:** ${file.complexity}\n` +
       `**Churn Count:** ${file.churnCount}\n` +
@@ -310,13 +250,6 @@ const CodeQualityDashboard: React.FC = () => {
       `**Occurrences:** ${issue.count}\n` +
       `**Files Affected:** ${issue.filesAffected}\n\n` +
       `${issue.sampleFiles.length > 0 ? `### Sample Files:\n${issue.sampleFiles.map(f => `- \`${f}\``).join('\n')}\n\n` : ''}` +
-      `### Description:\n` +
-      `${issue.type === 'Security Vulnerabilities' ? 'Security vulnerabilities have been detected that could expose the application to attacks.' : ''}` +
-      `${issue.type === 'Bug Risks' ? 'Code patterns that are likely to cause bugs have been identified.' : ''}` +
-      `${issue.type === 'Performance Issues' ? 'Performance bottlenecks have been detected that could impact user experience.' : ''}` +
-      `${issue.type === 'Code Duplication' ? 'Duplicate code has been found that should be refactored into reusable components.' : ''}` +
-      `${issue.type === 'Maintainability Issues' ? 'Code maintainability problems have been identified.' : ''}` +
-      `${issue.type === 'Code Style Issues' ? 'Code style inconsistencies have been detected.' : ''}\n\n` +
       `### Tasks:\n` +
       `- [ ] Review all affected files\n` +
       `- [ ] Fix or refactor the ${issue.count} occurrence(s)\n` +
@@ -341,12 +274,11 @@ const CodeQualityDashboard: React.FC = () => {
 
     try {
       setCreatingStory(true);
-      await storiesService.createStory({
+      await storiesService.create({
         projectId: projectId!,
         title: storyTitle,
         description: storyDescription,
-        type: 'chore', // Code quality improvements are chores
-        status: 'planning',
+        type: StoryType.CHORE,
       });
 
       alert('Story created successfully!');
@@ -355,7 +287,6 @@ const CodeQualityDashboard: React.FC = () => {
       setStoryDescription('');
       setStoryContext(null);
 
-      // Optionally navigate to the story or refresh
       navigate(`/projects/${projectId}/planning`);
     } catch (error: any) {
       console.error('Failed to create story:', error);
@@ -363,17 +294,6 @@ const CodeQualityDashboard: React.FC = () => {
     } finally {
       setCreatingStory(false);
     }
-  };
-
-  // Get filtered data based on drill-down level
-  const getFilteredComponents = () => {
-    if (!selectedLayer) return componentMetrics;
-    return componentMetrics.filter(c => c.layer === selectedLayer);
-  };
-
-  const getFilteredFiles = () => {
-    if (!selectedComponent) return hotspots;
-    return hotspots.filter(f => f.component === selectedComponent);
   };
 
   const getHealthColor = (score: number): string => {
@@ -388,17 +308,164 @@ const CodeQualityDashboard: React.FC = () => {
     return '🔴';
   };
 
-  const getChurnIcon = (level: string): string => {
-    if (level === 'low') return '✓';
-    if (level === 'medium') return '⚠️';
-    return '🔴';
-  };
-
   const getSeverityIcon = (severity: string): string => {
     if (severity === 'critical') return '🔴';
     if (severity === 'high') return '⚠️';
     if (severity === 'medium') return '⚠️';
     return 'ℹ️';
+  };
+
+  const toggleFolder = (path: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(path)) {
+      newExpanded.delete(path);
+    } else {
+      newExpanded.add(path);
+    }
+    setExpandedFolders(newExpanded);
+  };
+
+  // Extract all files from hierarchy
+  const getAllFiles = (node: FolderNode): FolderNode[] => {
+    const files: FolderNode[] = [];
+
+    if (node.type === 'file') {
+      files.push(node);
+    } else if (node.children) {
+      for (const child of node.children) {
+        files.push(...getAllFiles(child));
+      }
+    }
+
+    return files;
+  };
+
+  // Get files without any coverage
+  const getFilesWithoutCoverage = (): FolderNode[] => {
+    if (!folderHierarchy) return [];
+    const allFiles = getAllFiles(folderHierarchy);
+    return allFiles.filter(file => file.metrics.avgCoverage === 0);
+  };
+
+  // Get files with low coverage (>0% but <80%)
+  const getFilesWithCoverageGaps = (): FolderNode[] => {
+    if (!folderHierarchy) return [];
+    const allFiles = getAllFiles(folderHierarchy);
+    return allFiles
+      .filter(file => file.metrics.avgCoverage > 0 && file.metrics.avgCoverage < 80)
+      .sort((a, b) => a.metrics.avgCoverage - b.metrics.avgCoverage);
+  };
+
+  const handleCreateStoryForFolder = (node: FolderNode) => {
+    const isFile = node.type === 'file';
+    const title = isFile
+      ? `Refactor: ${node.name}`
+      : `Improve code quality in ${node.path || 'root'}`;
+
+    const description = isFile
+      ? `## File Analysis\n\n` +
+        `**File:** \`${node.path}\`\n` +
+        `**Lines of Code:** ${node.metrics.totalLoc.toLocaleString()}\n` +
+        `**Complexity:** ${node.metrics.avgComplexity.toFixed(1)}\n` +
+        `**Coverage:** ${node.metrics.avgCoverage.toFixed(1)}%\n` +
+        `**Health Score:** ${node.metrics.healthScore}/100\n\n` +
+        `### Issues to Address\n` +
+        (node.metrics.avgCoverage < 70 ? `- Low test coverage (${node.metrics.avgCoverage.toFixed(1)}%)\n` : '') +
+        (node.metrics.avgComplexity > 10 ? `- High complexity (${node.metrics.avgComplexity.toFixed(1)})\n` : '') +
+        (node.metrics.healthScore < 70 ? `- Poor health score (${node.metrics.healthScore}/100)\n` : '')
+      : `## Folder Analysis\n\n` +
+        `**Path:** \`${node.path || 'root'}\`\n` +
+        `**Total Files:** ${node.metrics.fileCount}\n` +
+        `**Total Lines of Code:** ${node.metrics.totalLoc.toLocaleString()}\n` +
+        `**Average Complexity:** ${node.metrics.avgComplexity.toFixed(1)}\n` +
+        `**Average Coverage:** ${node.metrics.avgCoverage.toFixed(1)}%\n` +
+        `**Uncovered Files:** ${node.metrics.uncoveredFiles}\n` +
+        `**Health Score:** ${node.metrics.healthScore}/100\n\n` +
+        `### Recommended Actions\n` +
+        (node.metrics.uncoveredFiles > 0 ? `- Add tests for ${node.metrics.uncoveredFiles} uncovered files\n` : '') +
+        (node.metrics.avgComplexity > 10 ? `- Refactor complex code (avg complexity: ${node.metrics.avgComplexity.toFixed(1)})\n` : '') +
+        (node.metrics.healthScore < 70 ? `- Improve overall code quality (health score: ${node.metrics.healthScore}/100)\n` : '');
+
+    setStoryModalData({
+      title,
+      description,
+      type: isFile ? 'chore' : 'epic',
+      technicalComplexity: Math.min(Math.ceil(node.metrics.avgComplexity / 3), 5),
+      businessComplexity: 3,
+    });
+    setShowStoryModal(true);
+  };
+
+  const renderFolderTree = (node: FolderNode, depth: number = 0): React.ReactNode => {
+    const isExpanded = expandedFolders.has(node.path);
+    const isFile = node.type === 'file';
+    const hasChildren = node.children && node.children.length > 0;
+
+    const healthColor = node.metrics.healthScore >= 70 ? 'text-green-600' :
+                       node.metrics.healthScore >= 40 ? 'text-yellow-600' : 'text-red-600';
+
+    return (
+      <div key={node.path} className="border-l border-border">
+        <div
+          className={`flex items-center gap-4 py-2 px-3 hover:bg-bg-secondary ${isFile ? 'font-normal' : 'font-medium'}`}
+        >
+          {/* Expand/Collapse icon + Name */}
+          <div
+            className="flex items-center gap-2 flex-1 cursor-pointer"
+            style={{ paddingLeft: `${depth * 20}px` }}
+            onClick={() => isFile ? handleFileClick(node.path) : toggleFolder(node.path)}
+          >
+            {!isFile && hasChildren && (
+              <span className="text-muted w-4">
+                {isExpanded ? '▼' : '▶'}
+              </span>
+            )}
+            {!isFile && !hasChildren && <span className="w-4"></span>}
+            {isFile && <span className="text-muted w-4">📄</span>}
+
+            <span className={`${isFile ? 'text-accent hover:text-accent-dark' : 'text-fg'}`}>
+              {!isFile && '📁 '}{node.name}
+            </span>
+          </div>
+
+          {/* Metrics with fixed widths matching header */}
+          <div className="flex items-center gap-4 text-sm">
+            <span className={`w-16 text-center ${healthColor}`} title="Health Score">
+              {node.metrics.healthScore}
+            </span>
+            <span className="w-20 text-center text-muted" title="File Count">
+              {node.metrics.fileCount}
+            </span>
+            <span className="w-24 text-center text-muted" title="Lines of Code">
+              {node.metrics.totalLoc.toLocaleString()}
+            </span>
+            <span className={`w-20 text-center ${node.metrics.avgComplexity > 15 ? 'text-red-600' : node.metrics.avgComplexity > 10 ? 'text-yellow-600' : 'text-green-600'}`} title="Complexity">
+              {node.metrics.avgComplexity.toFixed(1)}
+            </span>
+            <span className={`w-20 text-center ${node.metrics.avgCoverage < 50 ? 'text-red-600' : node.metrics.avgCoverage < 70 ? 'text-yellow-600' : 'text-green-600'}`} title="Coverage">
+              {node.metrics.avgCoverage.toFixed(1)}%
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCreateStoryForFolder(node);
+              }}
+              className="w-16 text-center px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors"
+              title="Create story for this item"
+            >
+              + Story
+            </button>
+          </div>
+        </div>
+
+        {/* Render children if expanded */}
+        {!isFile && isExpanded && hasChildren && (
+          <div>
+            {node.children!.map(child => renderFolderTree(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading && !projectMetrics) {
@@ -452,33 +519,11 @@ const CodeQualityDashboard: React.FC = () => {
       {/* Breadcrumbs */}
       <div className="mb-6 flex items-center gap-2 text-sm">
         <button
-          onClick={() => { setDrillDownLevel('project'); setSelectedLayer(null); setSelectedComponent(null); setSelectedFile(null); }}
+          onClick={() => { setDrillDownLevel('project'); setSelectedFile(null); }}
           className={`hover:text-accent ${drillDownLevel === 'project' ? 'text-accent font-bold' : 'text-muted'}`}
         >
           Project
         </button>
-        {selectedLayer && (
-          <>
-            <span className="text-muted">/</span>
-            <button
-              onClick={() => { setDrillDownLevel('layer'); setSelectedComponent(null); setSelectedFile(null); }}
-              className={`hover:text-accent ${drillDownLevel === 'layer' ? 'text-accent font-bold' : 'text-muted'}`}
-            >
-              {selectedLayer}
-            </button>
-          </>
-        )}
-        {selectedComponent && (
-          <>
-            <span className="text-muted">/</span>
-            <button
-              onClick={() => { setDrillDownLevel('component'); setSelectedFile(null); }}
-              className={`hover:text-accent ${drillDownLevel === 'component' ? 'text-accent font-bold' : 'text-muted'}`}
-            >
-              {selectedComponent}
-            </button>
-          </>
-        )}
         {selectedFile && (
           <>
             <span className="text-muted">/</span>
@@ -624,177 +669,396 @@ const CodeQualityDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Layer Metrics */}
+      {/* Hierarchical Folder View */}
+      {drillDownLevel === 'project' && folderHierarchy && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-fg mb-4">
+            Code Structure & Metrics (Hierarchical View)
+          </h2>
+          <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+            {/* Header */}
+            <div className="bg-bg-secondary px-3 py-3 flex items-center gap-4 text-xs font-medium text-muted uppercase">
+              <span className="flex-1">Path</span>
+              <span className="w-16 text-center">Health</span>
+              <span className="w-20 text-center">Files</span>
+              <span className="w-24 text-center">LOC</span>
+              <span className="w-20 text-center">Complex</span>
+              <span className="w-20 text-center">Cover</span>
+              <span className="w-16 text-center">Actions</span>
+            </div>
+            {/* Tree */}
+            <div className="max-h-[600px] overflow-y-auto">
+              {folderHierarchy.children && folderHierarchy.children.map(child => renderFolderTree(child, 0))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Coverage Management */}
       {drillDownLevel === 'project' && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-fg mb-4">Layer-Level Metrics (Click to drill down)</h2>
-          <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-bg-secondary">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Layer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">LOC</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Defects</th>
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
-                {layerMetrics.map((layer) => (
-                  <tr
-                    key={layer.layer}
-                    onClick={() => handleLayerClick(layer.layer)}
-                    className="hover:bg-bg cursor-pointer transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-accent hover:text-accent-dark">{layer.layer}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg">
-                      {layer.loc.toLocaleString()} ({layer.locPercentage}%)
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(layer.healthScore)}`}>
-                        {layer.healthScore}/100
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.avgComplexity}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg">
-                      {getChurnIcon(layer.churnLevel)} {layer.churnLevel}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.coverage}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg">{layer.defectCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Component Metrics */}
-      {drillDownLevel === 'layer' && (
-        <div className="mb-8">
           <h2 className="text-lg font-bold text-fg mb-4">
-            {selectedLayer ? `Components in ${selectedLayer} Layer` : 'Component-Level Metrics'} (Click to drill down)
+            Test Coverage Management
           </h2>
-          <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-bg-secondary">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Component</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Hotspots</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
-                {getFilteredComponents().slice(0, 20).map((component) => (
-                  <tr
-                    key={component.name}
-                    className="hover:bg-bg transition-colors"
-                  >
-                    <td
-                      className="px-6 py-4 whitespace-nowrap cursor-pointer"
-                      onClick={() => handleComponentClick(component.name)}
-                    >
-                      <div className="font-medium text-accent hover:text-accent-dark">{component.name}</div>
-                      <div className="text-sm text-muted">🏷️ {component.layer} • {component.fileCount} files</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => handleComponentClick(component.name)}>
-                      <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(component.healthScore)}`}>
-                        {component.healthScore}/100
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>{component.avgComplexity}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>
-                      {getChurnIcon(component.churnLevel)} {component.churnLevel}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>{component.coverage}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-fg cursor-pointer" onClick={() => handleComponentClick(component.name)}>
-                      {component.hotspotCount > 0 ? `🔥`.repeat(Math.min(component.hotspotCount, 3)) : '─'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCreateStoryForComponent(component);
-                        }}
-                        className="px-3 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors"
+
+          {/* Coverage Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-4">
+              <div className="text-sm text-muted mb-1">Overall Coverage</div>
+              <div className={`text-3xl font-bold ${(folderHierarchy?.metrics.avgCoverage || 0) >= 80 ? 'text-green-600' : (folderHierarchy?.metrics.avgCoverage || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                {(folderHierarchy?.metrics.avgCoverage || 0).toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted mt-1">
+                Target: 80%
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg shadow-sm p-4">
+              <div className="text-sm text-muted mb-1">Files Without Tests</div>
+              <div className="text-3xl font-bold text-red-600">
+                {folderHierarchy?.metrics.uncoveredFiles || 0}
+              </div>
+              <div className="text-xs text-muted mt-1">
+                {folderHierarchy && folderHierarchy.metrics.fileCount > 0 ? Math.round((folderHierarchy.metrics.uncoveredFiles / folderHierarchy.metrics.fileCount) * 100) : 0}% of total files
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg shadow-sm p-4">
+              <div className="text-sm text-muted mb-1">Coverage Gaps</div>
+              <div className="text-3xl font-bold text-yellow-600">
+                {coverageGaps.length}
+              </div>
+              <div className="text-xs text-muted mt-1">
+                Files needing attention
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg shadow-sm p-4">
+              <div className="text-sm text-muted mb-1">Well Tested</div>
+              <div className="text-3xl font-bold text-green-600">
+                {folderHierarchy ? Math.max(0, folderHierarchy.metrics.fileCount - folderHierarchy.metrics.uncoveredFiles - coverageGaps.length) : 0}
+              </div>
+              <div className="text-xs text-muted mt-1">
+                Files with good coverage
+              </div>
+            </div>
+          </div>
+
+          {/* Coverage Gaps Table */}
+          {coverageGaps.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-fg mb-3">
+                Priority Files Needing Tests
+              </h3>
+              <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-bg-secondary">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Priority</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">File</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Risk</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complex</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">LOC</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Reason</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-card divide-y divide-border">
+                    {coverageGaps.map((gap, index) => (
+                      <tr
+                        key={gap.filePath}
+                        className="hover:bg-bg transition-colors"
                       >
-                        📝 Create Story
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-block px-2 py-1 rounded text-sm font-bold ${gap.priority >= 90 ? 'bg-red-100 text-red-700' : gap.priority >= 70 ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {gap.priority}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 cursor-pointer" onClick={() => handleFileClick(gap.filePath)}>
+                          <div className="font-medium text-sm text-accent hover:text-accent-dark">{gap.filePath.split('/').pop()}</div>
+                          <div className="text-xs text-muted truncate max-w-xs">{gap.filePath}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={gap.riskScore >= 70 ? 'text-red-600' : gap.riskScore >= 50 ? 'text-yellow-600' : 'text-green-600'}>
+                            {gap.riskScore}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={gap.complexity > 15 ? 'text-red-600' : gap.complexity > 10 ? 'text-yellow-600' : 'text-green-600'}>
+                            {gap.complexity}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted">
+                          {gap.loc.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={gap.coverage < 30 ? 'text-red-600' : gap.coverage < 50 ? 'text-yellow-600' : 'text-green-600'}>
+                            {gap.coverage}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-muted">
+                          {gap.reason}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStoryModalData({
+                                title: `Add tests for ${gap.filePath.split('/').pop()}`,
+                                description: `## Test Coverage Gap\n\n` +
+                                  `**File:** \`${gap.filePath}\`\n` +
+                                  `**Current Coverage:** ${gap.coverage}%\n` +
+                                  `**Lines of Code:** ${gap.loc.toLocaleString()}\n` +
+                                  `**Complexity:** ${gap.complexity}\n` +
+                                  `**Risk Score:** ${gap.riskScore}/100\n` +
+                                  `**Priority:** ${gap.priority}/100\n\n` +
+                                  `### Why This Needs Tests\n${gap.reason}\n\n` +
+                                  `### Testing Strategy\n` +
+                                  `- Write unit tests for core functionality\n` +
+                                  (gap.complexity > 10 ? `- Add tests for complex logic paths\n` : '') +
+                                  (gap.riskScore > 70 ? `- Prioritize critical/high-risk code paths\n` : '') +
+                                  `- Aim for at least 80% coverage\n` +
+                                  `- Test edge cases and error handling`,
+                                type: 'chore',
+                                technicalComplexity: Math.min(Math.ceil(gap.complexity / 4), 5),
+                                businessComplexity: Math.min(Math.ceil(gap.riskScore / 25), 5),
+                              });
+                              setShowStoryModal(true);
+                            }}
+                            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                          >
+                            📝 Create Test Story
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
-      {/* Hotspots / Files */}
-      {(drillDownLevel === 'component' || drillDownLevel === 'project') && (
-        <div className="mb-8">
-          <h2 className="text-lg font-bold text-fg mb-4">
-            {selectedComponent ? `Files in ${selectedComponent} Component` : 'File-Level Hotspots (Top 20 by Risk)'} (Click to view details)
-          </h2>
-          <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-bg-secondary">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Rank</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">File</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Risk</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complex</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Churn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Cover</th>
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
-                {getFilteredFiles().slice(0, 20).map((hotspot, index) => (
-                  <tr
-                    key={hotspot.filePath}
-                    onClick={() => handleFileClick(hotspot.filePath)}
-                    className="hover:bg-bg cursor-pointer transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-fg">
-                      {hotspot.riskScore >= 80 ? '🔥' : '⚠️'} {index + 1}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-sm text-accent hover:text-accent-dark">{hotspot.filePath.split('/').pop()}</div>
-                      <div className="text-xs text-muted">{hotspot.component}</div>
-                      <div className="text-xs text-muted">
-                        {hotspot.loc} LOC | Last: {hotspot.lastStoryKey || 'Unknown'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-block px-2 py-1 rounded text-sm ${getHealthColor(100 - hotspot.riskScore)}`}>
-                        {hotspot.riskScore}/100
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={hotspot.complexity > 15 ? 'text-red-600' : hotspot.complexity > 10 ? 'text-yellow-600' : 'text-green-600'}>
-                        {hotspot.complexity}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={hotspot.churnCount > 5 ? 'text-red-600' : hotspot.churnCount > 3 ? 'text-yellow-600' : 'text-green-600'}>
-                        {hotspot.churnCount}×
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={hotspot.coverage < 70 ? 'text-red-600' : hotspot.coverage < 80 ? 'text-yellow-600' : 'text-green-600'}>
-                        {hotspot.coverage}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Coverage by Folder */}
+          {folderHierarchy && (
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-fg mb-3">
+                Coverage by Folder
+              </h3>
+              <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-bg-secondary">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Folder</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Files</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Untested Files</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-card divide-y divide-border">
+                    {folderHierarchy.children?.map((folder) => (
+                      <tr key={folder.path} className="hover:bg-bg transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span>📁</span>
+                            <div>
+                              <div className="font-medium text-sm text-fg">{folder.name}</div>
+                              <div className="text-xs text-muted">{folder.path}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted">
+                          {folder.metrics.fileCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-24 bg-bg-secondary rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${folder.metrics.avgCoverage >= 80 ? 'bg-green-600' : folder.metrics.avgCoverage >= 60 ? 'bg-yellow-600' : 'bg-red-600'}`}
+                                style={{ width: `${folder.metrics.avgCoverage}%` }}
+                              ></div>
+                            </div>
+                            <span className={`font-medium ${folder.metrics.avgCoverage >= 80 ? 'text-green-600' : folder.metrics.avgCoverage >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                              {folder.metrics.avgCoverage.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={folder.metrics.uncoveredFiles > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                            {folder.metrics.uncoveredFiles}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`font-medium ${folder.metrics.healthScore >= 70 ? 'text-green-600' : folder.metrics.healthScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            {folder.metrics.healthScore}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {folder.metrics.avgCoverage >= 80 ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              ✓ Good
+                            </span>
+                          ) : folder.metrics.avgCoverage >= 60 ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              ⚠ Needs Work
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              ✗ Critical
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Files Without Coverage (0%) */}
+          {folderHierarchy && getFilesWithoutCoverage().length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-fg mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600 text-xs font-bold">
+                  {getFilesWithoutCoverage().length}
+                </span>
+                Files Without Any Tests (0% Coverage)
+              </h3>
+              <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-bg-secondary">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">File</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">LOC</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-card divide-y divide-border">
+                    {getFilesWithoutCoverage().map((file) => (
+                      <tr key={file.path} className="hover:bg-bg transition-colors">
+                        <td className="px-6 py-4 cursor-pointer" onClick={() => handleFileClick(file.path)}>
+                          <div className="flex items-center gap-2">
+                            <span>📄</span>
+                            <div>
+                              <div className="font-medium text-sm text-accent hover:text-accent-dark">{file.name}</div>
+                              <div className="text-xs text-muted truncate max-w-md">{file.path}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted">
+                          {file.metrics.totalLoc.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={file.metrics.avgComplexity > 15 ? 'text-red-600' : file.metrics.avgComplexity > 10 ? 'text-yellow-600' : 'text-green-600'}>
+                            {file.metrics.avgComplexity.toFixed(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`font-medium ${file.metrics.healthScore >= 70 ? 'text-green-600' : file.metrics.healthScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            {file.metrics.healthScore}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCreateStoryForFolder(file);
+                            }}
+                            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                          >
+                            📝 Add Tests
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Files With Coverage Gaps (>0% but <80%) */}
+          {folderHierarchy && getFilesWithCoverageGaps().length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-fg mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 text-xs font-bold">
+                  {getFilesWithCoverageGaps().length}
+                </span>
+                Files With Coverage Gaps (0% - 80% Coverage)
+              </h3>
+              <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-bg-secondary">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">File</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Coverage</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">LOC</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Complexity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Health</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-card divide-y divide-border">
+                    {getFilesWithCoverageGaps().map((file) => (
+                      <tr key={file.path} className="hover:bg-bg transition-colors">
+                        <td className="px-6 py-4 cursor-pointer" onClick={() => handleFileClick(file.path)}>
+                          <div className="flex items-center gap-2">
+                            <span>📄</span>
+                            <div>
+                              <div className="font-medium text-sm text-accent hover:text-accent-dark">{file.name}</div>
+                              <div className="text-xs text-muted truncate max-w-md">{file.path}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-bg-secondary rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${file.metrics.avgCoverage >= 60 ? 'bg-yellow-600' : 'bg-red-600'}`}
+                                style={{ width: `${file.metrics.avgCoverage}%` }}
+                              ></div>
+                            </div>
+                            <span className={`font-medium ${file.metrics.avgCoverage >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                              {file.metrics.avgCoverage.toFixed(1)}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-muted">
+                          {file.metrics.totalLoc.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={file.metrics.avgComplexity > 15 ? 'text-red-600' : file.metrics.avgComplexity > 10 ? 'text-yellow-600' : 'text-green-600'}>
+                            {file.metrics.avgComplexity.toFixed(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`font-medium ${file.metrics.healthScore >= 70 ? 'text-green-600' : file.metrics.healthScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            {file.metrics.healthScore}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCreateStoryForFolder(file);
+                            }}
+                            className="px-3 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors"
+                          >
+                            📝 Improve Coverage
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -841,14 +1105,6 @@ const CodeQualityDashboard: React.FC = () => {
               <div>
                 <span className="text-muted">Path:</span>
                 <span className="ml-2 text-fg font-mono text-sm">{selectedFile.filePath}</span>
-              </div>
-              <div>
-                <span className="text-muted">Component:</span>
-                <span className="ml-2 text-fg">{selectedFile.component}</span>
-              </div>
-              <div>
-                <span className="text-muted">Layer:</span>
-                <span className="ml-2 text-fg">{selectedFile.layer}</span>
               </div>
               <div>
                 <span className="text-muted">Language:</span>
@@ -957,29 +1213,110 @@ const CodeQualityDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
-              {codeIssues.map((issue, index) => (
-                <tr key={index} className="hover:bg-bg">
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">
-                    {getSeverityIcon(issue.severity)} {issue.severity}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">{issue.type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap font-medium text-fg">{issue.count}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-fg">{issue.filesAffected} files</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button className="text-accent hover:text-accent-dark text-sm font-medium mr-2">
-                      View All
-                    </button>
-                    {issue.severity === 'critical' || issue.severity === 'high' ? (
-                      <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                        Create Item
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
+              {codeIssues.map((issue, index) => {
+                const isExpanded = expandedIssues.has(index);
+                return (
+                  <React.Fragment key={index}>
+                    <tr className="hover:bg-bg cursor-pointer" onClick={() => {
+                      const newExpanded = new Set(expandedIssues);
+                      if (isExpanded) {
+                        newExpanded.delete(index);
+                      } else {
+                        newExpanded.add(index);
+                      }
+                      setExpandedIssues(newExpanded);
+                    }}>
+                      <td className="px-6 py-4 whitespace-nowrap text-fg">
+                        {getSeverityIcon(issue.severity)} {issue.severity}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-fg">
+                        <span className="flex items-center gap-2">
+                          {isExpanded ? '▼' : '▶'}
+                          {issue.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-fg">{issue.count}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-fg">{issue.filesAffected} files</td>
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleCreateStoryForIssue(issue)}
+                          className="text-green-600 hover:text-green-800 text-sm font-medium"
+                        >
+                          Create Story
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && issue.sampleFiles.length > 0 && (
+                      <tr className="bg-bg-secondary">
+                        <td colSpan={5} className="px-6 py-4">
+                          <div className="text-sm">
+                            <p className="font-medium text-fg mb-2">Affected Files (showing {issue.sampleFiles.length} sample{issue.sampleFiles.length > 1 ? 's' : ''}):</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted">
+                              {issue.sampleFiles.map((file, fileIndex) => (
+                                <li key={fileIndex} className="font-mono text-xs">{file}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        </div>
+      )}
+
+      {/* Story Creation Modal */}
+      {isStoryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-fg mb-4">Create Story from Code Quality Issue</h3>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-fg mb-2">Title</label>
+              <input
+                type="text"
+                value={storyTitle}
+                onChange={(e) => setStoryTitle(e.target.value)}
+                className="w-full border border-border rounded-md px-3 py-2 text-fg bg-bg"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-fg mb-2">Description</label>
+              <textarea
+                value={storyDescription}
+                onChange={(e) => setStoryDescription(e.target.value)}
+                rows={15}
+                className="w-full border border-border rounded-md px-3 py-2 text-fg bg-bg font-mono text-sm"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsStoryModalOpen(false);
+                  setStoryTitle('');
+                  setStoryDescription('');
+                  setStoryContext(null);
+                }}
+                className="px-4 py-2 border border-border rounded-md text-fg hover:bg-muted"
+                disabled={creatingStory}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveStory}
+                className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-dark"
+                disabled={creatingStory}
+              >
+                {creatingStory ? 'Creating...' : 'Create Story'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
