@@ -11,7 +11,7 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { UseCasesModule } from './use-cases/use-cases.module';
 import { RunsModule } from './runs/runs.module';
 import { CommitsModule } from './commits/commits.module';
-// import { CodeMetricsModule } from './code-metrics/code-metrics.module'; // Temporarily disabled
+import { CodeMetricsModule } from './code-metrics/code-metrics.module';
 import { AgentMetricsModule } from './agent-metrics/agent-metrics.module';
 import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
@@ -37,7 +37,7 @@ import { HealthController } from './health.controller';
     UseCasesModule,
     RunsModule,
     CommitsModule,
-    // CodeMetricsModule, // Temporarily disabled
+    CodeMetricsModule,
     AgentMetricsModule,
     TestCasesModule,
     TestExecutionsModule,
