@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { ProjectSelector } from './ProjectSelector';
 import { ConnectionStatus } from './ConnectionStatus';
+import { NavDropdown } from './NavDropdown';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
@@ -51,50 +52,39 @@ export function Layout() {
                 >
                   📊 Dashboard
                 </Link>
-                <Link
-                  to="/timeline"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                >
-                  📅 Timeline
-                </Link>
-                <Link
-                  to="/use-cases"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                >
-                  📖 Use Cases
-                </Link>
+
                 {selectedProject && (
                   <>
-                    <Link
-                      to={`/planning?projectId=${selectedProject.id}`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                    >
-                      🎯 Planning
-                    </Link>
-                    <Link
-                      to="/epic-planning"
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                    >
-                      🎨 Epic Planning
-                    </Link>
-                    <Link
-                      to={`/code-quality/${selectedProject.id}`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                    >
-                      🔍 Code Quality
-                    </Link>
-                    <Link
-                      to={`/agent-performance/${selectedProject.id}`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                    >
-                      📈 Agent Performance
-                    </Link>
-                    <Link
-                      to={`/test-coverage/project/${selectedProject.id}`}
-                      className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
-                    >
-                      🧪 Test Coverage
-                    </Link>
+                    <NavDropdown
+                      label="Planning"
+                      icon="📋"
+                      items={[
+                        { label: 'Epic Planning', icon: '🎨', path: '/epic-planning' },
+                        { label: 'Timeline', icon: '📅', path: '/timeline' },
+                        { label: 'Planning Board', icon: '🎯', path: `/planning?projectId=${selectedProject.id}` },
+                      ]}
+                    />
+
+                    <NavDropdown
+                      label="Agents"
+                      icon="🤖"
+                      items={[
+                        { label: 'Components', icon: '🧩', path: '/components' },
+                        { label: 'Coordinators', icon: '🤖', path: '/coordinators' },
+                        { label: 'Workflows', icon: '⚡', path: '/workflows' },
+                      ]}
+                    />
+
+                    <NavDropdown
+                      label="Quality"
+                      icon="✨"
+                      items={[
+                        { label: 'Use Cases', icon: '📖', path: '/use-cases' },
+                        { label: 'Code Quality', icon: '🔍', path: `/code-quality/${selectedProject.id}` },
+                        { label: 'Agent Performance', icon: '📈', path: `/agent-performance/${selectedProject.id}` },
+                        { label: 'Test Coverage', icon: '🧪', path: `/test-coverage/project/${selectedProject.id}` },
+                      ]}
+                    />
                   </>
                 )}
               </div>
