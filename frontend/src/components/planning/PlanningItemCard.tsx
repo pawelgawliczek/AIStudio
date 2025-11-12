@@ -37,7 +37,7 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
         return 'border-l-blue-500';
       case 'bug':
         return 'border-l-red-500';
-      case 'tech_debt':
+      case 'chore':
         return 'border-l-orange-500';
       case 'spike':
         return 'border-l-purple-500';
@@ -146,7 +146,7 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
             <h4 className="font-medium text-gray-900 mb-2">{story.title}</h4>
 
             <div className="flex items-center gap-4 text-xs text-gray-600">
-              <span className="capitalize">Priority: {story.priority || 0}</span>
+              <span className="capitalize">Impact: {story.businessImpact || 0}</span>
               <span className="capitalize">{story.status.replace('_', ' ')}</span>
               {story._count?.subtasks && story._count.subtasks > 0 && (
                 <span>{story._count.subtasks} Subtasks</span>
