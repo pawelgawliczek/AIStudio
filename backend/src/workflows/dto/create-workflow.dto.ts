@@ -19,6 +19,8 @@ class TriggerConfigDto {
     cron?: string;
     timezone?: string;
   };
+
+  [key: string]: any;
 }
 
 export class CreateWorkflowDto {

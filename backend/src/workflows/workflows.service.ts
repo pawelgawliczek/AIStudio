@@ -84,7 +84,7 @@ export class WorkflowsService {
       where: { id },
       include: {
         coordinator: true,
-        activeWorkflow: true,
+        activeWorkflows: true,
       },
     });
 
@@ -98,12 +98,13 @@ export class WorkflowsService {
       response.usageStats = await this.getWorkflowStats(id);
     }
 
-    if (workflow.activeWorkflow) {
+    if (workflow.activeWorkflows && workflow.activeWorkflows.length > 0) {
+      const activeWorkflow = workflow.activeWorkflows[0];
       response.activationStatus = {
         isActivated: true,
-        activatedAt: workflow.activeWorkflow.activatedAt,
-        activatedBy: workflow.activeWorkflow.activatedBy,
-        filesGenerated: workflow.activeWorkflow.filesGenerated,
+        activatedAt: activeWorkflow.activatedAt,
+        activatedBy: activeWorkflow.activatedBy,
+        filesGenerated: activeWorkflow.filesGenerated,
       };
     }
 
@@ -153,7 +154,7 @@ export class WorkflowsService {
       where: { id },
       include: {
         workflowRuns: { take: 1 },
-        activeWorkflow: true,
+        activeWorkflows: true,
       },
     });
 
@@ -162,14 +163,14 @@ export class WorkflowsService {
     }
 
     // Check if workflow is activated
-    if (workflow.activeWorkflow) {
+    if (workflow.activeWorkflows && workflow.activeWorkflows.length > 0) {
       throw new BadRequestException(
         'Cannot delete an activated workflow. Deactivate it first using the deactivate endpoint.',
       );
     }
 
     // Check if workflow has any execution history
-    if (workflow.workflowRuns.length > 0) {
+    if (workflow.workflowRuns && workflow.workflowRuns.length > 0) {
       throw new BadRequestException(
         'Cannot delete workflow with execution history. Consider deactivating instead.',
       );

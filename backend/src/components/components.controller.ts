@@ -10,7 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-} from '@nestjs/swagger';
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { ComponentsService } from './components.service';
 import { CreateComponentDto, UpdateComponentDto, ComponentResponseDto } from './dto';
