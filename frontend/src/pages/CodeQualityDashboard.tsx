@@ -128,6 +128,16 @@ const CodeQualityDashboard: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [expandedIssues, setExpandedIssues] = useState<Set<number>>(new Set());
 
+  // Story modal state
+  const [showStoryModal, setShowStoryModal] = useState(false);
+  const [storyModalData, setStoryModalData] = useState<{
+    title: string;
+    description: string;
+    type: StoryType;
+    technicalComplexity: number;
+    businessComplexity: number;
+  } | null>(null);
+
   const [filters, setFilters] = useState({
     timeRange: 30,
   });
@@ -389,7 +399,7 @@ const CodeQualityDashboard: React.FC = () => {
     setStoryModalData({
       title,
       description,
-      type: isFile ? 'chore' : 'epic',
+      type: StoryType.CHORE,
       technicalComplexity: Math.min(Math.ceil(node.metrics.avgComplexity / 3), 5),
       businessComplexity: 3,
     });
@@ -820,7 +830,7 @@ const CodeQualityDashboard: React.FC = () => {
                                   (gap.riskScore > 70 ? `- Prioritize critical/high-risk code paths\n` : '') +
                                   `- Aim for at least 80% coverage\n` +
                                   `- Test edge cases and error handling`,
-                                type: 'chore',
+                                type: StoryType.CHORE,
                                 technicalComplexity: Math.min(Math.ceil(gap.complexity / 4), 5),
                                 businessComplexity: Math.min(Math.ceil(gap.riskScore / 25), 5),
                               });
