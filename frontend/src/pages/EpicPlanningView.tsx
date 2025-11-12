@@ -197,9 +197,9 @@ export function EpicPlanningView() {
       return [...stories].sort((a, b) => {
         switch (sortOption) {
           case 'priority-high':
-            return (b.priority || 0) - (a.priority || 0);
+            return (b.businessImpact || 0) - (a.businessImpact || 0);
           case 'priority-low':
-            return (a.priority || 0) - (b.priority || 0);
+            return (a.businessImpact || 0) - (b.businessImpact || 0);
           case 'created-new':
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
           case 'created-old':
@@ -270,7 +270,7 @@ export function EpicPlanningView() {
       const targetEpic = filteredAndSortedData.epics.find(e => e.id === over.id);
       if (targetEpic) {
         // Reassign to different epic
-        const newPriority = Math.max(...(targetEpic.stories?.map(s => s.priority || 0) || [0])) + 1;
+        const newPriority = Math.max(...(targetEpic.stories?.map(s => s.businessImpact || 0) || [0])) + 1;
         reassignStoryMutation.mutate({
           storyId: activeStory.id,
           epicId: targetEpic.id,
@@ -297,8 +297,8 @@ export function EpicPlanningView() {
 
       if (overStory && activeStory.epicId === overStory.epicId) {
         // Swap priorities within same epic
-        updateStoryPriorityMutation.mutate({ storyId: activeStory.id, priority: overStory.priority || 0 });
-        updateStoryPriorityMutation.mutate({ storyId: overStory.id, priority: activeStory.priority || 0 });
+        updateStoryPriorityMutation.mutate({ storyId: activeStory.id, priority: overStory.businessImpact || 0 });
+        updateStoryPriorityMutation.mutate({ storyId: overStory.id, priority: activeStory.businessImpact || 0 });
       }
     }
   };

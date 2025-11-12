@@ -1,0 +1,88 @@
+import { apiClient } from './api.client';
+import type { Workflow, CreateWorkflowDto, UpdateWorkflowDto } from '../types';
+
+export const workflowsService = {
+  /**
+   * Get all workflows for a project
+   */
+  async getAll(
+    projectId: string,
+    options?: {
+      active?: boolean;
+      coordinatorId?: string;
+      search?: string;
+      includeStats?: boolean;
+    }
+  ): Promise<Workflow[]> {
+    const params: any = {};
+    if (options?.active !== undefined) params.active = options.active;
+    if (options?.coordinatorId) params.coordinatorId = options.coordinatorId;
+    if (options?.search) params.search = options.search;
+
+    const response = await apiClient.get<Workflow[]>(
+      `/api/projects/${projectId}/workflows`,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get a single workflow by ID
+   */
+  async getById(id: string, includeStats = false): Promise<Workflow> {
+    const response = await apiClient.get<Workflow>(
+      `/api/projects/:projectId/workflows/${id}`,
+      { params: { includeStats } }
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a new workflow
+   */
+  async create(projectId: string, data: CreateWorkflowDto): Promise<Workflow> {
+    const response = await apiClient.post<Workflow>(
+      `/api/projects/${projectId}/workflows`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Update a workflow
+   */
+  async update(id: string, data: UpdateWorkflowDto): Promise<Workflow> {
+    const response = await apiClient.put<Workflow>(
+      `/api/projects/:projectId/workflows/${id}`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete a workflow
+   */
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/api/projects/:projectId/workflows/${id}`);
+  },
+
+  /**
+   * Activate a workflow
+   */
+  async activate(id: string): Promise<Workflow> {
+    const response = await apiClient.post<Workflow>(
+      `/api/projects/:projectId/workflows/${id}/activate`
+    );
+    return response.data;
+  },
+
+  /**
+   * Deactivate a workflow
+   */
+  async deactivate(id: string): Promise<Workflow> {
+    const response = await apiClient.post<Workflow>(
+      `/api/projects/:projectId/workflows/${id}/deactivate`
+    );
+    return response.data;
+  },
+};

@@ -46,17 +46,24 @@ model Project {
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  epics         Epic[]
-  stories       Story[]
-  useCases      UseCase[]
-  commits       Commit[]
-  testCases     TestCase[]
-  agents        Agent[]
-  frameworks    AgentFramework[]
-  runs          Run[]
-  releases      Release[]
-  auditLogs     AuditLog[]
-  codeMetrics   CodeMetrics[]
+  epics               Epic[]
+  stories             Story[]
+  useCases            UseCase[]
+  commits             Commit[]
+  testCases           TestCase[]
+  agents              Agent[]
+  frameworks          AgentFramework[]
+  runs                Run[]
+  releases            Release[]
+  auditLogs           AuditLog[]
+  codeMetrics         CodeMetrics[]
+  components          Component[]
+  coordinators        CoordinatorAgent[]
+  workflows           Workflow[]
+  workflowRuns        WorkflowRun[]
+  defectsNew          DefectNew[]
+  activeWorkflows     ActiveWorkflow[]
+  metricsAggregations MetricsAggregation[]
 
   @@map("projects")
 }
@@ -97,6 +104,7 @@ model Story {
   technicalComplexity  Int?         @map("technical_complexity")
   estimatedTokenCost   Int?         @map("estimated_token_cost")
   assignedFrameworkId  String?      @map("assigned_framework_id") @db.Uuid
+  assignedWorkflowId   String?      @map("assigned_workflow_id") @db.Uuid
   createdById          String       @map("created_by") @db.Uuid
 
   // Analysis fields (filled by agents)
@@ -106,46 +114,60 @@ model Story {
   // Metadata (metrics, framework info, etc.)
   metadata             Json?        // Stores aggregated metrics, framework info, and other dynamic data
 
+  // Defect leakage tracking
+  defectLeakageCount   Int          @default(0) @map("defect_leakage_count")
+
   createdAt            DateTime     @default(now()) @map("created_at")
   updatedAt            DateTime     @updatedAt @map("updated_at")
 
   // Relations
-  project          Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  epic             Epic?                @relation(fields: [epicId], references: [id], onDelete: SetNull)
-  createdBy        User                 @relation("CreatedStories", fields: [createdById], references: [id])
-  assignedFramework AgentFramework?     @relation(fields: [assignedFrameworkId], references: [id], onDelete: SetNull)
-  subtasks         Subtask[]
-  useCaseLinks     StoryUseCaseLink[]
-  commits          Commit[]
-  runs             Run[]
-  testExecutions   TestExecution[]
-  defect           Defect?
-  releaseItems     ReleaseItem[]
+  project           Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  epic              Epic?                @relation(fields: [epicId], references: [id], onDelete: SetNull)
+  createdBy         User                 @relation("CreatedStories", fields: [createdById], references: [id])
+  assignedFramework AgentFramework?      @relation(fields: [assignedFrameworkId], references: [id], onDelete: SetNull)
+  assignedWorkflow  Workflow?            @relation(fields: [assignedWorkflowId], references: [id], onDelete: SetNull)
+  subtasks          Subtask[]
+  useCaseLinks      StoryUseCaseLink[]
+  commits           Commit[]
+  runs              Run[]
+  workflowRuns      WorkflowRun[]
+  testExecutions    TestExecution[]
+  defect            Defect?
+  defectsIntroduced DefectNew[]          @relation("DefectsIntroducedByStory")
+  defectsFound      DefectNew[]          @relation("DefectsFoundInStory")
+  releaseItems      ReleaseItem[]
 
   @@unique([projectId, key])
   @@index([projectId, status, type])
   @@index([epicId])
   @@index([assignedFrameworkId])
+  @@index([assignedWorkflowId])
   @@map("stories")
 }
 
 model Subtask {
-  id           String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  storyId      String          @map("story_id") @db.Uuid
-  key          String?         // optional key within story
-  title        String
-  description  String?
-  assigneeType AssigneeType    @default(agent) @map("assignee_type")
-  assigneeId   String?         @map("assignee_id") @db.Uuid
-  status       SubtaskStatus   @default(todo)
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
+  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId       String          @map("story_id") @db.Uuid
+  key           String?         // optional key within story
+  title         String
+  description   String?
+  assigneeType  AssigneeType    @default(agent) @map("assignee_type")
+  assigneeId    String?         @map("assignee_id") @db.Uuid
+  status        SubtaskStatus   @default(todo)
+
+  // Link to component run (for agent-created subtasks)
+  componentRunId String?        @map("component_run_id") @db.Uuid
+
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
 
   // Relations
-  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  runs  Run[]
+  story        Story         @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  runs         Run[]
+  componentRun ComponentRun? @relation(fields: [componentRunId], references: [id], onDelete: SetNull)
 
   @@index([storyId, status])
+  @@index([componentRunId])
   @@map("subtasks")
 }
 
@@ -451,6 +473,307 @@ model Run {
 }
 
 // ============================================================================
+// AGENT WORKFLOW MVP - GENERIC COMPONENT + COORDINATOR PATTERN
+// ============================================================================
+
+// Component - Generic building block configured via 3 instruction sets
+model Component {
+  id                    String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  name                  String
+  description           String?
+
+  // The core: 3 instruction sets
+  inputInstructions     String   @db.Text @map("input_instructions")
+  operationInstructions String   @db.Text @map("operation_instructions")
+  outputInstructions    String   @db.Text @map("output_instructions")
+
+  // Execution configuration
+  config                Json     // { modelId, temperature, maxInputTokens, maxOutputTokens, timeout, maxRetries, costLimit }
+  tools                 String[] // MCP tool names this component can use
+  subtaskConfig         Json?    @map("subtask_config") // { createSubtask, layer, assignee }
+  onFailure             String   @default("stop") @map("on_failure") // stop, skip, retry, pause
+
+  // Metadata
+  tags                  String[]
+  active                Boolean  @default(true)
+  version               String   @default("v1.0")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  componentRuns ComponentRun[]
+  defects       DefectNew[]
+
+  @@index([projectId])
+  @@index([projectId, active])
+  @@index([tags])
+  @@map("components")
+}
+
+// CoordinatorAgent - Intelligent orchestrator that decides workflow
+model CoordinatorAgent {
+  id                      String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId               String   @map("project_id") @db.Uuid
+  name                    String
+  description             String
+  domain                  String   // software-development, content-creation, etc.
+
+  // Coordinator instructions
+  coordinatorInstructions String   @db.Text @map("coordinator_instructions")
+
+  // Execution configuration
+  config                  Json     // { modelId, temperature, maxInputTokens, maxOutputTokens, timeout, maxRetries, costLimit }
+  tools                   String[] // MCP tool names (includes special coordinator tools)
+  decisionStrategy        String   @map("decision_strategy") // sequential, adaptive, parallel, conditional
+  componentIds            String[] @map("component_ids") // Array of Component IDs in library
+
+  // Metadata
+  active                  Boolean  @default(true)
+  version                 String   @default("v1.0")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflows    Workflow[]
+  workflowRuns WorkflowRun[]
+
+  @@index([projectId])
+  @@index([projectId, active])
+  @@index([domain])
+  @@map("coordinator_agents")
+}
+
+// Workflow - Links coordinator + trigger configuration
+model Workflow {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId        String   @map("project_id") @db.Uuid
+  coordinatorId    String   @map("coordinator_id") @db.Uuid
+  name             String
+  description      String?
+  version          String   @default("v1.0")
+
+  // Trigger configuration
+  triggerConfig    Json     @map("trigger_config") // { type, filters, notifications }
+
+  // Settings
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  coordinator     CoordinatorAgent @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
+  stories         Story[]
+  workflowRuns    WorkflowRun[]
+  activeWorkflows ActiveWorkflow[]
+
+  @@index([projectId])
+  @@index([coordinatorId])
+  @@index([projectId, active])
+  @@map("workflows")
+}
+
+// WorkflowRun - Execution of a workflow
+model WorkflowRun {
+  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId        String      @map("project_id") @db.Uuid
+  workflowId       String      @map("workflow_id") @db.Uuid
+  storyId          String?     @map("story_id") @db.Uuid
+  coordinatorId    String      @map("coordinator_id") @db.Uuid
+
+  // Trigger info
+  triggeredBy      String      @map("triggered_by") // User ID or "system"
+  triggerType      String      @map("trigger_type") // manual, story_assigned, etc.
+
+  // Status
+  status           RunStatus   @default(pending)
+
+  // Timing
+  startedAt        DateTime    @map("started_at")
+  finishedAt       DateTime?   @map("finished_at")
+
+  // Aggregated metrics
+  totalTokensIn    Int?        @map("total_tokens_in")
+  totalTokensOut   Int?        @map("total_tokens_out")
+  totalCost        Float?      @map("total_cost")
+  totalRuntime     Int?        @map("total_runtime") // milliseconds
+
+  // Iteration metrics (NEW)
+  totalUserPrompts        Int?   @map("total_user_prompts")
+  totalIterations         Int?   @map("total_iterations")
+  totalInterventions      Int?   @map("total_interventions")
+  avgPromptsPerComponent  Float? @map("avg_prompts_per_component")
+
+  // Coordinator execution
+  coordinatorDecisions Json?    @map("coordinator_decisions") // Array of decisions made
+  coordinatorMetrics   Json?    @map("coordinator_metrics") // Coordinator runtime, cost, etc.
+
+  // Metadata
+  metadata         Json?       // Execution plan, etc.
+
+  // Relations
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflow     Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  story        Story?           @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  coordinator  CoordinatorAgent @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
+  componentRuns ComponentRun[]
+  defects       DefectNew[]
+
+  @@index([projectId])
+  @@index([workflowId])
+  @@index([storyId])
+  @@index([coordinatorId])
+  @@index([startedAt])
+  @@index([status])
+  @@map("workflow_runs")
+}
+
+// ComponentRun - Individual component execution within workflow
+model ComponentRun {
+  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workflowRunId    String      @map("workflow_run_id") @db.Uuid
+  componentId      String      @map("component_id") @db.Uuid
+
+  executionOrder   Int         @map("execution_order") // 1, 2, 3, ... (order within workflow)
+
+  // Status
+  status           RunStatus   @default(pending)
+
+  // Input/Output
+  inputData        Json        @map("input_data") // Data received
+  outputData       Json?       @map("output_data") // Data produced
+
+  // Universal metrics
+  tokensInput      Int         @map("tokens_input")
+  tokensOutput     Int         @map("tokens_output")
+  runtime          Int         @map("runtime") // milliseconds
+  cost             Float
+  iterations       Int         @default(1)
+  locGenerated     Int?        @map("loc_generated") // Lines of code (if applicable)
+
+  // Iteration tracking (NEW)
+  userPrompts         Int     @default(0) @map("user_prompts")
+  systemIterations    Int     @default(1) @map("system_iterations")
+  humanInterventions  Int     @default(0) @map("human_interventions")
+  iterationLog        Json    @map("iteration_log") // Array of iterations with timestamps
+
+  // Execution details
+  startedAt        DateTime    @map("started_at")
+  finishedAt       DateTime?   @map("finished_at")
+  retryCount       Int         @default(0) @map("retry_count")
+
+  // Error tracking
+  errorType        String?     @map("error_type")
+  errorMessage     String?     @map("error_message")
+
+  // Metadata
+  metadata         Json?       // Logs, intermediate results, etc.
+
+  // Artifacts (S3 storage)
+  artifacts        Json?       // Array of { name, s3Key, type, size }
+
+  // Relations
+  workflowRun  WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  component    Component   @relation(fields: [componentId], references: [id], onDelete: Restrict)
+  subtasks     Subtask[]
+
+  @@index([workflowRunId])
+  @@index([componentId])
+  @@index([startedAt])
+  @@index([status])
+  @@map("component_runs")
+}
+
+// DefectNew - Enhanced defect tracking with origin story
+model DefectNew {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId            String    @map("project_id") @db.Uuid
+  key                  String    @unique // BUG-123
+  title                String
+  description          String
+  severity             DefectSeverity
+
+  // Story relationships
+  foundInStoryId       String?   @map("found_in_story_id") @db.Uuid
+  introducedByStoryId  String?   @map("introduced_by_story_id") @db.Uuid
+  confirmedByUserId    String?   @map("confirmed_by_user_id") @db.Uuid
+
+  // Workflow tracking
+  introducedByWorkflowRunId  String?  @map("introduced_by_workflow_run_id") @db.Uuid
+  introducedByComponentId    String?  @map("introduced_by_component_id") @db.Uuid
+
+  // Status
+  status               String    // open, confirmed, fixed, closed
+  confirmedAt          DateTime? @map("confirmed_at")
+  fixedAt              DateTime? @map("fixed_at")
+
+  // Root cause analysis
+  rootCause            String?   @map("root_cause")
+  affectedFiles        String[]  @map("affected_files")
+
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  project                  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  foundInStory             Story?        @relation("DefectsFoundInStory", fields: [foundInStoryId], references: [id], onDelete: SetNull)
+  introducedByStory        Story?        @relation("DefectsIntroducedByStory", fields: [introducedByStoryId], references: [id], onDelete: SetNull)
+  introducedByWorkflowRun  WorkflowRun?  @relation(fields: [introducedByWorkflowRunId], references: [id], onDelete: SetNull)
+  introducedByComponent    Component?    @relation(fields: [introducedByComponentId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([foundInStoryId])
+  @@index([introducedByStoryId])
+  @@index([status])
+  @@map("defects_new")
+}
+
+// ActiveWorkflow - Track activated workflows in Claude Code
+model ActiveWorkflow {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  workflowId      String   @map("workflow_id") @db.Uuid
+  version         String
+  activatedAt     DateTime @default(now()) @map("activated_at")
+  activatedBy     String   @map("activated_by") // User ID
+  filesGenerated  String[] @map("files_generated") // Paths to generated files
+  status          String   // active, deactivated, replaced
+  autoSync        Boolean  @default(false) @map("auto_sync")
+
+  // Relations
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId]) // Only one active workflow per project
+  @@index([workflowId])
+  @@map("active_workflows")
+}
+
+// MetricsAggregation - Pre-calculated metrics for performance
+model MetricsAggregation {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  aggregationType   String    @map("aggregation_type") // daily, weekly, monthly
+  aggregationDate   DateTime  @map("aggregation_date") // Date of aggregation
+  projectId         String    @map("project_id") @db.Uuid
+
+  // Aggregated data
+  metrics           Json      // Pre-calculated metrics
+
+  lastCalculatedAt  DateTime  @map("last_calculated_at")
+  calculationTime   Int       @map("calculation_time") // milliseconds
+
+  // Relations
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, aggregationType, aggregationDate])
+  @@index([projectId, aggregationType, aggregationDate])
+  @@map("metrics_aggregations")
+}
+
+// ============================================================================
 // RELEASES & AUDIT
 // ============================================================================
 
@@ -629,4 +952,14 @@ enum ReleaseStatus {
   in_progress
   released
   rolled_back
+}
+
+enum RunStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+  skipped
+  paused
 }
