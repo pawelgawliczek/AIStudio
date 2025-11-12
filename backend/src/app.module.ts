@@ -17,7 +17,10 @@ import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
 import { WorkersModule } from './workers/workers.module';
 // import { LayersModule } from './layers/layers.module'; // Removed - layers deprecated
-// import { ComponentsModule } from './components/components.module'; // Removed - components deprecated
+// import { ComponentsModule } from './components/components.module'; // Removed - old components deprecated
+import { ComponentsModule } from './components/components.module'; // New Generic Component pattern
+import { CoordinatorsModule } from './coordinators/coordinators.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -43,7 +46,10 @@ import { HealthController } from './health.controller';
     TestExecutionsModule,
     WorkersModule,
     // LayersModule, // Removed - layers deprecated
-    // ComponentsModule, // Removed - components deprecated
+    // ComponentsModule, // Removed - old components deprecated
+    ComponentsModule, // New Generic Component pattern
+    CoordinatorsModule,
+    WorkflowsModule,
   ],
   controllers: [HealthController],
 })
