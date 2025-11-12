@@ -21,6 +21,7 @@ import { WorkersModule } from './workers/workers.module';
 import { ComponentsModule } from './components/components.module'; // New Generic Component pattern
 import { CoordinatorsModule } from './coordinators/coordinators.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -50,6 +51,7 @@ import { HealthController } from './health.controller';
     ComponentsModule, // New Generic Component pattern
     CoordinatorsModule,
     WorkflowsModule,
+    WorkflowRunsModule,
   ],
   controllers: [HealthController],
 })
