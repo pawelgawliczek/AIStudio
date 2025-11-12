@@ -683,3 +683,192 @@ export interface ReportTestExecutionDto {
   ciRunId?: string;
   environment?: string;
 }
+
+// Agent Workflow MVP - Component, Coordinator, Workflow types
+export enum RunStatus {
+  pending = 'pending',
+  running = 'running',
+  completed = 'completed',
+  failed = 'failed',
+  cancelled = 'cancelled',
+  skipped = 'skipped',
+  paused = 'paused',
+}
+
+export interface ExecutionConfig {
+  modelId: string;
+  temperature: number;
+  maxInputTokens: number;
+  maxOutputTokens: number;
+  timeout: number;
+  maxRetries: number;
+  costLimit: number;
+}
+
+export interface SubtaskConfig {
+  createSubtask: boolean;
+  layer: 'frontend' | 'backend' | 'infra' | 'test' | 'other';
+  assignee: 'agent' | 'human';
+}
+
+export interface Component {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  inputInstructions: string;
+  operationInstructions: string;
+  outputInstructions: string;
+  config: ExecutionConfig;
+  tools: string[];
+  subtaskConfig?: SubtaskConfig;
+  onFailure: 'stop' | 'skip' | 'retry' | 'pause';
+  tags: string[];
+  active: boolean;
+  version: string;
+  createdAt: string;
+  updatedAt: string;
+  usageStats?: {
+    totalRuns: number;
+    avgRuntime: number;
+    avgCost: number;
+    successRate: number;
+  };
+}
+
+export interface CreateComponentDto {
+  name: string;
+  description?: string;
+  inputInstructions: string;
+  operationInstructions: string;
+  outputInstructions: string;
+  config: ExecutionConfig;
+  tools: string[];
+  subtaskConfig?: SubtaskConfig;
+  onFailure: 'stop' | 'skip' | 'retry' | 'pause';
+  tags?: string[];
+  active?: boolean;
+  version?: string;
+}
+
+export interface UpdateComponentDto {
+  name?: string;
+  description?: string;
+  inputInstructions?: string;
+  operationInstructions?: string;
+  outputInstructions?: string;
+  config?: ExecutionConfig;
+  tools?: string[];
+  subtaskConfig?: SubtaskConfig;
+  onFailure?: 'stop' | 'skip' | 'retry' | 'pause';
+  tags?: string[];
+  active?: boolean;
+  version?: string;
+}
+
+export interface CoordinatorAgent {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string;
+  domain: string;
+  coordinatorInstructions: string;
+  config: ExecutionConfig;
+  tools: string[];
+  decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
+  componentIds: string[];
+  active: boolean;
+  version: string;
+  createdAt: string;
+  updatedAt: string;
+  usageStats?: {
+    totalRuns: number;
+    avgRuntime: number;
+    avgCost: number;
+    successRate: number;
+    avgComponentsUsed: number;
+  };
+}
+
+export interface CreateCoordinatorDto {
+  name: string;
+  description: string;
+  domain: string;
+  coordinatorInstructions: string;
+  config: ExecutionConfig;
+  tools: string[];
+  decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
+  componentIds: string[];
+  active?: boolean;
+  version?: string;
+}
+
+export interface UpdateCoordinatorDto {
+  name?: string;
+  description?: string;
+  domain?: string;
+  coordinatorInstructions?: string;
+  config?: ExecutionConfig;
+  tools?: string[];
+  decisionStrategy?: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
+  componentIds?: string[];
+  active?: boolean;
+  version?: string;
+}
+
+export interface TriggerConfig {
+  type: 'manual' | 'story_status_change' | 'scheduled' | 'webhook';
+  conditions?: any;
+  schedule?: {
+    cron?: string;
+    timezone?: string;
+  };
+}
+
+export interface Workflow {
+  id: string;
+  projectId: string;
+  coordinatorId: string;
+  name: string;
+  description?: string;
+  version: string;
+  triggerConfig: TriggerConfig;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  coordinator?: {
+    id: string;
+    name: string;
+    domain: string;
+  };
+  usageStats?: {
+    totalRuns: number;
+    avgRuntime: number;
+    avgCost: number;
+    successRate: number;
+  };
+  activationStatus?: {
+    isActivated: boolean;
+    activatedAt?: string;
+    activatedBy?: string;
+    filesGenerated?: string[];
+  };
+}
+
+export interface CreateWorkflowDto {
+  name: string;
+  description?: string;
+  coordinatorId: string;
+  triggerConfig: TriggerConfig;
+  active?: boolean;
+  version?: string;
+}
+
+export interface UpdateWorkflowDto {
+  name?: string;
+  description?: string;
+  coordinatorId?: string;
+  triggerConfig?: TriggerConfig;
+  active?: boolean;
+  version?: string;
+}
