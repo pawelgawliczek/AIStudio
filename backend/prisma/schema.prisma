@@ -157,14 +157,20 @@ model CodeMetrics {
   id                    String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   projectId             String   @map("project_id") @db.Uuid
   filePath              String   @map("file_path")
+  language              String?  // e.g., TypeScript, Python, etc.
   linesOfCode           Int      @map("lines_of_code")
   cyclomaticComplexity  Float    @map("cyclomatic_complexity")
   cognitiveComplexity   Float    @map("cognitive_complexity")
   maintainabilityIndex  Float    @map("maintainability_index") // 0-100 scale
+  testCoverage          Float?   @map("test_coverage") @default(0.0) // 0-100%
   churnRate             Int      @map("churn_rate") // Number of changes in last 90 days
+  churnCount            Int      @map("churn_count") @default(0) // Total number of changes
+  riskScore             Float    @map("risk_score") @default(0.0) // 0-100, calculated: complexity * churn * (100-maintainability)
   codeSmellCount        Int      @map("code_smell_count")
+  criticalIssues        Int      @map("critical_issues") @default(0)
+  lastModified          DateTime @map("last_modified") @default(now())
   lastAnalyzedAt        DateTime @map("last_analyzed_at")
-  metadata              Json?    // Stores code smells, function metrics, etc.
+  metadata              Json?    // Stores code smells, function metrics, imports, importedBy, etc.
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
@@ -173,6 +179,7 @@ model CodeMetrics {
 
   @@unique([projectId, filePath], name: "projectId_filePath")
   @@index([projectId, maintainabilityIndex])
+  @@index([projectId, riskScore(sort: Desc)])
   @@map("code_metrics")
 }
 

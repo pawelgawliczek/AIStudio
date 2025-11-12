@@ -148,17 +148,15 @@ const CodeQualityDashboard: React.FC = () => {
       const token = localStorage.getItem('accessToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const [projectRes, layersRes, componentsRes, hotspotsRes, issuesRes] = await Promise.all([
+      const [projectRes, hotspotsRes, issuesRes] = await Promise.all([
         axios.get(`/api/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}`, config),
-        axios.get(`/api/code-metrics/project/${projectId}/layers?timeRangeDays=${filters.timeRange}`, config),
-        axios.get(`/api/code-metrics/project/${projectId}/components?timeRangeDays=${filters.timeRange}`, config),
         axios.get(`/api/code-metrics/project/${projectId}/hotspots?limit=10`, config),
         axios.get(`/api/code-metrics/project/${projectId}/issues`, config),
       ]);
 
       setProjectMetrics(projectRes.data);
-      setLayerMetrics(layersRes.data);
-      setComponentMetrics(componentsRes.data);
+      setLayerMetrics([]);
+      setComponentMetrics([]);
       setHotspots(hotspotsRes.data);
       setCodeIssues(issuesRes.data);
       setError(null);
