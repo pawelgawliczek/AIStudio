@@ -58,11 +58,15 @@ export class CodeMetricsService {
       };
     }
 
-    // Calculate aggregates
+    // Calculate aggregates (using LOC-weighted averages for accuracy)
     const totalLoc = metrics.reduce((sum, m) => sum + m.linesOfCode, 0);
-    const avgComplexity = metrics.reduce((sum, m) => sum + m.cyclomaticComplexity, 0) / metrics.length;
-    const avgMaintainability = metrics.reduce((sum, m) => sum + m.maintainabilityIndex, 0) / metrics.length;
-    const avgCoverage = metrics.reduce((sum, m) => sum + (m.testCoverage || 0), 0) / metrics.length;
+    const weightedComplexity = metrics.reduce((sum, m) => sum + (m.cyclomaticComplexity * m.linesOfCode), 0);
+    const weightedMaintainability = metrics.reduce((sum, m) => sum + (m.maintainabilityIndex * m.linesOfCode), 0);
+    const weightedCoverage = metrics.reduce((sum, m) => sum + ((m.testCoverage || 0) * m.linesOfCode), 0);
+
+    const avgComplexity = totalLoc > 0 ? weightedComplexity / totalLoc : 0;
+    const avgMaintainability = totalLoc > 0 ? weightedMaintainability / totalLoc : 0;
+    const avgCoverage = totalLoc > 0 ? weightedCoverage / totalLoc : 0;
 
     // LOC by language
     const locByLanguage: Record<string, number> = {};

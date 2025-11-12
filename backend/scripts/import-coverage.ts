@@ -15,15 +15,16 @@ async function importCoverage() {
     if (filePath === 'total') continue;
 
     const coverage = (data as any).lines?.pct || 0;
-    let relativePath = filePath.replace('/opt/stack/AIStudio/backend/', '').replace('/opt/stack/AIStudio/', '');
+    
+    // Convert /opt/stack/AIStudio/backend/src/... to backend/src/...
+    let relativePath = filePath
+      .replace('/opt/stack/AIStudio/', '')
+      .replace(/^backend\//, 'backend/');  // Ensure backend/ prefix
 
     try {
       const result = await prisma.codeMetrics.updateMany({
         where: {
-          OR: [
-            { filePath: relativePath },
-            { filePath: `backend/${relativePath}` },
-          ]
+          filePath: relativePath,
         },
         data: { testCoverage: coverage },
       });
@@ -33,6 +34,7 @@ async function importCoverage() {
         console.log('Updated ' + relativePath + ': ' + coverage + '%');
       } else {
         notFound++;
+        console.log('NOT FOUND: ' + relativePath);
       }
     } catch (error) {
       console.error('Error updating ' + relativePath + ':', error);
