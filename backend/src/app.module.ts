@@ -22,6 +22,7 @@ import { ComponentsModule } from './components/components.module'; // New Generi
 import { CoordinatorsModule } from './coordinators/coordinators.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -52,6 +53,7 @@ import { HealthController } from './health.controller';
     CoordinatorsModule,
     WorkflowsModule,
     WorkflowRunsModule,
+    MetricsModule,
   ],
   controllers: [HealthController],
 })
