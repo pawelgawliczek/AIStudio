@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCasesService } from '../services/use-cases.service';
-import { layersApi, componentsApi } from '../services/api';
-import { UseCase, Layer, Component } from '../types';
+import { UseCase } from '../types';
 import { UseCaseSearchBar } from '../components/UseCaseSearchBar';
 import { UseCaseCard } from '../components/UseCaseCard';
 import { UseCaseDetailModal } from '../components/UseCaseDetailModal';
@@ -18,8 +17,6 @@ export function UseCaseLibraryView() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState<string>('all');
-  const [selectedLayer, setSelectedLayer] = useState<string>('all');
-  const [selectedComponent, setSelectedComponent] = useState<string>('all');
   const [searchMode, setSearchMode] = useState<'text' | 'semantic' | 'component'>('text');
   const [selectedUseCase, setSelectedUseCase] = useState<UseCase | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -49,34 +46,8 @@ export function UseCaseLibraryView() {
     enabled: !!projectId,
   });
 
-  // Fetch layers for filtering
-  const { data: layers = [] } = useQuery({
-    queryKey: ['layers', projectId],
-    queryFn: () => layersApi.getAll(projectId).then(res => res.data || []),
-    enabled: !!projectId,
-  });
-
-  // Fetch components for filtering
-  const { data: components = [] } = useQuery({
-    queryKey: ['components', projectId],
-    queryFn: () => componentsApi.getAll(projectId).then(res => res.data || []),
-    enabled: !!projectId,
-  });
-
-  // Client-side filtering for layers and components
-  const useCases = useMemo(() => {
-    let filtered = rawUseCases;
-
-    if (selectedLayer !== 'all') {
-      filtered = filtered.filter(uc => uc.layerId === selectedLayer);
-    }
-
-    if (selectedComponent !== 'all') {
-      filtered = filtered.filter(uc => uc.componentId === selectedComponent);
-    }
-
-    return filtered;
-  }, [rawUseCases, selectedLayer, selectedComponent]);
+  // Use raw use cases directly (no layer/component filtering)
+  const useCases = rawUseCases;
 
   // Get unique areas for filtering
   const areas = useMemo(() => {
@@ -170,45 +141,11 @@ export function UseCaseLibraryView() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Layer:</label>
-            <select
-              value={selectedLayer}
-              onChange={(e) => setSelectedLayer(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Layers</option>
-              {Array.isArray(layers) && layers.map((layer: Layer) => (
-                <option key={layer.id} value={layer.id}>
-                  {layer.icon} {layer.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Component:</label>
-            <select
-              value={selectedComponent}
-              onChange={(e) => setSelectedComponent(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Components</option>
-              {Array.isArray(components) && components.map((component: Component) => (
-                <option key={component.id} value={component.id}>
-                  {component.icon} {component.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {(searchQuery || selectedArea !== 'all' || selectedLayer !== 'all' || selectedComponent !== 'all') && (
+          {(searchQuery || selectedArea !== 'all') && (
             <button
               onClick={() => {
                 setSearchQuery('');
                 setSelectedArea('all');
-                setSelectedLayer('all');
-                setSelectedComponent('all');
               }}
               className="text-sm text-gray-600 hover:text-gray-900 underline"
             >

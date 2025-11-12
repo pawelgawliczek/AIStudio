@@ -20,8 +20,6 @@ export function PlanningView() {
   const [selectedEpic, setSelectedEpic] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<StoryStatus | 'all'>('all');
   const [selectedType, setSelectedType] = useState<StoryType | 'all'>('all');
-  const [selectedLayer, setSelectedLayer] = useState<string>('all');
-  const [selectedComponent, setSelectedComponent] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const queryClient = useQueryClient();
@@ -56,34 +54,6 @@ export function PlanningView() {
       // Handle potential paginated or array response
       return Array.isArray(res.data) ? res.data : ((res.data as any)?.data || []);
     }),
-    enabled: !!projectId,
-  });
-
-  // Fetch layers for filtering
-  const { data: layers = [] } = useQuery({
-    queryKey: ['layers', projectId],
-    queryFn: async () => {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/layers?projectId=${projectId}&status=active`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to fetch layers');
-      return response.json();
-    },
-    enabled: !!projectId,
-  });
-
-  // Fetch components for filtering
-  const { data: components = [] } = useQuery({
-    queryKey: ['components', projectId],
-    queryFn: async () => {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/components?projectId=${projectId}&status=active`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to fetch components');
-      return response.json();
-    },
     enabled: !!projectId,
   });
 
@@ -123,8 +93,6 @@ export function PlanningView() {
       epicId?: string;
       technicalComplexity?: number;
       businessImpact?: number;
-      layerIds?: string[];
-      componentIds?: string[];
     }) =>
       storiesApi.create({ ...data, projectId }),
     onSuccess: () => {
@@ -167,18 +135,6 @@ export function PlanningView() {
       filtered = filtered.filter(s => s.type === selectedType);
     }
 
-    if (selectedLayer !== 'all') {
-      filtered = filtered.filter(s =>
-        s.layers?.some(sl => sl.layer.id === selectedLayer)
-      );
-    }
-
-    if (selectedComponent !== 'all') {
-      filtered = filtered.filter(s =>
-        s.components?.some(sc => sc.component.id === selectedComponent)
-      );
-    }
-
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -190,7 +146,7 @@ export function PlanningView() {
     }
 
     return filtered;
-  }, [stories, selectedEpic, selectedStatus, selectedType, selectedLayer, selectedComponent, searchQuery]);
+  }, [stories, selectedEpic, selectedStatus, selectedType, searchQuery]);
 
   const handleStatusChange = (storyId: string, newStatus: StoryStatus) => {
     updateStatusMutation.mutate({ storyId, status: newStatus });
@@ -269,19 +225,13 @@ export function PlanningView() {
       <div className="px-6 py-4">
         <StoryFilters
           epics={epics}
-          layers={layers}
-          components={components}
           selectedEpic={selectedEpic}
           selectedStatus={selectedStatus}
           selectedType={selectedType}
-          selectedLayer={selectedLayer}
-          selectedComponent={selectedComponent}
           searchQuery={searchQuery}
           onEpicChange={setSelectedEpic}
           onStatusChange={setSelectedStatus}
           onTypeChange={setSelectedType}
-          onLayerChange={setSelectedLayer}
-          onComponentChange={setSelectedComponent}
           onSearchChange={setSearchQuery}
         />
 
@@ -302,12 +252,6 @@ export function PlanningView() {
             className="px-3 py-1 text-sm bg-red-50 text-red-700 rounded-md hover:bg-red-100 transition-colors border border-red-200"
           >
             ⚠️ Blocked
-          </button>
-          <button
-            onClick={() => setSearchQuery('no-component')}
-            className="px-3 py-1 text-sm bg-yellow-50 text-yellow-700 rounded-md hover:bg-yellow-100 transition-colors border border-yellow-200"
-          >
-            🏷️ No Component
           </button>
           <button
             onClick={() => {
