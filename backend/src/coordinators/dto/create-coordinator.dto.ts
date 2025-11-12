@@ -24,6 +24,8 @@ class CoordinatorConfigDto {
 
   @ApiProperty({ description: 'Cost limit in USD', example: 5.0 })
   costLimit: number;
+
+  [key: string]: any;
 }
 
 export class CreateCoordinatorDto {
