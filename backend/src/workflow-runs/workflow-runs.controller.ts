@@ -1,0 +1,122 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { WorkflowRunsService } from './workflow-runs.service';
+import {
+  CreateWorkflowRunDto,
+  UpdateWorkflowRunDto,
+  WorkflowRunResponseDto,
+  RunStatus,
+} from './dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@ApiTags('workflow-runs')
+@Controller('api/projects/:projectId/workflow-runs')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class WorkflowRunsController {
+  constructor(private readonly workflowRunsService: WorkflowRunsService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new workflow run' })
+  @ApiResponse({
+    status: 201,
+    description: 'Workflow run created successfully',
+    type: WorkflowRunResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  async create(
+    @Param('projectId') projectId: string,
+    @Body() createDto: CreateWorkflowRunDto,
+  ): Promise<WorkflowRunResponseDto> {
+    return this.workflowRunsService.create(projectId, createDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all workflow runs for a project' })
+  @ApiQuery({ name: 'workflowId', required: false, type: String })
+  @ApiQuery({ name: 'storyId', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: RunStatus })
+  @ApiQuery({ name: 'includeRelations', required: false, type: Boolean })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow runs retrieved successfully',
+    type: [WorkflowRunResponseDto],
+  })
+  async findAll(
+    @Param('projectId') projectId: string,
+    @Query('workflowId') workflowId?: string,
+    @Query('storyId') storyId?: string,
+    @Query('status') status?: RunStatus,
+    @Query('includeRelations') includeRelations?: string,
+  ): Promise<WorkflowRunResponseDto[]> {
+    return this.workflowRunsService.findAll(projectId, {
+      workflowId,
+      storyId,
+      status,
+      includeRelations: includeRelations === 'true',
+    });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a workflow run by ID' })
+  @ApiQuery({ name: 'includeRelations', required: false, type: Boolean })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow run retrieved successfully',
+    type: WorkflowRunResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async findOne(
+    @Param('id') id: string,
+    @Query('includeRelations') includeRelations?: string,
+  ): Promise<WorkflowRunResponseDto> {
+    return this.workflowRunsService.findOne(id, includeRelations === 'true');
+  }
+
+  @Get(':id/results')
+  @ApiOperation({ summary: 'Get detailed results for a workflow run' })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow run results retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async getResults(@Param('id') id: string): Promise<any> {
+    return this.workflowRunsService.getResults(id);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update a workflow run' })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow run updated successfully',
+    type: WorkflowRunResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateWorkflowRunDto,
+  ): Promise<WorkflowRunResponseDto> {
+    return this.workflowRunsService.update(id, updateDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a workflow run' })
+  @ApiResponse({ status: 204, description: 'Workflow run deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.workflowRunsService.remove(id);
+  }
+}
