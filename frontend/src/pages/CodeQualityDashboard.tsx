@@ -151,11 +151,11 @@ const CodeQualityDashboard: React.FC = () => {
       setLoading(true);
 
       const [projectRes, hotspotsRes, hierarchyRes, coverageGapsRes, issuesRes] = await Promise.all([
-        axios.get(`/api/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}`),
-        axios.get(`/api/code-metrics/project/${projectId}/hotspots?limit=50`),
-        axios.get(`/api/code-metrics/project/${projectId}/hierarchy`),
-        axios.get(`/api/code-metrics/project/${projectId}/coverage-gaps?limit=20`),
-        axios.get(`/api/code-metrics/project/${projectId}/issues`),
+        axios.get(`/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}`),
+        axios.get(`/code-metrics/project/${projectId}/hotspots?limit=50`),
+        axios.get(`/code-metrics/project/${projectId}/hierarchy`),
+        axios.get(`/code-metrics/project/${projectId}/coverage-gaps?limit=20`),
+        axios.get(`/code-metrics/project/${projectId}/issues`),
       ]);
 
       setProjectMetrics(projectRes.data);
@@ -177,7 +177,7 @@ const CodeQualityDashboard: React.FC = () => {
 
     setIsAnalyzing(true);
     try {
-      const response = await axios.post(`/api/code-metrics/project/${projectId}/analyze`, {});
+      const response = await axios.post(`/code-metrics/project/${projectId}/analyze`, {});
 
       alert(`Analysis started! Job ID: ${response.data.jobId}\n${response.data.message}`);
 
@@ -197,7 +197,7 @@ const CodeQualityDashboard: React.FC = () => {
     try {
       setLoadingDetail(true);
 
-      const response = await axios.get(`/api/code-metrics/file/${projectId}?filePath=${encodeURIComponent(filePath)}`);
+      const response = await axios.get(`/code-metrics/file/${projectId}?filePath=${encodeURIComponent(filePath)}`);
 
       setSelectedFile(response.data);
       setDrillDownLevel('file');
