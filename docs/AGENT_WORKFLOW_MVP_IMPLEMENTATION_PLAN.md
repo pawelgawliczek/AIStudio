@@ -1,7 +1,7 @@
 # Agent Workflow MVP - Implementation Plan
 
 **Last Updated**: 2025-11-12
-**Status**: In Progress - Phase 1 Started
+**Status**: In Progress - Phase 2 Backend Complete
 
 ---
 
@@ -47,17 +47,19 @@
 
 ---
 
-### Phase 2: Component & Coordinator Management
+### Phase 2: Component & Coordinator Management ✅ Backend Complete
 **Goal**: Web UI for creating and managing components and coordinators
 
 #### UC-MVP-001: Create Generic Component ✅ APPROVED
-- [ ] Backend API endpoints
-  - [ ] POST /api/components - Create component
-  - [ ] GET /api/components - List components
-  - [ ] GET /api/components/:id - Get component
-  - [ ] PUT /api/components/:id - Update component
-  - [ ] DELETE /api/components/:id - Delete component
-  - [ ] POST /api/components/:id/test - Test component
+- [x] Backend API endpoints ✅ COMPLETED
+  - [x] POST /api/projects/:projectId/components - Create component
+  - [x] GET /api/projects/:projectId/components - List components
+  - [x] GET /api/projects/:projectId/components/:id - Get component
+  - [x] PUT /api/projects/:projectId/components/:id - Update component
+  - [x] DELETE /api/projects/:projectId/components/:id - Delete component
+  - [x] POST /api/projects/:projectId/components/:id/test - Test component
+  - [x] POST /api/projects/:projectId/components/:id/activate - Activate component
+  - [x] POST /api/projects/:projectId/components/:id/deactivate - Deactivate component
 - [ ] Frontend components
   - [ ] ComponentLibraryView.tsx
   - [ ] CreateComponentModal.tsx
@@ -65,24 +67,26 @@
   - [ ] ComponentTestSandbox.tsx
 
 #### UC-MVP-002: Edit Existing Component ✅ APPROVED
-- [ ] Backend API endpoints
-  - [ ] PUT /api/components/:id - Update component
-  - [ ] POST /api/components/:id/version - Create new version
-  - [ ] GET /api/components/:id/versions - List versions
-  - [ ] GET /api/components/:id/usage - Get usage statistics
+- [x] Backend API endpoints ✅ COMPLETED
+  - [x] PUT /api/projects/:projectId/components/:id - Update component
+  - [x] GET /api/projects/:projectId/components/:id?includeStats=true - Get with usage statistics
+  - [ ] POST /api/components/:id/version - Create new version (versioning TBD)
+  - [ ] GET /api/components/:id/versions - List versions (versioning TBD)
 - [ ] Frontend components
   - [ ] EditComponentModal.tsx
   - [ ] ComponentVersionHistory.tsx
   - [ ] ComponentUsageStats.tsx
 
 #### UC-MVP-003: Create Coordinator Agent ✅ APPROVED
-- [ ] Backend API endpoints
-  - [ ] POST /api/coordinators - Create coordinator
-  - [ ] GET /api/coordinators - List coordinators
-  - [ ] GET /api/coordinators/:id - Get coordinator
-  - [ ] PUT /api/coordinators/:id - Update coordinator
-  - [ ] DELETE /api/coordinators/:id - Delete coordinator
-  - [ ] POST /api/coordinators/:id/test - Test coordinator logic
+- [x] Backend API endpoints ✅ COMPLETED
+  - [x] POST /api/projects/:projectId/coordinators - Create coordinator
+  - [x] GET /api/projects/:projectId/coordinators - List coordinators
+  - [x] GET /api/projects/:projectId/coordinators/:id - Get coordinator
+  - [x] PUT /api/projects/:projectId/coordinators/:id - Update coordinator
+  - [x] DELETE /api/projects/:projectId/coordinators/:id - Delete coordinator
+  - [x] POST /api/projects/:projectId/coordinators/:id/activate - Activate coordinator
+  - [x] POST /api/projects/:projectId/coordinators/:id/deactivate - Deactivate coordinator
+  - [ ] POST /api/coordinators/:id/test - Test coordinator logic (requires execution engine)
 - [ ] Frontend components
   - [ ] CoordinatorLibraryView.tsx
   - [ ] CreateCoordinatorModal.tsx
@@ -91,31 +95,59 @@
   - [ ] DecisionStrategySelector.tsx
 
 #### UC-MVP-004: Create Workflow ✅ APPROVED
-- [ ] Backend API endpoints
-  - [ ] POST /api/workflows - Create workflow
-  - [ ] GET /api/workflows - List workflows
-  - [ ] GET /api/workflows/:id - Get workflow
-  - [ ] PUT /api/workflows/:id - Update workflow
-  - [ ] DELETE /api/workflows/:id - Delete workflow
-  - [ ] POST /api/workflows/:id/activate - Activate workflow
-  - [ ] POST /api/workflows/:id/deactivate - Deactivate workflow
+- [x] Backend API endpoints ✅ COMPLETED
+  - [x] POST /api/projects/:projectId/workflows - Create workflow
+  - [x] GET /api/projects/:projectId/workflows - List workflows
+  - [x] GET /api/projects/:projectId/workflows/:id - Get workflow
+  - [x] GET /api/projects/:projectId/workflows/:id?includeStats=true - Get with usage statistics
+  - [x] PUT /api/projects/:projectId/workflows/:id - Update workflow
+  - [x] DELETE /api/projects/:projectId/workflows/:id - Delete workflow
+  - [x] POST /api/projects/:projectId/workflows/:id/activate - Activate workflow
+  - [x] POST /api/projects/:projectId/workflows/:id/deactivate - Deactivate workflow
 - [ ] Frontend components
   - [ ] WorkflowListView.tsx
   - [ ] CreateWorkflowModal.tsx
   - [ ] WorkflowEditor.tsx
   - [ ] TriggerConfigForm.tsx
 
-**Files to Create**:
-- Backend:
-  - `backend/src/components/components.controller.ts`
-  - `backend/src/components/components.service.ts`
-  - `backend/src/components/dto/*.dto.ts`
-  - `backend/src/coordinators/coordinators.controller.ts`
-  - `backend/src/coordinators/coordinators.service.ts`
-  - `backend/src/coordinators/dto/*.dto.ts`
-  - `backend/src/workflows/workflows.controller.ts`
-  - `backend/src/workflows/workflows.service.ts`
-  - `backend/src/workflows/dto/*.dto.ts`
+**Backend Files Created** ✅:
+- Components Module:
+  - ✅ `backend/src/components/components.controller.ts` - REST API with JWT auth
+  - ✅ `backend/src/components/components.service.ts` - Business logic + usage stats
+  - ✅ `backend/src/components/components.module.ts` - NestJS module
+  - ✅ `backend/src/components/dto/create-component.dto.ts`
+  - ✅ `backend/src/components/dto/update-component.dto.ts`
+  - ✅ `backend/src/components/dto/component-response.dto.ts`
+  - ✅ `backend/src/components/dto/index.ts`
+- Coordinators Module:
+  - ✅ `backend/src/coordinators/coordinators.controller.ts` - REST API with JWT auth
+  - ✅ `backend/src/coordinators/coordinators.service.ts` - Business logic + usage stats
+  - ✅ `backend/src/coordinators/coordinators.module.ts` - NestJS module
+  - ✅ `backend/src/coordinators/dto/create-coordinator.dto.ts`
+  - ✅ `backend/src/coordinators/dto/update-coordinator.dto.ts`
+  - ✅ `backend/src/coordinators/dto/coordinator-response.dto.ts`
+  - ✅ `backend/src/coordinators/dto/index.ts`
+- Workflows Module:
+  - ✅ `backend/src/workflows/workflows.controller.ts` - REST API with JWT auth
+  - ✅ `backend/src/workflows/workflows.service.ts` - Business logic + usage stats
+  - ✅ `backend/src/workflows/workflows.module.ts` - NestJS module
+  - ✅ `backend/src/workflows/dto/create-workflow.dto.ts`
+  - ✅ `backend/src/workflows/dto/update-workflow.dto.ts`
+  - ✅ `backend/src/workflows/dto/workflow-response.dto.ts`
+  - ✅ `backend/src/workflows/dto/index.ts`
+- ✅ Registered all modules in `backend/src/app.module.ts`
+
+**Backend Features Implemented**:
+- Full CRUD operations for Components, Coordinators, and Workflows
+- JWT authentication on all endpoints
+- Swagger/OpenAPI documentation
+- Usage statistics calculation from run tables
+- Activate/deactivate functionality
+- Validation (prevent deletion with execution history)
+- Query parameters for filtering (active, tags, domain, search)
+- Proper error handling with appropriate HTTP status codes
+
+**Frontend Files to Create**:
 - Frontend:
   - `frontend/src/pages/ComponentLibrary.tsx`
   - `frontend/src/pages/CoordinatorLibrary.tsx`
