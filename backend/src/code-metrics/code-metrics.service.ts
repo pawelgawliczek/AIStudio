@@ -531,4 +531,215 @@ export class CodeMetricsService {
       (maintainabilityScore * 0.4) + (coverageScore * 0.3) + (complexityScore * 0.3)
     );
   }
+
+  /**
+   * Get status of ongoing or recent code analysis job
+   */
+  async getAnalysisStatus(projectId: string): Promise<{
+    status: 'queued' | 'running' | 'completed' | 'failed' | 'not_found';
+    progress?: number;
+    message?: string;
+    startedAt?: Date;
+    completedAt?: Date;
+  }> {
+    // Get the most recent metrics to check last analysis time
+    const recentMetrics = await this.prisma.codeMetrics.findFirst({
+      where: { projectId },
+      orderBy: { lastAnalyzedAt: 'desc' },
+      select: { lastAnalyzedAt: true },
+    });
+
+    if (!recentMetrics) {
+      return {
+        status: 'not_found',
+        message: 'No analysis has been run yet',
+      };
+    }
+
+    // Check if analysis was recent (within last 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    if (recentMetrics.lastAnalyzedAt > fiveMinutesAgo) {
+      return {
+        status: 'completed',
+        message: 'Analysis completed successfully',
+        completedAt: recentMetrics.lastAnalyzedAt,
+      };
+    }
+
+    // For now, we assume if it's older than 5 minutes, any job has completed
+    // In the future, we can query the Bull queue directly for job status
+    return {
+      status: 'completed',
+      message: 'Analysis completed',
+      completedAt: recentMetrics.lastAnalyzedAt,
+    };
+  }
+
+  /**
+   * Get comparison between current and previous analysis
+   */
+  async getAnalysisComparison(projectId: string): Promise<{
+    healthScoreChange: number;
+    newTests: number;
+    coverageChange: number;
+    complexityChange: number;
+    newFiles: number;
+    deletedFiles: number;
+    qualityImprovement: boolean;
+    lastAnalysis?: Date;
+  }> {
+    // Get current metrics
+    const currentMetrics = await this.getProjectMetrics(projectId, { timeRangeDays: 30 });
+
+    // Get metrics from 7 days ago (approximate previous analysis)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const previousMetrics = await this.prisma.codeMetrics.findMany({
+      where: {
+        projectId,
+        lastAnalyzedAt: {
+          gte: thirtyDaysAgo,
+          lte: sevenDaysAgo,
+        },
+      },
+    });
+
+    // Calculate previous aggregates
+    if (previousMetrics.length === 0) {
+      // No previous data, return zeros
+      return {
+        healthScoreChange: 0,
+        newTests: 0,
+        coverageChange: 0,
+        complexityChange: 0,
+        newFiles: 0,
+        deletedFiles: 0,
+        qualityImprovement: false,
+      };
+    }
+
+    const prevTotalLoc = previousMetrics.reduce((sum, m) => sum + m.linesOfCode, 0);
+    const prevWeightedComplexity = previousMetrics.reduce(
+      (sum, m) => sum + (m.cyclomaticComplexity * m.linesOfCode),
+      0,
+    );
+    const prevWeightedCoverage = previousMetrics.reduce(
+      (sum, m) => sum + ((m.testCoverage || 0) * m.linesOfCode),
+      0,
+    );
+    const prevWeightedMaintainability = previousMetrics.reduce(
+      (sum, m) => sum + (m.maintainabilityIndex * m.linesOfCode),
+      0,
+    );
+
+    const prevAvgComplexity = prevTotalLoc > 0 ? prevWeightedComplexity / prevTotalLoc : 0;
+    const prevAvgCoverage = prevTotalLoc > 0 ? prevWeightedCoverage / prevTotalLoc : 0;
+    const prevAvgMaintainability = prevTotalLoc > 0 ? prevWeightedMaintainability / prevTotalLoc : 0;
+
+    // Calculate previous health score
+    const prevComplexityScore = Math.max(0, 100 - (prevAvgComplexity * 5));
+    const prevHealthScore = Math.round(
+      (prevComplexityScore * 0.3) + (prevAvgMaintainability * 0.4) + (prevAvgCoverage * 0.3)
+    );
+
+    // Get current files
+    const currentFiles = await this.prisma.codeMetrics.findMany({
+      where: { projectId },
+      select: { filePath: true },
+    });
+
+    const currentFilePaths = new Set(currentFiles.map(f => f.filePath));
+    const prevFilePaths = new Set(previousMetrics.map(f => f.filePath));
+
+    const newFiles = currentFiles.filter(f => !prevFilePaths.has(f.filePath)).length;
+    const deletedFiles = previousMetrics.filter(f => !currentFilePaths.has(f.filePath)).length;
+
+    // Get test counts
+    const currentTestCount = await this.prisma.testCase.count({ where: { projectId } });
+    const previousTestCount = await this.prisma.testCase.count({
+      where: {
+        projectId,
+        createdAt: { lte: sevenDaysAgo },
+      },
+    });
+
+    const healthScoreChange = currentMetrics.healthScore.overallScore - prevHealthScore;
+    const coverageChange = currentMetrics.healthScore.coverage - prevAvgCoverage;
+    const complexityChange = currentMetrics.healthScore.complexity - prevAvgComplexity;
+
+    return {
+      healthScoreChange: Math.round(healthScoreChange * 10) / 10,
+      newTests: currentTestCount - previousTestCount,
+      coverageChange: Math.round(coverageChange * 10) / 10,
+      complexityChange: Math.round(complexityChange * 10) / 10,
+      newFiles,
+      deletedFiles,
+      qualityImprovement: healthScoreChange > 0,
+      lastAnalysis: currentMetrics.lastUpdate,
+    };
+  }
+
+  /**
+   * Get test execution summary (pass/fail/skip counts)
+   */
+  async getTestSummary(projectId: string): Promise<{
+    totalTests: number;
+    passing: number;
+    failing: number;
+    skipped: number;
+    lastExecution?: Date;
+  }> {
+    // Get total test cases
+    const totalTests = await this.prisma.testCase.count({
+      where: { projectId },
+    });
+
+    // Get most recent execution for each test case
+    const testCases = await this.prisma.testCase.findMany({
+      where: { projectId },
+      include: {
+        executions: {
+          orderBy: { executedAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    let passing = 0;
+    let failing = 0;
+    let skipped = 0;
+    let lastExecutionDate: Date | undefined;
+
+    testCases.forEach(tc => {
+      if (tc.executions.length > 0) {
+        const latestExecution = tc.executions[0];
+
+        if (!lastExecutionDate || latestExecution.executedAt > lastExecutionDate) {
+          lastExecutionDate = latestExecution.executedAt;
+        }
+
+        switch (latestExecution.status) {
+          case 'pass':
+            passing++;
+            break;
+          case 'fail':
+          case 'error':
+            failing++;
+            break;
+          case 'skip':
+            skipped++;
+            break;
+        }
+      }
+    });
+
+    return {
+      totalTests,
+      passing,
+      failing,
+      skipped,
+      lastExecution: lastExecutionDate,
+    };
+  }
 }

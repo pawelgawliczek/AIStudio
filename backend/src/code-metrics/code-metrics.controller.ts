@@ -119,4 +119,97 @@ export class CodeMetricsController {
   ): Promise<CoverageGapDto[]> {
     return this.codeMetricsService.getCoverageGaps(projectId, limit || 20);
   }
+
+  @Get('project/:projectId/analysis-status')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get status of ongoing or recent code analysis job' })
+  @ApiResponse({
+    status: 200,
+    description: 'Analysis job status',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['queued', 'running', 'completed', 'failed', 'not_found'] },
+        progress: { type: 'number' },
+        message: { type: 'string' },
+        startedAt: { type: 'string', format: 'date-time' },
+        completedAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async getAnalysisStatus(
+    @Param('projectId') projectId: string,
+  ): Promise<{
+    status: 'queued' | 'running' | 'completed' | 'failed' | 'not_found';
+    progress?: number;
+    message?: string;
+    startedAt?: Date;
+    completedAt?: Date;
+  }> {
+    return this.codeMetricsService.getAnalysisStatus(projectId);
+  }
+
+  @Get('project/:projectId/comparison')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get comparison between current and previous analysis' })
+  @ApiResponse({
+    status: 200,
+    description: 'Analysis comparison data',
+    schema: {
+      type: 'object',
+      properties: {
+        healthScoreChange: { type: 'number' },
+        newTests: { type: 'number' },
+        coverageChange: { type: 'number' },
+        complexityChange: { type: 'number' },
+        newFiles: { type: 'number' },
+        deletedFiles: { type: 'number' },
+        qualityImprovement: { type: 'boolean' },
+        lastAnalysis: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async getAnalysisComparison(
+    @Param('projectId') projectId: string,
+  ): Promise<{
+    healthScoreChange: number;
+    newTests: number;
+    coverageChange: number;
+    complexityChange: number;
+    newFiles: number;
+    deletedFiles: number;
+    qualityImprovement: boolean;
+    lastAnalysis?: Date;
+  }> {
+    return this.codeMetricsService.getAnalysisComparison(projectId);
+  }
+
+  @Get('project/:projectId/test-summary')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get test execution summary (pass/fail/skip counts)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Test execution summary',
+    schema: {
+      type: 'object',
+      properties: {
+        totalTests: { type: 'number' },
+        passing: { type: 'number' },
+        failing: { type: 'number' },
+        skipped: { type: 'number' },
+        lastExecution: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async getTestSummary(
+    @Param('projectId') projectId: string,
+  ): Promise<{
+    totalTests: number;
+    passing: number;
+    failing: number;
+    skipped: number;
+    lastExecution?: Date;
+  }> {
+    return this.codeMetricsService.getTestSummary(projectId);
+  }
 }
