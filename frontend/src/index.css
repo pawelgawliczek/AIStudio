@@ -145,6 +145,30 @@ body {
   }
 }
 
+/* Markdown editor theme integration - MUST BE OUTSIDE @layer */
+/* Override the markdown editor's CSS variables to use our theme */
+[data-color-mode="light"] {
+  --color-fg-default: var(--fg) !important;
+  --color-canvas-default: var(--bg) !important;
+}
+
+[data-color-mode="dark"] {
+  --color-fg-default: var(--fg) !important;
+  --color-canvas-default: var(--bg) !important;
+}
+
+/* Force markdown editor text to be visible */
+.w-md-editor-text-input {
+  color: var(--fg) !important;
+  -webkit-text-fill-color: var(--fg) !important;
+}
+
+.w-md-editor-text-pre,
+.w-md-editor-text-pre > code,
+.w-md-editor-text-pre * {
+  color: var(--fg) !important;
+}
+
 /* Accessibility - Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *,
