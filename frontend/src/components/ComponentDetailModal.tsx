@@ -56,21 +56,21 @@ export function ComponentDetailModal({ component, isOpen, onClose, onEdit }: Com
           <div className="space-y-4 mb-6">
             <div>
               <h3 className="text-sm font-semibold text-fg mb-2">Input Instructions</h3>
-              <p className="text-sm text-muted whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
+              <p className="text-sm text-fg whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
                 {component.inputInstructions}
               </p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-fg mb-2">Operation Instructions</h3>
-              <p className="text-sm text-muted whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
+              <p className="text-sm text-fg whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
                 {component.operationInstructions}
               </p>
             </div>
 
             <div>
               <h3 className="text-sm font-semibold text-fg mb-2">Output Instructions</h3>
-              <p className="text-sm text-muted whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
+              <p className="text-sm text-fg whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
                 {component.outputInstructions}
               </p>
             </div>
