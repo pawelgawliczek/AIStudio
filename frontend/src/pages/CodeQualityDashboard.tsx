@@ -511,7 +511,7 @@ const CodeQualityDashboard: React.FC = () => {
           disabled={isAnalyzing}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent ${
             isAnalyzing
-              ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+              ? 'bg-gray-400 text-fg cursor-not-allowed'
               : 'bg-accent text-white hover:bg-accent-dark'
           }`}
         >
@@ -781,7 +781,7 @@ const CodeQualityDashboard: React.FC = () => {
                         className="hover:bg-bg transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-block px-2 py-1 rounded text-sm font-bold ${gap.priority >= 90 ? 'bg-red-100 text-red-700' : gap.priority >= 70 ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}`}>
+                          <span className={`inline-block px-2 py-1 rounded text-sm font-bold ${gap.priority >= 90 ? 'bg-red-100 text-red-700' : gap.priority >= 70 ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-accent'}`}>
                             {gap.priority}
                           </span>
                         </td>
@@ -836,7 +836,7 @@ const CodeQualityDashboard: React.FC = () => {
                               });
                               setShowStoryModal(true);
                             }}
-                            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                            className="px-3 py-1 text-xs font-medium text-white bg-accent hover:bg-accent-dark rounded transition-colors"
                           >
                             📝 Create Test Story
                           </button>
@@ -979,7 +979,7 @@ const CodeQualityDashboard: React.FC = () => {
                               e.stopPropagation();
                               handleCreateStoryForFolder(file);
                             }}
-                            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                            className="px-3 py-1 text-xs font-medium text-white bg-accent hover:bg-accent-dark rounded transition-colors"
                           >
                             📝 Add Tests
                           </button>
