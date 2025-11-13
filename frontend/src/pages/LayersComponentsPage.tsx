@@ -265,7 +265,7 @@ export function LayersComponentsPage() {
                                   'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
                                   layer.status === 'active'
                                     ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
+                                    : 'bg-bg-secondary text-fg'
                                 )}
                               >
                                 {layer.status}
@@ -371,7 +371,7 @@ export function LayersComponentsPage() {
                                           'mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                                           component.status === 'planning'
                                             ? 'bg-yellow-100 text-yellow-800'
-                                            : 'bg-gray-100 text-gray-800'
+                                            : 'bg-bg-secondary text-fg'
                                         )}
                                       >
                                         {component.status}
@@ -440,7 +440,7 @@ export function LayersComponentsPage() {
                                 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
                                 layer.status === 'active'
                                   ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  : 'bg-bg-secondary text-fg'
                               )}
                             >
                               {layer.status}
@@ -544,7 +544,7 @@ export function LayersComponentsPage() {
                                   ? 'bg-green-100 text-green-800'
                                   : component.status === 'planning'
                                   ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  : 'bg-bg-secondary text-fg'
                               )}
                             >
                               {component.status}
@@ -723,7 +723,7 @@ function LayerModal({ open, onClose, layer, projectId, onSuccess }: LayerModalPr
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-bg-secondary0 bg-opacity-75 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -946,7 +946,7 @@ function ComponentModal({ open, onClose, component, projectId, layers, onSuccess
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-bg-secondary0 bg-opacity-75 transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">

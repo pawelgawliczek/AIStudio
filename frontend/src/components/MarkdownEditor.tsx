@@ -49,20 +49,27 @@ export function MarkdownEditor({
         preview="edit"
         textareaProps={{
           placeholder: placeholder,
+          style: {
+            color: 'var(--fg) !important',
+          },
         }}
         style={{
           borderRadius: '0.375rem',
           border: `1px solid var(--border)`,
           backgroundColor: 'var(--bg)',
           color: 'var(--fg)',
-        }}
+          '--color-fg-default': 'var(--fg)',
+          '--color-canvas-default': 'var(--bg)',
+        } as React.CSSProperties}
       />
       <style>{`
+        /* Main editor container */
         .markdown-editor-wrapper .w-md-editor {
           background-color: var(--bg) !important;
           color: var(--fg) !important;
         }
 
+        /* Toolbar styling */
         .markdown-editor-wrapper .w-md-editor-toolbar {
           background-color: var(--bg-secondary) !important;
           border-bottom: 1px solid var(--border) !important;
@@ -77,25 +84,53 @@ export function MarkdownEditor({
           color: var(--accent-fg) !important;
         }
 
+        /* Text input area - the main editing area */
         .markdown-editor-wrapper .w-md-editor-text-pre,
         .markdown-editor-wrapper .w-md-editor-text-input,
-        .markdown-editor-wrapper .w-md-editor-text {
+        .markdown-editor-wrapper .w-md-editor-text,
+        .markdown-editor-wrapper .w-md-editor-content,
+        .markdown-editor-wrapper .w-md-editor-input,
+        .markdown-editor-wrapper textarea {
           background-color: var(--bg) !important;
           color: var(--fg) !important;
         }
 
-        .markdown-editor-wrapper .w-md-editor-text-input::placeholder {
+        /* Placeholder text */
+        .markdown-editor-wrapper .w-md-editor-text-input::placeholder,
+        .markdown-editor-wrapper textarea::placeholder {
           color: var(--muted) !important;
+          opacity: 0.7 !important;
         }
 
+        /* Preview area */
         .markdown-editor-wrapper .w-md-editor-preview {
           background-color: var(--bg) !important;
           color: var(--fg) !important;
         }
 
+        /* All child elements that might contain text */
+        .markdown-editor-wrapper .w-md-editor * {
+          border-color: var(--border) !important;
+        }
+
+        /* Dark mode specific */
         [data-color-mode="dark"] .markdown-editor-wrapper .w-md-editor {
           --md-editor-background-color: var(--bg) !important;
           --md-editor-color: var(--fg) !important;
+        }
+
+        /* Ensure all text in the editor respects our colors */
+        [data-color-mode="dark"] .markdown-editor-wrapper .w-md-editor-text-pre > code,
+        [data-color-mode="dark"] .markdown-editor-wrapper .w-md-editor-text-pre > code *,
+        [data-color-mode="dark"] .markdown-editor-wrapper .w-md-editor-text-input {
+          color: var(--fg) !important;
+        }
+
+        /* Light mode specific */
+        [data-color-mode="light"] .markdown-editor-wrapper .w-md-editor-text-pre > code,
+        [data-color-mode="light"] .markdown-editor-wrapper .w-md-editor-text-pre > code *,
+        [data-color-mode="light"] .markdown-editor-wrapper .w-md-editor-text-input {
+          color: var(--fg) !important;
         }
       `}</style>
     </div>
