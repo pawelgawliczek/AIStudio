@@ -17,104 +17,146 @@
 - ✅ **Complexity Filters**: Filter by business/technical complexity
 
 ### What's Missing (25% - Phase 3+6)
-**The system can TRACK executions but can't EXECUTE them yet!**
+**The system needs MCP tools to track Claude Code executions!**
 
-❌ No workflow execution engine
-❌ No Claude API integration
-❌ No component runtime
-❌ No coordinator decision logic
-❌ No real-time monitoring
+❌ No MCP execution tracking tools
+❌ No workflow state management
+❌ No real-time monitoring WebSocket
 ❌ No artifact storage (S3)
+❌ No execution monitoring UI
 
-### 🎯 NEXT TASK: Phase 3+6 - Live Execution Engine
+**Architecture Note**: Execution happens natively in Claude Code using the coordinator agent. The backend provides MCP tools for state tracking and monitoring only.
 
-**Goal**: Make workflows actually executable, not just trackable.
+### 🎯 NEXT TASK: Phase 3+6 - Execution Tracking & Monitoring
+
+**Goal**: Enable Claude Code to execute workflows natively and track execution state via MCP tools.
+
+**Architecture**: Coordinator agent in Claude Code orchestrates execution. Backend provides MCP tools for tracking and web UI for monitoring.
 
 **What to Build**:
 
-1. **Claude API Integration** (`backend/src/execution/claude-api.service.ts`)
-   - Call Claude Sonnet API
-   - Stream responses
-   - Track tokens/cost
-   - Handle retries
+1. **MCP Execution Tracking Tools** (`backend/src/mcp/servers/execution/`)
+   - `start_workflow_run` - Initialize WorkflowRun record, return runId
+   - `record_component_start` - Log component execution start
+   - `record_component_complete` - Log results, metrics, iterations
+   - `get_workflow_context` - Get previous outputs, current state
+   - `update_workflow_status` - Update run status (running, paused, completed, failed)
+   - `store_artifact` - Save artifacts to S3 with versioning
 
-2. **Component Executor** (`backend/src/execution/component-executor.service.ts`)
-   - Execute a single component
-   - Parse input/output
-   - Track iterations & prompts
-   - Create ComponentRun records
-   - Handle failures
+2. **Workflow State Management** (`backend/src/execution/workflow-state.service.ts`)
+   - Track workflow execution state
+   - Store component outputs for context
+   - Manage workflow lifecycle
+   - Provide context to coordinator agent
 
-3. **Coordinator Decision Engine** (`backend/src/execution/coordinator-executor.service.ts`)
-   - Implement decision strategies: sequential, adaptive, parallel, conditional
-   - Select next component based on context
-   - Track coordinator decisions
+3. **S3 Artifact Storage** (`backend/src/storage/s3.service.ts`)
+   - Store component outputs (code, reports, logs)
+   - Version control with runId/componentId
+   - Retrieval API for web UI
+   - Metadata tracking
 
-4. **Workflow Orchestration** (`backend/src/execution/workflow-orchestration.service.ts`)
-   - Execute full workflow
-   - Call coordinator → select component → execute component → repeat
-   - Create WorkflowRun record
-   - Handle pause/resume/cancel
+4. **Real-time Monitoring WebSocket** (`backend/src/websocket/execution-gateway.ts`)
+   - Broadcast execution events to web UI
+   - Component start/complete notifications
+   - Status updates (progress, metrics)
+   - Live log streaming
 
-5. **Real-time Monitoring** (`backend/src/websocket/execution-gateway.ts`)
-   - WebSocket gateway
-   - Broadcast execution status
-   - Live progress updates
+5. **Execution Monitoring UI** (`frontend/src/pages/WorkflowExecutionMonitor.tsx`)
+   - Live execution view (read-only)
+   - Component progress tracker
+   - Real-time metrics display
+   - Artifact viewer
+   - Execution timeline
 
-6. **S3 Artifact Storage** (`backend/src/storage/s3.service.ts`)
-   - Store component outputs
-   - Version control
-   - Retrieval API
-
-7. **MCP Tool** (`backend/src/mcp/servers/execution/execute_workflow.ts`)
-   - `execute_workflow` MCP tool
-   - Trigger execution from Claude Code
-
-8. **Frontend Monitoring** (`frontend/src/pages/WorkflowExecutionMonitor.tsx`)
-   - Live execution view
-   - Progress bar
-   - Log viewer
-   - Pause/cancel controls
+6. **Update Coordinator Agent Template** (`.claude/agents/coordinator-*.md`)
+   - Add MCP tool usage instructions
+   - Workflow execution protocol
+   - State management guidelines
+   - Error handling patterns
 
 **API Endpoints to Create**:
 ```
-POST   /api/projects/:projectId/workflows/:id/execute       # Start execution
-GET    /api/projects/:projectId/workflow-runs/:id/status    # Get status
-POST   /api/projects/:projectId/workflow-runs/:id/pause     # Pause
-POST   /api/projects/:projectId/workflow-runs/:id/cancel    # Cancel
-POST   /api/projects/:projectId/workflow-runs/:id/resume    # Resume
-WS     /api/workflow-runs/:id/live                          # WebSocket updates
+GET    /api/projects/:projectId/workflow-runs/:id/status     # Get execution status
+GET    /api/projects/:projectId/workflow-runs/:id/artifacts  # List artifacts
+GET    /api/projects/:projectId/workflow-runs/:id/context    # Get workflow context
+WS     /ws/workflow-runs/:id                                 # WebSocket live updates
+```
+
+**MCP Tools to Create**:
+```
+start_workflow_run(workflowId, triggeredBy, context)
+record_component_start(runId, componentId, input)
+record_component_complete(runId, componentId, output, metrics)
+get_workflow_context(runId)
+update_workflow_status(runId, status, errorMessage?)
+store_artifact(runId, componentId, artifactType, data, metadata)
 ```
 
 **Acceptance Criteria**:
-- [ ] Can execute a workflow from web UI
-- [ ] Coordinator makes decisions and selects components
-- [ ] Components execute and produce output
-- [ ] WorkflowRun and ComponentRun records created
-- [ ] Real-time progress visible in UI
-- [ ] Can pause/resume/cancel execution
-- [ ] Artifacts stored in S3
-- [ ] MCP tool works from Claude Code
+- [ ] Coordinator agent can start workflow run via MCP tool
+- [ ] Coordinator agent receives workflow context (previous outputs, state)
+- [ ] Coordinator agent can record component execution start/complete
+- [ ] Component outputs stored as artifacts in S3
+- [ ] WorkflowRun and ComponentRun records created automatically
+- [ ] Real-time progress visible in web UI via WebSocket
+- [ ] Web UI displays live metrics (tokens, cost, duration)
+- [ ] Execution timeline shows component progress
+- [ ] Artifacts viewable/downloadable from web UI
+- [ ] Full execution works end-to-end in Claude Code
 
-**Estimated Effort**: 2-3 sessions (12-18 hours)
+**Estimated Effort**: 1-2 sessions (6-10 hours) - Simpler than backend execution approach!
 
 **Priority Files to Create**:
-1. `backend/src/execution/` directory (5-6 services)
-2. `backend/src/websocket/execution-gateway.ts`
-3. `backend/src/storage/s3.service.ts`
-4. `backend/src/mcp/servers/execution/execute_workflow.ts`
-5. `frontend/src/pages/WorkflowExecutionMonitor.tsx`
-6. `frontend/src/components/execution/` components
+1. `backend/src/mcp/servers/execution/` - 6 MCP tracking tools
+2. `backend/src/execution/workflow-state.service.ts` - State management
+3. `backend/src/storage/s3.service.ts` - Artifact storage
+4. `backend/src/websocket/execution-gateway.ts` - Real-time updates
+5. `backend/src/mcp/generators/coordinator-agent-generator.ts` - Update template with MCP tools
+6. `frontend/src/pages/WorkflowExecutionMonitor.tsx` - Live monitoring UI
+7. `frontend/src/components/execution/` - Timeline, metrics, artifact viewer
 
 ---
 
 ## Architecture Summary
 
-**Pattern**: Generic Component + Coordinator
-- **Components**: Reusable building blocks configured via 3 instruction sets
-- **Coordinators**: Intelligent orchestrators that decide workflow execution
-- **Workflows**: Link coordinator + trigger configuration
-- **Execution**: Real-time monitoring, metrics tracking, defect leakage analysis
+**Pattern**: Claude Code Native Execution with Backend Tracking
+
+**Core Concepts**:
+- **Components**: Reusable building blocks configured via 3 instruction sets (input, operation, output)
+- **Coordinators**: Intelligent orchestrators that decide workflow execution (decision strategies: sequential, adaptive, parallel, conditional)
+- **Workflows**: Link coordinator + components + trigger configuration
+- **Execution Model**: Coordinator agent runs in Claude Code (user's account), uses MCP tools to track state in backend
+- **Monitoring**: Real-time WebSocket updates to web UI, metrics tracking, artifact storage
+
+**Execution Flow**:
+```
+1. User activates workflow in web UI
+   → Backend generates `.claude/agents/coordinator-*.md` + component agents
+
+2. User triggers workflow in Claude Code
+   → Coordinator agent calls start_workflow_run() MCP tool
+   → Receives runId for tracking
+
+3. Coordinator decides next component (based on strategy)
+   → Calls record_component_start() MCP tool
+   → Executes component instructions in Claude Code
+   → Calls record_component_complete() with output/metrics
+   → Backend stores artifact in S3, broadcasts to web UI via WebSocket
+
+4. Coordinator gets context via get_workflow_context()
+   → Decides next component or completes workflow
+   → Calls update_workflow_status() when done
+
+5. Web UI displays real-time progress
+   → Timeline, metrics, artifacts, component breakdown
+```
+
+**Benefits**:
+- ✅ User needs only one Claude Code account (no separate AI provider)
+- ✅ Lower cost (single account vs. two)
+- ✅ Simpler architecture (no backend AI execution)
+- ✅ Full monitoring and analytics preserved
+- ✅ Coordinator has full decision-making power
 
 ---
 
@@ -273,46 +315,58 @@ WS     /api/workflow-runs/:id/live                          # WebSocket updates
 
 ---
 
-### Phase 3: Workflow Execution & Monitoring
-**Goal**: Execute workflows and monitor in real-time
+### Phase 3: Workflow Execution Tracking (Claude Code Native)
+**Goal**: Enable Claude Code to execute workflows with MCP-based state tracking
 
-#### UC-MVP-005: Execute Workflow (Manual) 🔄 SKIPPED (to be reviewed)
-- [ ] Backend execution engine
-  - [ ] WorkflowExecutionService
-  - [ ] CoordinatorExecutor
-  - [ ] ComponentExecutor
-  - [ ] Iteration tracking logic
-  - [ ] User prompt tracking
-- [ ] MCP tools
-  - [ ] execute_workflow
-  - [ ] invoke_component
-  - [ ] get_workflow_state
-  - [ ] get_component_output
-- [ ] WebSocket setup for real-time updates
+**Architecture**: Execution happens in Claude Code. Backend provides MCP tools for tracking and web UI for monitoring.
 
-#### UC-MVP-006: Monitor Workflow Execution 🔄 SKIPPED (to be reviewed)
+#### UC-MVP-005: Execute Workflow in Claude Code 🔄 IN PROGRESS
+- [ ] MCP execution tracking tools
+  - [ ] `start_workflow_run` - Initialize run, return runId
+  - [ ] `record_component_start` - Log component start
+  - [ ] `record_component_complete` - Log results, metrics, iterations, user prompts
+  - [ ] `get_workflow_context` - Get previous component outputs
+  - [ ] `update_workflow_status` - Update run status
+  - [ ] `store_artifact` - Save component outputs to S3
+- [ ] Backend services
+  - [ ] WorkflowStateService - Manage execution state
+  - [ ] S3Service - Artifact storage
+  - [ ] WebSocket Gateway - Real-time updates
+- [ ] Update coordinator agent template
+  - [ ] Add MCP tool usage instructions
+  - [ ] Execution protocol (start → loop → complete)
+  - [ ] Error handling patterns
+
+#### UC-MVP-006: Monitor Workflow Execution 🔄 IN PROGRESS
 - [ ] Backend API endpoints
-  - [ ] GET /api/workflow-runs/:id - Get execution status
-  - [ ] GET /api/workflow-runs/:id/live - SSE/WebSocket endpoint
-  - [ ] POST /api/workflow-runs/:id/pause - Pause execution
-  - [ ] POST /api/workflow-runs/:id/cancel - Cancel execution
-  - [ ] POST /api/workflow-runs/:id/resume - Resume execution
+  - [ ] GET /api/workflow-runs/:id/status - Get execution status
+  - [ ] GET /api/workflow-runs/:id/artifacts - List artifacts
+  - [ ] GET /api/workflow-runs/:id/context - Get workflow context
+  - [ ] WS /ws/workflow-runs/:id - WebSocket live updates
 - [ ] Frontend components
-  - [ ] WorkflowExecutionMonitor.tsx
-  - [ ] LiveComponentExecution.tsx
-  - [ ] LiveLogViewer.tsx
-  - [ ] ExecutionProgressBar.tsx
+  - [ ] WorkflowExecutionMonitor.tsx - Main monitoring view
+  - [ ] ExecutionTimeline.tsx - Component execution timeline
+  - [ ] LiveMetricsDisplay.tsx - Real-time metrics
+  - [ ] ArtifactViewer.tsx - View/download artifacts
+  - [ ] ComponentProgressTracker.tsx - Progress bars
 
 **Files to Create**:
 - Backend:
-  - `backend/src/execution/workflow-execution.service.ts`
-  - `backend/src/execution/coordinator-executor.service.ts`
-  - `backend/src/execution/component-executor.service.ts`
-  - `backend/src/execution/iteration-tracker.service.ts`
+  - `backend/src/mcp/servers/execution/start_workflow_run.ts`
+  - `backend/src/mcp/servers/execution/record_component_start.ts`
+  - `backend/src/mcp/servers/execution/record_component_complete.ts`
+  - `backend/src/mcp/servers/execution/get_workflow_context.ts`
+  - `backend/src/mcp/servers/execution/update_workflow_status.ts`
+  - `backend/src/mcp/servers/execution/store_artifact.ts`
+  - `backend/src/execution/workflow-state.service.ts`
+  - `backend/src/storage/s3.service.ts`
   - `backend/src/websocket/execution-gateway.ts`
 - Frontend:
-  - `frontend/src/pages/WorkflowExecution.tsx`
-  - `frontend/src/components/execution/*.tsx`
+  - `frontend/src/pages/WorkflowExecutionMonitor.tsx`
+  - `frontend/src/components/execution/ExecutionTimeline.tsx`
+  - `frontend/src/components/execution/LiveMetricsDisplay.tsx`
+  - `frontend/src/components/execution/ArtifactViewer.tsx`
+  - `frontend/src/components/execution/ComponentProgressTracker.tsx`
 
 ---
 
@@ -716,53 +770,59 @@ model MetricsAggregation {
 
 ## MCP Tools to Implement
 
-### Component Management
+### Component Management (Optional - Web UI preferred)
 - [ ] `create_component`
 - [ ] `update_component`
 - [ ] `list_components`
 - [ ] `get_component`
-- [ ] `delete_component`
-- [ ] `test_component`
 
-### Coordinator Management
+### Coordinator Management (Optional - Web UI preferred)
 - [ ] `create_coordinator`
 - [ ] `update_coordinator`
 - [ ] `list_coordinators`
 - [ ] `get_coordinator`
-- [ ] `delete_coordinator`
-- [ ] `test_coordinator`
 
-### Workflow Management
+### Workflow Management (Optional - Web UI preferred)
 - [ ] `create_workflow`
 - [ ] `update_workflow`
 - [ ] `list_workflows`
 - [ ] `get_workflow`
-- [ ] `delete_workflow`
-- [ ] `activate_workflow` ⭐
-- [ ] `deactivate_workflow`
-- [ ] `sync_workflow`
 
-### Workflow Execution
-- [ ] `execute_workflow` ⭐
-- [ ] `invoke_component`
-- [ ] `get_workflow_state`
-- [ ] `get_component_output`
-- [ ] `pause_workflow`
-- [ ] `cancel_workflow`
-- [ ] `resume_workflow`
+### Workflow Execution Tracking ⭐ **PRIORITY** (Claude Code Native)
+- [ ] `start_workflow_run(workflowId, triggeredBy, context)` - Initialize run, return runId
+- [ ] `record_component_start(runId, componentId, input)` - Log component start
+- [ ] `record_component_complete(runId, componentId, output, metrics)` - Log results with iterations/prompts
+- [ ] `get_workflow_context(runId)` - Get previous component outputs and workflow state
+- [ ] `update_workflow_status(runId, status, errorMessage?)` - Update run status (running, paused, completed, failed)
+- [ ] `store_artifact(runId, componentId, artifactType, data, metadata)` - Save component output to S3
 
-### Defect Tracking
+**Usage Pattern** (Coordinator Agent):
+```markdown
+# Step 1: Start workflow
+runId = start_workflow_run(workflowId="wf-123", triggeredBy="user-456", context={...})
+
+# Step 2: Execute components
+record_component_start(runId, componentId="review-code", input={...})
+... execute component instructions ...
+record_component_complete(runId, componentId="review-code", output={...}, metrics={tokens: 1500, duration: 30, userPrompts: 2})
+
+# Step 3: Get context for next decision
+context = get_workflow_context(runId)  # Returns previous outputs
+
+# Step 4: Complete workflow
+update_workflow_status(runId, status="completed")
+```
+
+### Defect Tracking (Future)
 - [ ] `create_defect`
 - [ ] `link_defect_to_story`
-- [ ] `suggest_defect_origin` ⭐
+- [ ] `suggest_defect_origin`
 - [ ] `get_defect_leakage_metrics`
 
-### Metrics
+### Metrics (Future - Web UI preferred)
 - [ ] `get_workflow_metrics`
 - [ ] `get_component_metrics`
-- [ ] `get_coordinator_metrics`
 - [ ] `recalculate_metrics`
-- [ ] `get_benchmarks`
 
 ---
 
@@ -824,12 +884,12 @@ model MetricsAggregation {
 - ✅ Filter by business/technical complexity
 
 **What's Missing**:
-- ❌ Actual workflow execution (can't run workflows yet!)
-- ❌ Claude API integration
-- ❌ Component runtime execution
-- ❌ Coordinator decision engine
-- ❌ Real-time monitoring
+- ❌ MCP execution tracking tools (6 tools needed)
+- ❌ Workflow state management service
+- ❌ Real-time WebSocket monitoring
 - ❌ Artifact storage (S3)
+- ❌ Execution monitoring UI
+- ❌ Updated coordinator agent template with MCP instructions
 
 **Implementation Order**:
 1. ✅ Phase 1 + 2: Foundation (Database + CRUD APIs + UI)
@@ -865,17 +925,22 @@ model MetricsAggregation {
 21. ✅ Build Performance Dashboard UI (4 tabs: Workflows, Components, Trends, Comparisons)
 22. ✅ Implement export functionality (JSON, Markdown - PDF optional)
 
-**Next (Phase 3+6 - START HERE)**:
-23. ⏭️ **Design execution engine architecture** (create design doc first!)
-24. ⏭️ **Implement Claude API integration** (`claude-api.service.ts`)
-25. ⏭️ **Build component execution runtime** (`component-executor.service.ts`)
-26. ⏭️ **Implement coordinator decision logic** (`coordinator-executor.service.ts`)
-27. ⏭️ **Create workflow orchestration engine** (`workflow-orchestration.service.ts`)
-28. ⏭️ **Build real-time monitoring WebSocket** (`execution-gateway.ts`)
-29. ⏭️ **Implement S3 artifact storage** (`s3.service.ts`)
-30. ⏭️ **Create execute_workflow MCP tool** (`execute_workflow.ts`)
-31. ⏭️ **Build execution monitoring UI** (`WorkflowExecutionMonitor.tsx`)
-32. ⏸️ Add defect leakage tracking (Phase 5 - deferred)
+**Next (Phase 3+6 - Claude Code Native Execution - START HERE)**:
+23. ⏭️ **Create MCP execution tracking tools** (6 tools)
+    - `start_workflow_run` - Initialize WorkflowRun
+    - `record_component_start` - Log component execution start
+    - `record_component_complete` - Log results + metrics
+    - `get_workflow_context` - Return previous outputs
+    - `update_workflow_status` - Update run status
+    - `store_artifact` - Save to S3
+24. ⏭️ **Build workflow state management service** (`workflow-state.service.ts`)
+25. ⏭️ **Implement S3 artifact storage** (`s3.service.ts`)
+26. ⏭️ **Build real-time monitoring WebSocket** (`execution-gateway.ts`)
+27. ⏭️ **Update coordinator agent template** (add MCP tool usage instructions)
+28. ⏭️ **Build execution monitoring UI** (`WorkflowExecutionMonitor.tsx` + components)
+29. ⏭️ **Create API endpoints** (status, artifacts, context)
+30. ⏭️ **End-to-end testing** (full workflow execution in Claude Code)
+31. ⏸️ Add defect leakage tracking (Phase 5 - deferred)
 
 ---
 
@@ -956,3 +1021,21 @@ model MetricsAggregation {
   - Committed and pushed to branch
   - Phase 4 now 100% complete (was 95%)
   - **Ready to start Phase 3+6: Live Execution Engine**
+- **2025-11-13 22:30**: **MAJOR ARCHITECTURAL DECISION - Claude Code Native Execution**:
+  - **Decision**: Pivot from backend execution engine to Claude Code native execution
+  - **Rationale**:
+    * User needs only ONE Claude Code account (not two AI accounts)
+    * Lower cost (single account vs. backend + user account)
+    * Simpler architecture (coordinator agent IS the execution engine)
+    * Already have coordinator agents with full decision logic from Phase 7
+    * Backend becomes state tracker instead of executor
+  - **What Changed**:
+    * Removed: Backend Claude API integration, component executor, coordinator executor, orchestration service
+    * Added: 6 MCP tracking tools (start_workflow_run, record_component_*, get_workflow_context, update_workflow_status, store_artifact)
+    * Execution flow: Coordinator agent in Claude Code → MCP tools → Backend tracks state → WebSocket → Web UI
+  - **Impact**:
+    * Estimated effort reduced from 12-18 hours to 6-10 hours
+    * Simpler implementation (9 files vs. 15+ files)
+    * All functionality preserved (monitoring, metrics, artifacts, real-time updates)
+    * User must have Claude Code open during execution (acceptable trade-off)
+  - **Next Steps**: Implement 6 MCP tools, workflow state service, S3 storage, WebSocket gateway, monitoring UI
