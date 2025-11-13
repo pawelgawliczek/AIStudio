@@ -1,5 +1,5 @@
 import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../constants';
@@ -22,9 +22,9 @@ export class EmbeddingProcessor {
 
   constructor(
     private prisma: PrismaService,
-    private configService: ConfigService,
+    @Inject(ConfigService) private configService: ConfigService,
   ) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    const apiKey = this.configService?.get<string>('OPENAI_API_KEY');
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
     } else {

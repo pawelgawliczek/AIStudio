@@ -69,9 +69,9 @@ export async function handler(prisma: PrismaClient, params: any) {
     errorMessage: params.errorMessage || null,
   };
 
-  // Set completedAt for terminal states
-  if (['completed', 'failed', 'cancelled'].includes(params.status) && !workflowRun.completedAt) {
-    updateData.completedAt = new Date();
+  // Set finishedAt for terminal states
+  if (['completed', 'failed', 'cancelled'].includes(params.status) && !workflowRun.finishedAt) {
+    updateData.finishedAt = new Date();
   }
 
   // Update workflow run
@@ -90,9 +90,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       },
     });
 
-    const durationMinutes = updatedWorkflowRun.completedAt
+    const durationMinutes = updatedWorkflowRun.finishedAt
       ? Math.round(
-          (updatedWorkflowRun.completedAt.getTime() - updatedWorkflowRun.startedAt.getTime()) / 60000
+          (updatedWorkflowRun.finishedAt.getTime() - updatedWorkflowRun.startedAt.getTime()) / 60000
         )
       : null;
 
@@ -100,9 +100,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       componentsCompleted: componentRuns.filter((cr) => cr.status === 'completed').length,
       componentsFailed: componentRuns.filter((cr) => cr.status === 'failed').length,
       totalComponents: componentRuns.length,
-      totalTokens: updatedWorkflowRun.totalTokensUsed,
-      totalCost: Number(updatedWorkflowRun.totalCostUsd),
-      totalDuration: updatedWorkflowRun.totalDurationSeconds,
+      totalTokens: updatedWorkflowRun.totalTokens,
+      totalCost: Number(updatedWorkflowRun.estimatedCost),
+      totalDuration: updatedWorkflowRun.durationSeconds,
       durationMinutes,
       totalUserPrompts: updatedWorkflowRun.totalUserPrompts,
       totalIterations: updatedWorkflowRun.totalIterations,
@@ -117,7 +117,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     workflowName: workflowRun.workflow.name,
     status: updatedWorkflowRun.status,
     startedAt: updatedWorkflowRun.startedAt.toISOString(),
-    completedAt: updatedWorkflowRun.completedAt?.toISOString(),
+    completedAt: updatedWorkflowRun.finishedAt?.toISOString(),
     errorMessage: updatedWorkflowRun.errorMessage,
     finalMetrics,
     summary: params.summary || null,

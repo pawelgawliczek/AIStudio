@@ -148,19 +148,11 @@ export async function handler(prisma: PrismaClient, params: any) {
   };
 
   // Update component run with artifact reference
-  const existingArtifacts = (componentRun.artifactsS3Keys as string[]) || [];
+  const existingArtifacts = Array.isArray(componentRun.artifacts) ? componentRun.artifacts : [];
   await prisma.componentRun.update({
     where: { id: componentRun.id },
     data: {
-      artifactsS3Keys: [...existingArtifacts, s3Key],
-      // Store artifact data in output for now (until S3 is set up)
-      output: {
-        ...(componentRun.output as object),
-        artifacts: [
-          ...((componentRun.output as any)?.artifacts || []),
-          artifactRecord,
-        ],
-      },
+      artifacts: [...existingArtifacts, artifactRecord],
     },
   });
 

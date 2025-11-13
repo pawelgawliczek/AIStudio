@@ -58,7 +58,9 @@ export class ToolRegistry {
     category: string,
     detailLevel: string
   ): Promise<any> {
+    console.error(`📊 searchTools: discovering tools for category="${category}"`);
     let tools = await this.discoverTools(category);
+    console.error(`📊 searchTools: found ${tools.length} tools`);
 
     // Filter by query
     if (query) {
@@ -69,7 +71,10 @@ export class ToolRegistry {
           t.tool.description?.toLowerCase().includes(queryLower) ||
           t.metadata?.tags?.some((tag) => tag.toLowerCase().includes(queryLower))
       );
+      console.error(`📊 searchTools: after query filter, ${tools.length} tools remain`);
     }
+
+    console.error(`📊 searchTools: formatting with detail_level="${detailLevel}"`);
 
     // Return based on detail level
     switch (detailLevel) {

@@ -68,7 +68,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       coordinatorId: workflow.coordinatorId,
       projectId: workflow.projectId,
       status: 'running',
-      context: params.context || {},
+      metadata: params.context || {},
       triggeredBy: params.triggeredBy,
       startedAt: new Date(),
     },
@@ -106,7 +106,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     })),
     status: workflowRun.status,
     startedAt: workflowRun.startedAt.toISOString(),
-    context: workflowRun.context,
+    context: workflowRun.metadata,
     message: `Workflow "${workflow.name}" started successfully. Run ID: ${workflowRun.id}`,
   };
 }

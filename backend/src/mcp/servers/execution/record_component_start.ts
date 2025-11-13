@@ -69,7 +69,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       workflowRunId: params.runId,
       componentId: params.componentId,
       status: 'running',
-      input: params.input || {},
+      inputData: params.input || {},
       startedAt: new Date(),
       userPrompts: 0,
       systemIterations: 1,
