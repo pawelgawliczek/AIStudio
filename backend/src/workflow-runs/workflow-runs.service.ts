@@ -7,10 +7,14 @@ import {
   WorkflowRunResponseDto,
   ComponentRunSummaryDto,
 } from './dto';
+import { WorkflowStateService } from '../execution/workflow-state.service';
 
 @Injectable()
 export class WorkflowRunsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private workflowStateService: WorkflowStateService,
+  ) {}
 
   async create(
     projectId: string,
@@ -368,6 +372,44 @@ export class WorkflowRunsService {
       efficiency,
       coordinatorDecisions: workflowRun.coordinatorDecisions,
     };
+  }
+
+  /**
+   * Get execution status with full details (for real-time monitoring)
+   */
+  async getStatus(id: string): Promise<any> {
+    try {
+      return await this.workflowStateService.getWorkflowRunStatus(id);
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  /**
+   * Get artifacts for a workflow run
+   */
+  async getArtifacts(id: string): Promise<any> {
+    try {
+      const artifacts = await this.workflowStateService.getWorkflowArtifacts(id);
+      return {
+        runId: id,
+        artifacts,
+        total: artifacts.length,
+      };
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  /**
+   * Get workflow context (for coordinator decisions)
+   */
+  async getContext(id: string): Promise<any> {
+    try {
+      return await this.workflowStateService.getWorkflowContext(id);
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
   }
 
   private mapToResponseDto(workflowRun: any): WorkflowRunResponseDto {
