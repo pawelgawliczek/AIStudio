@@ -170,7 +170,7 @@ export class ComponentsService {
     const runs = await this.prisma.componentRun.findMany({
       where: { componentId },
       select: {
-        runtime: true,
+        durationSeconds: true,
         cost: true,
         status: true,
       },
@@ -186,8 +186,8 @@ export class ComponentsService {
     }
 
     const successfulRuns = runs.filter((r) => r.status === 'completed');
-    const totalRuntime = runs.reduce((sum, r) => sum + r.runtime, 0);
-    const totalCost = runs.reduce((sum, r) => sum + r.cost, 0);
+    const totalRuntime = runs.reduce((sum, r) => sum + (r.durationSeconds || 0), 0);
+    const totalCost = runs.reduce((sum, r) => sum + (r.cost || 0), 0);
 
     return {
       totalRuns: runs.length,

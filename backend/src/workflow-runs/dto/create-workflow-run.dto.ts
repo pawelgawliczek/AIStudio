@@ -1,13 +1,9 @@
 import { IsString, IsOptional, IsDateString, IsInt, IsNumber, IsEnum, IsArray, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { RunStatus } from '@prisma/client';
 
-export enum RunStatus {
-  PENDING = 'PENDING',
-  RUNNING = 'RUNNING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
-}
+// Re-export RunStatus for convenience
+export { RunStatus };
 
 export class CreateWorkflowRunDto {
   @ApiProperty({ description: 'Workflow ID' })
@@ -83,7 +79,7 @@ export class CreateWorkflowRunDto {
   @IsOptional()
   estimatedCost?: number;
 
-  @ApiProperty({ description: 'Run status', enum: RunStatus, default: RunStatus.PENDING })
+  @ApiProperty({ description: 'Run status', enum: RunStatus, default: RunStatus.pending })
   @IsEnum(RunStatus)
   @IsOptional()
   status?: RunStatus;

@@ -582,11 +582,12 @@ model WorkflowRun {
   projectId        String      @map("project_id") @db.Uuid
   workflowId       String      @map("workflow_id") @db.Uuid
   storyId          String?     @map("story_id") @db.Uuid
-  coordinatorId    String      @map("coordinator_id") @db.Uuid
+  epicId           String?     @map("epic_id") @db.Uuid
+  coordinatorId    String?     @map("coordinator_id") @db.Uuid
 
   // Trigger info
-  triggeredBy      String      @map("triggered_by") // User ID or "system"
-  triggerType      String      @map("trigger_type") // manual, story_assigned, etc.
+  triggeredBy      String?     @map("triggered_by") // User ID or "system"
+  triggerType      String?     @map("trigger_type") // manual, story_assigned, etc.
 
   // Status
   status           RunStatus   @default(pending)
@@ -594,12 +595,14 @@ model WorkflowRun {
   // Timing
   startedAt        DateTime    @map("started_at")
   finishedAt       DateTime?   @map("finished_at")
+  durationSeconds  Int?        @map("duration_seconds")
 
   // Aggregated metrics
-  totalTokensIn    Int?        @map("total_tokens_in")
-  totalTokensOut   Int?        @map("total_tokens_out")
-  totalCost        Float?      @map("total_cost")
-  totalRuntime     Int?        @map("total_runtime") // milliseconds
+  totalTokensInput  Int?       @map("total_tokens_input")
+  totalTokensOutput Int?       @map("total_tokens_output")
+  totalTokens      Int?        @map("total_tokens")
+  totalLocGenerated Int?       @map("total_loc_generated")
+  estimatedCost    Float?      @map("estimated_cost")
 
   // Iteration metrics (NEW)
   totalUserPrompts        Int?   @map("total_user_prompts")
@@ -610,15 +613,16 @@ model WorkflowRun {
   // Coordinator execution
   coordinatorDecisions Json?    @map("coordinator_decisions") // Array of decisions made
   coordinatorMetrics   Json?    @map("coordinator_metrics") // Coordinator runtime, cost, etc.
+  errorMessage         String?  @map("error_message")
 
   // Metadata
   metadata         Json?       // Execution plan, etc.
 
   // Relations
-  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  workflow     Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  story        Story?           @relation(fields: [storyId], references: [id], onDelete: SetNull)
-  coordinator  CoordinatorAgent @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflow      Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  story         Story?           @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  coordinator   CoordinatorAgent? @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
   componentRuns ComponentRun[]
   defects       DefectNew[]
 
@@ -637,33 +641,46 @@ model ComponentRun {
   workflowRunId    String      @map("workflow_run_id") @db.Uuid
   componentId      String      @map("component_id") @db.Uuid
 
-  executionOrder   Int         @map("execution_order") // 1, 2, 3, ... (order within workflow)
+  executionOrder   Int?        @map("execution_order") // 1, 2, 3, ... (order within workflow)
 
   // Status
   status           RunStatus   @default(pending)
+  success          Boolean     @default(false)
 
   // Input/Output
-  inputData        Json        @map("input_data") // Data received
+  inputData        Json?       @map("input_data") // Data received
   outputData       Json?       @map("output_data") // Data produced
+  output           String?     @db.Text // Output text
 
   // Universal metrics
-  tokensInput      Int         @map("tokens_input")
-  tokensOutput     Int         @map("tokens_output")
-  runtime          Int         @map("runtime") // milliseconds
-  cost             Float
-  iterations       Int         @default(1)
+  tokensInput      Int?        @default(0) @map("tokens_input")
+  tokensOutput     Int?        @default(0) @map("tokens_output")
+  totalTokens      Int?        @map("total_tokens")
+  durationSeconds  Int?        @map("duration_seconds")
+  cost             Float?      @default(0)
+  iterations       Int?        @default(1)
   locGenerated     Int?        @map("loc_generated") // Lines of code (if applicable)
 
+  // Code changes
+  filesModified    String[]    @default([]) @map("files_modified")
+  commits          String[]    @default([])
+
+  // Efficiency metrics (calculated)
+  tokensPerLoc     Float?      @map("tokens_per_loc")
+  locPerPrompt     Float?      @map("loc_per_prompt")
+  runtimePerLoc    Float?      @map("runtime_per_loc")
+  runtimePerToken  Float?      @map("runtime_per_token")
+
   // Iteration tracking (NEW)
-  userPrompts         Int     @default(0) @map("user_prompts")
-  systemIterations    Int     @default(1) @map("system_iterations")
-  humanInterventions  Int     @default(0) @map("human_interventions")
-  iterationLog        Json    @map("iteration_log") // Array of iterations with timestamps
+  userPrompts         Int?    @default(0) @map("user_prompts")
+  systemIterations    Int?    @default(1) @map("system_iterations")
+  humanInterventions  Int?    @default(0) @map("human_interventions")
+  iterationLog        Json?   @map("iteration_log") // Array of iterations with timestamps
 
   // Execution details
   startedAt        DateTime    @map("started_at")
   finishedAt       DateTime?   @map("finished_at")
-  retryCount       Int         @default(0) @map("retry_count")
+  retryCount       Int?        @default(0) @map("retry_count")
 
   // Error tracking
   errorType        String?     @map("error_type")

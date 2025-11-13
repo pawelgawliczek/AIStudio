@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { WorkflowMetrics, WeeklyAggregation } from '../../services/metrics.service';
+import { EmptyState } from './EmptyState';
 
 interface WorkflowsTabProps {
   weeklyData: WeeklyAggregation[];
@@ -7,6 +9,20 @@ interface WorkflowsTabProps {
 }
 
 export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: WorkflowsTabProps) {
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+
+  const toggleWeek = (weekKey: string) => {
+    setExpandedWeeks((prev) => {
+      const next = new Set(prev);
+      if (next.has(weekKey)) {
+        next.delete(weekKey);
+      } else {
+        next.add(weekKey);
+      }
+      return next;
+    });
+  };
+
   const formatNumber = (num?: number) => {
     if (num === undefined || num === null) return '-';
     return num.toLocaleString();
@@ -44,6 +60,17 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
+    );
+  }
+
+  // Show empty state if no data
+  if (!isLoading && weeklyData.length === 0) {
+    return (
+      <EmptyState
+        title="No Workflow Data Available"
+        message="There are no workflow execution records for the selected time period."
+        icon="🔄"
+      />
     );
   }
 
@@ -116,48 +143,152 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
             <tbody className="bg-white divide-y divide-gray-200">
               {weeklyData.map((week, index) => {
                 const prevWeek = index < weeklyData.length - 1 ? weeklyData[index + 1] : null;
+                const weekKey = `${week.year}-W${week.weekNumber}`;
+                const isExpanded = expandedWeeks.has(weekKey);
+
                 return (
-                  <tr key={`${week.year}-W${week.weekNumber}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        Week {week.weekNumber}
-                      </div>
-                      <div className="text-xs text-gray-500">{week.year}</div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
-                        {week.storiesCompleted}
-                        {getTrendIcon(week.storiesCompleted, prevWeek?.storiesCompleted)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
-                        {formatNumber(week.aggregated.avgTokens)}
-                        {getTrendIcon(week.aggregated.avgTokens, prevWeek?.aggregated.avgTokens)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900">
-                        {formatDuration(week.aggregated.avgDuration)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
-                        {formatCost(week.aggregated.avgCost)}
-                        {getTrendIcon(week.aggregated.avgCost, prevWeek?.aggregated.avgCost)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900">
-                        {formatNumber(week.aggregated.totalLoc)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        {week.aggregated.successRate.toFixed(0)}%
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    <tr
+                      key={weekKey}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => toggleWeek(weekKey)}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400">
+                            {isExpanded ? '▼' : '▶'}
+                          </span>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              Week {week.weekNumber}
+                            </div>
+                            <div className="text-xs text-gray-500">{week.year}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                          {week.storiesCompleted}
+                          {getTrendIcon(week.storiesCompleted, prevWeek?.storiesCompleted)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                          {formatNumber(week.aggregated.avgTokens)}
+                          {getTrendIcon(week.aggregated.avgTokens, prevWeek?.aggregated.avgTokens)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900">
+                          {formatDuration(week.aggregated.avgDuration)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                          {formatCost(week.aggregated.avgCost)}
+                          {getTrendIcon(week.aggregated.avgCost, prevWeek?.aggregated.avgCost)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900">
+                          {formatNumber(week.aggregated.totalLoc)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm font-medium text-gray-900">
+                          {week.aggregated.successRate.toFixed(0)}%
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expanded workflow details */}
+                    {isExpanded && week.workflows.length > 0 && (
+                      <tr key={`${weekKey}-details`}>
+                        <td colSpan={7} className="px-4 py-0 bg-gray-50">
+                          <div className="py-3 pl-8">
+                            <div className="text-xs font-semibold text-gray-600 mb-2 uppercase">
+                              Workflows in Week {week.weekNumber}
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full">
+                                <thead>
+                                  <tr className="border-b border-gray-200">
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                      Workflow
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      Runs
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      Success
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      Tokens
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      Duration
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      LOC
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      Cost
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {week.workflows.map((workflow) => (
+                                    <tr
+                                      key={workflow.workflowId}
+                                      className="border-b border-gray-100 hover:bg-gray-100"
+                                    >
+                                      <td className="px-3 py-2">
+                                        <div className="text-xs font-medium text-gray-800">
+                                          {workflow.workflowName}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          v{workflow.workflowVersion}
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                        {workflow.totalRuns}
+                                      </td>
+                                      <td className="px-3 py-2 text-right">
+                                        <span className={`text-xs font-medium ${
+                                          workflow.successRate >= 90
+                                            ? 'text-green-600'
+                                            : workflow.successRate >= 75
+                                            ? 'text-yellow-600'
+                                            : 'text-red-600'
+                                        }`}>
+                                          {workflow.successRate.toFixed(0)}%
+                                        </span>
+                                        <div className="text-xs text-gray-500">
+                                          {workflow.successfulRuns}/{workflow.totalRuns}
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                        {formatNumber(workflow.avgTokens)}
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                        {formatDuration(workflow.avgDuration)}
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                        {formatNumber(workflow.totalLoc)}
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                        {formatCost(workflow.avgCost)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
               {averages && (
@@ -223,39 +354,135 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                 const tokensPerLoc = week.aggregated.avgTokensPerLoc || 0;
                 const locPerPrompt = week.aggregated.avgLocPerPrompt || 0;
                 const runtimePerLoc = week.aggregated.avgRuntimePerLoc || 0;
+                const weekKey = `${week.year}-W${week.weekNumber}`;
+                const isExpanded = expandedWeeks.has(weekKey);
 
                 return (
-                  <tr key={`${week.year}-W${week.weekNumber}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        Week {week.weekNumber}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
-                        {tokensPerLoc.toFixed(0)}
-                        {getTrendIcon(tokensPerLoc, prevWeek?.aggregated.avgTokensPerLoc)}
-                        {getPerformanceIcon(tokensPerLoc, { good: 150, warning: 250 })}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
-                        {locPerPrompt.toFixed(1)}
-                        {getPerformanceIcon(20 - locPerPrompt, { good: 5, warning: 10 })}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
-                        {runtimePerLoc.toFixed(1)}
-                        {getPerformanceIcon(runtimePerLoc, { good: 10, warning: 20 })}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm text-gray-900">
-                        {week.aggregated.avgIterationsPerRun?.toFixed(1) || '-'}
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    <tr
+                      key={weekKey}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => toggleWeek(weekKey)}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400">
+                            {isExpanded ? '▼' : '▶'}
+                          </span>
+                          <div className="text-sm font-medium text-gray-900">
+                            Week {week.weekNumber}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                          {tokensPerLoc.toFixed(0)}
+                          {getTrendIcon(tokensPerLoc, prevWeek?.aggregated.avgTokensPerLoc)}
+                          {getPerformanceIcon(tokensPerLoc, { good: 150, warning: 250 })}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                          {locPerPrompt.toFixed(1)}
+                          {getPerformanceIcon(20 - locPerPrompt, { good: 5, warning: 10 })}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                          {runtimePerLoc.toFixed(1)}
+                          {getPerformanceIcon(runtimePerLoc, { good: 10, warning: 20 })}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-gray-900">
+                          {week.aggregated.avgIterationsPerRun?.toFixed(1) || '-'}
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expanded workflow efficiency details */}
+                    {isExpanded && week.workflows.length > 0 && (
+                      <tr key={`${weekKey}-efficiency-details`}>
+                        <td colSpan={5} className="px-4 py-0 bg-gray-50">
+                          <div className="py-3 pl-8">
+                            <div className="text-xs font-semibold text-gray-600 mb-2 uppercase">
+                              Workflow Efficiency in Week {week.weekNumber}
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full">
+                                <thead>
+                                  <tr className="border-b border-gray-200">
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                      Workflow
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      Tokens/LOC
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      LOC/Prompt
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                      Runtime/LOC (s)
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {week.workflows.map((workflow) => (
+                                    <tr
+                                      key={workflow.workflowId}
+                                      className="border-b border-gray-100 hover:bg-gray-100"
+                                    >
+                                      <td className="px-3 py-2">
+                                        <div className="text-xs font-medium text-gray-800">
+                                          {workflow.workflowName}
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                          <span className="text-xs text-gray-700">
+                                            {workflow.avgTokensPerLoc?.toFixed(0) || '-'}
+                                          </span>
+                                          {workflow.avgTokensPerLoc &&
+                                            getPerformanceIcon(workflow.avgTokensPerLoc, {
+                                              good: 150,
+                                              warning: 250,
+                                            })}
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                          <span className="text-xs text-gray-700">
+                                            {workflow.avgLocPerPrompt?.toFixed(1) || '-'}
+                                          </span>
+                                          {workflow.avgLocPerPrompt &&
+                                            getPerformanceIcon(20 - workflow.avgLocPerPrompt, {
+                                              good: 5,
+                                              warning: 10,
+                                            })}
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                          <span className="text-xs text-gray-700">
+                                            {workflow.avgRuntimePerLoc?.toFixed(1) || '-'}
+                                          </span>
+                                          {workflow.avgRuntimePerLoc &&
+                                            getPerformanceIcon(workflow.avgRuntimePerLoc, {
+                                              good: 10,
+                                              warning: 20,
+                                            })}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
               {averages && (

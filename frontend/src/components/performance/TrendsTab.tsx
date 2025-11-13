@@ -1,4 +1,5 @@
 import { TrendsResponse, WeeklyAggregation } from '../../services/metrics.service';
+import { EmptyState } from './EmptyState';
 import {
   LineChart,
   Line,
@@ -22,6 +23,17 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
+    );
+  }
+
+  // Show empty state if no data
+  if (!isLoading && weeklyData.length === 0) {
+    return (
+      <EmptyState
+        title="No Trend Data Available"
+        message="There are no metrics to display trends for the selected time period."
+        icon="📈"
+      />
     );
   }
 
@@ -175,7 +187,7 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
                       <div className="bg-white border border-gray-200 rounded shadow-lg p-3">
                         <div className="font-semibold">{payload[0].payload.fullWeek}</div>
                         <div className="text-sm text-gray-600">
-                          Avg Cost: <strong>${payload[0].value?.toFixed(2)}</strong>
+                          Avg Cost: <strong>${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}</strong>
                         </div>
                       </div>
                     );
@@ -260,7 +272,7 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
                     <div className="bg-white border border-gray-200 rounded shadow-lg p-3">
                       <div className="font-semibold">{payload[0].payload.fullWeek}</div>
                       <div className="text-sm text-gray-600">
-                        Success Rate: <strong>{payload[0].value?.toFixed(0)}%</strong>
+                        Success Rate: <strong>{typeof payload[0].value === 'number' ? payload[0].value.toFixed(0) : payload[0].value}%</strong>
                       </div>
                     </div>
                   );

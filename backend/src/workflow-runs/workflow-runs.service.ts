@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RunStatus } from '@prisma/client';
 import {
   CreateWorkflowRunDto,
   UpdateWorkflowRunDto,
   WorkflowRunResponseDto,
   ComponentRunSummaryDto,
-  RunStatus,
 } from './dto';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class WorkflowRunsService {
         totalTokens: createDto.totalTokens,
         totalLocGenerated: createDto.totalLocGenerated,
         estimatedCost: createDto.estimatedCost,
-        status: createDto.status || RunStatus.PENDING,
+        status: createDto.status || RunStatus.pending,
         errorMessage: createDto.errorMessage,
         coordinatorDecisions: createDto.coordinatorDecisions,
       },

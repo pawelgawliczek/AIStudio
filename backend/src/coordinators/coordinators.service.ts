@@ -219,8 +219,8 @@ export class CoordinatorsService {
     }
 
     const successfulRuns = runs.filter((r) => r.status === 'completed').length;
-    const totalRuntime = runs.reduce((sum, r) => sum + (r.totalRuntime || 0), 0);
-    const totalCost = runs.reduce((sum, r) => sum + (r.totalCost || 0), 0);
+    const totalRuntime = runs.reduce((sum, r) => sum + (r.durationSeconds || 0), 0);
+    const totalCost = runs.reduce((sum, r) => sum + (r.estimatedCost || 0), 0);
     const totalComponents = runs.reduce((sum, r) => sum + r.componentRuns.length, 0);
 
     return {
