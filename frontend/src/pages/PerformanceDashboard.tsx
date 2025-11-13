@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useProject } from '../context/ProjectContext';
 import { metricsService, TimeGranularity } from '../services/metrics.service';
@@ -16,64 +16,91 @@ export function PerformanceDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('workflows');
   const [weeks, setWeeks] = useState<number>(8);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>('');
+  const [businessComplexity, setBusinessComplexity] = useState<string>('');
+  const [technicalComplexity, setTechnicalComplexity] = useState<string>('');
 
-  // Calculate date range for the last N weeks
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - weeks * 7);
+  // Calculate date range for the last N weeks (properly memoized to prevent infinite loops)
+  const { startDate, endDate } = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - weeks * 7);
+    return {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
+  }, [weeks]);
 
   // Fetch weekly aggregations
   const { data: weeklyData, isLoading, error } = useQuery({
-    queryKey: ['weekly-metrics', projectId, weeks],
+    queryKey: ['weekly-metrics', projectId, weeks, businessComplexity, technicalComplexity],
     queryFn: async () => {
       if (!projectId) throw new Error('No project selected');
-      return metricsService.getWeeklyAggregations(projectId, weeks);
+      return metricsService.getWeeklyAggregations(
+        projectId,
+        weeks,
+        businessComplexity ? parseInt(businessComplexity) : undefined,
+        technicalComplexity ? parseInt(technicalComplexity) : undefined,
+      );
     },
     enabled: !!projectId,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch workflow metrics
-  const { data: workflowMetrics, isLoading: isLoadingWorkflows } = useQuery({
-    queryKey: ['workflow-metrics', projectId, selectedWorkflowId, startDate, endDate],
+  const { data: workflowMetrics, isLoading: isLoadingWorkflows, error: workflowError } = useQuery({
+    queryKey: ['workflow-metrics', projectId, selectedWorkflowId, weeks, businessComplexity, technicalComplexity],
     queryFn: async () => {
       if (!projectId) throw new Error('No project selected');
       return metricsService.getWorkflowMetrics(projectId, {
         workflowId: selectedWorkflowId || undefined,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate,
+        endDate,
         granularity: TimeGranularity.WEEKLY,
+        businessComplexity: businessComplexity ? parseInt(businessComplexity) : undefined,
+        technicalComplexity: technicalComplexity ? parseInt(technicalComplexity) : undefined,
       });
     },
-    enabled: !!projectId && activeTab === 'workflows',
+    enabled: !!projectId,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch component metrics
-  const { data: componentMetrics, isLoading: isLoadingComponents } = useQuery({
-    queryKey: ['component-metrics', projectId, startDate, endDate],
+  const { data: componentMetrics, isLoading: isLoadingComponents, error: componentError } = useQuery({
+    queryKey: ['component-metrics', projectId, weeks, businessComplexity, technicalComplexity],
     queryFn: async () => {
       if (!projectId) throw new Error('No project selected');
       return metricsService.getComponentMetrics(projectId, {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate,
+        endDate,
         granularity: TimeGranularity.WEEKLY,
+        businessComplexity: businessComplexity ? parseInt(businessComplexity) : undefined,
+        technicalComplexity: technicalComplexity ? parseInt(technicalComplexity) : undefined,
       });
     },
-    enabled: !!projectId && activeTab === 'components',
+    enabled: !!projectId,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch trends
-  const { data: trendsData, isLoading: isLoadingTrends } = useQuery({
-    queryKey: ['trends', projectId, selectedWorkflowId, startDate, endDate],
+  const { data: trendsData, isLoading: isLoadingTrends, error: trendsError } = useQuery({
+    queryKey: ['trends', projectId, selectedWorkflowId, weeks, businessComplexity, technicalComplexity],
     queryFn: async () => {
       if (!projectId) throw new Error('No project selected');
       return metricsService.getTrends(projectId, {
         workflowId: selectedWorkflowId || undefined,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate,
+        endDate,
         granularity: TimeGranularity.WEEKLY,
+        businessComplexity: businessComplexity ? parseInt(businessComplexity) : undefined,
+        technicalComplexity: technicalComplexity ? parseInt(technicalComplexity) : undefined,
       });
     },
-    enabled: !!projectId && activeTab === 'trends',
+    enabled: !!projectId,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
   if (!projectId) {
@@ -165,6 +192,42 @@ export function PerformanceDashboard() {
                   ))}
             </select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Business Complexity
+            </label>
+            <select
+              value={businessComplexity}
+              onChange={(e) => setBusinessComplexity(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-w-[160px]"
+            >
+              <option value="">All Levels</option>
+              <option value="1">1 - Very Low</option>
+              <option value="2">2 - Low</option>
+              <option value="3">3 - Medium</option>
+              <option value="4">4 - High</option>
+              <option value="5">5 - Very High</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Technical Complexity
+            </label>
+            <select
+              value={technicalComplexity}
+              onChange={(e) => setTechnicalComplexity(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-w-[160px]"
+            >
+              <option value="">All Levels</option>
+              <option value="1">1 - Very Low</option>
+              <option value="2">2 - Low</option>
+              <option value="3">3 - Medium</option>
+              <option value="4">4 - High</option>
+              <option value="5">5 - Very High</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -220,7 +283,7 @@ export function PerformanceDashboard() {
           <WorkflowsTab
             weeklyData={weeklyData || []}
             workflowMetrics={workflowMetrics || []}
-            isLoading={isLoadingWorkflows}
+            isLoading={isLoading}
           />
         )}
 
@@ -235,15 +298,15 @@ export function PerformanceDashboard() {
           <TrendsTab
             trendsData={trendsData || []}
             weeklyData={weeklyData || []}
-            isLoading={isLoadingTrends}
+            isLoading={isLoading || isLoadingTrends}
           />
         )}
 
         {activeTab === 'comparisons' && (
           <ComparisonsTab
             projectId={projectId}
-            startDate={startDate.toISOString()}
-            endDate={endDate.toISOString()}
+            startDate={startDate}
+            endDate={endDate}
           />
         )}
       </div>

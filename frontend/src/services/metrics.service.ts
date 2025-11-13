@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export enum TimeGranularity {
   DAILY = 'DAILY',
@@ -14,6 +14,8 @@ export interface MetricsQuery {
   startDate?: string;
   endDate?: string;
   granularity?: TimeGranularity;
+  businessComplexity?: number;
+  technicalComplexity?: number;
 }
 
 export interface AggregatedMetrics {
@@ -104,7 +106,7 @@ export interface WeeklyAggregation {
 
 class MetricsService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     return {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -122,9 +124,11 @@ class MetricsService {
     if (query?.startDate) params.append('startDate', query.startDate);
     if (query?.endDate) params.append('endDate', query.endDate);
     if (query?.granularity) params.append('granularity', query.granularity);
+    if (query?.businessComplexity !== undefined) params.append('businessComplexity', query.businessComplexity.toString());
+    if (query?.technicalComplexity !== undefined) params.append('technicalComplexity', query.technicalComplexity.toString());
 
     const response = await axios.get(
-      `${API_BASE_URL}/api/projects/${projectId}/metrics/workflows?${params.toString()}`,
+      `${API_BASE_URL}/projects/${projectId}/metrics/workflows?${params.toString()}`,
       this.getAuthHeaders(),
     );
     return response.data;
@@ -139,9 +143,11 @@ class MetricsService {
     if (query?.startDate) params.append('startDate', query.startDate);
     if (query?.endDate) params.append('endDate', query.endDate);
     if (query?.granularity) params.append('granularity', query.granularity);
+    if (query?.businessComplexity !== undefined) params.append('businessComplexity', query.businessComplexity.toString());
+    if (query?.technicalComplexity !== undefined) params.append('technicalComplexity', query.technicalComplexity.toString());
 
     const response = await axios.get(
-      `${API_BASE_URL}/api/projects/${projectId}/metrics/components?${params.toString()}`,
+      `${API_BASE_URL}/projects/${projectId}/metrics/components?${params.toString()}`,
       this.getAuthHeaders(),
     );
     return response.data;
@@ -156,9 +162,11 @@ class MetricsService {
     if (query?.startDate) params.append('startDate', query.startDate);
     if (query?.endDate) params.append('endDate', query.endDate);
     if (query?.granularity) params.append('granularity', query.granularity);
+    if (query?.businessComplexity !== undefined) params.append('businessComplexity', query.businessComplexity.toString());
+    if (query?.technicalComplexity !== undefined) params.append('technicalComplexity', query.technicalComplexity.toString());
 
     const response = await axios.get(
-      `${API_BASE_URL}/api/projects/${projectId}/metrics/trends?${params.toString()}`,
+      `${API_BASE_URL}/projects/${projectId}/metrics/trends?${params.toString()}`,
       this.getAuthHeaders(),
     );
     return response.data;
@@ -169,7 +177,7 @@ class MetricsService {
     comparison: WorkflowComparison,
   ): Promise<WorkflowComparisonResponse> {
     const response = await axios.post(
-      `${API_BASE_URL}/api/projects/${projectId}/metrics/comparisons`,
+      `${API_BASE_URL}/projects/${projectId}/metrics/comparisons`,
       comparison,
       this.getAuthHeaders(),
     );
@@ -179,9 +187,16 @@ class MetricsService {
   async getWeeklyAggregations(
     projectId: string,
     weeks: number = 8,
+    businessComplexity?: number,
+    technicalComplexity?: number,
   ): Promise<WeeklyAggregation[]> {
+    const params = new URLSearchParams();
+    params.append('weeks', weeks.toString());
+    if (businessComplexity !== undefined) params.append('businessComplexity', businessComplexity.toString());
+    if (technicalComplexity !== undefined) params.append('technicalComplexity', technicalComplexity.toString());
+
     const response = await axios.get(
-      `${API_BASE_URL}/api/projects/${projectId}/metrics/weekly?weeks=${weeks}`,
+      `${API_BASE_URL}/projects/${projectId}/metrics/weekly?${params.toString()}`,
       this.getAuthHeaders(),
     );
     return response.data;

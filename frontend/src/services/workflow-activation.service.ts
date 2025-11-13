@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export interface ActivateWorkflowOptions {
   forceOverwrite?: boolean;
@@ -49,7 +49,7 @@ export interface ActiveWorkflowResponse {
 
 class WorkflowActivationService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     return {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -64,7 +64,7 @@ class WorkflowActivationService {
     options?: ActivateWorkflowOptions,
   ): Promise<ActivationResponse> {
     const response = await axios.post(
-      `${API_BASE_URL}/api/projects/${projectId}/workflows/${workflowId}/activate-claude-code`,
+      `${API_BASE_URL}/projects/${projectId}/workflows/${workflowId}/activate-claude-code`,
       options || {},
       this.getAuthHeaders(),
     );
@@ -76,7 +76,7 @@ class WorkflowActivationService {
     options?: DeactivateWorkflowOptions,
   ): Promise<DeactivationResponse> {
     const response = await axios.post(
-      `${API_BASE_URL}/api/projects/${projectId}/workflows/deactivate-claude-code`,
+      `${API_BASE_URL}/projects/${projectId}/workflows/deactivate-claude-code`,
       options || {},
       this.getAuthHeaders(),
     );
@@ -85,7 +85,7 @@ class WorkflowActivationService {
 
   async syncClaudeCode(projectId: string): Promise<SyncResponse> {
     const response = await axios.post(
-      `${API_BASE_URL}/api/projects/${projectId}/workflows/sync-claude-code`,
+      `${API_BASE_URL}/projects/${projectId}/workflows/sync-claude-code`,
       {},
       this.getAuthHeaders(),
     );
@@ -94,7 +94,7 @@ class WorkflowActivationService {
 
   async getActiveWorkflow(projectId: string): Promise<ActiveWorkflowResponse> {
     const response = await axios.get(
-      `${API_BASE_URL}/api/projects/${projectId}/workflows/active-claude-code`,
+      `${API_BASE_URL}/projects/${projectId}/workflows/active-claude-code`,
       this.getAuthHeaders(),
     );
     return response.data;

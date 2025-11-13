@@ -1,4 +1,5 @@
 import { ComponentMetrics } from '../../services/metrics.service';
+import { EmptyState } from './EmptyState';
 
 interface ComponentsTabProps {
   componentMetrics: ComponentMetrics[];
@@ -29,6 +30,17 @@ export function ComponentsTab({ componentMetrics, isLoading }: ComponentsTabProp
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
+    );
+  }
+
+  // Show empty state if no data
+  if (!isLoading && componentMetrics.length === 0) {
+    return (
+      <EmptyState
+        title="No Component Data Available"
+        message="There are no component execution records for the selected time period."
+        icon="🧩"
+      />
     );
   }
 

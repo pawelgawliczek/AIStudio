@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RunStatus } from '@prisma/client';
 import {
   AggregatedMetricsDto,
   WorkflowMetricsDto,
@@ -10,7 +11,6 @@ import {
   WeeklyAggregationDto,
 } from './dto/aggregated-metrics.dto';
 import { MetricsQueryDto, TimeGranularity, WorkflowComparisonDto } from './dto/metrics-query.dto';
-import { RunStatus } from '../workflow-runs/dto/create-workflow-run.dto';
 
 @Injectable()
 export class MetricsService {
@@ -23,12 +23,12 @@ export class MetricsService {
     projectId: string,
     query: MetricsQueryDto,
   ): Promise<WorkflowMetricsDto[]> {
-    const { workflowId, startDate, endDate } = query;
+    const { workflowId, startDate, endDate, businessComplexity, technicalComplexity } = query;
 
     // Build where clause
     const where: any = {
       projectId,
-      status: RunStatus.COMPLETED,
+      status: RunStatus.completed,
     };
 
     if (workflowId) {
@@ -39,6 +39,17 @@ export class MetricsService {
       where.startedAt = {};
       if (startDate) where.startedAt.gte = new Date(startDate);
       if (endDate) where.startedAt.lte = new Date(endDate);
+    }
+
+    // Add complexity filters (filter by stories with matching complexity)
+    if (businessComplexity !== undefined || technicalComplexity !== undefined) {
+      where.story = {};
+      if (businessComplexity !== undefined) {
+        where.story.businessComplexity = businessComplexity;
+      }
+      if (technicalComplexity !== undefined) {
+        where.story.technicalComplexity = technicalComplexity;
+      }
     }
 
     // Fetch workflow runs with workflow details
@@ -76,18 +87,29 @@ export class MetricsService {
     projectId: string,
     query: MetricsQueryDto,
   ): Promise<ComponentMetricsDto[]> {
-    const { componentId, startDate, endDate } = query;
+    const { componentId, startDate, endDate, businessComplexity, technicalComplexity } = query;
 
     // Build where clause for workflow runs
     const workflowRunWhere: any = {
       projectId,
-      status: RunStatus.COMPLETED,
+      status: RunStatus.completed,
     };
 
     if (startDate || endDate) {
       workflowRunWhere.startedAt = {};
       if (startDate) workflowRunWhere.startedAt.gte = new Date(startDate);
       if (endDate) workflowRunWhere.startedAt.lte = new Date(endDate);
+    }
+
+    // Add complexity filters (filter by stories with matching complexity)
+    if (businessComplexity !== undefined || technicalComplexity !== undefined) {
+      workflowRunWhere.story = {};
+      if (businessComplexity !== undefined) {
+        workflowRunWhere.story.businessComplexity = businessComplexity;
+      }
+      if (technicalComplexity !== undefined) {
+        workflowRunWhere.story.technicalComplexity = technicalComplexity;
+      }
     }
 
     // Get completed workflow runs
@@ -146,12 +168,12 @@ export class MetricsService {
     projectId: string,
     query: MetricsQueryDto,
   ): Promise<TrendsResponseDto[]> {
-    const { workflowId, startDate, endDate, granularity = TimeGranularity.WEEKLY } = query;
+    const { workflowId, startDate, endDate, granularity = TimeGranularity.WEEKLY, businessComplexity, technicalComplexity } = query;
 
     // Build where clause
     const where: any = {
       projectId,
-      status: RunStatus.COMPLETED,
+      status: RunStatus.completed,
     };
 
     if (workflowId) {
@@ -162,6 +184,17 @@ export class MetricsService {
       where.startedAt = {};
       if (startDate) where.startedAt.gte = new Date(startDate);
       if (endDate) where.startedAt.lte = new Date(endDate);
+    }
+
+    // Add complexity filters (filter by stories with matching complexity)
+    if (businessComplexity !== undefined || technicalComplexity !== undefined) {
+      where.story = {};
+      if (businessComplexity !== undefined) {
+        where.story.businessComplexity = businessComplexity;
+      }
+      if (technicalComplexity !== undefined) {
+        where.story.technicalComplexity = technicalComplexity;
+      }
     }
 
     // Fetch workflow runs
@@ -267,21 +300,36 @@ export class MetricsService {
   async getWeeklyAggregations(
     projectId: string,
     weeks: number = 8,
+    query?: { businessComplexity?: number; technicalComplexity?: number },
   ): Promise<WeeklyAggregationDto[]> {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - weeks * 7);
 
+    // Build where clause
+    const where: any = {
+      projectId,
+      status: RunStatus.completed,
+      startedAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    // Add complexity filters (filter by stories with matching complexity)
+    if (query?.businessComplexity !== undefined || query?.technicalComplexity !== undefined) {
+      where.story = {};
+      if (query?.businessComplexity !== undefined) {
+        where.story.businessComplexity = query.businessComplexity;
+      }
+      if (query?.technicalComplexity !== undefined) {
+        where.story.technicalComplexity = query.technicalComplexity;
+      }
+    }
+
     // Fetch all workflow runs in the time range
     const runs = await this.prisma.workflowRun.findMany({
-      where: {
-        projectId,
-        status: RunStatus.COMPLETED,
-        startedAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
+      where,
       include: {
         workflow: true,
         story: true,
@@ -405,8 +453,8 @@ export class MetricsService {
 
   private calculateAggregatedMetrics(runs: any[], query: MetricsQueryDto): AggregatedMetricsDto {
     const totalRuns = runs.length;
-    const successfulRuns = runs.filter((r) => r.status === RunStatus.COMPLETED).length;
-    const failedRuns = runs.filter((r) => r.status === RunStatus.FAILED).length;
+    const successfulRuns = runs.filter((r) => r.status === RunStatus.completed).length;
+    const failedRuns = runs.filter((r) => r.status === RunStatus.failed).length;
 
     // Time metrics
     const durations = runs.map((r) => r.durationSeconds || 0).filter((d) => d > 0);

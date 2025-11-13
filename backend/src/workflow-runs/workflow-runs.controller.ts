@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { WorkflowRunsService } from './workflow-runs.service';
 import {
   CreateWorkflowRunDto,
@@ -19,11 +20,10 @@ import {
   WorkflowRunResponseDto,
   RunStatus,
 } from './dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('workflow-runs')
-@Controller('api/projects/:projectId/workflow-runs')
-@UseGuards(JwtAuthGuard)
+@Controller('projects/:projectId/workflow-runs')
+@UseGuards(AuthGuard('jwt'))
 @ApiBearerAuth()
 export class WorkflowRunsController {
   constructor(private readonly workflowRunsService: WorkflowRunsService) {}

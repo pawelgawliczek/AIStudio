@@ -9,8 +9,8 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { MetricsService } from './metrics.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { MetricsQueryDto, WorkflowComparisonDto } from './dto/metrics-query.dto';
 import {
   WorkflowMetricsDto,
@@ -20,8 +20,8 @@ import {
   WeeklyAggregationDto,
 } from './dto/aggregated-metrics.dto';
 
-@Controller('api/projects/:projectId/metrics')
-@UseGuards(JwtAuthGuard)
+@Controller('projects/:projectId/metrics')
+@UseGuards(AuthGuard('jwt'))
 export class MetricsController {
   constructor(private readonly metricsService: MetricsService) {}
 
@@ -82,8 +82,14 @@ export class MetricsController {
   async getWeeklyAggregations(
     @Param('projectId') projectId: string,
     @Query('weeks') weeks?: string,
+    @Query('businessComplexity') businessComplexity?: string,
+    @Query('technicalComplexity') technicalComplexity?: string,
   ): Promise<WeeklyAggregationDto[]> {
     const numWeeks = weeks ? parseInt(weeks, 10) : 8;
-    return this.metricsService.getWeeklyAggregations(projectId, numWeeks);
+    const query = {
+      businessComplexity: businessComplexity ? parseInt(businessComplexity, 10) : undefined,
+      technicalComplexity: technicalComplexity ? parseInt(technicalComplexity, 10) : undefined,
+    };
+    return this.metricsService.getWeeklyAggregations(projectId, numWeeks, query);
   }
 }

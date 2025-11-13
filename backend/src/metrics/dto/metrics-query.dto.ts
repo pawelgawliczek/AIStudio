@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsDateString, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsEnum, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum TimeGranularity {
   DAILY = 'DAILY',
@@ -26,6 +27,20 @@ export class MetricsQueryDto {
   @IsOptional()
   @IsEnum(TimeGranularity)
   granularity?: TimeGranularity;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  businessComplexity?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  technicalComplexity?: number;
 }
 
 export class WorkflowComparisonDto {
