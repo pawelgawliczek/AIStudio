@@ -12,11 +12,11 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
       case RunStatus.COMPLETED:
         return 'text-green-600 bg-green-100';
       case RunStatus.RUNNING:
-        return 'text-blue-600 bg-blue-100';
+        return 'text-accent bg-blue-100';
       case RunStatus.FAILED:
         return 'text-red-600 bg-red-100';
       case RunStatus.CANCELLED:
-        return 'text-gray-600 bg-gray-100';
+        return 'text-muted bg-gray-100';
       default:
         return 'text-yellow-600 bg-yellow-100';
     }
@@ -43,9 +43,9 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 mb-6">
+    <div className="bg-card rounded-lg shadow p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-900">Execution Summary</h2>
+        <h2 className="text-2xl font-bold text-fg">Execution Summary</h2>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(workflowRun.status)}`}>
           {workflowRun.status === RunStatus.COMPLETED ? '✓ ' : ''}
           {workflowRun.status}
@@ -53,42 +53,42 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="text-sm text-gray-600">Duration</div>
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="bg-bg-secondary rounded-lg p-4">
+          <div className="text-sm text-muted">Duration</div>
+          <div className="text-2xl font-bold text-fg">
             {formatDuration(summary.totalDuration)}
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="text-sm text-gray-600">Total Tokens</div>
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="bg-bg-secondary rounded-lg p-4">
+          <div className="text-sm text-muted">Total Tokens</div>
+          <div className="text-2xl font-bold text-fg">
             {formatNumber(summary.totalTokens)}
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-muted mt-1">
             In: {formatNumber(workflowRun.totalTokensInput)} | Out: {formatNumber(workflowRun.totalTokensOutput)}
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="text-sm text-gray-600">LOC Generated</div>
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="bg-bg-secondary rounded-lg p-4">
+          <div className="text-sm text-muted">LOC Generated</div>
+          <div className="text-2xl font-bold text-fg">
             {formatNumber(summary.totalLoc)}
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="text-sm text-gray-600">Estimated Cost</div>
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="bg-bg-secondary rounded-lg p-4">
+          <div className="text-sm text-muted">Estimated Cost</div>
+          <div className="text-2xl font-bold text-fg">
             {formatCost(summary.estimatedCost)}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="border-l-4 border-blue-500 pl-4">
-          <div className="text-sm text-gray-600">Component Runs</div>
-          <div className="text-xl font-semibold text-gray-900">
+        <div className="border-l-4 border-accent pl-4">
+          <div className="text-sm text-muted">Component Runs</div>
+          <div className="text-xl font-semibold text-fg">
             {summary.totalComponentRuns}
             <span className="text-sm text-green-600 ml-2">
               ({summary.successfulRuns} success)
@@ -97,16 +97,16 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
         </div>
 
         <div className="border-l-4 border-purple-500 pl-4">
-          <div className="text-sm text-gray-600">Total Iterations</div>
-          <div className="text-xl font-semibold text-gray-900">
+          <div className="text-sm text-muted">Total Iterations</div>
+          <div className="text-xl font-semibold text-fg">
             {formatNumber(summary.totalIterations)}
           </div>
-          <div className="text-xs text-gray-500">prompts</div>
+          <div className="text-xs text-muted">prompts</div>
         </div>
 
         <div className="border-l-4 border-orange-500 pl-4">
-          <div className="text-sm text-gray-600">Avg Prompts/Component</div>
-          <div className="text-xl font-semibold text-gray-900">
+          <div className="text-sm text-muted">Avg Prompts/Component</div>
+          <div className="text-xl font-semibold text-fg">
             {workflowRun.avgPromptsPerComponent?.toFixed(1) || 'N/A'}
           </div>
         </div>
@@ -114,11 +114,11 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
 
       {/* Efficiency Metrics */}
       {efficiency && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Efficiency Metrics</h3>
+        <div className="mt-6 pt-6 border-t border-border">
+          <h3 className="text-lg font-semibold text-fg mb-3">Efficiency Metrics</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="bg-blue-50 rounded p-3">
-              <div className="text-xs text-blue-600 font-medium">Tokens/LOC</div>
+              <div className="text-xs text-accent font-medium">Tokens/LOC</div>
               <div className="text-lg font-bold text-blue-900">{efficiency.tokensPerLoc || 'N/A'}</div>
             </div>
             <div className="bg-green-50 rounded p-3">
@@ -139,7 +139,7 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
 
       {/* Error Message */}
       {workflowRun.errorMessage && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded">
+        <div className="mt-4 p-4 bg-red-100/50 border border-red-200 rounded">
           <div className="flex items-start">
             <span className="text-red-600 font-medium mr-2">Error:</span>
             <span className="text-red-800">{workflowRun.errorMessage}</span>

@@ -1,6 +1,7 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { MarkdownEditor } from './MarkdownEditor';
 
 interface CreateEpicModalProps {
   open: boolean;
@@ -83,11 +84,11 @@ export function CreateEpicModal({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-card px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
                 <div className="absolute right-0 top-0 pr-4 pt-4">
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    className="rounded-md bg-card text-muted hover:text-fg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onClick={onClose}
                   >
                     <span className="sr-only">Close</span>
@@ -99,7 +100,7 @@ export function CreateEpicModal({
                   <div className="w-full mt-3 text-center sm:mt-0 sm:text-left">
                     <Dialog.Title
                       as="h3"
-                      className="text-xl font-semibold leading-6 text-gray-900 mb-6"
+                      className="text-xl font-semibold leading-6 text-fg mb-6"
                     >
                       {isEditing ? 'Edit Epic' : 'Create New Epic'}
                     </Dialog.Title>
@@ -109,7 +110,7 @@ export function CreateEpicModal({
                       <div>
                         <label
                           htmlFor="title"
-                          className="block text-sm font-medium text-gray-700 mb-2"
+                          className="block text-sm font-medium text-fg mb-2"
                         >
                           Title <span className="text-red-500">*</span>
                         </label>
@@ -119,7 +120,7 @@ export function CreateEpicModal({
                           required
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                          className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg text-fg"
                           placeholder="Enter epic title..."
                         />
                       </div>
@@ -128,17 +129,15 @@ export function CreateEpicModal({
                       <div>
                         <label
                           htmlFor="description"
-                          className="block text-sm font-medium text-gray-700 mb-2"
+                          className="block text-sm font-medium text-fg mb-2"
                         >
                           Description
                         </label>
-                        <textarea
-                          id="description"
-                          rows={6}
+                        <MarkdownEditor
                           value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                          placeholder="Describe the epic and its objectives..."
+                          onChange={setDescription}
+                          placeholder="Describe the epic and its objectives... (Markdown supported)"
+                          height={250}
                         />
                       </div>
 
@@ -146,7 +145,7 @@ export function CreateEpicModal({
                       <div>
                         <label
                           htmlFor="priority"
-                          className="block text-sm font-medium text-gray-700 mb-2"
+                          className="block text-sm font-medium text-fg mb-2"
                         >
                           Priority
                         </label>
@@ -154,7 +153,7 @@ export function CreateEpicModal({
                           id="priority"
                           value={priority}
                           onChange={(e) => setPriority(Number(e.target.value))}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                          className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg text-fg"
                         >
                           <option value="0">0 - Lowest</option>
                           <option value="1">1 - Very Low</option>
@@ -174,7 +173,7 @@ export function CreateEpicModal({
                       <div className="mt-6 flex justify-end gap-3">
                         <button
                           type="button"
-                          className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          className="inline-flex justify-center rounded-md border border-border bg-bg-secondary px-4 py-2 text-sm font-medium text-fg shadow-sm hover:bg-accent hover:text-accent-fg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all"
                           onClick={onClose}
                           disabled={isLoading}
                         >
@@ -182,7 +181,7 @@ export function CreateEpicModal({
                         </button>
                         <button
                           type="submit"
-                          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                          className="inline-flex justify-center rounded-md border border-transparent bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-sm hover:bg-accent-dark focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 transition-all"
                           disabled={isLoading}
                         >
                           {isLoading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Epic' : 'Create Epic')}
