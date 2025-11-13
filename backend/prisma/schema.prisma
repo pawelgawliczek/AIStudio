@@ -64,6 +64,7 @@ model Project {
   defectsNew          DefectNew[]
   activeWorkflows     ActiveWorkflow[]
   metricsAggregations MetricsAggregation[]
+  fileUseCaseLinks    FileUseCaseLink[]
 
   @@map("projects")
 }
@@ -223,6 +224,7 @@ model UseCase {
   versions   UseCaseVersion[]
   storyLinks StoryUseCaseLink[]
   testCases  TestCase[]
+  fileLinks  FileUseCaseLink[]
 
   @@unique([projectId, key])
   @@index([projectId, area])
@@ -262,6 +264,32 @@ model StoryUseCaseLink {
 
   @@id([storyId, useCaseId])
   @@map("story_use_case_links")
+}
+
+model FileUseCaseLink {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String        @map("project_id") @db.Uuid
+  filePath    String        @map("file_path") // Relative path from repo root
+  useCaseId   String        @map("use_case_id") @db.Uuid
+
+  // Confidence and provenance
+  confidence  Float         @default(1.0) // 0.0-1.0
+  source      MappingSource // How was this link created?
+
+  // Metadata
+  firstSeenAt DateTime      @default(now()) @map("first_seen_at")
+  lastSeenAt  DateTime      @updatedAt @map("last_seen_at")
+  occurrences Int           @default(1) // How many times confirmed
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  useCase UseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, filePath, useCaseId])
+  @@index([projectId, filePath])
+  @@index([projectId, useCaseId])
+  @@index([projectId, confidence(sort: Desc)])
+  @@map("file_use_case_links")
 }
 
 // ============================================================================
@@ -906,6 +934,14 @@ enum UseCaseRelation {
   implements
   modifies
   deprecates
+}
+
+enum MappingSource {
+  COMMIT_DERIVED   // Created from commit history
+  AI_INFERRED      // AI analyzed code and inferred
+  MANUAL           // Developer manually mapped
+  PATTERN_MATCHED  // File path pattern matched
+  IMPORT_ANALYSIS  // Code dependency analysis
 }
 
 enum OriginStage {
