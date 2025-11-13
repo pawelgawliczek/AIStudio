@@ -37,18 +37,25 @@ export class CoordinatorAgentGenerator {
   }
 
   private static generateFrontmatter(coordinator: CoordinatorWithComponents): string {
-    const tools = coordinator.tools || [
-      'invoke_component',
-      'get_workflow_state',
-      'create_subtask',
+    // Always include execution tracking MCP tools
+    const executionTools = [
+      'start_workflow_run',
+      'record_component_start',
+      'record_component_complete',
+      'get_workflow_context',
+      'update_workflow_status',
+      'store_artifact',
     ];
+
+    const customTools = coordinator.tools || [];
+    const allTools = [...executionTools, ...customTools];
 
     return `---
 name: ${coordinator.name}
 description: ${coordinator.description}
 domain: ${coordinator.domain}
 tools:
-${tools.map((tool) => `  - ${tool}`).join('\n')}
+${allTools.map((tool) => `  - ${tool}`).join('\n')}
 ---`;
   }
 
@@ -62,8 +69,159 @@ ${tools.map((tool) => `  - ${tool}`).join('\n')}
     sections.push(coordinator.description);
     sections.push('');
 
+    // Workflow Execution Protocol - CRITICAL!
+    sections.push('## Workflow Execution Protocol');
+    sections.push('');
+    sections.push('**IMPORTANT**: When executing this workflow, you MUST follow this protocol using MCP tools to track execution state.');
+    sections.push('');
+
+    sections.push('### Step 1: Initialize Workflow Run');
+    sections.push('');
+    sections.push('When the user requests to execute this workflow, call `start_workflow_run`:');
+    sections.push('');
+    sections.push('```json');
+    sections.push('{');
+    sections.push(`  "workflowId": "INSERT_WORKFLOW_ID_HERE",`);
+    sections.push('  "triggeredBy": "user-{userId}",');
+    sections.push('  "context": {');
+    sections.push('    // Extract context from user request');
+    sections.push('    // Examples: prNumber, storyId, branch, issueId, etc.');
+    sections.push('  }');
+    sections.push('}');
+    sections.push('```');
+    sections.push('');
+    sections.push('Store the returned `runId` for all subsequent MCP calls.');
+    sections.push('');
+
+    sections.push('### Step 2: Execute Components');
+    sections.push('');
+    sections.push('For each component you decide to execute:');
+    sections.push('');
+    sections.push('**2.1. Start Component**');
+    sections.push('```json');
+    sections.push('{');
+    sections.push('  "runId": "{runId from step 1}",');
+    sections.push('  "componentId": "{component ID}",');
+    sections.push('  "input": {');
+    sections.push('    // Component input data');
+    sections.push('  }');
+    sections.push('}');
+    sections.push('```');
+    sections.push('');
+
+    sections.push('**2.2. Execute Component Logic**');
+    sections.push('- Load component instructions from `.claude/agents/component-{name}.md`');
+    sections.push('- Follow the three instruction sets:');
+    sections.push('  * **Input Instructions**: How to gather/validate input');
+    sections.push('  * **Operation Instructions**: What actions to perform');
+    sections.push('  * **Output Instructions**: How to format results');
+    sections.push('- Track your work:');
+    sections.push('  * Count **user prompts** (when user asks clarifying questions)');
+    sections.push('  * Count **system iterations** (when you refine your analysis)');
+    sections.push('  * Note any **human interventions**');
+    sections.push('');
+
+    sections.push('**2.3. Complete Component**');
+    sections.push('```json');
+    sections.push('{');
+    sections.push('  "runId": "{runId}",');
+    sections.push('  "componentId": "{component ID}",');
+    sections.push('  "output": {');
+    sections.push('    // Component output data');
+    sections.push('  },');
+    sections.push('  "metrics": {');
+    sections.push('    "tokensUsed": 1500,  // Estimate based on conversation');
+    sections.push('    "durationSeconds": 30,  // Estimate');
+    sections.push('    "userPrompts": 2,  // Count of user clarifications');
+    sections.push('    "systemIterations": 3,  // Count of refinements');
+    sections.push('    "linesOfCode": 50,  // If applicable');
+    sections.push('    "costUsd": 0.0045  // Estimate: tokensUsed * 0.003 / 1000');
+    sections.push('  },');
+    sections.push('  "status": "completed"  // or "failed"');
+    sections.push('}');
+    sections.push('```');
+    sections.push('');
+
+    sections.push('**2.4. Store Artifacts** (if component produces code, reports, etc.)');
+    sections.push('```json');
+    sections.push('{');
+    sections.push('  "runId": "{runId}",');
+    sections.push('  "componentId": "{component ID}",');
+    sections.push('  "artifactType": "code",  // or "report", "log", "diff", "test_results"');
+    sections.push('  "data": {');
+    sections.push('    // Artifact content (code, report, etc.)');
+    sections.push('  },');
+    sections.push('  "metadata": {');
+    sections.push('    "format": "json",  // or "markdown", "code", "text"');
+    sections.push('    "size": 1024,  // bytes');
+    sections.push('    "filename": "review-report.md"');
+    sections.push('  }');
+    sections.push('}');
+    sections.push('```');
+    sections.push('');
+
+    sections.push('### Step 3: Make Next Decision');
+    sections.push('');
+    sections.push(`**Your Decision Strategy**: ${coordinator.decisionStrategy}`);
+    sections.push('');
+
+    if (coordinator.decisionStrategy === 'sequential') {
+      sections.push('Execute components in order:');
+      coordinator.components?.forEach((c, i) => {
+        sections.push(`${i + 1}. ${c.name}`);
+      });
+    } else if (coordinator.decisionStrategy === 'adaptive') {
+      sections.push('Before deciding the next component:');
+      sections.push('1. Call `get_workflow_context` to get previous component outputs');
+      sections.push('2. Analyze the results');
+      sections.push('3. Decide which component to run next based on the context');
+      sections.push('4. Example: If code review found critical issues, run "Fix Issues" before "Run Tests"');
+    } else {
+      sections.push(`Follow the ${coordinator.decisionStrategy} strategy to decide component execution order.`);
+    }
+    sections.push('');
+
+    sections.push('### Step 4: Complete Workflow');
+    sections.push('');
+    sections.push('When all components are executed, call `update_workflow_status`:');
+    sections.push('```json');
+    sections.push('{');
+    sections.push('  "runId": "{runId}",');
+    sections.push('  "status": "completed",  // or "failed" if workflow failed');
+    sections.push('  "summary": "Brief summary of workflow results"');
+    sections.push('}');
+    sections.push('```');
+    sections.push('');
+    sections.push('Then provide a comprehensive summary to the user:');
+    sections.push('- Components executed');
+    sections.push('- Key results from each component');
+    sections.push('- Artifacts generated');
+    sections.push('- Link to web UI for detailed results (if applicable)');
+    sections.push('');
+
+    sections.push('### Error Handling');
+    sections.push('');
+    sections.push('If a component fails:');
+    sections.push('1. Always call `record_component_complete` with `status: "failed"` and `errorMessage`');
+    sections.push('2. Determine failure strategy from component config:');
+    sections.push('   - **stop**: Call `update_workflow_status` with "failed", stop execution');
+    sections.push('   - **continue**: Log error, move to next component');
+    sections.push('   - **retry**: Retry component up to 3 times');
+    sections.push('   - **notify**: Ask user how to proceed');
+    sections.push('');
+
+    sections.push('### Available MCP Tools');
+    sections.push('');
+    sections.push('- `start_workflow_run(workflowId, triggeredBy, context)` - Initialize execution');
+    sections.push('- `record_component_start(runId, componentId, input)` - Log component start');
+    sections.push('- `record_component_complete(runId, componentId, output, metrics, status)` - Log completion');
+    sections.push('- `get_workflow_context(runId)` - Get previous outputs for decision-making');
+    sections.push('- `update_workflow_status(runId, status, summary?)` - Update workflow status');
+    sections.push('- `store_artifact(runId, componentId, artifactType, data, metadata)` - Save outputs');
+    sections.push('');
+
     // Decision Strategy section
-    sections.push('## Decision Strategy');
+    sections.push('## Decision Strategy Details');
     sections.push(coordinator.decisionStrategy || 'Sequential execution');
     sections.push('');
 
