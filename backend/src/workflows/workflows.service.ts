@@ -76,7 +76,32 @@ export class WorkflowsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return workflows.map((w) => this.mapToResponseDto(w));
+    // Fetch component names for coordinators
+    const workflowsWithComponents = await Promise.all(
+      workflows.map(async (workflow) => {
+        if (workflow.coordinator?.componentIds?.length > 0) {
+          const components = await this.prisma.component.findMany({
+            where: {
+              id: { in: workflow.coordinator.componentIds },
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          });
+          return {
+            ...workflow,
+            coordinator: {
+              ...workflow.coordinator,
+              components,
+            },
+          };
+        }
+        return workflow;
+      }),
+    );
+
+    return workflowsWithComponents.map((w) => this.mapToResponseDto(w));
   }
 
   async findOne(id: string, includeStats = false): Promise<WorkflowResponseDto> {
@@ -262,6 +287,9 @@ export class WorkflowsService {
             id: workflow.coordinator.id,
             name: workflow.coordinator.name,
             domain: workflow.coordinator.domain,
+            flowDiagram: workflow.coordinator.flowDiagram,
+            componentIds: workflow.coordinator.componentIds,
+            components: workflow.coordinator.components,
           }
         : undefined,
     };

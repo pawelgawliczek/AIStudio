@@ -240,6 +240,7 @@ export class CoordinatorsService {
       description: coordinator.description,
       domain: coordinator.domain,
       coordinatorInstructions: coordinator.coordinatorInstructions,
+      flowDiagram: coordinator.flowDiagram,
       config: coordinator.config,
       tools: coordinator.tools,
       decisionStrategy: coordinator.decisionStrategy,

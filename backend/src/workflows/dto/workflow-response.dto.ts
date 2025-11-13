@@ -36,6 +36,12 @@ export class WorkflowResponseDto {
     id: string;
     name: string;
     domain: string;
+    flowDiagram?: string;
+    componentIds?: string[];
+    components?: Array<{
+      id: string;
+      name: string;
+    }>;
   };
 
   @ApiPropertyOptional({ description: 'Usage statistics' })

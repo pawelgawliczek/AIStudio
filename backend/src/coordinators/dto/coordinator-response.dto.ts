@@ -19,6 +19,9 @@ export class CoordinatorResponseDto {
   @ApiProperty({ description: 'Instructions for coordinator decision-making' })
   coordinatorInstructions: string;
 
+  @ApiPropertyOptional({ description: 'Visual flow diagram of workflow execution' })
+  flowDiagram?: string;
+
   @ApiProperty({ description: 'Execution configuration' })
   config: any;
 
