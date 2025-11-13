@@ -175,6 +175,60 @@ export async function handler(prisma: PrismaClient, params: any) {
     { added: 0, deleted: 0 },
   );
 
+  // Automatically create file-to-usecase mappings if story has use case links
+  let fileMappingsCreated = 0;
+  if (commit.storyId && commit.story) {
+    const useCaseLinks = await prisma.storyUseCaseLink.findMany({
+      where: { storyId: commit.storyId },
+      include: {
+        useCase: {
+          select: { key: true },
+        },
+      },
+    });
+
+    if (useCaseLinks.length > 0 && commit.files.length > 0) {
+      // Create file-to-usecase mappings for each file in the commit
+      for (const file of commit.files) {
+        for (const link of useCaseLinks) {
+          // Check if mapping already exists
+          const existing = await prisma.fileUseCaseLink.findUnique({
+            where: {
+              projectId_filePath_useCaseId: {
+                projectId: commit.projectId,
+                filePath: file.filePath,
+                useCaseId: link.useCaseId,
+              },
+            },
+          });
+
+          if (existing) {
+            // Update existing: increment occurrences
+            await prisma.fileUseCaseLink.update({
+              where: { id: existing.id },
+              data: {
+                occurrences: { increment: 1 },
+                lastSeenAt: new Date(),
+              },
+            });
+          } else {
+            // Create new mapping
+            await prisma.fileUseCaseLink.create({
+              data: {
+                projectId: commit.projectId,
+                filePath: file.filePath,
+                useCaseId: link.useCaseId,
+                source: 'COMMIT_DERIVED',
+                confidence: 0.8,
+              },
+            });
+            fileMappingsCreated++;
+          }
+        }
+      }
+    }
+  }
+
   return {
     success: true,
     commit: {
@@ -191,6 +245,13 @@ export async function handler(prisma: PrismaClient, params: any) {
       linesAdded: totalLOC.added,
       linesDeleted: totalLOC.deleted,
       netLines: totalLOC.added - totalLOC.deleted,
+    },
+    fileMappings: {
+      created: fileMappingsCreated,
+      message:
+        fileMappingsCreated > 0
+          ? `Created ${fileMappingsCreated} file-to-usecase mapping(s)`
+          : 'No use cases linked to story',
     },
     message: existingCommit
       ? `Commit ${params.hash.substring(0, 7)} updated successfully`
