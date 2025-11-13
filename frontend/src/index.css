@@ -99,6 +99,37 @@ body {
     outline: none !important;
     box-shadow: 0 0 0 3px var(--ring) !important;
   }
+
+  /* Global markdown editor fixes */
+  .w-md-editor,
+  .w-md-editor-content,
+  .w-md-editor-input,
+  .w-md-editor-text,
+  .w-md-editor-text-input,
+  .w-md-editor-text-pre {
+    background-color: var(--bg) !important;
+    color: var(--fg) !important;
+  }
+
+  /* Code blocks in markdown editor */
+  .w-md-editor-text-pre > code,
+  .w-md-editor-text-pre > code * {
+    color: var(--fg) !important;
+  }
+
+  /* Markdown editor toolbar */
+  .w-md-editor-toolbar {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* Ensure all modals and dialogs have proper theming */
+  [role="dialog"],
+  .modal,
+  .dialog {
+    background-color: var(--card) !important;
+    color: var(--fg) !important;
+  }
 }
 
 /* Accessibility - Reduced Motion */

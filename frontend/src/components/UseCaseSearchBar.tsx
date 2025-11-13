@@ -30,7 +30,7 @@ export function UseCaseSearchBar({ onSearch, initialMode = 'text' }: UseCaseSear
   };
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-sm">
+    <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
       <form onSubmit={handleSubmit}>
         <div className="flex gap-4">
           {/* Search Input */}
@@ -38,7 +38,7 @@ export function UseCaseSearchBar({ onSearch, initialMode = 'text' }: UseCaseSear
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
-                  className="h-5 w-5 text-gray-400"
+                  className="h-5 w-5 text-muted"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -56,18 +56,18 @@ export function UseCaseSearchBar({ onSearch, initialMode = 'text' }: UseCaseSear
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search use cases..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="block w-full pl-10 pr-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Search Mode Selector */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Mode:</label>
+            <label className="text-sm font-medium text-fg">Mode:</label>
             <select
               value={searchMode}
               onChange={(e) => setSearchMode(e.target.value as 'text' | 'semantic' | 'component')}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="text">Text Search</option>
               <option value="semantic">Semantic Search</option>
@@ -78,14 +78,14 @@ export function UseCaseSearchBar({ onSearch, initialMode = 'text' }: UseCaseSear
           {/* Search Button */}
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition-colors"
           >
             Search
           </button>
         </div>
 
         {/* Search Mode Description */}
-        <div className="mt-2 text-xs text-gray-500">
+        <div className="mt-2 text-xs text-muted">
           {searchMode === 'text' && (
             <p>Search by keywords in title, summary, and content</p>
           )}

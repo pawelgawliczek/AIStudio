@@ -19,20 +19,20 @@ export function UseCaseCard({ useCase, onClick, onDelete }: UseCaseCardProps) {
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+      className="bg-card border border-border rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer group"
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-gray-500">{useCase.key}</span>
+            <span className="text-xs font-mono text-muted">{useCase.key}</span>
             {useCase.similarity !== undefined && (
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                 {Math.round(useCase.similarity * 100)}% match
               </span>
             )}
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mt-1 line-clamp-2">
+          <h3 className="text-lg font-semibold text-fg mt-1 line-clamp-2">
             {useCase.title}
           </h3>
         </div>
@@ -41,7 +41,7 @@ export function UseCaseCard({ useCase, onClick, onDelete }: UseCaseCardProps) {
         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={handleDeleteClick}
-            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+            className="p-1 text-muted hover:text-red-600 transition-colors"
             title="Delete use case"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,13 +67,13 @@ export function UseCaseCard({ useCase, onClick, onDelete }: UseCaseCardProps) {
 
       {/* Summary */}
       {latestVersion?.summary && (
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+        <p className="text-sm text-muted mb-3 line-clamp-2">
           {latestVersion.summary}
         </p>
       )}
 
       {/* Metadata */}
-      <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+      <div className="flex items-center justify-between text-xs text-muted pt-3 border-t border-gray-100">
         <div className="flex items-center gap-3">
           {/* Version */}
           {latestVersion && (
@@ -105,7 +105,7 @@ export function UseCaseCard({ useCase, onClick, onDelete }: UseCaseCardProps) {
         </div>
 
         {/* Last Updated */}
-        <span className="text-gray-400">
+        <span className="text-muted">
           {formatDistanceToNow(new Date(useCase.updatedAt), { addSuffix: true })}
         </span>
       </div>

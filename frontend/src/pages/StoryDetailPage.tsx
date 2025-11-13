@@ -17,8 +17,8 @@ import {
 import clsx from 'clsx';
 
 const STATUS_COLORS: Record<string, string> = {
-  planning: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-  analysis: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  planning: 'bg-bg-secondary0/10 text-muted border-gray-500/20',
+  analysis: 'bg-accent/100/10 text-accent border-accent/20',
   architecture: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   design: 'bg-pink-500/10 text-pink-600 border-pink-500/20',
   implementation: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
