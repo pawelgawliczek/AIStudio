@@ -106,6 +106,33 @@ interface CoverageGap {
   reason: string;
 }
 
+interface AnalysisStatus {
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'not_found';
+  progress?: number;
+  message?: string;
+  startedAt?: Date;
+  completedAt?: Date;
+}
+
+interface AnalysisComparison {
+  healthScoreChange: number;
+  newTests: number;
+  coverageChange: number;
+  complexityChange: number;
+  newFiles: number;
+  deletedFiles: number;
+  qualityImprovement: boolean;
+  lastAnalysis?: Date;
+}
+
+interface TestSummary {
+  totalTests: number;
+  passing: number;
+  failing: number;
+  skipped: number;
+  lastExecution?: Date;
+}
+
 type DrillDownLevel = 'project' | 'file';
 
 const CodeQualityDashboard: React.FC = () => {
@@ -142,6 +169,13 @@ const CodeQualityDashboard: React.FC = () => {
     timeRange: 30,
   });
 
+  // New state for analysis status, comparison, and test summary
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus | null>(null);
+  const [analysisComparison, setAnalysisComparison] = useState<AnalysisComparison | null>(null);
+  const [testSummary, setTestSummary] = useState<TestSummary | null>(null);
+  const [showAnalysisNotification, setShowAnalysisNotification] = useState(false);
+  const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
+
   // Story creation state
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [storyContext, setStoryContext] = useState<{
@@ -154,6 +188,7 @@ const CodeQualityDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchMetrics();
+    fetchComparisonAndTests();
   }, [projectId, filters]);
 
   const fetchMetrics = async () => {
@@ -182,24 +217,87 @@ const CodeQualityDashboard: React.FC = () => {
     }
   };
 
+  const fetchComparisonAndTests = async () => {
+    try {
+      const [comparisonRes, testSummaryRes] = await Promise.all([
+        axios.get(`/code-metrics/project/${projectId}/comparison`),
+        axios.get(`/code-metrics/project/${projectId}/test-summary`),
+      ]);
+      setAnalysisComparison(comparisonRes.data);
+      setTestSummary(testSummaryRes.data);
+    } catch (err: any) {
+      console.error('Failed to fetch comparison/test data:', err);
+    }
+  };
+
+  const pollAnalysisStatus = async () => {
+    try {
+      const response = await axios.get(`/code-metrics/project/${projectId}/analysis-status`);
+      setAnalysisStatus(response.data);
+
+      if (response.data.status === 'completed') {
+        setShowAnalysisNotification(true);
+        setIsAnalyzing(false);
+        // Fetch updated metrics and comparison
+        await fetchMetrics();
+        await fetchComparisonAndTests();
+        return true; // Stop polling
+      } else if (response.data.status === 'failed') {
+        setShowAnalysisNotification(true);
+        setIsAnalyzing(false);
+        return true; // Stop polling
+      }
+      return false; // Continue polling
+    } catch (error: any) {
+      console.error('Failed to check analysis status:', error);
+      return false;
+    }
+  };
+
   const handleRefreshAnalysis = async () => {
     if (isAnalyzing) return;
 
     setIsAnalyzing(true);
+    setShowAnalysisNotification(false);
+
     try {
       const response = await axios.post(`/code-metrics/project/${projectId}/analyze`, {});
+      setAnalysisJobId(response.data.jobId);
 
-      alert(`Analysis started! Job ID: ${response.data.jobId}\n${response.data.message}`);
+      setAnalysisStatus({
+        status: 'running',
+        message: 'Code analysis started...',
+      });
 
+      // Start polling for status every 3 seconds
+      const pollInterval = setInterval(async () => {
+        const shouldStop = await pollAnalysisStatus();
+        if (shouldStop) {
+          clearInterval(pollInterval);
+        }
+      }, 3000);
+
+      // Stop polling after 5 minutes max
       setTimeout(() => {
-        fetchMetrics();
-      }, 5000);
+        clearInterval(pollInterval);
+        if (isAnalyzing) {
+          setIsAnalyzing(false);
+          setAnalysisStatus({
+            status: 'failed',
+            message: 'Analysis timed out',
+          });
+          setShowAnalysisNotification(true);
+        }
+      }, 5 * 60 * 1000);
 
     } catch (error: any) {
       console.error('Failed to trigger analysis:', error);
-      alert(`Failed to start analysis: ${error.response?.data?.message || error.message}`);
-    } finally {
       setIsAnalyzing(false);
+      setAnalysisStatus({
+        status: 'failed',
+        message: error.response?.data?.message || error.message,
+      });
+      setShowAnalysisNotification(true);
     }
   };
 
@@ -498,6 +596,39 @@ const CodeQualityDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg p-6">
+      {/* Analysis Status Notification */}
+      {(isAnalyzing || showAnalysisNotification) && analysisStatus && (
+        <div className={`mb-6 p-4 rounded-lg border ${
+          analysisStatus.status === 'completed' ? 'bg-green-50 border-green-200' :
+          analysisStatus.status === 'failed' ? 'bg-red-50 border-red-200' :
+          'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isAnalyzing && <span className="inline-block animate-spin text-xl">⟳</span>}
+              {analysisStatus.status === 'completed' && <span className="text-xl">✓</span>}
+              {analysisStatus.status === 'failed' && <span className="text-xl">✗</span>}
+              <div>
+                <div className="font-medium">
+                  {analysisStatus.status === 'completed' ? 'Analysis Completed' :
+                   analysisStatus.status === 'failed' ? 'Analysis Failed' :
+                   'Analysis Running...'}
+                </div>
+                <div className="text-sm text-muted">{analysisStatus.message}</div>
+              </div>
+            </div>
+            {showAnalysisNotification && (
+              <button
+                onClick={() => setShowAnalysisNotification(false)}
+                className="text-muted hover:text-fg"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6 flex justify-between items-start">
         <div>
@@ -525,6 +656,45 @@ const CodeQualityDashboard: React.FC = () => {
           )}
         </button>
       </div>
+
+      {/* Analysis Comparison (Changes Since Last Analysis) */}
+      {analysisComparison && analysisComparison.lastAnalysis && (
+        <div className="mb-6 bg-card border border-border rounded-lg shadow-md p-4">
+          <h3 className="text-sm font-medium text-fg mb-3">Changes Since Last Analysis</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${analysisComparison.healthScoreChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {analysisComparison.healthScoreChange >= 0 ? '+' : ''}{analysisComparison.healthScoreChange}
+              </div>
+              <div className="text-xs text-muted">Health Score</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-accent">{analysisComparison.newTests > 0 ? '+' : ''}{analysisComparison.newTests}</div>
+              <div className="text-xs text-muted">New Tests</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${analysisComparison.coverageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {analysisComparison.coverageChange >= 0 ? '+' : ''}{analysisComparison.coverageChange}%
+              </div>
+              <div className="text-xs text-muted">Coverage</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${analysisComparison.complexityChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {analysisComparison.complexityChange >= 0 ? '+' : ''}{analysisComparison.complexityChange}
+              </div>
+              <div className="text-xs text-muted">Complexity</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{analysisComparison.newFiles > 0 ? '+' : ''}{analysisComparison.newFiles}</div>
+              <div className="text-xs text-muted">New Files</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{analysisComparison.deletedFiles > 0 ? '-' : ''}{analysisComparison.deletedFiles}</div>
+              <div className="text-xs text-muted">Deleted Files</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Breadcrumbs */}
       <div className="mb-6 flex items-center gap-2 text-sm">
@@ -753,6 +923,46 @@ const CodeQualityDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Test Execution Summary */}
+          {testSummary && (
+            <div className="bg-card border border-border rounded-lg shadow-md p-4 mb-6">
+              <h3 className="text-sm font-medium text-fg mb-3">Test Execution Summary</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-accent">{testSummary.totalTests}</div>
+                  <div className="text-xs text-muted">Total Tests</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">{testSummary.passing}</div>
+                  <div className="text-xs text-muted">Passing</div>
+                  <div className="text-xs text-green-600 mt-1">
+                    {testSummary.totalTests > 0 ? Math.round((testSummary.passing / testSummary.totalTests) * 100) : 0}%
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-600">{testSummary.failing}</div>
+                  <div className="text-xs text-muted">Failing</div>
+                  <div className="text-xs text-red-600 mt-1">
+                    {testSummary.totalTests > 0 ? Math.round((testSummary.failing / testSummary.totalTests) * 100) : 0}%
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-yellow-600">{testSummary.skipped}</div>
+                  <div className="text-xs text-muted">Skipped</div>
+                  <div className="text-xs text-yellow-600 mt-1">
+                    {testSummary.totalTests > 0 ? Math.round((testSummary.skipped / testSummary.totalTests) * 100) : 0}%
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-muted mb-1">Last Execution</div>
+                  <div className="text-xs text-fg">
+                    {testSummary.lastExecution ? new Date(testSummary.lastExecution).toLocaleDateString() : 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Coverage Gaps Table */}
           {coverageGaps.length > 0 && (
