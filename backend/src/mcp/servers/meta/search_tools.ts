@@ -55,5 +55,11 @@ export async function handler(
   const category = params.category || 'all';
   const detailLevel = params.detail_level || 'names_only';
 
-  return registry.searchTools(query, category, detailLevel);
+  console.error(`🔍 search_tools called: query="${query}", category="${category}", detail_level="${detailLevel}"`);
+
+  const result = await registry.searchTools(query, category, detailLevel);
+
+  console.error(`✅ search_tools returning ${result.total} tools`);
+
+  return result;
 }

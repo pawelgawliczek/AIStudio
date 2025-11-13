@@ -95,7 +95,7 @@ export function UseCaseLibraryView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Please select a project to view use cases.</p>
+        <p className="text-muted">Please select a project to view use cases.</p>
       </div>
     );
   }
@@ -105,14 +105,14 @@ export function UseCaseLibraryView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Use Case Library</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-fg">Use Case Library</h1>
+          <p className="mt-1 text-sm text-muted">
             Browse, search, and manage use cases for your project
           </p>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-accent text-accent-fg rounded-lg hover:bg-accent-dark transition-colors"
         >
           + Create Use Case
         </button>
@@ -128,11 +128,11 @@ export function UseCaseLibraryView() {
         {/* Filters */}
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Area:</label>
+            <label className="text-sm font-medium text-fg">Area:</label>
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 rounded-lg"
             >
               <option value="all">All Areas</option>
               {areas.map(area => (
@@ -147,7 +147,7 @@ export function UseCaseLibraryView() {
                 setSearchQuery('');
                 setSelectedArea('all');
               }}
-              className="text-sm text-gray-600 hover:text-gray-900 underline"
+              className="text-sm text-muted hover:text-fg underline"
             >
               Clear all filters
             </button>
@@ -156,7 +156,7 @@ export function UseCaseLibraryView() {
       </div>
 
       {/* Results Count */}
-      <div className="mb-4 text-sm text-gray-600">
+      <div className="mb-4 text-sm text-muted">
         {isLoading ? (
           <span>Loading...</span>
         ) : (
@@ -171,13 +171,13 @@ export function UseCaseLibraryView() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-gray-100 animate-pulse rounded-lg" />
+            <div key={i} className="h-48 bg-bg-secondary animate-pulse rounded-lg" />
           ))}
         </div>
       ) : useCases.length === 0 ? (
         <div className="text-center py-12">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -189,8 +189,8 @@ export function UseCaseLibraryView() {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No use cases found</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-fg">No use cases found</h3>
+          <p className="mt-1 text-sm text-muted">
             {searchQuery
               ? 'Try adjusting your search query or filters.'
               : 'Get started by creating a new use case.'}
@@ -199,7 +199,7 @@ export function UseCaseLibraryView() {
             <div className="mt-6">
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-accent-fg bg-accent hover:bg-accent-dark"
               >
                 + Create Use Case
               </button>

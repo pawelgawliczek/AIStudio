@@ -42,32 +42,32 @@ async function bootstrap() {
   // API prefix
   app.setGlobalPrefix('api');
 
-  // Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle('Vibe Studio API')
-    .setDescription('MCP Control Plane API for managing AI agentic frameworks')
-    .setVersion('0.1.0')
-    .addTag('auth', 'Authentication and authorization endpoints')
-    .addTag('users', 'User management endpoints')
-    .addTag('projects', 'Project management endpoints')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Enter JWT token',
-        name: 'Authorization',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
+  // Swagger documentation - temporarily disabled for testing
+  // const config = new DocumentBuilder()
+  //   .setTitle('Vibe Studio API')
+  //   .setDescription('MCP Control Plane API for managing AI agentic frameworks')
+  //   .setVersion('0.1.0')
+  //   .addTag('auth', 'Authentication and authorization endpoints')
+  //   .addTag('users', 'User management endpoints')
+  //   .addTag('projects', 'Project management endpoints')
+  //   .addBearerAuth(
+  //     {
+  //       type: 'http',
+  //       scheme: 'bearer',
+  //       bearerFormat: 'JWT',
+  //       description: 'Enter JWT token',
+  //       name: 'Authorization',
+  //       in: 'header',
+  //     },
+  //     'JWT-auth',
+  //   )
+  //   .build();
+  // const document = SwaggerModule.createDocument(app, config);
+  // SwaggerModule.setup('api/docs', app, document, {
+  //   swaggerOptions: {
+  //     persistAuthorization: true,
+  //   },
+  // });
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

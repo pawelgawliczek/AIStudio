@@ -304,4 +304,93 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
     this.logger.log(`Broadcasted use case linked to rooms: ${storyRoom}, ${projectRoom}`);
   }
+
+  // ============================================================================
+  // Workflow Execution Events
+  // ============================================================================
+
+  /**
+   * Broadcast workflow run started
+   */
+  broadcastWorkflowStarted(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(runRoom).emit('workflow:started', data);
+    this.server.to(projectRoom).emit('workflow:started', data);
+
+    this.logger.log(`Broadcasted workflow started to rooms: ${runRoom}, ${projectRoom}`);
+  }
+
+  /**
+   * Broadcast workflow status updated
+   */
+  broadcastWorkflowStatusUpdated(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(runRoom).emit('workflow:status', data);
+    this.server.to(projectRoom).emit('workflow:status', data);
+
+    this.logger.log(`Broadcasted workflow status to rooms: ${runRoom}, ${projectRoom}`);
+  }
+
+  /**
+   * Broadcast component execution started
+   */
+  broadcastComponentStarted(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(runRoom).emit('component:started', data);
+    this.server.to(projectRoom).emit('component:started', data);
+
+    this.logger.log(`Broadcasted component started to room: ${runRoom}`);
+  }
+
+  /**
+   * Broadcast component execution progress
+   */
+  broadcastComponentProgress(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+
+    this.server.to(runRoom).emit('component:progress', data);
+
+    this.logger.debug(`Broadcasted component progress to room: ${runRoom}`);
+  }
+
+  /**
+   * Broadcast component execution completed
+   */
+  broadcastComponentCompleted(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(runRoom).emit('component:completed', data);
+    this.server.to(projectRoom).emit('component:completed', data);
+
+    this.logger.log(`Broadcasted component completed to room: ${runRoom}`);
+  }
+
+  /**
+   * Broadcast artifact stored
+   */
+  broadcastArtifactStored(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+
+    this.server.to(runRoom).emit('artifact:stored', data);
+
+    this.logger.log(`Broadcasted artifact stored to room: ${runRoom}`);
+  }
+
+  /**
+   * Broadcast aggregated metrics updated
+   */
+  broadcastMetricsUpdated(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+
+    this.server.to(runRoom).emit('metrics:updated', data);
+
+    this.logger.debug(`Broadcasted metrics updated to room: ${runRoom}`);
+  }
 }

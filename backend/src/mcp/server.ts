@@ -79,15 +79,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     console.error(`🔧 Executing tool: ${name}`);
+    console.error(`📋 Arguments: ${JSON.stringify(args)}`);
 
     let result: any;
 
     // Special case: search_tools needs registry access instead of prisma
     if (name === 'search_tools') {
+      console.error(`🔍 Special handling for search_tools`);
       const toolModule = await registry.discoverTools('meta');
+      console.error(`🔍 Found ${toolModule.length} meta tools`);
       const searchTool = toolModule.find((t) => t.tool.name === 'search_tools');
       if (searchTool) {
+        console.error(`🔍 Calling search_tools handler`);
         result = await searchTool.handler(registry, args);
+        console.error(`🔍 search_tools handler returned, preparing response`);
       } else {
         throw new Error('search_tools not found');
       }
@@ -96,17 +101,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       result = await registry.executeTool(name, args);
     }
 
+    console.error(`📤 Serializing result to JSON`);
+    const jsonResult = JSON.stringify(result, null, 2);
+    console.error(`📤 JSON size: ${jsonResult.length} bytes`);
+
+    console.error(`✅ Returning result for tool: ${name}`);
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(result, null, 2),
+          text: jsonResult,
         },
       ],
     };
   } catch (error: any) {
     const formattedError = formatError(error);
-    console.error(`Error executing tool ${name}:`, formattedError);
+    console.error(`❌ Error executing tool ${name}:`, formattedError);
 
     return {
       content: [

@@ -84,6 +84,11 @@ services:
       - ./backend/src:/app/backend/src
       - ./backend/prisma:/app/backend/prisma
       - ./shared/src:/app/shared/src
+      # Mount .git for code analysis
+      - ./.git:/app/.git:ro
+      # Mount coverage data for test coverage analysis
+      - ./backend/coverage:/app/backend/coverage:ro
+      - ./frontend/coverage:/app/frontend/coverage:ro
     depends_on:
       postgres:
         condition: service_healthy
