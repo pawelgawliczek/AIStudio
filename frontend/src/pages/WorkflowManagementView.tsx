@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowsService } from '../services/workflows.service';
 import { Workflow } from '../types';
 import { useProject } from '../context/ProjectContext';
+import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
+import { WorkflowActivationButton } from '../components/WorkflowActivationButton';
 
 export function WorkflowManagementView() {
   const [searchParams] = useSearchParams();
@@ -56,6 +58,8 @@ export function WorkflowManagementView() {
           </p>
         </div>
       </div>
+
+      <ActiveWorkflowBanner />
 
       <div className="mb-6">
         <div className="flex flex-wrap items-center gap-4">
@@ -184,23 +188,30 @@ export function WorkflowManagementView() {
                   </div>
                 </div>
               )}
-              <div className="mt-3 flex items-center justify-end gap-2 text-sm">
-                <button
-                  onClick={() => toggleActiveMutation.mutate({ id: workflow.id, active: workflow.active })}
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  {workflow.active ? 'Deactivate' : 'Activate'}
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
-                      deleteMutation.mutate(workflow.id);
-                    }
-                  }}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Delete
-                </button>
+              <div className="mt-3 space-y-2">
+                <WorkflowActivationButton
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  disabled={!workflow.active}
+                />
+                <div className="flex items-center justify-end gap-2 text-sm">
+                  <button
+                    onClick={() => toggleActiveMutation.mutate({ id: workflow.id, active: workflow.active })}
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    {workflow.active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
+                        deleteMutation.mutate(workflow.id);
+                      }
+                    }}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
