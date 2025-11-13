@@ -120,7 +120,7 @@ export function CreateEpicModal({
                           required
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg text-fg"
+                          className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
                           placeholder="Enter epic title..."
                         />
                       </div>
@@ -153,7 +153,7 @@ export function CreateEpicModal({
                           id="priority"
                           value={priority}
                           onChange={(e) => setPriority(Number(e.target.value))}
-                          className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg text-fg"
+                          className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
                         >
                           <option value="0">0 - Lowest</option>
                           <option value="1">1 - Very Low</option>
