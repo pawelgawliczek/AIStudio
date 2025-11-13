@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Grid, Chip, LinearProgress } from '@mui/material';
+import { Box, Paper, Typography, Chip, LinearProgress, Grid } from '@mui/material';
 import {
   AccessTime,
   Token,
@@ -93,56 +93,56 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
       )}
 
       {/* Metrics Grid */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div>
           <MetricCard
             icon={<CheckCircle />}
             label="Components"
             value={`${metrics.componentsCompleted}/${metrics.componentsTotal}`}
             color="success"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        </div>
+        <div>
           <MetricCard
             icon={<AccessTime />}
             label="Duration"
             value={formatDuration(metrics.totalDuration)}
             color="info"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        </div>
+        <div>
           <MetricCard
             icon={<Token />}
             label="Tokens"
             value={formatNumber(metrics.totalTokens)}
             color="primary"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        </div>
+        <div>
           <MetricCard
             icon={<AttachMoney />}
             label="Cost"
             value={formatCost(metrics.totalCost)}
             color="warning"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        </div>
+        <div>
           <MetricCard
             icon={<ChatBubbleOutline />}
             label="User Prompts"
             value={formatNumber(metrics.totalUserPrompts)}
             color="secondary"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2}>
+        </div>
+        <div>
           <MetricCard
             icon={<Loop />}
             label="Iterations"
             value={formatNumber(metrics.totalIterations)}
             color="info"
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </Box>
   );
 };

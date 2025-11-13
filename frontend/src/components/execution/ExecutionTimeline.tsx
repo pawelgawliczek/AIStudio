@@ -2,6 +2,10 @@ import React from 'react';
 import {
   Box,
   Typography,
+  Paper,
+  Chip,
+} from '@mui/material';
+import {
   Timeline,
   TimelineItem,
   TimelineSeparator,
@@ -9,9 +13,7 @@ import {
   TimelineContent,
   TimelineDot,
   TimelineOppositeContent,
-  Paper,
-  Chip,
-} from '@mui/material';
+} from '@mui/lab';
 import { CheckCircle, Error, PlayArrow, Flag } from '@mui/icons-material';
 
 interface ComponentRun {
@@ -55,7 +57,20 @@ const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({
     }
   };
 
-  const getStatusColor = (status: string): 'success' | 'error' | 'primary' | 'grey' => {
+  const getStatusColor = (status: string): 'success' | 'error' | 'primary' | 'default' => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'failed':
+        return 'error';
+      case 'running':
+        return 'primary';
+      default:
+        return 'default';
+    }
+  };
+
+  const getTimelineDotColor = (status: string): 'success' | 'error' | 'primary' | 'grey' => {
     switch (status) {
       case 'completed':
         return 'success';
@@ -105,7 +120,7 @@ const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({
               {formatTime(run.startedAt)}
             </TimelineOppositeContent>
             <TimelineSeparator>
-              <TimelineDot color={getStatusColor(run.status)}>
+              <TimelineDot color={getTimelineDotColor(run.status)}>
                 {getStatusIcon(run.status)}
               </TimelineDot>
               {index < componentRuns.length - 1 || !completedAt ? <TimelineConnector /> : null}
