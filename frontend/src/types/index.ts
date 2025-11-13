@@ -773,10 +773,12 @@ export interface CoordinatorAgent {
   description: string;
   domain: string;
   coordinatorInstructions: string;
+  flowDiagram?: string;
   config: ExecutionConfig;
   tools: string[];
   decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
   componentIds: string[];
+  components?: Component[];
   active: boolean;
   version: string;
   createdAt: string;
@@ -840,7 +842,10 @@ export interface Workflow {
     id: string;
     name: string;
     domain: string;
-  };
+    flowDiagram?: string;
+    componentIds?: string[];
+    components?: Component[];
+  } | CoordinatorAgent;
   usageStats?: {
     totalRuns: number;
     avgRuntime: number;
