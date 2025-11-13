@@ -49,13 +49,18 @@ export function MarkdownEditor({
         preview="edit"
         textareaProps={{
           placeholder: placeholder,
+          style: {
+            color: 'var(--fg) !important',
+          },
         }}
         style={{
           borderRadius: '0.375rem',
           border: `1px solid var(--border)`,
           backgroundColor: 'var(--bg)',
           color: 'var(--fg)',
-        }}
+          '--color-fg-default': 'var(--fg)',
+          '--color-canvas-default': 'var(--bg)',
+        } as React.CSSProperties}
       />
       <style>{`
         /* Main editor container */
