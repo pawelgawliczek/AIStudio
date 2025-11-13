@@ -5,6 +5,7 @@ import { useCasesService } from '../services/use-cases.service';
 import { UseCase, UseCaseVersion } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
+import { MarkdownEditor } from './MarkdownEditor';
 
 interface UseCaseDetailModalProps {
   useCase: UseCase;
@@ -109,7 +110,7 @@ export function UseCaseDetailModal({
             >
               <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-card text-left align-middle shadow-xl transition-all">
                 {/* Header */}
-                <div className="flex items-start justify-between p-6 border-b border-gray-200">
+                <div className="flex items-start justify-between p-6 border-b border-border">
                   <div className="flex-1">
                     {isEditing ? (
                       <input
@@ -249,24 +250,24 @@ export function UseCaseDetailModal({
                             <label className="block text-sm font-medium text-fg mb-1">
                               Summary
                             </label>
-                            <textarea
+                            <MarkdownEditor
                               value={editForm.summary}
-                              onChange={(e) => setEditForm({ ...editForm, summary: e.target.value })}
-                              rows={2}
-                              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              onChange={(value) => setEditForm({ ...editForm, summary: value })}
                               placeholder="Brief summary of the use case..."
+                              height={100}
+                              minHeight={80}
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-fg mb-1">
                               Content (Markdown)
                             </label>
-                            <textarea
+                            <MarkdownEditor
                               value={editForm.content}
-                              onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                              rows={15}
-                              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                              onChange={(value) => setEditForm({ ...editForm, content: value })}
                               placeholder="Use case content in markdown format..."
+                              height={400}
+                              minHeight={300}
                             />
                           </div>
                         </div>
@@ -295,7 +296,7 @@ export function UseCaseDetailModal({
                           versions.map((version: UseCaseVersion) => (
                             <div
                               key={version.id}
-                              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                              className="border border-border rounded-lg p-4 hover:bg-bg-secondary"
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <div>
@@ -331,10 +332,10 @@ export function UseCaseDetailModal({
                           useCase.storyLinks.map((link) => (
                             <div
                               key={link.storyId}
-                              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                              className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-bg-secondary"
                             >
                               <div>
-                                <span className="font-mono text-sm text-gray-600">{link.story.key}</span>
+                                <span className="font-mono text-sm text-muted">{link.story.key}</span>
                                 <h4 className="text-sm font-medium text-fg mt-1">
                                   {link.story.title}
                                 </h4>
@@ -344,7 +345,7 @@ export function UseCaseDetailModal({
                                       ? 'bg-green-100 text-green-800'
                                       : link.story.status === 'blocked'
                                       ? 'bg-red-100 text-red-800'
-                                      : 'bg-bg-secondary text-gray-800'
+                                      : 'bg-bg-secondary text-fg'
                                   }`}>
                                     {link.story.status}
                                   </span>
@@ -383,14 +384,14 @@ export function UseCaseDetailModal({
                           relatedUseCases.map((related: UseCase) => (
                             <div
                               key={related.id}
-                              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                              className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-bg-secondary cursor-pointer"
                               onClick={() => window.open(`/use-cases?id=${related.id}`, '_blank')}
                             >
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono text-sm text-gray-600">{related.key}</span>
+                                  <span className="font-mono text-sm text-muted">{related.key}</span>
                                   {related.similarity !== undefined && (
-                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                    <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded">
                                       {Math.round(related.similarity * 100)}% similar
                                     </span>
                                   )}
