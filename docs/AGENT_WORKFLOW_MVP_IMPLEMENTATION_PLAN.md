@@ -1,7 +1,110 @@
 # Agent Workflow MVP - Implementation Plan
 
-**Last Updated**: 2025-11-12
-**Status**: In Progress - Phase 2 Complete (Backend + Frontend)
+**Last Updated**: 2025-11-13
+**Status**: ✅ 75% Complete - Ready for Phase 3+6 (Live Execution Engine)
+**Branch**: `claude/review-agent-workflow-plan-011CV4EqdZTuLGSKfJizYiVZ`
+
+---
+
+## 🚀 START HERE - Next Session Quick Start
+
+### What We Have (75% Complete)
+- ✅ **Database Schema**: Component, Coordinator, Workflow, WorkflowRun, ComponentRun models
+- ✅ **CRUD APIs**: Full REST APIs for Components, Coordinators, Workflows
+- ✅ **Web UI**: Create/edit components, coordinators, workflows
+- ✅ **Claude Code Integration**: Activate workflows → generates `.claude/agents/*.md` files
+- ✅ **Analytics Dashboard**: Workflow results, performance metrics, comparisons
+- ✅ **Complexity Filters**: Filter by business/technical complexity
+
+### What's Missing (25% - Phase 3+6)
+**The system can TRACK executions but can't EXECUTE them yet!**
+
+❌ No workflow execution engine
+❌ No Claude API integration
+❌ No component runtime
+❌ No coordinator decision logic
+❌ No real-time monitoring
+❌ No artifact storage (S3)
+
+### 🎯 NEXT TASK: Phase 3+6 - Live Execution Engine
+
+**Goal**: Make workflows actually executable, not just trackable.
+
+**What to Build**:
+
+1. **Claude API Integration** (`backend/src/execution/claude-api.service.ts`)
+   - Call Claude Sonnet API
+   - Stream responses
+   - Track tokens/cost
+   - Handle retries
+
+2. **Component Executor** (`backend/src/execution/component-executor.service.ts`)
+   - Execute a single component
+   - Parse input/output
+   - Track iterations & prompts
+   - Create ComponentRun records
+   - Handle failures
+
+3. **Coordinator Decision Engine** (`backend/src/execution/coordinator-executor.service.ts`)
+   - Implement decision strategies: sequential, adaptive, parallel, conditional
+   - Select next component based on context
+   - Track coordinator decisions
+
+4. **Workflow Orchestration** (`backend/src/execution/workflow-orchestration.service.ts`)
+   - Execute full workflow
+   - Call coordinator → select component → execute component → repeat
+   - Create WorkflowRun record
+   - Handle pause/resume/cancel
+
+5. **Real-time Monitoring** (`backend/src/websocket/execution-gateway.ts`)
+   - WebSocket gateway
+   - Broadcast execution status
+   - Live progress updates
+
+6. **S3 Artifact Storage** (`backend/src/storage/s3.service.ts`)
+   - Store component outputs
+   - Version control
+   - Retrieval API
+
+7. **MCP Tool** (`backend/src/mcp/servers/execution/execute_workflow.ts`)
+   - `execute_workflow` MCP tool
+   - Trigger execution from Claude Code
+
+8. **Frontend Monitoring** (`frontend/src/pages/WorkflowExecutionMonitor.tsx`)
+   - Live execution view
+   - Progress bar
+   - Log viewer
+   - Pause/cancel controls
+
+**API Endpoints to Create**:
+```
+POST   /api/projects/:projectId/workflows/:id/execute       # Start execution
+GET    /api/projects/:projectId/workflow-runs/:id/status    # Get status
+POST   /api/projects/:projectId/workflow-runs/:id/pause     # Pause
+POST   /api/projects/:projectId/workflow-runs/:id/cancel    # Cancel
+POST   /api/projects/:projectId/workflow-runs/:id/resume    # Resume
+WS     /api/workflow-runs/:id/live                          # WebSocket updates
+```
+
+**Acceptance Criteria**:
+- [ ] Can execute a workflow from web UI
+- [ ] Coordinator makes decisions and selects components
+- [ ] Components execute and produce output
+- [ ] WorkflowRun and ComponentRun records created
+- [ ] Real-time progress visible in UI
+- [ ] Can pause/resume/cancel execution
+- [ ] Artifacts stored in S3
+- [ ] MCP tool works from Claude Code
+
+**Estimated Effort**: 2-3 sessions (12-18 hours)
+
+**Priority Files to Create**:
+1. `backend/src/execution/` directory (5-6 services)
+2. `backend/src/websocket/execution-gateway.ts`
+3. `backend/src/storage/s3.service.ts`
+4. `backend/src/mcp/servers/execution/execute_workflow.ts`
+5. `frontend/src/pages/WorkflowExecutionMonitor.tsx`
+6. `frontend/src/components/execution/` components
 
 ---
 
@@ -213,10 +316,11 @@
 
 ---
 
-### Phase 4: Results & Analytics
+### Phase 4: Results & Analytics ✅ COMPLETE
 **Goal**: Review execution results and view performance metrics
+**Status**: ✅ 100% Complete
 
-#### UC-MVP-007: Review Workflow Execution Results ✅ REVIEWED
+#### UC-MVP-007: Review Workflow Execution Results ✅ COMPLETE
 **Requirements**:
 - Artifact storage: S3
 - Code diffs: Inline
@@ -247,7 +351,7 @@
   - [ ] Markdown generator
   - [ ] JSON serializer
 
-#### UC-MVP-008: View Agent Performance Metrics ✅ REVIEWED
+#### UC-MVP-008: View Agent Performance Metrics ✅ COMPLETE
 **Requirements**:
 - Pre-aggregated metrics (manual recalculation option)
 - Retention: Forever
@@ -701,21 +805,37 @@ model MetricsAggregation {
 
 ## Progress Tracking
 
-**Phase 1**: ✅ Completed (100% - Database schema & migration)
-**Phase 2**: ✅ Completed (100% - Backend APIs + Frontend UI)
-**Phase 3**: ⏸️ Deferred (Will implement after Phase 4)
-**Phase 4**: ✅ Completed (95% - Results, analytics & comparisons - PDF export optional)
-**Phase 5**: ⏸️ Not Started
-**Phase 6**: ⏸️ Deferred (Will implement with Phase 3)
-**Phase 7**: ✅ Completed (100% - Claude Code Integration)
+**Phase 1**: ✅ COMPLETE (100% - Database schema & migration)
+**Phase 2**: ✅ COMPLETE (100% - Backend APIs + Frontend UI)
+**Phase 3**: ⏭️ NEXT - Live Execution Engine (0%)
+**Phase 4**: ✅ COMPLETE (100% - Results, analytics & complexity filters)
+**Phase 5**: ⏸️ DEFERRED - Defect leakage tracking
+**Phase 6**: ⏭️ NEXT - Real-time monitoring (with Phase 3)
+**Phase 7**: ✅ COMPLETE (100% - Claude Code Integration)
 
-**Overall Progress**: 75% (Foundation + Claude Code + Analytics complete)
+**Overall Progress**: 75% Complete
 
-**Implementation Strategy**:
-1. ✅ Phase 1 + 2: Foundation complete
-2. ✅ Phase 7: Enable workflow activation in Claude Code - COMPLETE
-3. ✅ Phase 4: Results & workflow comparison analytics - COMPLETE
-4. ⏭️ Phase 3 + 6: Live execution engine & monitoring (NEXT)
+**What's Working Now**:
+- ✅ Create/manage Components, Coordinators, Workflows (Web UI)
+- ✅ Activate workflows in Claude Code (generates agent files)
+- ✅ Track workflow runs and component runs (database)
+- ✅ View execution results and performance metrics
+- ✅ Compare workflows and analyze trends
+- ✅ Filter by business/technical complexity
+
+**What's Missing**:
+- ❌ Actual workflow execution (can't run workflows yet!)
+- ❌ Claude API integration
+- ❌ Component runtime execution
+- ❌ Coordinator decision engine
+- ❌ Real-time monitoring
+- ❌ Artifact storage (S3)
+
+**Implementation Order**:
+1. ✅ Phase 1 + 2: Foundation (Database + CRUD APIs + UI)
+2. ✅ Phase 7: Claude Code activation (Generate agent files)
+3. ✅ Phase 4: Analytics (Track & visualize results)
+4. ⏭️ **Phase 3 + 6: EXECUTION ENGINE** ← **START HERE NEXT SESSION**
 
 ---
 
@@ -745,15 +865,17 @@ model MetricsAggregation {
 21. ✅ Build Performance Dashboard UI (4 tabs: Workflows, Components, Trends, Comparisons)
 22. ✅ Implement export functionality (JSON, Markdown - PDF optional)
 
-**Next (Phase 3+6)**:
-23. ⏭️ Design execution engine architecture
-24. ⏭️ Implement Claude API integration
-25. ⏭️ Build component execution runtime
-26. ⏭️ Implement coordinator decision logic
-27. ⏭️ Create workflow orchestration engine
-28. ⏭️ Build real-time monitoring WebSocket
-29. ⏭️ Implement S3 artifact storage
-30. ⏭️ Add defect leakage tracking
+**Next (Phase 3+6 - START HERE)**:
+23. ⏭️ **Design execution engine architecture** (create design doc first!)
+24. ⏭️ **Implement Claude API integration** (`claude-api.service.ts`)
+25. ⏭️ **Build component execution runtime** (`component-executor.service.ts`)
+26. ⏭️ **Implement coordinator decision logic** (`coordinator-executor.service.ts`)
+27. ⏭️ **Create workflow orchestration engine** (`workflow-orchestration.service.ts`)
+28. ⏭️ **Build real-time monitoring WebSocket** (`execution-gateway.ts`)
+29. ⏭️ **Implement S3 artifact storage** (`s3.service.ts`)
+30. ⏭️ **Create execute_workflow MCP tool** (`execute_workflow.ts`)
+31. ⏭️ **Build execution monitoring UI** (`WorkflowExecutionMonitor.tsx`)
+32. ⏸️ Add defect leakage tracking (Phase 5 - deferred)
 
 ---
 
@@ -825,3 +947,12 @@ model MetricsAggregation {
   - Phase 4 is 95% complete (PDF export optional)
   - Overall project progress: 75%
   - Next up: Phase 3+6 (Live Execution Engine)
+- **2025-11-13 21:00**: Added complexity filters to Performance Dashboard:
+  - Added businessComplexity and technicalComplexity filters to MetricsQueryDto
+  - Updated all metrics endpoints to support complexity filtering
+  - Frontend: Added two dropdown filters (Business Complexity, Technical Complexity)
+  - Filters apply to all views: Workflows, Components, Trends, Weekly aggregations
+  - Enables comparing performance on stories with similar complexity levels
+  - Committed and pushed to branch
+  - Phase 4 now 100% complete (was 95%)
+  - **Ready to start Phase 3+6: Live Execution Engine**
