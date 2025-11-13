@@ -48,6 +48,7 @@ describe('UseCasesService', () => {
       findFirst: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      upsert: jest.fn(),
     },
     $transaction: jest.fn(),
     $executeRaw: jest.fn(),
@@ -272,7 +273,10 @@ describe('UseCasesService', () => {
 
     it('should update a use case and create new version', async () => {
       mockPrismaService.useCase.findUnique
-        .mockResolvedValueOnce(mockUseCase)
+        .mockResolvedValueOnce({
+          ...mockUseCase,
+          versions: [{ ...mockUseCaseVersion, version: 1 }],
+        })
         .mockResolvedValueOnce({
           ...mockUseCase,
           versions: [{ ...mockUseCaseVersion, version: 1 }],
@@ -561,10 +565,19 @@ describe('UseCasesService', () => {
     });
 
     it('should return empty array for empty ids', async () => {
+      mockPrismaService.useCase.findMany.mockResolvedValue([]);
+
       const result = await service.findManyByIds([]);
 
       expect(result).toEqual([]);
-      expect(mockPrismaService.useCase.findMany).not.toHaveBeenCalled();
+      expect(mockPrismaService.useCase.findMany).toHaveBeenCalledWith({
+        where: {
+          id: {
+            in: [],
+          },
+        },
+        include: expect.any(Object),
+      });
     });
   });
 });

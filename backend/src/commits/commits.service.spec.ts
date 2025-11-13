@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { CommitsService } from './commits.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WorkersService } from '../workers/workers.service';
 import { LinkCommitDto } from './dto';
 
 describe('CommitsService', () => {
@@ -21,6 +22,10 @@ describe('CommitsService', () => {
     story: {
       findUnique: jest.fn(),
     },
+  };
+
+  const mockWorkersService = {
+    enqueueCodeAnalysis: jest.fn(),
   };
 
   const mockProject = {
@@ -49,6 +54,7 @@ describe('CommitsService', () => {
       providers: [
         CommitsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: WorkersService, useValue: mockWorkersService },
       ],
     }).compile();
 
@@ -150,7 +156,7 @@ describe('CommitsService', () => {
     });
   });
 
-  describe('getCommitsByStory', () => {
+  describe('findByStory', () => {
     it('should return commits for a story', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
       mockPrismaService.commit.findMany.mockResolvedValue([
@@ -160,7 +166,7 @@ describe('CommitsService', () => {
         },
       ]);
 
-      const result = await service.getCommitsByStory('story-id');
+      const result = await service.findByStory('story-id');
 
       expect(result).toHaveLength(1);
       expect(mockPrismaService.commit.findMany).toHaveBeenCalledWith({
@@ -173,13 +179,13 @@ describe('CommitsService', () => {
     it('should throw NotFoundException if story not found', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue(null);
 
-      await expect(service.getCommitsByStory('nonexistent-id')).rejects.toThrow(
+      await expect(service.findByStory('nonexistent-id')).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
-  describe('getCommitsByProject', () => {
+  describe('findByProject', () => {
     it('should return commits for a project', async () => {
       mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
       mockPrismaService.commit.findMany.mockResolvedValue([
@@ -189,7 +195,7 @@ describe('CommitsService', () => {
         },
       ]);
 
-      const result = await service.getCommitsByProject('project-id', 20);
+      const result = await service.findByProject('project-id');
 
       expect(result).toHaveLength(1);
       expect(mockPrismaService.commit.findMany).toHaveBeenCalledWith({
@@ -203,7 +209,7 @@ describe('CommitsService', () => {
     it('should throw NotFoundException if project not found', async () => {
       mockPrismaService.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.getCommitsByProject('nonexistent-id')).rejects.toThrow(
+      await expect(service.findByProject('nonexistent-id')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -212,7 +218,7 @@ describe('CommitsService', () => {
       mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
       mockPrismaService.commit.findMany.mockResolvedValue([]);
 
-      await service.getCommitsByProject('project-id');
+      await service.findByProject('project-id');
 
       expect(mockPrismaService.commit.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

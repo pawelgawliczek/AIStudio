@@ -210,7 +210,10 @@ describe('EpicsService', () => {
 
   describe('remove', () => {
     it('should delete an epic', async () => {
-      mockPrismaService.epic.findUnique.mockResolvedValue(mockEpic);
+      mockPrismaService.epic.findUnique.mockResolvedValue({
+        ...mockEpic,
+        _count: { stories: 0 },
+      });
       mockPrismaService.epic.delete.mockResolvedValue(mockEpic);
 
       await service.remove('epic-id');

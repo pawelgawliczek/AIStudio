@@ -10,7 +10,6 @@ export interface WorkflowRunStatus {
   startedAt: string;
   completedAt?: string;
   errorMessage?: string;
-  context: any;
   metrics: {
     totalTokens: number | null;
     totalCost: number | null;
@@ -31,7 +30,7 @@ export interface WorkflowRunStatus {
     durationSeconds?: number;
     tokensUsed?: number;
     userPrompts: number;
-    artifacts: string[];
+    artifacts: any[];
   }>;
 }
 
@@ -89,13 +88,12 @@ export class WorkflowStateService {
       coordinatorName: workflowRun.coordinator.name,
       status: workflowRun.status,
       startedAt: workflowRun.startedAt.toISOString(),
-      completedAt: workflowRun.completedAt?.toISOString(),
+      completedAt: workflowRun.finishedAt?.toISOString(),
       errorMessage: workflowRun.errorMessage || undefined,
-      context: workflowRun.context,
       metrics: {
-        totalTokens: workflowRun.totalTokensUsed,
-        totalCost: workflowRun.totalCostUsd ? Number(workflowRun.totalCostUsd) : null,
-        totalDuration: workflowRun.totalDurationSeconds,
+        totalTokens: workflowRun.totalTokens,
+        totalCost: workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null,
+        totalDuration: workflowRun.durationSeconds,
         totalUserPrompts: workflowRun.totalUserPrompts,
         totalIterations: workflowRun.totalIterations,
         totalInterventions: workflowRun.totalInterventions,
@@ -108,11 +106,11 @@ export class WorkflowStateService {
         componentName: cr.component.name,
         status: cr.status,
         startedAt: cr.startedAt.toISOString(),
-        completedAt: cr.completedAt?.toISOString(),
+        completedAt: cr.finishedAt?.toISOString(),
         durationSeconds: cr.durationSeconds || undefined,
-        tokensUsed: cr.tokensUsed || undefined,
+        tokensUsed: cr.totalTokens || undefined,
         userPrompts: cr.userPrompts || 0,
-        artifacts: (cr.artifactsS3Keys as string[]) || [],
+        artifacts: Array.isArray(cr.artifacts) ? cr.artifacts : [],
       })),
     };
   }
@@ -209,7 +207,6 @@ export class WorkflowStateService {
       workflowId: workflowRun.workflowId,
       workflowName: workflowRun.workflow.name,
       status: workflowRun.status,
-      context: workflowRun.context,
       coordinatorStrategy: workflowRun.coordinator.decisionStrategy,
       completedComponents: workflowRun.componentRuns.map((cr) => ({
         componentRunId: cr.id,
@@ -218,7 +215,7 @@ export class WorkflowStateService {
         status: cr.status,
         output: cr.output,
         startedAt: cr.startedAt.toISOString(),
-        completedAt: cr.completedAt?.toISOString(),
+        completedAt: cr.finishedAt?.toISOString(),
       })),
       remainingComponents: remainingComponents.map((c, index) => ({
         componentId: c.id,
@@ -227,9 +224,9 @@ export class WorkflowStateService {
         order: workflowRun.componentRuns.length + index + 1,
       })),
       aggregatedMetrics: {
-        totalTokens: workflowRun.totalTokensUsed,
-        totalCost: workflowRun.totalCostUsd ? Number(workflowRun.totalCostUsd) : null,
-        totalDuration: workflowRun.totalDurationSeconds,
+        totalTokens: workflowRun.totalTokens,
+        totalCost: workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null,
+        totalDuration: workflowRun.durationSeconds,
         componentsCompleted: workflowRun.componentRuns.length,
         componentsTotal: coordinatorComponentIds.length,
       },
@@ -274,9 +271,9 @@ export class WorkflowStateService {
         coordinatorName: run.coordinator.name,
         status: run.status,
         startedAt: run.startedAt.toISOString(),
-        completedAt: run.completedAt?.toISOString(),
-        totalTokens: run.totalTokensUsed,
-        totalCost: run.totalCostUsd ? Number(run.totalCostUsd) : null,
+        completedAt: run.finishedAt?.toISOString(),
+        totalTokens: run.totalTokens,
+        totalCost: run.estimatedCost ? Number(run.estimatedCost) : null,
         componentRunsCount: run._count.componentRuns,
       })),
       total,

@@ -19,6 +19,7 @@ import { WorkersService } from './workers.service';
 
 @Module({
   imports: [
+    ConfigModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {

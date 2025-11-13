@@ -121,15 +121,15 @@ export async function handler(prisma: PrismaClient, params: any) {
     where: { id: componentRun.id },
     data: {
       status,
-      output: params.output || {},
-      tokensUsed: metrics.tokensUsed || null,
+      outputData: params.output || {},
+      totalTokens: metrics.tokensUsed || null,
       durationSeconds,
-      costUsd: metrics.costUsd || null,
-      linesOfCode: metrics.linesOfCode || null,
+      cost: metrics.costUsd || null,
+      locGenerated: metrics.linesOfCode || null,
       userPrompts: metrics.userPrompts || 0,
       systemIterations: metrics.systemIterations || 1,
       humanInterventions: metrics.humanInterventions || 0,
-      completedAt,
+      finishedAt: completedAt,
       errorMessage: params.errorMessage || null,
     },
     include: {
@@ -146,9 +146,9 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   const aggregatedMetrics = {
-    totalTokensUsed: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensUsed || 0), 0),
-    totalCostUsd: allComponentRuns.reduce((sum, cr) => sum + Number(cr.costUsd || 0), 0),
-    totalDurationSeconds: allComponentRuns.reduce((sum, cr) => sum + (cr.durationSeconds || 0), 0),
+    totalTokens: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0),
+    estimatedCost: allComponentRuns.reduce((sum, cr) => sum + Number(cr.cost || 0), 0),
+    durationSeconds: allComponentRuns.reduce((sum, cr) => sum + (cr.durationSeconds || 0), 0),
     totalUserPrompts: allComponentRuns.reduce((sum, cr) => sum + (cr.userPrompts || 0), 0),
     totalIterations: allComponentRuns.reduce((sum, cr) => sum + (cr.systemIterations || 0), 0),
     totalInterventions: allComponentRuns.reduce((sum, cr) => sum + (cr.humanInterventions || 0), 0),
@@ -160,9 +160,9 @@ export async function handler(prisma: PrismaClient, params: any) {
   await prisma.workflowRun.update({
     where: { id: params.runId },
     data: {
-      totalTokensUsed: aggregatedMetrics.totalTokensUsed || null,
-      totalCostUsd: aggregatedMetrics.totalCostUsd || null,
-      totalDurationSeconds: aggregatedMetrics.totalDurationSeconds || null,
+      totalTokens: aggregatedMetrics.totalTokens || null,
+      estimatedCost: aggregatedMetrics.estimatedCost || null,
+      durationSeconds: aggregatedMetrics.durationSeconds || null,
       totalUserPrompts: aggregatedMetrics.totalUserPrompts || null,
       totalIterations: aggregatedMetrics.totalIterations || null,
       totalInterventions: aggregatedMetrics.totalInterventions || null,
@@ -178,17 +178,17 @@ export async function handler(prisma: PrismaClient, params: any) {
     componentName: updatedComponentRun.component.name,
     status: updatedComponentRun.status,
     startedAt: updatedComponentRun.startedAt.toISOString(),
-    completedAt: updatedComponentRun.completedAt?.toISOString(),
+    completedAt: updatedComponentRun.finishedAt?.toISOString(),
     metrics: {
-      tokensUsed: updatedComponentRun.tokensUsed,
+      tokensUsed: updatedComponentRun.totalTokens,
       durationSeconds: updatedComponentRun.durationSeconds,
-      costUsd: Number(updatedComponentRun.costUsd),
-      linesOfCode: updatedComponentRun.linesOfCode,
+      costUsd: Number(updatedComponentRun.cost),
+      linesOfCode: updatedComponentRun.locGenerated,
       userPrompts: updatedComponentRun.userPrompts,
       systemIterations: updatedComponentRun.systemIterations,
       humanInterventions: updatedComponentRun.humanInterventions,
     },
     aggregatedMetrics,
-    message: `Component "${updatedComponentRun.component.name}" ${status}. Duration: ${durationSeconds}s, Tokens: ${updatedComponentRun.tokensUsed || 0}`,
+    message: `Component "${updatedComponentRun.component.name}" ${status}. Duration: ${durationSeconds}s, Tokens: ${updatedComponentRun.totalTokens || 0}`,
   };
 }
