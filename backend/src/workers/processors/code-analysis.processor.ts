@@ -591,7 +591,27 @@ export class CodeAnalysisProcessor {
             const coverage = fileData.statements?.pct || 0;
 
             // Normalize file path to be relative to repo root
-            const relativePath = filePath.replace(repoPath + '/', '');
+            // Handle both container paths (/app/) and host paths (/opt/stack/AIStudio/)
+            let relativePath = filePath;
+            if (relativePath.startsWith(repoPath + '/')) {
+              relativePath = relativePath.replace(repoPath + '/', '');
+            } else if (relativePath.startsWith('/opt/stack/AIStudio/')) {
+              relativePath = relativePath.replace('/opt/stack/AIStudio/', '');
+            } else if (relativePath.startsWith('/')) {
+              // Try to extract relative path from any absolute path
+              const parts = relativePath.split('/');
+              const backendIndex = parts.indexOf('backend');
+              const frontendIndex = parts.indexOf('frontend');
+              const sharedIndex = parts.indexOf('shared');
+              const startIndex = Math.min(
+                backendIndex >= 0 ? backendIndex : Infinity,
+                frontendIndex >= 0 ? frontendIndex : Infinity,
+                sharedIndex >= 0 ? sharedIndex : Infinity
+              );
+              if (startIndex < Infinity) {
+                relativePath = parts.slice(startIndex).join('/');
+              }
+            }
             coverageMap.set(relativePath, coverage);
           }
         } catch (err) {
