@@ -23,6 +23,7 @@ import { CoordinatorsModule } from './coordinators/coordinators.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { ImpactAnalysisModule } from './impact-analysis/impact-analysis.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -54,6 +55,7 @@ import { HealthController } from './health.controller';
     WorkflowsModule,
     WorkflowRunsModule,
     MetricsModule,
+    ImpactAnalysisModule,
   ],
   controllers: [HealthController],
 })
