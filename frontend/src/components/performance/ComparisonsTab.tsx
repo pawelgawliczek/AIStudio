@@ -87,20 +87,20 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
       <div className="space-y-6">
         {/* Winner Badge */}
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Comparison Result</h2>
+          <h2 className="text-2xl font-bold text-fg mb-2">Comparison Result</h2>
           {comp.winner === 'tie' ? (
-            <p className="text-lg text-gray-700">
+            <p className="text-lg text-fg">
               Both workflows perform similarly (within 5% margin)
             </p>
           ) : (
-            <p className="text-lg text-gray-700">
+            <p className="text-lg text-fg">
               Winner:{' '}
-              <span className="text-2xl font-bold text-blue-600">
+              <span className="text-2xl font-bold text-accent">
                 {comp.winner === 'workflow1' ? workflow1.workflowName : workflow2.workflowName}
               </span>
             </p>
           )}
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-muted mt-2">
             Based on combined cost, duration, and token efficiency
           </p>
         </div>
@@ -108,8 +108,8 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
         {/* Comparison Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Workflow 1 */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="bg-card rounded-lg shadow p-6">
+            <h3 className="text-lg font-bold text-fg mb-4">
               {workflow1.workflowName}
               {comp.winner === 'workflow1' && (
                 <span className="ml-2 text-green-600">👑</span>
@@ -117,41 +117,41 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Total Runs</span>
+                <span className="text-sm text-muted">Total Runs</span>
                 <span className="text-sm font-medium">{workflow1.totalRuns}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Success Rate</span>
+                <span className="text-sm text-muted">Success Rate</span>
                 <span className="text-sm font-medium">{workflow1.successRate.toFixed(0)}%</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg Duration</span>
+                <span className="text-sm text-muted">Avg Duration</span>
                 <span className="text-sm font-medium">
                   {formatDuration(workflow1.avgDuration)}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg Tokens</span>
+                <span className="text-sm text-muted">Avg Tokens</span>
                 <span className="text-sm font-medium">{formatNumber(workflow1.avgTokens)}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg LOC/Story</span>
+                <span className="text-sm text-muted">Avg LOC/Story</span>
                 <span className="text-sm font-medium">
                   {formatNumber(workflow1.avgLocPerStory)}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg Cost</span>
+                <span className="text-sm text-muted">Avg Cost</span>
                 <span className="text-sm font-medium">{formatCost(workflow1.avgCost)}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Tokens/LOC</span>
+                <span className="text-sm text-muted">Tokens/LOC</span>
                 <span className="text-sm font-medium">
                   {workflow1.avgTokensPerLoc?.toFixed(0) || '-'}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">LOC/Prompt</span>
+                <span className="text-sm text-muted">LOC/Prompt</span>
                 <span className="text-sm font-medium">
                   {workflow1.avgLocPerPrompt?.toFixed(1) || '-'}
                 </span>
@@ -160,8 +160,8 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
           </div>
 
           {/* Workflow 2 */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="bg-card rounded-lg shadow p-6">
+            <h3 className="text-lg font-bold text-fg mb-4">
               {workflow2.workflowName}
               {comp.winner === 'workflow2' && (
                 <span className="ml-2 text-green-600">👑</span>
@@ -169,41 +169,41 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Total Runs</span>
+                <span className="text-sm text-muted">Total Runs</span>
                 <span className="text-sm font-medium">{workflow2.totalRuns}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Success Rate</span>
+                <span className="text-sm text-muted">Success Rate</span>
                 <span className="text-sm font-medium">{workflow2.successRate.toFixed(0)}%</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg Duration</span>
+                <span className="text-sm text-muted">Avg Duration</span>
                 <span className="text-sm font-medium">
                   {formatDuration(workflow2.avgDuration)}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg Tokens</span>
+                <span className="text-sm text-muted">Avg Tokens</span>
                 <span className="text-sm font-medium">{formatNumber(workflow2.avgTokens)}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg LOC/Story</span>
+                <span className="text-sm text-muted">Avg LOC/Story</span>
                 <span className="text-sm font-medium">
                   {formatNumber(workflow2.avgLocPerStory)}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Avg Cost</span>
+                <span className="text-sm text-muted">Avg Cost</span>
                 <span className="text-sm font-medium">{formatCost(workflow2.avgCost)}</span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">Tokens/LOC</span>
+                <span className="text-sm text-muted">Tokens/LOC</span>
                 <span className="text-sm font-medium">
                   {workflow2.avgTokensPerLoc?.toFixed(0) || '-'}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">
-                <span className="text-sm text-gray-600">LOC/Prompt</span>
+                <span className="text-sm text-muted">LOC/Prompt</span>
                 <span className="text-sm font-medium">
                   {workflow2.avgLocPerPrompt?.toFixed(1) || '-'}
                 </span>
@@ -213,33 +213,33 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
         </div>
 
         {/* Differences */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="bg-card rounded-lg shadow p-6">
+          <h3 className="text-lg font-bold text-fg mb-4">
             Performance Differences (Workflow 2 vs Workflow 1)
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="border rounded-lg p-3">
-              <div className="text-xs text-gray-600 mb-1">Tokens</div>
+              <div className="text-xs text-muted mb-1">Tokens</div>
               {formatDiff(comp.tokensDiff, true)}
             </div>
             <div className="border rounded-lg p-3">
-              <div className="text-xs text-gray-600 mb-1">Cost</div>
+              <div className="text-xs text-muted mb-1">Cost</div>
               {formatDiff(comp.costDiff, true)}
             </div>
             <div className="border rounded-lg p-3">
-              <div className="text-xs text-gray-600 mb-1">Duration</div>
+              <div className="text-xs text-muted mb-1">Duration</div>
               {formatDiff(comp.durationDiff, true)}
             </div>
             <div className="border rounded-lg p-3">
-              <div className="text-xs text-gray-600 mb-1">LOC</div>
+              <div className="text-xs text-muted mb-1">LOC</div>
               {formatDiff(comp.locDiff, false)}
             </div>
             <div className="border rounded-lg p-3">
-              <div className="text-xs text-gray-600 mb-1">Efficiency</div>
+              <div className="text-xs text-muted mb-1">Efficiency</div>
               {formatDiff(comp.efficiencyDiff, true)}
             </div>
           </div>
-          <div className="mt-3 text-xs text-gray-600">
+          <div className="mt-3 text-xs text-muted">
             <span className="text-green-600">Green</span> = Better performance |{' '}
             <span className="text-red-600">Red</span> = Worse performance
           </div>
@@ -251,18 +251,18 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
   return (
     <div className="space-y-6">
       {/* Selector */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Compare Workflows</h2>
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-fg mb-4">Compare Workflows</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg mb-1">
               Workflow 1
             </label>
             <select
               value={workflow1Id}
               onChange={(e) => setWorkflow1Id(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-ring focus:border-accent"
             >
               <option value="">Select workflow...</option>
               {workflows?.map((wf) => (
@@ -274,13 +274,13 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg mb-1">
               Workflow 2
             </label>
             <select
               value={workflow2Id}
               onChange={(e) => setWorkflow2Id(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-ring focus:border-accent"
             >
               <option value="">Select workflow...</option>
               {workflows?.map((wf) => (
@@ -295,7 +295,7 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
             <button
               onClick={handleCompare}
               disabled={!workflow1Id || !workflow2Id || workflow1Id === workflow2Id}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-dark disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               Compare
             </button>
@@ -308,14 +308,14 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Comparing workflows...</p>
+            <p className="mt-4 text-muted">Comparing workflows...</p>
           </div>
         </div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="bg-red-100/50 border border-red-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-red-800 mb-2">Error</h3>
           <p className="text-red-600">
             {error instanceof Error ? error.message : 'Failed to compare workflows'}
@@ -328,9 +328,9 @@ export function ComparisonsTab({ projectId, startDate, endDate }: ComparisonsTab
 
       {/* Empty State */}
       {!showComparison && !isLoading && (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="bg-card rounded-lg shadow p-12 text-center">
           <div className="text-gray-400 text-5xl mb-4">📊</div>
-          <p className="text-gray-600">
+          <p className="text-muted">
             Select two workflows above and click Compare to see detailed performance comparison.
           </p>
         </div>

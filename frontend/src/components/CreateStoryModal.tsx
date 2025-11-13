@@ -3,6 +3,7 @@ import { Dialog, Transition, Tab } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Epic, StoryType, Layer, Component } from '../types';
 import { API_BASE_URL } from '../config';
+import { MarkdownEditor } from './MarkdownEditor';
 
 interface CreateStoryModalProps {
   open: boolean;
@@ -284,13 +285,11 @@ export function CreateStoryModal({
                               >
                                 Description
                               </label>
-                              <textarea
-                                id="description"
-                                rows={4}
+                              <MarkdownEditor
                                 value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm px-4 py-2 bg-bg-secondary text-fg"
-                                placeholder="Describe the story..."
+                                onChange={setDescription}
+                                placeholder="Describe the story... (Markdown supported)"
+                                height={200}
                               />
                             </div>
 

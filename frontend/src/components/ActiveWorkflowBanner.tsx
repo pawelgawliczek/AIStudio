@@ -70,12 +70,12 @@ export function ActiveWorkflowBanner() {
   }
 
   return (
-    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+    <div className="bg-accent/10 border-l-4 border-accent p-4 mb-6">
       <div className="flex items-start justify-between">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <svg
-              className="h-5 w-5 text-blue-500 mt-0.5"
+              className="h-5 w-5 text-accent mt-0.5"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
               fill="currentColor"
@@ -88,10 +88,10 @@ export function ActiveWorkflowBanner() {
             </svg>
           </div>
           <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-blue-800">
+            <h3 className="text-sm font-medium text-fg">
               Active Workflow: {activeWorkflow.workflowName}
             </h3>
-            <div className="mt-1 text-sm text-blue-700">
+            <div className="mt-1 text-sm text-muted">
               <p>
                 Version {activeWorkflow.version} • Activated{' '}
                 {activeWorkflow.activatedAt &&
@@ -104,7 +104,7 @@ export function ActiveWorkflowBanner() {
               )}
             </div>
             {showSyncResult && (
-              <div className="mt-2 text-sm font-medium text-green-700">{syncMessage}</div>
+              <div className="mt-2 text-sm font-medium text-accent">{syncMessage}</div>
             )}
           </div>
         </div>
@@ -112,14 +112,14 @@ export function ActiveWorkflowBanner() {
           <button
             onClick={handleSync}
             disabled={syncMutation.isPending}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+            className="px-3 py-1 text-sm bg-accent text-accent-fg rounded hover:bg-accent-dark disabled:opacity-50 transition-all"
           >
             {syncMutation.isPending ? 'Syncing...' : 'Sync'}
           </button>
           <button
             onClick={handleDeactivate}
             disabled={deactivateMutation.isPending}
-            className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
+            className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 transition-all"
           >
             {deactivateMutation.isPending ? 'Deactivating...' : 'Deactivate'}
           </button>

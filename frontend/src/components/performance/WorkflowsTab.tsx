@@ -110,37 +110,37 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
   return (
     <div className="space-y-6">
       {/* Weekly Performance Summary */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Performance Summary</h2>
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-fg mb-4">Weekly Performance Summary</h2>
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-bg-secondary">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase">
                   Week
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Stories
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Tokens
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Duration
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Cost
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   LOC
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Success Rate
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-gray-200">
               {weeklyData.map((week, index) => {
                 const prevWeek = index < weeklyData.length - 1 ? weeklyData[index + 1] : null;
                 const weekKey = `${week.year}-W${week.weekNumber}`;
@@ -150,7 +150,7 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                   <>
                     <tr
                       key={weekKey}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="hover:bg-bg-secondary cursor-pointer"
                       onClick={() => toggleWeek(weekKey)}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -159,43 +159,43 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                             {isExpanded ? '▼' : '▶'}
                           </span>
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-fg">
                               Week {week.weekNumber}
                             </div>
-                            <div className="text-xs text-gray-500">{week.year}</div>
+                            <div className="text-xs text-muted">{week.year}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                        <div className="text-sm text-fg flex items-center justify-end gap-1">
                           {week.storiesCompleted}
                           {getTrendIcon(week.storiesCompleted, prevWeek?.storiesCompleted)}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                        <div className="text-sm text-fg flex items-center justify-end gap-1">
                           {formatNumber(week.aggregated.avgTokens)}
                           {getTrendIcon(week.aggregated.avgTokens, prevWeek?.aggregated.avgTokens)}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-fg">
                           {formatDuration(week.aggregated.avgDuration)}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                        <div className="text-sm text-fg flex items-center justify-end gap-1">
                           {formatCost(week.aggregated.avgCost)}
                           {getTrendIcon(week.aggregated.avgCost, prevWeek?.aggregated.avgCost)}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-fg">
                           {formatNumber(week.aggregated.totalLoc)}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-fg">
                           {week.aggregated.successRate.toFixed(0)}%
                         </div>
                       </td>
@@ -204,34 +204,34 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                     {/* Expanded workflow details */}
                     {isExpanded && week.workflows.length > 0 && (
                       <tr key={`${weekKey}-details`}>
-                        <td colSpan={7} className="px-4 py-0 bg-gray-50">
+                        <td colSpan={7} className="px-4 py-0 bg-bg-secondary">
                           <div className="py-3 pl-8">
-                            <div className="text-xs font-semibold text-gray-600 mb-2 uppercase">
+                            <div className="text-xs font-semibold text-muted mb-2 uppercase">
                               Workflows in Week {week.weekNumber}
                             </div>
                             <div className="overflow-x-auto">
                               <table className="min-w-full">
                                 <thead>
-                                  <tr className="border-b border-gray-200">
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                  <tr className="border-b border-border">
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted">
                                       Workflow
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Runs
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Success
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Tokens
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Duration
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       LOC
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Cost
                                     </th>
                                   </tr>
@@ -243,14 +243,14 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                                       className="border-b border-gray-100 hover:bg-gray-100"
                                     >
                                       <td className="px-3 py-2">
-                                        <div className="text-xs font-medium text-gray-800">
+                                        <div className="text-xs font-medium text-fg">
                                           {workflow.workflowName}
                                         </div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-muted">
                                           v{workflow.workflowVersion}
                                         </div>
                                       </td>
-                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                      <td className="px-3 py-2 text-right text-xs text-fg">
                                         {workflow.totalRuns}
                                       </td>
                                       <td className="px-3 py-2 text-right">
@@ -263,20 +263,20 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                                         }`}>
                                           {workflow.successRate.toFixed(0)}%
                                         </span>
-                                        <div className="text-xs text-gray-500">
+                                        <div className="text-xs text-muted">
                                           {workflow.successfulRuns}/{workflow.totalRuns}
                                         </div>
                                       </td>
-                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                      <td className="px-3 py-2 text-right text-xs text-fg">
                                         {formatNumber(workflow.avgTokens)}
                                       </td>
-                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                      <td className="px-3 py-2 text-right text-xs text-fg">
                                         {formatDuration(workflow.avgDuration)}
                                       </td>
-                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                      <td className="px-3 py-2 text-right text-xs text-fg">
                                         {formatNumber(workflow.totalLoc)}
                                       </td>
-                                      <td className="px-3 py-2 text-right text-xs text-gray-700">
+                                      <td className="px-3 py-2 text-right text-xs text-fg">
                                         {formatCost(workflow.avgCost)}
                                       </td>
                                     </tr>
@@ -292,24 +292,24 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                 );
               })}
               {averages && (
-                <tr className="bg-gray-50 font-semibold">
-                  <td className="px-4 py-3 text-sm text-gray-900">Average</td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                <tr className="bg-bg-secondary font-semibold">
+                  <td className="px-4 py-3 text-sm text-fg">Average</td>
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {averages.stories.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {formatNumber(Math.round(averages.tokens))}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {formatDuration(averages.duration)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {formatCost(averages.cost)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {formatNumber(Math.round(averages.loc))}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">-</td>
+                  <td className="px-4 py-3 text-right text-sm text-fg">-</td>
                 </tr>
               )}
             </tbody>
@@ -317,38 +317,38 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
         </div>
 
         {weeklyData.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted">
             No weekly data available for the selected period.
           </div>
         )}
       </div>
 
       {/* Efficiency Metrics */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Detailed Efficiency Metrics</h2>
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-fg mb-4">Detailed Efficiency Metrics</h2>
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-bg-secondary">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase">
                   Week
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Tokens/LOC
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   LOC/Prompt
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Runtime/LOC (sec)
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Iterations
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-gray-200">
               {weeklyData.map((week, index) => {
                 const prevWeek = index < weeklyData.length - 1 ? weeklyData[index + 1] : null;
                 const tokensPerLoc = week.aggregated.avgTokensPerLoc || 0;
@@ -361,7 +361,7 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                   <>
                     <tr
                       key={weekKey}
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="hover:bg-bg-secondary cursor-pointer"
                       onClick={() => toggleWeek(weekKey)}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -369,32 +369,32 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                           <span className="text-gray-400">
                             {isExpanded ? '▼' : '▶'}
                           </span>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-fg">
                             Week {week.weekNumber}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                        <div className="text-sm text-fg flex items-center justify-end gap-1">
                           {tokensPerLoc.toFixed(0)}
                           {getTrendIcon(tokensPerLoc, prevWeek?.aggregated.avgTokensPerLoc)}
                           {getPerformanceIcon(tokensPerLoc, { good: 150, warning: 250 })}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                        <div className="text-sm text-fg flex items-center justify-end gap-1">
                           {locPerPrompt.toFixed(1)}
                           {getPerformanceIcon(20 - locPerPrompt, { good: 5, warning: 10 })}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900 flex items-center justify-end gap-1">
+                        <div className="text-sm text-fg flex items-center justify-end gap-1">
                           {runtimePerLoc.toFixed(1)}
                           {getPerformanceIcon(runtimePerLoc, { good: 10, warning: 20 })}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-fg">
                           {week.aggregated.avgIterationsPerRun?.toFixed(1) || '-'}
                         </div>
                       </td>
@@ -403,25 +403,25 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                     {/* Expanded workflow efficiency details */}
                     {isExpanded && week.workflows.length > 0 && (
                       <tr key={`${weekKey}-efficiency-details`}>
-                        <td colSpan={5} className="px-4 py-0 bg-gray-50">
+                        <td colSpan={5} className="px-4 py-0 bg-bg-secondary">
                           <div className="py-3 pl-8">
-                            <div className="text-xs font-semibold text-gray-600 mb-2 uppercase">
+                            <div className="text-xs font-semibold text-muted mb-2 uppercase">
                               Workflow Efficiency in Week {week.weekNumber}
                             </div>
                             <div className="overflow-x-auto">
                               <table className="min-w-full">
                                 <thead>
-                                  <tr className="border-b border-gray-200">
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                  <tr className="border-b border-border">
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted">
                                       Workflow
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Tokens/LOC
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       LOC/Prompt
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Runtime/LOC (s)
                                     </th>
                                   </tr>
@@ -433,13 +433,13 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                                       className="border-b border-gray-100 hover:bg-gray-100"
                                     >
                                       <td className="px-3 py-2">
-                                        <div className="text-xs font-medium text-gray-800">
+                                        <div className="text-xs font-medium text-fg">
                                           {workflow.workflowName}
                                         </div>
                                       </td>
                                       <td className="px-3 py-2 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                          <span className="text-xs text-gray-700">
+                                          <span className="text-xs text-fg">
                                             {workflow.avgTokensPerLoc?.toFixed(0) || '-'}
                                           </span>
                                           {workflow.avgTokensPerLoc &&
@@ -451,7 +451,7 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                                       </td>
                                       <td className="px-3 py-2 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                          <span className="text-xs text-gray-700">
+                                          <span className="text-xs text-fg">
                                             {workflow.avgLocPerPrompt?.toFixed(1) || '-'}
                                           </span>
                                           {workflow.avgLocPerPrompt &&
@@ -463,7 +463,7 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                                       </td>
                                       <td className="px-3 py-2 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                          <span className="text-xs text-gray-700">
+                                          <span className="text-xs text-fg">
                                             {workflow.avgRuntimePerLoc?.toFixed(1) || '-'}
                                           </span>
                                           {workflow.avgRuntimePerLoc &&
@@ -486,18 +486,18 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                 );
               })}
               {averages && (
-                <tr className="bg-gray-50 font-semibold">
-                  <td className="px-4 py-3 text-sm text-gray-900">Average</td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                <tr className="bg-bg-secondary font-semibold">
+                  <td className="px-4 py-3 text-sm text-fg">Average</td>
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {averages.tokensPerLoc.toFixed(0)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {averages.locPerPrompt.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">
+                  <td className="px-4 py-3 text-right text-sm text-fg">
                     {averages.runtimePerLoc.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-900">-</td>
+                  <td className="px-4 py-3 text-right text-sm text-fg">-</td>
                 </tr>
               )}
             </tbody>
@@ -505,7 +505,7 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
         </div>
 
         {weeklyData.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted">
             No efficiency data available for the selected period.
           </div>
         )}

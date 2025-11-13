@@ -50,51 +50,51 @@ export function ComponentsTab({ componentMetrics, isLoading }: ComponentsTabProp
   return (
     <div className="space-y-6">
       {/* Component Performance Table */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Component Performance</h2>
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-fg mb-4">Component Performance</h2>
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-bg-secondary">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase">
                   Component
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Total Runs
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Success Rate
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Avg Duration
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Avg Tokens
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Total LOC
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Avg Cost
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-gray-200">
               {sortedComponents.map((component) => (
-                <tr key={component.componentId} className="hover:bg-gray-50">
+                <tr key={component.componentId} className="hover:bg-bg-secondary">
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-fg">
                       {component.componentName}
                     </div>
                     {component.avgRunsPerWorkflow !== undefined && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted">
                         {component.avgRunsPerWorkflow.toFixed(1)} runs/workflow
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <div className="text-sm text-gray-900">{component.totalRuns}</div>
+                    <div className="text-sm text-fg">{component.totalRuns}</div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
                     <div
@@ -108,55 +108,55 @@ export function ComponentsTab({ componentMetrics, isLoading }: ComponentsTabProp
                     >
                       {component.successRate.toFixed(0)}%
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted">
                       {component.successfulRuns}/{component.totalRuns}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm text-fg">
                       {formatDuration(component.avgDuration)}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm text-fg">
                       {formatNumber(component.avgTokens)}
                     </div>
                     {component.avgTokensPerLoc !== undefined && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted">
                         {component.avgTokensPerLoc.toFixed(0)} tokens/LOC
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm text-fg">
                       {formatNumber(component.totalLoc)}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <div className="text-sm text-gray-900">{formatCost(component.avgCost)}</div>
+                    <div className="text-sm text-fg">{formatCost(component.avgCost)}</div>
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-50 font-semibold">
+            <tfoot className="bg-bg-secondary font-semibold">
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-900">Total</td>
-                <td className="px-4 py-3 text-right text-sm text-gray-900">
+                <td className="px-4 py-3 text-sm text-fg">Total</td>
+                <td className="px-4 py-3 text-right text-sm text-fg">
                   {componentMetrics.reduce((sum, c) => sum + c.totalRuns, 0)}
                 </td>
-                <td className="px-4 py-3 text-right text-sm text-gray-900">-</td>
-                <td className="px-4 py-3 text-right text-sm text-gray-900">-</td>
-                <td className="px-4 py-3 text-right text-sm text-gray-900">
+                <td className="px-4 py-3 text-right text-sm text-fg">-</td>
+                <td className="px-4 py-3 text-right text-sm text-fg">-</td>
+                <td className="px-4 py-3 text-right text-sm text-fg">
                   {formatNumber(
                     Math.round(
                       componentMetrics.reduce((sum, c) => sum + (c.totalTokens || 0), 0),
                     ),
                   )}
                 </td>
-                <td className="px-4 py-3 text-right text-sm text-gray-900">
+                <td className="px-4 py-3 text-right text-sm text-fg">
                   {formatNumber(componentMetrics.reduce((sum, c) => sum + (c.totalLoc || 0), 0))}
                 </td>
-                <td className="px-4 py-3 text-right text-sm text-gray-900">
+                <td className="px-4 py-3 text-right text-sm text-fg">
                   {formatCost(
                     componentMetrics.reduce((sum, c) => sum + (c.totalCost || 0), 0),
                   )}
@@ -167,7 +167,7 @@ export function ComponentsTab({ componentMetrics, isLoading }: ComponentsTabProp
         </div>
 
         {componentMetrics.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted">
             No component data available for the selected period.
           </div>
         )}
@@ -175,8 +175,8 @@ export function ComponentsTab({ componentMetrics, isLoading }: ComponentsTabProp
 
       {/* Efficiency Breakdown */}
       {componentMetrics.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Efficiency Breakdown</h2>
+        <div className="bg-card rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold text-fg mb-4">Efficiency Breakdown</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Most Efficient (by tokens/LOC) */}

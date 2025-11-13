@@ -43,7 +43,7 @@ export function WorkflowManagementView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Please select a project to view workflows.</p>
+        <p className="text-muted">Please select a project to view workflows.</p>
       </div>
     );
   }
@@ -52,8 +52,8 @@ export function WorkflowManagementView() {
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Workflow Management</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-fg">Workflow Management</h1>
+          <p className="mt-1 text-sm text-muted">
             Manage workflows that link coordinators with trigger configurations
           </p>
         </div>
@@ -69,15 +69,15 @@ export function WorkflowManagementView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search workflows..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Status:</label>
+            <label className="text-sm font-medium text-fg">Status:</label>
             <select
               value={selectedActiveFilter}
               onChange={(e) => setSelectedActiveFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent"
             >
               <option value="all">All</option>
               <option value="active">Active</option>
@@ -90,7 +90,7 @@ export function WorkflowManagementView() {
                 setSearchQuery('');
                 setSelectedActiveFilter('all');
               }}
-              className="text-sm text-gray-600 hover:text-gray-900 underline"
+              className="text-sm text-muted hover:text-fg underline"
             >
               Clear all filters
             </button>
@@ -98,7 +98,7 @@ export function WorkflowManagementView() {
         </div>
       </div>
 
-      <div className="mb-4 text-sm text-gray-600">
+      <div className="mb-4 text-sm text-muted">
         {isLoading ? (
           <span>Loading...</span>
         ) : (
@@ -130,8 +130,8 @@ export function WorkflowManagementView() {
               d="M13 10V3L4 14h7v7l9-11h-7z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No workflows found</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-fg">No workflows found</h3>
+          <p className="mt-1 text-sm text-muted">
             {searchQuery
               ? 'Try adjusting your search query or filters.'
               : 'Get started by creating a new workflow.'}
@@ -140,9 +140,9 @@ export function WorkflowManagementView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {workflows.map(workflow => (
-            <div key={workflow.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 p-4">
+            <div key={workflow.id} className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200 p-4">
               <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg font-semibold text-gray-900">{workflow.name}</h3>
+                <h3 className="text-lg font-semibold text-fg">{workflow.name}</h3>
                 <span
                   className={`px-2 py-1 text-xs font-medium rounded-full ${
                     workflow.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -152,9 +152,9 @@ export function WorkflowManagementView() {
                 </span>
               </div>
               {workflow.description && (
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{workflow.description}</p>
+                <p className="text-sm text-muted mb-3 line-clamp-2">{workflow.description}</p>
               )}
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-muted">
                 {workflow.coordinator && (
                   <div>
                     <span className="font-medium">Coordinator:</span> {workflow.coordinator.name}
@@ -179,12 +179,12 @@ export function WorkflowManagementView() {
               {workflow.usageStats && (
                 <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <div className="text-gray-500">Total Runs</div>
-                    <div className="font-semibold text-gray-900">{workflow.usageStats.totalRuns}</div>
+                    <div className="text-muted">Total Runs</div>
+                    <div className="font-semibold text-fg">{workflow.usageStats.totalRuns}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500">Success Rate</div>
-                    <div className="font-semibold text-gray-900">{workflow.usageStats.successRate.toFixed(1)}%</div>
+                    <div className="text-muted">Success Rate</div>
+                    <div className="font-semibold text-fg">{workflow.usageStats.successRate.toFixed(1)}%</div>
                   </div>
                 </div>
               )}
@@ -197,7 +197,7 @@ export function WorkflowManagementView() {
                 <div className="flex items-center justify-end gap-2 text-sm">
                   <button
                     onClick={() => toggleActiveMutation.mutate({ id: workflow.id, active: workflow.active })}
-                    className="text-gray-600 hover:text-gray-900"
+                    className="text-muted hover:text-fg"
                   >
                     {workflow.active ? 'Deactivate' : 'Activate'}
                   </button>

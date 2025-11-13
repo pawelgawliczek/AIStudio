@@ -30,7 +30,7 @@ export function WorkflowResultsView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Please select a project to view workflow results.</p>
+        <p className="text-muted">Please select a project to view workflow results.</p>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export function WorkflowResultsView() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading workflow results...</p>
+            <p className="mt-4 text-muted">Loading workflow results...</p>
           </div>
         </div>
       </div>
@@ -51,7 +51,7 @@ export function WorkflowResultsView() {
   if (error || !results) {
     return (
       <div className="container mx-auto px-4 py-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="bg-red-100/50 border border-red-200 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Results</h2>
           <p className="text-red-600">
             {error instanceof Error ? error.message : 'Failed to load workflow run results'}
@@ -75,19 +75,19 @@ export function WorkflowResultsView() {
       <div className="mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
+          className="text-accent hover:text-blue-800 mb-2 flex items-center gap-1"
         >
           ← Back
         </button>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-fg">
           {workflowRun.workflow?.name || 'Workflow Run'} Results
         </h1>
         {workflowRun.story && (
-          <p className="mt-1 text-gray-600">
+          <p className="mt-1 text-muted">
             Story: {workflowRun.story.key} - {workflowRun.story.title}
           </p>
         )}
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted mt-1">
           Started: {new Date(workflowRun.startedAt).toLocaleString()}
           {workflowRun.finishedAt && (
             <> • Finished: {new Date(workflowRun.finishedAt).toLocaleString()}</>
@@ -96,14 +96,14 @@ export function WorkflowResultsView() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-border mb-6">
         <nav className="-mb-px flex space-x-6">
           <button
             onClick={() => setActiveTab('summary')}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'summary'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-fg hover:border-border'
             }`}
           >
             Summary
@@ -112,8 +112,8 @@ export function WorkflowResultsView() {
             onClick={() => setActiveTab('timeline')}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'timeline'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-fg hover:border-border'
             }`}
           >
             Timeline
@@ -122,8 +122,8 @@ export function WorkflowResultsView() {
             onClick={() => setActiveTab('breakdown')}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'breakdown'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-fg hover:border-border'
             }`}
           >
             Component Breakdown
@@ -133,8 +133,8 @@ export function WorkflowResultsView() {
               onClick={() => setActiveTab('decisions')}
               className={`pb-3 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'decisions'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-muted hover:text-fg hover:border-border'
               }`}
             >
               Coordinator Decisions
@@ -152,10 +152,10 @@ export function WorkflowResultsView() {
         {activeTab === 'breakdown' && <ComponentBreakdown componentRuns={componentRuns} />}
 
         {activeTab === 'decisions' && workflowRun.coordinatorDecisions && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Coordinator Decisions</h2>
-            <div className="bg-gray-50 rounded p-4 max-h-96 overflow-y-auto">
-              <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+          <div className="bg-card rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold text-fg mb-4">Coordinator Decisions</h2>
+            <div className="bg-bg-secondary rounded p-4 max-h-96 overflow-y-auto">
+              <pre className="text-sm text-fg whitespace-pre-wrap">
                 {JSON.stringify(workflowRun.coordinatorDecisions, null, 2)}
               </pre>
             </div>
@@ -181,7 +181,7 @@ export function WorkflowResultsView() {
           Export as JSON
         </button>
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-4 py-2 bg-accent text-white rounded hover:bg-accent-dark"
           onClick={() => {
             // Markdown export
             let markdown = `# Workflow Run Results: ${workflowRun.workflow?.name || 'Unknown'}\n\n`;

@@ -59,7 +59,7 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
     const colors = {
       UP: 'bg-red-100 text-red-800',
       DOWN: 'bg-green-100 text-green-800',
-      STABLE: 'bg-gray-100 text-gray-800',
+      STABLE: 'bg-gray-100 text-fg',
     };
 
     const icons = {
@@ -81,17 +81,17 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
       {trendsData.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {trendsData.map((trend) => (
-            <div key={trend.metric} className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-600 mb-1 capitalize">{trend.metric} Trend</div>
+            <div key={trend.metric} className="bg-card rounded-lg shadow p-4">
+              <div className="text-sm text-muted mb-1 capitalize">{trend.metric} Trend</div>
               <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-fg">
                   {trend.dataPoints.length > 0
                     ? trend.dataPoints[trend.dataPoints.length - 1].value.toLocaleString()
                     : '-'}
                 </div>
                 {getTrendBadge(trend.trend, trend.changePercent)}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted mt-1">
                 {trend.dataPoints.length} data points
               </div>
             </div>
@@ -100,8 +100,8 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
       )}
 
       {/* Stories Delivered Over Time */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Stories Delivered Over Time</h2>
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-fg mb-4">Stories Delivered Over Time</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -111,9 +111,9 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   return (
-                    <div className="bg-white border border-gray-200 rounded shadow-lg p-3">
+                    <div className="bg-card border border-border rounded shadow-lg p-3">
                       <div className="font-semibold">{payload[0].payload.fullWeek}</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted">
                         Stories: <strong>{payload[0].value}</strong>
                       </div>
                     </div>
@@ -138,8 +138,8 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
       {/* Cost and Token Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Token Usage Trend */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Token Usage Trend</h2>
+        <div className="bg-card rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold text-fg mb-4">Token Usage Trend</h2>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -149,9 +149,9 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="bg-white border border-gray-200 rounded shadow-lg p-3">
+                      <div className="bg-card border border-border rounded shadow-lg p-3">
                         <div className="font-semibold">{payload[0].payload.fullWeek}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted">
                           Avg Tokens: <strong>{payload[0].value?.toLocaleString()}</strong>
                         </div>
                       </div>
@@ -173,8 +173,8 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
         </div>
 
         {/* Cost Trend */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Cost Trend</h2>
+        <div className="bg-card rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold text-fg mb-4">Cost Trend</h2>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -184,9 +184,9 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="bg-white border border-gray-200 rounded shadow-lg p-3">
+                      <div className="bg-card border border-border rounded shadow-lg p-3">
                         <div className="font-semibold">{payload[0].payload.fullWeek}</div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted">
                           Avg Cost: <strong>${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}</strong>
                         </div>
                       </div>
@@ -209,8 +209,8 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
       </div>
 
       {/* Efficiency Metrics Trends */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Efficiency Metrics Trends</h2>
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-fg mb-4">Efficiency Metrics Trends</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -221,7 +221,7 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   return (
-                    <div className="bg-white border border-gray-200 rounded shadow-lg p-3">
+                    <div className="bg-card border border-border rounded shadow-lg p-3">
                       <div className="font-semibold mb-1">{payload[0].payload.fullWeek}</div>
                       {payload.map((entry: any, index: number) => (
                         <div key={index} className="text-sm" style={{ color: entry.color }}>
@@ -258,8 +258,8 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
       </div>
 
       {/* Success Rate Trend */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Success Rate Trend</h2>
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold text-fg mb-4">Success Rate Trend</h2>
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -269,9 +269,9 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   return (
-                    <div className="bg-white border border-gray-200 rounded shadow-lg p-3">
+                    <div className="bg-card border border-border rounded shadow-lg p-3">
                       <div className="font-semibold">{payload[0].payload.fullWeek}</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted">
                         Success Rate: <strong>{typeof payload[0].value === 'number' ? payload[0].value.toFixed(0) : payload[0].value}%</strong>
                       </div>
                     </div>
@@ -293,8 +293,8 @@ export function TrendsTab({ trendsData, weeklyData, isLoading }: TrendsTabProps)
       </div>
 
       {chartData.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-center py-8 text-gray-500">
+        <div className="bg-card rounded-lg shadow p-6">
+          <div className="text-center py-8 text-muted">
             No trend data available for the selected period.
           </div>
         </div>
