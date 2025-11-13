@@ -46,7 +46,8 @@ describe('update_file_mappings MCP tool', () => {
     });
 
     it('should define valid mapping sources', () => {
-      const sourceEnum = tool.inputSchema.properties.source.enum;
+      const sourceProperty = tool.inputSchema.properties.source as any;
+      const sourceEnum = sourceProperty.enum;
       expect(sourceEnum).toContain('MANUAL');
       expect(sourceEnum).toContain('COMMIT_DERIVED');
       expect(sourceEnum).toContain('AI_INFERRED');
