@@ -60,6 +60,11 @@ const WorkflowExecutionMonitor: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [liveStatus, setLiveStatus] = useState<WorkflowRunStatus | null>(null);
 
+  // Get project ID from context or localStorage
+  const projectId = localStorage.getItem('selectedProjectId') ||
+                    localStorage.getItem('currentProjectId') ||
+                    '345a29ee-d6ab-477d-8079-c5dda0844d77'; // Fallback to AI Studio project
+
   // Fetch initial status
   const {
     data: status,
@@ -70,14 +75,18 @@ const WorkflowExecutionMonitor: React.FC = () => {
     queryKey: ['workflow-run-status', runId],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/projects/${localStorage.getItem('currentProjectId')}/workflow-runs/${runId}/status`,
+        `${import.meta.env.VITE_API_URL || ''}/projects/${projectId}/workflow-runs/${runId}/status`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },
         }
       );
-      if (!response.ok) throw new Error('Failed to fetch workflow run status');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch workflow run status:', response.status, errorText);
+        throw new Error(`Failed to fetch workflow run status: ${response.status}`);
+      }
       return response.json();
     },
     refetchInterval: 5000, // Fallback polling every 5 seconds

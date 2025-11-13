@@ -73,7 +73,7 @@ export class WorkflowStateService {
       throw new Error(`Workflow run with ID ${runId} not found`);
     }
 
-    const coordinatorComponentIds = workflowRun.coordinator.componentIds || [];
+    const coordinatorComponentIds = workflowRun.coordinator?.componentIds || [];
     const componentsCompleted = workflowRun.componentRuns.filter(
       (cr) => cr.status === 'completed' || cr.status === 'failed'
     ).length;
@@ -85,7 +85,7 @@ export class WorkflowStateService {
       runId: workflowRun.id,
       workflowId: workflowRun.workflowId,
       workflowName: workflowRun.workflow.name,
-      coordinatorName: workflowRun.coordinator.name,
+      coordinatorName: workflowRun.coordinator?.name || 'Unknown',
       status: workflowRun.status,
       startedAt: workflowRun.startedAt.toISOString(),
       completedAt: workflowRun.finishedAt?.toISOString(),
@@ -187,7 +187,7 @@ export class WorkflowStateService {
       throw new Error(`Workflow run with ID ${runId} not found`);
     }
 
-    const coordinatorComponentIds = workflowRun.coordinator.componentIds || [];
+    const coordinatorComponentIds = workflowRun.coordinator?.componentIds || [];
     const completedComponentIds = workflowRun.componentRuns.map((cr) => cr.componentId);
     const remainingComponentIds = coordinatorComponentIds.filter((id) => !completedComponentIds.includes(id));
 
@@ -207,7 +207,7 @@ export class WorkflowStateService {
       workflowId: workflowRun.workflowId,
       workflowName: workflowRun.workflow.name,
       status: workflowRun.status,
-      coordinatorStrategy: workflowRun.coordinator.decisionStrategy,
+      coordinatorStrategy: workflowRun.coordinator?.decisionStrategy || 'sequential',
       completedComponents: workflowRun.componentRuns.map((cr) => ({
         componentRunId: cr.id,
         componentId: cr.componentId,
@@ -268,7 +268,7 @@ export class WorkflowStateService {
         runId: run.id,
         workflowId: run.workflowId,
         workflowName: run.workflow.name,
-        coordinatorName: run.coordinator.name,
+        coordinatorName: run.coordinator?.name || 'Unknown',
         status: run.status,
         startedAt: run.startedAt.toISOString(),
         completedAt: run.finishedAt?.toISOString(),
