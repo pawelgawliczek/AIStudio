@@ -570,25 +570,57 @@ export class CodeAnalysisProcessor {
       const fs = require('fs').promises;
       const path = require('path');
 
-      // Try common coverage file locations
+      // Try common coverage file locations (try coverage-final.json first as it's always generated)
       const coveragePaths = [
-        path.join(repoPath, 'coverage', 'coverage-summary.json'),
-        path.join(repoPath, 'backend', 'coverage', 'coverage-summary.json'),
-        path.join(repoPath, 'frontend', 'coverage', 'coverage-summary.json'),
+        { path: path.join(repoPath, 'coverage', 'coverage-final.json'), type: 'final' },
+        { path: path.join(repoPath, 'backend', 'coverage', 'coverage-final.json'), type: 'final' },
+        { path: path.join(repoPath, 'frontend', 'coverage', 'coverage-final.json'), type: 'final' },
+        { path: path.join(repoPath, 'coverage', 'coverage-summary.json'), type: 'summary' },
+        { path: path.join(repoPath, 'backend', 'coverage', 'coverage-summary.json'), type: 'summary' },
+        { path: path.join(repoPath, 'frontend', 'coverage', 'coverage-summary.json'), type: 'summary' },
       ];
 
-      for (const coveragePath of coveragePaths) {
+      for (const { path: coveragePath, type } of coveragePaths) {
         try {
           const content = await fs.readFile(coveragePath, 'utf8');
           const coverageData = JSON.parse(content);
 
-          // Parse Jest coverage format
+          // Parse coverage based on file type
           for (const [filePath, data] of Object.entries(coverageData)) {
             if (filePath === 'total') continue;
 
             const fileData = data as any;
-            // Get statement coverage as the overall coverage metric
-            const coverage = fileData.statements?.pct || 0;
+            let coverage = 0;
+
+            if (type === 'summary') {
+              // Parse coverage-summary.json format (has .statements.pct)
+              coverage = fileData.statements?.pct || 0;
+            } else {
+              // Parse coverage-final.json format (has .s, .b, .f objects)
+              const statements = fileData.s || {};
+              const branches = fileData.b || {};
+              const functions = fileData.f || {};
+
+              const stmtTotal = Object.keys(statements).length;
+              const stmtCovered = Object.values(statements).filter((v: any) => v > 0).length;
+              const stmtPercent = stmtTotal > 0 ? (stmtCovered / stmtTotal) * 100 : 100;
+
+              const branchTotal = Object.keys(branches).length;
+              let branchCovered = 0;
+              for (const branchArray of Object.values(branches) as any[]) {
+                if (Array.isArray(branchArray)) {
+                  branchCovered += branchArray.filter((v: any) => v > 0).length;
+                }
+              }
+              const branchPercent = branchTotal > 0 ? (branchCovered / (branchTotal * 2)) * 100 : 100;
+
+              const funcTotal = Object.keys(functions).length;
+              const funcCovered = Object.values(functions).filter((v: any) => v > 0).length;
+              const funcPercent = funcTotal > 0 ? (funcCovered / funcTotal) * 100 : 100;
+
+              // Average of statement, branch, and function coverage
+              coverage = Math.round((stmtPercent + branchPercent + funcPercent) / 3);
+            }
 
             // Normalize file path to be relative to repo root
             // Handle both container paths (/app/) and host paths (/opt/stack/AIStudio/)
@@ -613,6 +645,11 @@ export class CodeAnalysisProcessor {
               }
             }
             coverageMap.set(relativePath, coverage);
+          }
+          // Successfully loaded coverage from this file, don't try others
+          if (coverageMap.size > 0) {
+            this.logger.log(`Loaded coverage from ${coveragePath} (${type} format)`);
+            break;
           }
         } catch (err) {
           // File doesn't exist, try next location

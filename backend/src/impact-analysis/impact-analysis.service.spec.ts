@@ -663,6 +663,8 @@ describe('ImpactAnalysisService', () => {
         where: { id: 'existing-1' },
         data: {
           occurrences: { increment: 1 },
+          confidence: 0.8, // Math.max(existing.confidence, 0.8)
+          source: 'COMMIT_DERIVED',
           lastSeenAt: expect.any(Date),
         },
       });
