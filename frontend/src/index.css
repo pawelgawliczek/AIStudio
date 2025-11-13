@@ -58,33 +58,47 @@ body {
   min-height: 100vh;
 }
 
-/* Form Input Styles */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="url"],
-input[type="tel"],
-input[type="search"],
-select,
-textarea {
-  border: 1px solid var(--border);
-  background-color: var(--bg);
-  color: var(--fg);
-}
+@layer components {
+  /* Form Input Styles - Using @layer to ensure proper precedence */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="search"],
+  select,
+  textarea {
+    border: 1px solid var(--border) !important;
+    background-color: var(--bg) !important;
+    color: var(--fg) !important;
+  }
 
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="password"]:focus,
-input[type="number"]:focus,
-input[type="url"]:focus,
-input[type="tel"]:focus,
-input[type="search"]:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--accent);
-  outline: none;
-  box-shadow: 0 0 0 3px var(--ring);
+  /* Ensure select options are readable in all browsers */
+  select option {
+    background-color: var(--bg) !important;
+    color: var(--fg) !important;
+  }
+
+  /* Dark mode specific fixes for select dropdowns */
+  [data-theme="dark"] select option {
+    background-color: var(--bg) !important;
+    color: var(--fg) !important;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="url"]:focus,
+  input[type="tel"]:focus,
+  input[type="search"]:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--accent) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px var(--ring) !important;
+  }
 }
 
 /* Accessibility - Reduced Motion */

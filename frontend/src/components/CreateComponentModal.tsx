@@ -133,7 +133,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
+                  className="w-full px-3 py-2 rounded-lg"
                 />
               </div>
 
@@ -204,7 +204,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                     type="text"
                     value={formData.config.modelId}
                     onChange={(e) => setFormData({ ...formData, config: { ...formData.config, modelId: e.target.value } })}
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
+                    className="w-full px-3 py-2 rounded-lg"
                   />
                 </div>
 
@@ -219,7 +219,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                     max="1"
                     value={formData.config.temperature}
                     onChange={(e) => setFormData({ ...formData, config: { ...formData.config, temperature: parseFloat(e.target.value) } })}
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
+                    className="w-full px-3 py-2 rounded-lg"
                   />
                 </div>
               </div>
@@ -233,7 +233,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   value={toolsInput}
                   onChange={(e) => setToolsInput(e.target.value)}
                   placeholder="create_story, update_story, get_story"
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
+                  className="w-full px-3 py-2 rounded-lg"
                 />
               </div>
 
@@ -245,7 +245,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   <select
                     value={formData.onFailure}
                     onChange={(e) => setFormData({ ...formData, onFailure: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
+                    className="w-full px-3 py-2 rounded-lg"
                   >
                     <option value="stop">Stop</option>
                     <option value="skip">Skip</option>
@@ -263,7 +263,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                     value={tagsInput}
                     onChange={(e) => setTagsInput(e.target.value)}
                     placeholder="requirements, analysis"
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
+                    className="w-full px-3 py-2 rounded-lg"
                   />
                 </div>
               </div>

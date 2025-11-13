@@ -272,7 +272,7 @@ export function CreateStoryModal({
                                 required
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
+                                className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
                                 placeholder="Enter story title..."
                               />
                             </div>
@@ -307,7 +307,7 @@ export function CreateStoryModal({
                                   required
                                   value={type}
                                   onChange={(e) => setType(e.target.value as StoryType)}
-                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
+                                  className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
                                 >
                                   <option value="feature">Feature</option>
                                   <option value="bug">Bug</option>
@@ -328,7 +328,7 @@ export function CreateStoryModal({
                                   id="epic"
                                   value={epicId}
                                   onChange={(e) => setEpicId(e.target.value)}
-                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
+                                  className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
                                 >
                                   <option value="">No Epic</option>
                                   {epics.map((epic) => (
@@ -351,7 +351,7 @@ export function CreateStoryModal({
                                   id="complexity"
                                   value={technicalComplexity}
                                   onChange={(e) => setTechnicalComplexity(Number(e.target.value))}
-                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
+                                  className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
                                 >
                                   <option value="1">1 - Simple</option>
                                   <option value="2">2 - Easy</option>
@@ -373,7 +373,7 @@ export function CreateStoryModal({
                                   id="impact"
                                   value={businessImpact}
                                   onChange={(e) => setBusinessImpact(Number(e.target.value))}
-                                  className="block w-full rounded-md border-border shadow-sm focus:border-accent focus:ring-ring sm:text-sm py-2.5 px-4 bg-bg-secondary text-fg"
+                                  className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
                                 >
                                   <option value="1">1 - Low</option>
                                   <option value="2">2 - Minor</option>
