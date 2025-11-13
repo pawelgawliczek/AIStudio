@@ -6,6 +6,8 @@ import { Workflow } from '../types';
 import { useProject } from '../context/ProjectContext';
 import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
 import { WorkflowActivationButton } from '../components/WorkflowActivationButton';
+import { WorkflowRunsHistory } from '../components/WorkflowRunsHistory';
+import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
 
 export function WorkflowManagementView() {
   const [searchParams] = useSearchParams();
@@ -188,6 +190,12 @@ export function WorkflowManagementView() {
                   </div>
                 </div>
               )}
+
+              {/* Workflow Run History */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <WorkflowRunsHistory workflowId={workflow.id} projectId={projectId} />
+              </div>
+
               <div className="mt-3 space-y-2">
                 <WorkflowActivationButton
                   workflowId={workflow.id}
@@ -217,6 +225,12 @@ export function WorkflowManagementView() {
           ))}
         </div>
       )}
+
+      {/* All Workflow Runs Table */}
+      <WorkflowRunsTable
+        projectId={projectId}
+        workflows={workflows.map(w => ({ id: w.id, name: w.name }))}
+      />
     </div>
   );
 }

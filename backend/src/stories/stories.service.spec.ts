@@ -427,7 +427,6 @@ describe('StoriesService', () => {
   describe('updateStatus', () => {
     const updateStatusDto: UpdateStoryStatusDto = {
       status: 'analysis' as any,
-      isAdmin: false,
     };
 
     it('should update story status with valid transition', async () => {
@@ -464,7 +463,7 @@ describe('StoriesService', () => {
       });
 
       await expect(
-        service.updateStatus('story-id', { status: 'done' as any, isAdmin: false }),
+        service.updateStatus('story-id', { status: 'done' as any }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -483,7 +482,6 @@ describe('StoriesService', () => {
 
       const result = await service.updateStatus('story-id', {
         status: 'done' as any,
-        isAdmin: true,
       });
 
       expect(result.status).toBe('done');
@@ -499,7 +497,7 @@ describe('StoriesService', () => {
       });
 
       await expect(
-        service.updateStatus('story-id', { status: 'implementation' as any, isAdmin: false }),
+        service.updateStatus('story-id', { status: 'implementation' as any }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -521,7 +519,6 @@ describe('StoriesService', () => {
 
       const result = await service.updateStatus('story-id', {
         status: 'implementation' as any,
-        isAdmin: false,
       });
 
       expect(result.status).toBe('implementation');

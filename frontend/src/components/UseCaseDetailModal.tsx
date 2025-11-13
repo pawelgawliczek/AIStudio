@@ -5,6 +5,7 @@ import { useCasesService } from '../services/use-cases.service';
 import { UseCase, UseCaseVersion } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
+import { MarkdownEditor } from './MarkdownEditor';
 
 interface UseCaseDetailModalProps {
   useCase: UseCase;
@@ -107,26 +108,26 @@ export function UseCaseDetailModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-card text-left align-middle shadow-xl transition-all">
                 {/* Header */}
-                <div className="flex items-start justify-between p-6 border-b border-gray-200">
+                <div className="flex items-start justify-between p-6 border-b border-border">
                   <div className="flex-1">
                     {isEditing ? (
                       <input
                         type="text"
                         value={editForm.title}
                         onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                        className="text-2xl font-bold text-gray-900 border-b-2 border-blue-500 focus:outline-none w-full"
+                        className="text-2xl font-bold text-fg border-b-2 border-accent focus:outline-none w-full"
                       />
                     ) : (
                       <Dialog.Title
                         as="h3"
-                        className="text-2xl font-bold leading-6 text-gray-900"
+                        className="text-2xl font-bold leading-6 text-fg"
                       >
                         {useCase.title}
                       </Dialog.Title>
                     )}
-                    <div className="mt-2 flex items-center gap-3 text-sm text-gray-500">
+                    <div className="mt-2 flex items-center gap-3 text-sm text-muted">
                       <span className="font-mono">{useCase.key}</span>
                       {isEditing ? (
                         <input
@@ -134,7 +135,7 @@ export function UseCaseDetailModal({
                           value={editForm.area}
                           onChange={(e) => setEditForm({ ...editForm, area: e.target.value })}
                           placeholder="Area (optional)"
-                          className="px-2 py-1 border border-gray-300 rounded"
+                          className="px-2 py-1 border border-border rounded"
                         />
                       ) : (
                         useCase.area && (
@@ -156,13 +157,13 @@ export function UseCaseDetailModal({
                         <button
                           onClick={handleSave}
                           disabled={updateMutation.isPending}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark disabled:opacity-50"
                         >
                           {updateMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                         <button
                           onClick={handleCancel}
-                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                          className="px-4 py-2 bg-bg-secondary text-fg rounded-lg hover:bg-accent hover:text-accent-fg"
                         >
                           Cancel
                         </button>
@@ -170,14 +171,14 @@ export function UseCaseDetailModal({
                     ) : (
                       <button
                         onClick={() => setIsEditing(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark"
                       >
                         Edit
                       </button>
                     )}
                     <button
                       onClick={onClose}
-                      className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                      className="p-2 text-muted hover:text-fg rounded-lg hover:bg-bg-secondary"
                     >
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
@@ -193,13 +194,13 @@ export function UseCaseDetailModal({
 
                 {/* Tabs */}
                 <Tab.Group>
-                  <Tab.List className="flex space-x-1 bg-gray-100 p-1">
+                  <Tab.List className="flex space-x-1 bg-bg-secondary p-1">
                     <Tab
                       className={({ selected }) =>
                         `w-full py-2.5 text-sm font-medium leading-5 transition-colors
                         ${selected
-                          ? 'bg-white text-blue-700 shadow'
-                          : 'text-gray-700 hover:bg-white/[0.12] hover:text-blue-600'
+                          ? 'bg-card text-accent shadow'
+                          : 'text-fg hover:bg-card/[0.12] hover:text-accent'
                         }`
                       }
                     >
@@ -209,8 +210,8 @@ export function UseCaseDetailModal({
                       className={({ selected }) =>
                         `w-full py-2.5 text-sm font-medium leading-5 transition-colors
                         ${selected
-                          ? 'bg-white text-blue-700 shadow'
-                          : 'text-gray-700 hover:bg-white/[0.12] hover:text-blue-600'
+                          ? 'bg-card text-accent shadow'
+                          : 'text-fg hover:bg-card/[0.12] hover:text-accent'
                         }`
                       }
                     >
@@ -220,8 +221,8 @@ export function UseCaseDetailModal({
                       className={({ selected }) =>
                         `w-full py-2.5 text-sm font-medium leading-5 transition-colors
                         ${selected
-                          ? 'bg-white text-blue-700 shadow'
-                          : 'text-gray-700 hover:bg-white/[0.12] hover:text-blue-600'
+                          ? 'bg-card text-accent shadow'
+                          : 'text-fg hover:bg-card/[0.12] hover:text-accent'
                         }`
                       }
                     >
@@ -231,8 +232,8 @@ export function UseCaseDetailModal({
                       className={({ selected }) =>
                         `w-full py-2.5 text-sm font-medium leading-5 transition-colors
                         ${selected
-                          ? 'bg-white text-blue-700 shadow'
-                          : 'text-gray-700 hover:bg-white/[0.12] hover:text-blue-600'
+                          ? 'bg-card text-accent shadow'
+                          : 'text-fg hover:bg-card/[0.12] hover:text-accent'
                         }`
                       }
                     >
@@ -246,41 +247,41 @@ export function UseCaseDetailModal({
                       {isEditing ? (
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-fg mb-1">
                               Summary
                             </label>
-                            <textarea
+                            <MarkdownEditor
                               value={editForm.summary}
-                              onChange={(e) => setEditForm({ ...editForm, summary: e.target.value })}
-                              rows={2}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              onChange={(value) => setEditForm({ ...editForm, summary: value })}
                               placeholder="Brief summary of the use case..."
+                              height={100}
+                              minHeight={80}
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-fg mb-1">
                               Content (Markdown)
                             </label>
-                            <textarea
+                            <MarkdownEditor
                               value={editForm.content}
-                              onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                              rows={15}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                              onChange={(value) => setEditForm({ ...editForm, content: value })}
                               placeholder="Use case content in markdown format..."
+                              height={400}
+                              minHeight={300}
                             />
                           </div>
                         </div>
                       ) : (
                         <div className="prose prose-sm max-w-none">
                           {latestVersion?.summary && (
-                            <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                              <p className="text-sm text-gray-700">{latestVersion.summary}</p>
+                            <div className="mb-4 p-4 bg-accent/10 rounded-lg">
+                              <p className="text-sm text-fg">{latestVersion.summary}</p>
                             </div>
                           )}
                           {latestVersion?.content ? (
                             <ReactMarkdown>{latestVersion.content}</ReactMarkdown>
                           ) : (
-                            <p className="text-gray-500 italic">No content available</p>
+                            <p className="text-muted italic">No content available</p>
                           )}
                         </div>
                       )}
@@ -290,16 +291,16 @@ export function UseCaseDetailModal({
                     <Tab.Panel>
                       <div className="space-y-4">
                         {versions.length === 0 ? (
-                          <p className="text-gray-500 text-center py-8">No versions found</p>
+                          <p className="text-muted text-center py-8">No versions found</p>
                         ) : (
                           versions.map((version: UseCaseVersion) => (
                             <div
                               key={version.id}
-                              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                              className="border border-border rounded-lg p-4 hover:bg-bg-secondary"
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <div>
-                                  <h4 className="text-sm font-semibold text-gray-900">
+                                  <h4 className="text-sm font-semibold text-fg">
                                     Version {version.version}
                                     {version.version === latestVersion?.version && (
                                       <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
@@ -307,14 +308,14 @@ export function UseCaseDetailModal({
                                       </span>
                                     )}
                                   </h4>
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-muted mt-1">
                                     by {version.createdBy.name} •{' '}
                                     {format(new Date(version.createdAt), 'PPpp')}
                                   </p>
                                 </div>
                               </div>
                               {version.summary && (
-                                <p className="text-sm text-gray-700 mt-2">{version.summary}</p>
+                                <p className="text-sm text-fg mt-2">{version.summary}</p>
                               )}
                             </div>
                           ))
@@ -326,16 +327,16 @@ export function UseCaseDetailModal({
                     <Tab.Panel>
                       <div className="space-y-2">
                         {!useCase.storyLinks || useCase.storyLinks.length === 0 ? (
-                          <p className="text-gray-500 text-center py-8">No linked stories</p>
+                          <p className="text-muted text-center py-8">No linked stories</p>
                         ) : (
                           useCase.storyLinks.map((link) => (
                             <div
                               key={link.storyId}
-                              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                              className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-bg-secondary"
                             >
                               <div>
-                                <span className="font-mono text-sm text-gray-600">{link.story.key}</span>
-                                <h4 className="text-sm font-medium text-gray-900 mt-1">
+                                <span className="font-mono text-sm text-muted">{link.story.key}</span>
+                                <h4 className="text-sm font-medium text-fg mt-1">
                                   {link.story.title}
                                 </h4>
                                 <div className="flex items-center gap-2 mt-1">
@@ -344,12 +345,12 @@ export function UseCaseDetailModal({
                                       ? 'bg-green-100 text-green-800'
                                       : link.story.status === 'blocked'
                                       ? 'bg-red-100 text-red-800'
-                                      : 'bg-gray-100 text-gray-800'
+                                      : 'bg-bg-secondary text-fg'
                                   }`}>
                                     {link.story.status}
                                   </span>
                                   {link.relation && (
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-muted">
                                       ({link.relation})
                                     </span>
                                   )}
@@ -357,7 +358,7 @@ export function UseCaseDetailModal({
                               </div>
                               <button
                                 onClick={() => window.open(`/stories/${link.storyId}`, '_blank')}
-                                className="text-blue-600 hover:text-blue-700"
+                                className="text-accent hover:text-accent"
                               >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path
@@ -378,28 +379,28 @@ export function UseCaseDetailModal({
                     <Tab.Panel>
                       <div className="space-y-2">
                         {relatedUseCases.length === 0 ? (
-                          <p className="text-gray-500 text-center py-8">No related use cases found</p>
+                          <p className="text-muted text-center py-8">No related use cases found</p>
                         ) : (
                           relatedUseCases.map((related: UseCase) => (
                             <div
                               key={related.id}
-                              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                              className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-bg-secondary cursor-pointer"
                               onClick={() => window.open(`/use-cases?id=${related.id}`, '_blank')}
                             >
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono text-sm text-gray-600">{related.key}</span>
+                                  <span className="font-mono text-sm text-muted">{related.key}</span>
                                   {related.similarity !== undefined && (
-                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                    <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded">
                                       {Math.round(related.similarity * 100)}% similar
                                     </span>
                                   )}
                                 </div>
-                                <h4 className="text-sm font-medium text-gray-900 mt-1">
+                                <h4 className="text-sm font-medium text-fg mt-1">
                                   {related.title}
                                 </h4>
                                 {related.area && (
-                                  <span className="text-xs text-gray-500 mt-1">
+                                  <span className="text-xs text-muted mt-1">
                                     🏷️ {related.area}
                                   </span>
                                 )}

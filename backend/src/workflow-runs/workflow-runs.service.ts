@@ -7,10 +7,14 @@ import {
   WorkflowRunResponseDto,
   ComponentRunSummaryDto,
 } from './dto';
+import { WorkflowStateService } from '../execution/workflow-state.service';
 
 @Injectable()
 export class WorkflowRunsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private workflowStateService: WorkflowStateService,
+  ) {}
 
   async create(
     projectId: string,
@@ -370,6 +374,44 @@ export class WorkflowRunsService {
     };
   }
 
+  /**
+   * Get execution status with full details (for real-time monitoring)
+   */
+  async getStatus(id: string): Promise<any> {
+    try {
+      return await this.workflowStateService.getWorkflowRunStatus(id);
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  /**
+   * Get artifacts for a workflow run
+   */
+  async getArtifacts(id: string): Promise<any> {
+    try {
+      const artifacts = await this.workflowStateService.getWorkflowArtifacts(id);
+      return {
+        runId: id,
+        artifacts,
+        total: artifacts.length,
+      };
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  /**
+   * Get workflow context (for coordinator decisions)
+   */
+  async getContext(id: string): Promise<any> {
+    try {
+      return await this.workflowStateService.getWorkflowContext(id);
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
   private mapToResponseDto(workflowRun: any): WorkflowRunResponseDto {
     return {
       id: workflowRun.id,
@@ -377,7 +419,7 @@ export class WorkflowRunsService {
       workflowId: workflowRun.workflowId,
       storyId: workflowRun.storyId,
       epicId: workflowRun.epicId,
-      startedAt: workflowRun.startedAt.toISOString(),
+      startedAt: workflowRun.startedAt?.toISOString() || new Date().toISOString(),
       finishedAt: workflowRun.finishedAt?.toISOString(),
       durationSeconds: workflowRun.durationSeconds,
       totalUserPrompts: workflowRun.totalUserPrompts,
@@ -392,15 +434,15 @@ export class WorkflowRunsService {
       status: workflowRun.status,
       errorMessage: workflowRun.errorMessage,
       coordinatorDecisions: workflowRun.coordinatorDecisions,
-      createdAt: workflowRun.createdAt.toISOString(),
-      updatedAt: workflowRun.updatedAt.toISOString(),
+      createdAt: workflowRun.createdAt?.toISOString() || workflowRun.startedAt?.toISOString() || new Date().toISOString(),
+      updatedAt: workflowRun.updatedAt?.toISOString() || workflowRun.finishedAt?.toISOString() || new Date().toISOString(),
       workflow: workflowRun.workflow,
       story: workflowRun.story,
       componentRuns: workflowRun.componentRuns?.map((run: any) => ({
         id: run.id,
         componentId: run.componentId,
         componentName: run.component?.name,
-        startedAt: run.startedAt.toISOString(),
+        startedAt: run.startedAt?.toISOString() || new Date().toISOString(),
         finishedAt: run.finishedAt?.toISOString(),
         durationSeconds: run.durationSeconds,
         totalTokens: run.totalTokens,

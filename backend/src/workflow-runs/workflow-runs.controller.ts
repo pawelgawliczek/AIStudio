@@ -96,6 +96,39 @@ export class WorkflowRunsController {
     return this.workflowRunsService.getResults(id);
   }
 
+  @Get(':id/status')
+  @ApiOperation({ summary: 'Get execution status with full details (for monitoring)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow run status retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async getStatus(@Param('id') id: string): Promise<any> {
+    return this.workflowRunsService.getStatus(id);
+  }
+
+  @Get(':id/artifacts')
+  @ApiOperation({ summary: 'Get artifacts for a workflow run' })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow run artifacts retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async getArtifacts(@Param('id') id: string): Promise<any> {
+    return this.workflowRunsService.getArtifacts(id);
+  }
+
+  @Get(':id/context')
+  @ApiOperation({ summary: 'Get workflow context (for coordinator decisions)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Workflow context retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async getContext(@Param('id') id: string): Promise<any> {
+    return this.workflowRunsService.getContext(id);
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Update a workflow run' })
   @ApiResponse({
