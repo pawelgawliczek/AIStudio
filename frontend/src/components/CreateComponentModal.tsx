@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { componentsService } from '../services/components.service';
 import { Component, CreateComponentDto, ExecutionConfig } from '../types';
+import { MarkdownEditor } from './MarkdownEditor';
 
 interface CreateComponentModalProps {
   isOpen: boolean;
@@ -114,9 +115,9 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl font-bold text-fg mb-4">
             {editingComponent ? 'Edit Component' : 'Create Component'}
           </h2>
 
@@ -124,7 +125,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
             {/* Basic Info */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-fg mb-1">
                   Name *
                 </label>
                 <input
@@ -132,89 +133,83 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-fg mb-1">
                   Description
                 </label>
-                <textarea
-                  rows={2}
+                <MarkdownEditor
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(val) => setFormData({ ...formData, description: val })}
+                  placeholder="Brief description of the component..."
+                  height={120}
                 />
               </div>
             </div>
 
             {/* 3 Instruction Sets */}
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-900">Instruction Sets</h3>
+            <div className="space-y-4 border-t border-border pt-4">
+              <h3 className="text-lg font-semibold text-fg">Instruction Sets</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-fg mb-1">
                   Input Instructions *
                 </label>
-                <textarea
-                  rows={3}
-                  required
+                <MarkdownEditor
                   value={formData.inputInstructions}
-                  onChange={(e) => setFormData({ ...formData, inputInstructions: e.target.value })}
-                  placeholder="How to receive and process input data..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(val) => setFormData({ ...formData, inputInstructions: val })}
+                  placeholder="How to receive and process input data... (Markdown supported)"
+                  height={150}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-fg mb-1">
                   Operation Instructions *
                 </label>
-                <textarea
-                  rows={4}
-                  required
+                <MarkdownEditor
                   value={formData.operationInstructions}
-                  onChange={(e) => setFormData({ ...formData, operationInstructions: e.target.value })}
-                  placeholder="What work to perform..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(val) => setFormData({ ...formData, operationInstructions: val })}
+                  placeholder="What work to perform... (Markdown supported)"
+                  height={180}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-fg mb-1">
                   Output Instructions *
                 </label>
-                <textarea
-                  rows={3}
-                  required
+                <MarkdownEditor
                   value={formData.outputInstructions}
-                  onChange={(e) => setFormData({ ...formData, outputInstructions: e.target.value })}
-                  placeholder="How to format and return results..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(val) => setFormData({ ...formData, outputInstructions: val })}
+                  placeholder="How to format and return results... (Markdown supported)"
+                  height={150}
                 />
               </div>
             </div>
 
             {/* Config & Tools */}
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-900">Configuration</h3>
+            <div className="space-y-4 border-t border-border pt-4">
+              <h3 className="text-lg font-semibold text-fg">Configuration</h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-fg mb-1">
                     Model ID
                   </label>
                   <input
                     type="text"
                     value={formData.config.modelId}
                     onChange={(e) => setFormData({ ...formData, config: { ...formData.config, modelId: e.target.value } })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-fg mb-1">
                     Temperature
                   </label>
                   <input
@@ -224,13 +219,13 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                     max="1"
                     value={formData.config.temperature}
                     onChange={(e) => setFormData({ ...formData, config: { ...formData.config, temperature: parseFloat(e.target.value) } })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-fg mb-1">
                   MCP Tools (comma-separated)
                 </label>
                 <input
@@ -238,19 +233,19 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   value={toolsInput}
                   onChange={(e) => setToolsInput(e.target.value)}
                   placeholder="create_story, update_story, get_story"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-fg mb-1">
                     On Failure
                   </label>
                   <select
                     value={formData.onFailure}
                     onChange={(e) => setFormData({ ...formData, onFailure: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
                   >
                     <option value="stop">Stop</option>
                     <option value="skip">Skip</option>
@@ -260,7 +255,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-fg mb-1">
                     Tags (comma-separated)
                   </label>
                   <input
@@ -268,25 +263,25 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                     value={tagsInput}
                     onChange={(e) => setTagsInput(e.target.value)}
                     placeholder="requirements, analysis"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent bg-bg text-fg"
                   />
                 </div>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-fg border border-border rounded-lg hover:bg-accent hover:text-accent-fg transition-all"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-accent text-accent-fg rounded-lg hover:bg-accent-dark disabled:opacity-50 transition-all"
               >
                 {createMutation.isPending || updateMutation.isPending ? 'Saving...' : (editingComponent ? 'Update' : 'Create')}
               </button>

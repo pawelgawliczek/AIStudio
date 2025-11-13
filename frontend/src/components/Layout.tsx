@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { ProjectSelector } from './ProjectSelector';
 import { ConnectionStatus } from './ConnectionStatus';
 import { NavDropdown } from './NavDropdown';
+import { ThemeToggle } from './ThemeToggle';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
@@ -93,6 +94,7 @@ export function Layout() {
             <div className="flex items-center gap-4">
               <ProjectSelector />
               <ConnectionStatus />
+              <ThemeToggle />
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center p-2 text-sm font-medium text-muted hover:text-fg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded-md"
