@@ -106,7 +106,7 @@ export function PerformanceDashboard() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Please select a project to view performance metrics.</p>
+        <p className="text-muted">Please select a project to view performance metrics.</p>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export function PerformanceDashboard() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading performance metrics...</p>
+            <p className="mt-4 text-muted">Loading performance metrics...</p>
           </div>
         </div>
       </div>
@@ -127,7 +127,7 @@ export function PerformanceDashboard() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="bg-red-100/50 border border-red-200 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Metrics</h2>
           <p className="text-red-600">
             {error instanceof Error ? error.message : 'Failed to load performance metrics'}
@@ -141,23 +141,23 @@ export function PerformanceDashboard() {
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Performance Dashboard</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-fg">Performance Dashboard</h1>
+        <p className="text-muted mt-1">
           Analyze workflow and component performance metrics
         </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-card rounded-lg shadow p-4 mb-6">
         <div className="flex flex-wrap gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg mb-1">
               Time Period
             </label>
             <select
               value={weeks}
               onChange={(e) => setWeeks(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="px-3 py-2 border border-border rounded-md focus:ring-ring focus:border-accent"
             >
               <option value={4}>Last 4 weeks</option>
               <option value={8}>Last 8 weeks</option>
@@ -167,13 +167,13 @@ export function PerformanceDashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg mb-1">
               Workflow
             </label>
             <select
               value={selectedWorkflowId}
               onChange={(e) => setSelectedWorkflowId(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-w-[200px]"
+              className="px-3 py-2 border border-border rounded-md focus:ring-ring focus:border-accent min-w-[200px]"
             >
               <option value="">All Workflows</option>
               {weeklyData &&
@@ -194,13 +194,13 @@ export function PerformanceDashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg mb-1">
               Business Complexity
             </label>
             <select
               value={businessComplexity}
               onChange={(e) => setBusinessComplexity(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-w-[160px]"
+              className="px-3 py-2 border border-border rounded-md focus:ring-ring focus:border-accent min-w-[160px]"
             >
               <option value="">All Levels</option>
               <option value="1">1 - Very Low</option>
@@ -212,13 +212,13 @@ export function PerformanceDashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-fg mb-1">
               Technical Complexity
             </label>
             <select
               value={technicalComplexity}
               onChange={(e) => setTechnicalComplexity(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-w-[160px]"
+              className="px-3 py-2 border border-border rounded-md focus:ring-ring focus:border-accent min-w-[160px]"
             >
               <option value="">All Levels</option>
               <option value="1">1 - Very Low</option>
@@ -232,14 +232,14 @@ export function PerformanceDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-border mb-6">
         <nav className="-mb-px flex space-x-6">
           <button
             onClick={() => setActiveTab('workflows')}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'workflows'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-fg hover:border-border'
             }`}
           >
             Workflows
@@ -248,8 +248,8 @@ export function PerformanceDashboard() {
             onClick={() => setActiveTab('components')}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'components'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-fg hover:border-border'
             }`}
           >
             Components
@@ -258,8 +258,8 @@ export function PerformanceDashboard() {
             onClick={() => setActiveTab('trends')}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'trends'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-fg hover:border-border'
             }`}
           >
             Trends
@@ -268,8 +268,8 @@ export function PerformanceDashboard() {
             onClick={() => setActiveTab('comparisons')}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'comparisons'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-fg hover:border-border'
             }`}
           >
             Comparisons
