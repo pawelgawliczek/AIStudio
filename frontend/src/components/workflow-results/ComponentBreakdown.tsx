@@ -40,57 +40,57 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
   const groupedData = Object.values(componentGroups);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Component Breakdown</h2>
+    <div className="bg-card rounded-lg shadow p-6">
+      <h2 className="text-xl font-bold text-fg mb-4">Component Breakdown</h2>
 
       {/* Summary Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-bg-secondary">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Component
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">
                 Runs
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">
                 Tokens
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">
                 Runtime
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">
                 LOC Gen
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-center text-xs font-medium text-muted uppercase tracking-wider">
                 Success Rate
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-gray-200">
             {groupedData.map((group) => (
-              <tr key={group.name} className="hover:bg-gray-50">
+              <tr key={group.name} className="hover:bg-bg-secondary">
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{group.name}</div>
+                  <div className="text-sm font-medium text-fg">{group.name}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
-                  <div className="text-sm text-gray-900">{group.runs}</div>
+                  <div className="text-sm text-fg">{group.runs}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
-                  <div className="text-sm text-gray-900">{formatNumber(group.totalTokens)}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-fg">{formatNumber(group.totalTokens)}</div>
+                  <div className="text-xs text-muted">
                     {group.runs > 0 ? `${formatNumber(Math.round(group.totalTokens / group.runs))} avg` : ''}
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
-                  <div className="text-sm text-gray-900">{formatDuration(group.totalDuration)}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-fg">{formatDuration(group.totalDuration)}</div>
+                  <div className="text-xs text-muted">
                     {group.runs > 0 ? `${formatDuration(Math.round(group.totalDuration / group.runs))} avg` : ''}
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
-                  <div className="text-sm text-gray-900">{formatNumber(group.totalLoc)}</div>
+                  <div className="text-sm text-fg">{formatNumber(group.totalLoc)}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   <div className="inline-flex items-center">
@@ -99,7 +99,7 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
                     }`}>
                       {group.successCount}/{group.runs}
                     </span>
-                    <span className="ml-2 text-xs text-gray-500">
+                    <span className="ml-2 text-xs text-muted">
                       ({Math.round((group.successCount / group.runs) * 100)}%)
                     </span>
                   </div>
@@ -107,22 +107,22 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
               </tr>
             ))}
           </tbody>
-          <tfoot className="bg-gray-50 font-semibold">
+          <tfoot className="bg-bg-secondary font-semibold">
             <tr>
-              <td className="px-4 py-3 text-sm text-gray-900">Total</td>
-              <td className="px-4 py-3 text-right text-sm text-gray-900">
+              <td className="px-4 py-3 text-sm text-fg">Total</td>
+              <td className="px-4 py-3 text-right text-sm text-fg">
                 {componentRuns.length}
               </td>
-              <td className="px-4 py-3 text-right text-sm text-gray-900">
+              <td className="px-4 py-3 text-right text-sm text-fg">
                 {formatNumber(groupedData.reduce((sum, g) => sum + g.totalTokens, 0))}
               </td>
-              <td className="px-4 py-3 text-right text-sm text-gray-900">
+              <td className="px-4 py-3 text-right text-sm text-fg">
                 {formatDuration(groupedData.reduce((sum, g) => sum + g.totalDuration, 0))}
               </td>
-              <td className="px-4 py-3 text-right text-sm text-gray-900">
+              <td className="px-4 py-3 text-right text-sm text-fg">
                 {formatNumber(groupedData.reduce((sum, g) => sum + g.totalLoc, 0))}
               </td>
-              <td className="px-4 py-3 text-center text-sm text-gray-900">
+              <td className="px-4 py-3 text-center text-sm text-fg">
                 {groupedData.reduce((sum, g) => sum + g.successCount, 0)}/
                 {componentRuns.length}
               </td>
@@ -132,7 +132,7 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
       </div>
 
       {componentRuns.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted">
           No component runs to display.
         </div>
       )}
