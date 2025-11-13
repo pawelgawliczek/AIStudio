@@ -25,6 +25,7 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://localhost:5174',
       'https://aistudio.example.com',
+      'https://vibestudio.example.com',
     ],
     credentials: true,
   });

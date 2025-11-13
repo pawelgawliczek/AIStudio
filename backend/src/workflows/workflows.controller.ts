@@ -10,18 +10,31 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { WorkflowsService } from './workflows.service';
 import { CreateWorkflowDto, UpdateWorkflowDto, WorkflowResponseDto } from './dto';
+import {
+  ActivateWorkflowDto,
+  DeactivateWorkflowDto,
+  ActivationResponseDto,
+  DeactivationResponseDto,
+  SyncResponseDto,
+  ActiveWorkflowResponseDto,
+} from './dto/activate-workflow.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ActivationService } from '../mcp/services/activation.service';
 
 @ApiTags('workflows')
 @Controller('api/projects/:projectId/workflows')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class WorkflowsController {
-  constructor(private readonly workflowsService: WorkflowsService) {}
+  constructor(
+    private readonly workflowsService: WorkflowsService,
+    private readonly activationService: ActivationService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new workflow' })
@@ -106,10 +119,58 @@ export class WorkflowsController {
   }
 
   @Post(':id/activate')
-  @ApiOperation({ summary: 'Activate a workflow' })
+  @ApiOperation({ summary: 'Activate a workflow (toggle active status)' })
   @ApiResponse({ status: 200, description: 'Workflow activated successfully', type: WorkflowResponseDto })
   @ApiResponse({ status: 404, description: 'Workflow not found' })
   async activate(@Param('id') id: string): Promise<WorkflowResponseDto> {
     return this.workflowsService.activate(id);
+  }
+
+  // Claude Code Integration Endpoints
+
+  @Post(':id/activate-claude-code')
+  @ApiOperation({ summary: 'Activate workflow in Claude Code by generating agent files' })
+  @ApiResponse({ status: 200, description: 'Workflow activated in Claude Code successfully', type: ActivationResponseDto })
+  @ApiResponse({ status: 400, description: 'Bad request - validation failed' })
+  @ApiResponse({ status: 409, description: 'Conflict - another workflow is already active' })
+  async activateInClaudeCode(
+    @Param('projectId') projectId: string,
+    @Param('id') workflowId: string,
+    @Body() dto: ActivateWorkflowDto,
+    @Req() req: any,
+  ): Promise<ActivationResponseDto> {
+    const userId = req.user?.id || 'unknown';
+    return this.activationService.activateWorkflow(workflowId, projectId, userId, dto);
+  }
+
+  @Post('deactivate-claude-code')
+  @ApiOperation({ summary: 'Deactivate the currently active workflow in Claude Code' })
+  @ApiResponse({ status: 200, description: 'Workflow deactivated successfully', type: DeactivationResponseDto })
+  @ApiResponse({ status: 400, description: 'No active workflow found' })
+  async deactivateFromClaudeCode(
+    @Param('projectId') projectId: string,
+    @Body() dto: DeactivateWorkflowDto,
+  ): Promise<DeactivationResponseDto> {
+    return this.activationService.deactivateWorkflow(projectId, dto);
+  }
+
+  @Post('sync-claude-code')
+  @ApiOperation({ summary: 'Sync the active workflow in Claude Code to the latest version' })
+  @ApiResponse({ status: 200, description: 'Workflow synced successfully', type: SyncResponseDto })
+  @ApiResponse({ status: 400, description: 'No active workflow found' })
+  async syncClaudeCode(
+    @Param('projectId') projectId: string,
+  ): Promise<SyncResponseDto> {
+    return this.activationService.syncWorkflow(projectId);
+  }
+
+  @Get('active-claude-code')
+  @ApiOperation({ summary: 'Get the currently active workflow in Claude Code' })
+  @ApiResponse({ status: 200, description: 'Active workflow retrieved', type: ActiveWorkflowResponseDto })
+  async getActiveClaudeCode(
+    @Param('projectId') projectId: string,
+  ): Promise<ActiveWorkflowResponseDto> {
+    const activeWorkflow = await this.activationService.getActiveWorkflow(projectId);
+    return activeWorkflow || {};
   }
 }
