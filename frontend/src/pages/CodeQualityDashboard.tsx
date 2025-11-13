@@ -599,9 +599,9 @@ const CodeQualityDashboard: React.FC = () => {
       {/* Analysis Status Notification */}
       {(isAnalyzing || showAnalysisNotification) && analysisStatus && (
         <div className={`mb-6 p-4 rounded-lg border ${
-          analysisStatus.status === 'completed' ? 'bg-green-50 border-green-200' :
-          analysisStatus.status === 'failed' ? 'bg-red-50 border-red-200' :
-          'bg-blue-50 border-blue-200'
+          analysisStatus.status === 'completed' ? 'bg-green-100 border-green-300 text-green-900' :
+          analysisStatus.status === 'failed' ? 'bg-red-100 border-red-300 text-red-900' :
+          'bg-blue-100 border-blue-300 text-blue-900'
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -614,13 +614,13 @@ const CodeQualityDashboard: React.FC = () => {
                    analysisStatus.status === 'failed' ? 'Analysis Failed' :
                    'Analysis Running...'}
                 </div>
-                <div className="text-sm text-muted">{analysisStatus.message}</div>
+                <div className="text-sm opacity-80">{analysisStatus.message}</div>
               </div>
             </div>
             {showAnalysisNotification && (
               <button
                 onClick={() => setShowAnalysisNotification(false)}
-                className="text-muted hover:text-fg"
+                className="opacity-60 hover:opacity-100"
               >
                 ✕
               </button>
@@ -658,41 +658,49 @@ const CodeQualityDashboard: React.FC = () => {
       </div>
 
       {/* Analysis Comparison (Changes Since Last Analysis) */}
-      {analysisComparison && analysisComparison.lastAnalysis && (
+      {analysisComparison && (
         <div className="mb-6 bg-card border border-border rounded-lg shadow-md p-4">
-          <h3 className="text-sm font-medium text-fg mb-3">Changes Since Last Analysis</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${analysisComparison.healthScoreChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {analysisComparison.healthScoreChange >= 0 ? '+' : ''}{analysisComparison.healthScoreChange}
+          <h3 className="text-sm font-medium text-fg mb-3">
+            {analysisComparison.lastAnalysis ? 'Changes Since Last Analysis' : 'Analysis Summary'}
+          </h3>
+          {analysisComparison.lastAnalysis ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${analysisComparison.healthScoreChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {analysisComparison.healthScoreChange >= 0 ? '+' : ''}{analysisComparison.healthScoreChange}
+                </div>
+                <div className="text-xs text-muted">Health Score</div>
               </div>
-              <div className="text-xs text-muted">Health Score</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent">{analysisComparison.newTests > 0 ? '+' : ''}{analysisComparison.newTests}</div>
-              <div className="text-xs text-muted">New Tests</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${analysisComparison.coverageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {analysisComparison.coverageChange >= 0 ? '+' : ''}{analysisComparison.coverageChange}%
+              <div className="text-center">
+                <div className="text-2xl font-bold text-accent">{analysisComparison.newTests > 0 ? '+' : ''}{analysisComparison.newTests}</div>
+                <div className="text-xs text-muted">New Tests</div>
               </div>
-              <div className="text-xs text-muted">Coverage</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${analysisComparison.complexityChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {analysisComparison.complexityChange >= 0 ? '+' : ''}{analysisComparison.complexityChange}
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${analysisComparison.coverageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {analysisComparison.coverageChange >= 0 ? '+' : ''}{analysisComparison.coverageChange}%
+                </div>
+                <div className="text-xs text-muted">Coverage</div>
               </div>
-              <div className="text-xs text-muted">Complexity</div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${analysisComparison.complexityChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {analysisComparison.complexityChange >= 0 ? '+' : ''}{analysisComparison.complexityChange}
+                </div>
+                <div className="text-xs text-muted">Complexity</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{analysisComparison.newFiles > 0 ? '+' : ''}{analysisComparison.newFiles}</div>
+                <div className="text-xs text-muted">New Files</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{analysisComparison.deletedFiles > 0 ? '-' : ''}{analysisComparison.deletedFiles}</div>
+                <div className="text-xs text-muted">Deleted Files</div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{analysisComparison.newFiles > 0 ? '+' : ''}{analysisComparison.newFiles}</div>
-              <div className="text-xs text-muted">New Files</div>
+          ) : (
+            <div className="text-center py-4 text-muted">
+              No previous analysis data available for comparison. Run another analysis in 7+ days to see changes.
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{analysisComparison.deletedFiles > 0 ? '-' : ''}{analysisComparison.deletedFiles}</div>
-              <div className="text-xs text-muted">Deleted Files</div>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
