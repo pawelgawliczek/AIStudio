@@ -20,12 +20,12 @@ export function ComponentDetailModal({ component, isOpen, onClose, onEdit }: Com
             <div>
               <h2 className="text-2xl font-bold text-fg">{component.name}</h2>
               {component.description && (
-                <p className="mt-1 text-muted">{component.description}</p>
+                <p className="mt-1 text-fg">{component.description}</p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="text-muted hover:text-muted"
+              className="text-fg hover:text-accent"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -81,29 +81,29 @@ export function ComponentDetailModal({ component, isOpen, onClose, onEdit }: Com
             <h3 className="text-lg font-semibold text-fg mb-4">Configuration</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <div className="text-muted">Model ID</div>
+                <div className="text-fg">Model ID</div>
                 <div className="font-medium text-fg">{component.config.modelId}</div>
               </div>
               <div>
-                <div className="text-muted">Temperature</div>
+                <div className="text-fg">Temperature</div>
                 <div className="font-medium text-fg">{component.config.temperature}</div>
               </div>
               <div>
-                <div className="text-muted">Max Tokens (In/Out)</div>
+                <div className="text-fg">Max Tokens (In/Out)</div>
                 <div className="font-medium text-fg">
                   {component.config.maxInputTokens} / {component.config.maxOutputTokens}
                 </div>
               </div>
               <div>
-                <div className="text-muted">Timeout</div>
+                <div className="text-fg">Timeout</div>
                 <div className="font-medium text-fg">{component.config.timeout}s</div>
               </div>
               <div>
-                <div className="text-muted">On Failure</div>
+                <div className="text-fg">On Failure</div>
                 <div className="font-medium text-fg">{component.onFailure}</div>
               </div>
               <div>
-                <div className="text-muted">Cost Limit</div>
+                <div className="text-fg">Cost Limit</div>
                 <div className="font-medium text-fg">${component.config.costLimit}</div>
               </div>
             </div>
@@ -130,25 +130,25 @@ export function ComponentDetailModal({ component, isOpen, onClose, onEdit }: Com
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-bg-secondary rounded">
                   <div className="text-2xl font-bold text-fg">{component.usageStats.totalRuns}</div>
-                  <div className="text-sm text-muted">Total Runs</div>
+                  <div className="text-sm text-fg">Total Runs</div>
                 </div>
                 <div className="text-center p-3 bg-bg-secondary rounded">
                   <div className="text-2xl font-bold text-fg">
                     {component.usageStats.successRate.toFixed(1)}%
                   </div>
-                  <div className="text-sm text-muted">Success Rate</div>
+                  <div className="text-sm text-fg">Success Rate</div>
                 </div>
                 <div className="text-center p-3 bg-bg-secondary rounded">
                   <div className="text-2xl font-bold text-fg">
                     {component.usageStats.avgRuntime.toFixed(0)}s
                   </div>
-                  <div className="text-sm text-muted">Avg Runtime</div>
+                  <div className="text-sm text-fg">Avg Runtime</div>
                 </div>
                 <div className="text-center p-3 bg-bg-secondary rounded">
                   <div className="text-2xl font-bold text-fg">
                     ${component.usageStats.avgCost.toFixed(2)}
                   </div>
-                  <div className="text-sm text-muted">Avg Cost</div>
+                  <div className="text-sm text-fg">Avg Cost</div>
                 </div>
               </div>
             </div>
