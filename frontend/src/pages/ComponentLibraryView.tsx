@@ -108,7 +108,7 @@ export function ComponentLibraryView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted">Please select a project to view components.</p>
+        <p className="text-fg">Please select a project to view components.</p>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function ComponentLibraryView() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-fg">Component Library</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-fg">
             Reusable building blocks configured via 3 instruction sets
           </p>
         </div>
@@ -184,7 +184,7 @@ export function ComponentLibraryView() {
                 setSelectedActiveFilter('all');
                 setSelectedTagFilter('all');
               }}
-              className="text-sm text-muted hover:text-fg underline"
+              className="text-sm text-fg hover:text-accent underline"
             >
               Clear all filters
             </button>
@@ -193,7 +193,7 @@ export function ComponentLibraryView() {
       </div>
 
       {/* Results Count */}
-      <div className="mb-4 text-sm text-muted">
+      <div className="mb-4 text-sm text-fg">
         {isLoading ? (
           <span>Loading...</span>
         ) : (
@@ -214,7 +214,7 @@ export function ComponentLibraryView() {
       ) : filteredComponents.length === 0 ? (
         <div className="text-center py-12">
           <svg
-            className="mx-auto h-12 w-12 text-muted"
+            className="mx-auto h-12 w-12 text-fg"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -227,7 +227,7 @@ export function ComponentLibraryView() {
             />
           </svg>
           <h3 className="mt-2 text-sm font-medium text-fg">No components found</h3>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-fg">
             {searchQuery
               ? 'Try adjusting your search query or filters.'
               : 'Get started by creating a new component.'}

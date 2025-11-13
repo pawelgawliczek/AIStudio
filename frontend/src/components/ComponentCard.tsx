@@ -20,7 +20,7 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-fg">{component.name}</h3>
             {component.description && (
-              <p className="mt-1 text-sm text-muted line-clamp-2">{component.description}</p>
+              <p className="mt-1 text-sm text-fg line-clamp-2">{component.description}</p>
             )}
           </div>
           <div className="flex items-center gap-1 ml-2">
@@ -54,12 +54,12 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
         )}
 
         {/* Tools */}
-        <div className="text-sm text-muted">
+        <div className="text-sm text-fg">
           <span className="font-medium">Tools:</span> {component.tools.length > 0 ? component.tools.length : 'None'}
         </div>
 
         {/* Failure Handling */}
-        <div className="text-sm text-muted">
+        <div className="text-sm text-fg">
           <span className="font-medium">On Failure:</span> {component.onFailure}
         </div>
 
@@ -68,11 +68,11 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
           <div className="pt-2 border-t border-gray-100">
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <div className="text-muted">Total Runs</div>
+                <div className="text-fg">Total Runs</div>
                 <div className="font-semibold text-fg">{component.usageStats.totalRuns}</div>
               </div>
               <div>
-                <div className="text-muted">Success Rate</div>
+                <div className="text-fg">Success Rate</div>
                 <div className="font-semibold text-fg">
                   {component.usageStats.successRate.toFixed(1)}%
                 </div>
