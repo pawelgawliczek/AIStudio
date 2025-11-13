@@ -106,15 +106,28 @@ body {
   .w-md-editor-input,
   .w-md-editor-text,
   .w-md-editor-text-input,
-  .w-md-editor-text-pre {
+  .w-md-editor-text-pre,
+  .w-md-editor-text-pre > *,
+  .w-md-editor-input > *,
+  .w-md-editor textarea,
+  .wmde-markdown,
+  .wmde-markdown * {
     background-color: var(--bg) !important;
     color: var(--fg) !important;
   }
 
   /* Code blocks in markdown editor */
   .w-md-editor-text-pre > code,
-  .w-md-editor-text-pre > code * {
+  .w-md-editor-text-pre > code *,
+  .w-md-editor code {
     color: var(--fg) !important;
+  }
+
+  /* Ensure all textarea elements have proper contrast */
+  .w-md-editor textarea,
+  .w-md-editor-text textarea {
+    color: var(--fg) !important;
+    background-color: var(--bg) !important;
   }
 
   /* Markdown editor toolbar */
