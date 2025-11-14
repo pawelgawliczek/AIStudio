@@ -129,6 +129,9 @@ export class CodeAnalysisProcessor {
         for (const fileMetric of fileMetrics) {
           // Add coverage if available
           const coverage = coverageMap.get(fileMetric.filePath) || 0;
+          if (coverage > 0) {
+            this.logger.debug(`Applying ${coverage}% coverage to ${fileMetric.filePath}`);
+          }
           await this.saveFileMetrics(projectId, fileMetric, undefined, coverage);
         }
       }
@@ -623,28 +626,46 @@ export class CodeAnalysisProcessor {
             }
 
             // Normalize file path to be relative to repo root
-            // Handle both container paths (/app/) and host paths (/opt/stack/AIStudio/)
+            // Handle multiple path formats:
+            // 1. Container paths: /app/backend/...
+            // 2. Host paths: /opt/stack/AIStudio/backend/...
+            // 3. Already relative: backend/...
             let relativePath = filePath;
-            if (relativePath.startsWith(repoPath + '/')) {
-              relativePath = relativePath.replace(repoPath + '/', '');
-            } else if (relativePath.startsWith('/opt/stack/AIStudio/')) {
-              relativePath = relativePath.replace('/opt/stack/AIStudio/', '');
-            } else if (relativePath.startsWith('/')) {
-              // Try to extract relative path from any absolute path
-              const parts = relativePath.split('/');
-              const backendIndex = parts.indexOf('backend');
-              const frontendIndex = parts.indexOf('frontend');
-              const sharedIndex = parts.indexOf('shared');
-              const startIndex = Math.min(
-                backendIndex >= 0 ? backendIndex : Infinity,
-                frontendIndex >= 0 ? frontendIndex : Infinity,
-                sharedIndex >= 0 ? sharedIndex : Infinity
-              );
-              if (startIndex < Infinity) {
-                relativePath = parts.slice(startIndex).join('/');
+
+            // Remove known absolute path prefixes
+            const pathPrefixes = [
+              repoPath + '/',                    // /app/ (container)
+              '/opt/stack/AIStudio/',            // /opt/stack/AIStudio/ (host)
+              '/app/',                           // /app/ (alternative format)
+            ];
+
+            for (const prefix of pathPrefixes) {
+              if (relativePath.startsWith(prefix)) {
+                relativePath = relativePath.substring(prefix.length);
+                break;
               }
             }
-            coverageMap.set(relativePath, coverage);
+
+            // If still absolute, try to extract relative path from common patterns
+            if (relativePath.startsWith('/')) {
+              const parts = relativePath.split('/');
+              const markers = ['backend', 'frontend', 'shared'];
+              for (const marker of markers) {
+                const index = parts.indexOf(marker);
+                if (index >= 0) {
+                  relativePath = parts.slice(index).join('/');
+                  break;
+                }
+              }
+            }
+
+            // Only add to map if we successfully normalized the path
+            if (!relativePath.startsWith('/') && relativePath.includes('/')) {
+              coverageMap.set(relativePath, coverage);
+              this.logger.debug(`Mapped coverage: ${filePath} -> ${relativePath} (${coverage}%)`);
+            } else {
+              this.logger.warn(`Failed to normalize coverage path: ${filePath}`);
+            }
           }
           // Successfully loaded coverage from this file, don't try others
           if (coverageMap.size > 0) {

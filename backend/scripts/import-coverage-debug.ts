@@ -1,16 +1,23 @@
 #!/usr/bin/env ts-node
 /**
- * Import Test Coverage from coverage-final.json
+ * Import Test Coverage from coverage-final.json (DEBUG VERSION)
  */
 
 import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const prisma = new PrismaClient();
+// Use explicit database URL
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: 'postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5432/vibestudio?schema=public'
+    }
+  }
+});
 
 async function importCoverage(projectId: string) {
-  console.log('📊 Importing coverage from coverage-final.json...');
+  console.log('📊 Importing coverage from coverage-final.json (DEBUG MODE)...\n');
 
   try {
     // Read coverage file
@@ -22,6 +29,7 @@ async function importCoverage(projectId: string) {
     }
 
     const coverageData = JSON.parse(fs.readFileSync(coveragePath, 'utf-8'));
+    console.log(`📁 Coverage file loaded: ${Object.keys(coverageData).length} files\n`);
 
     // Get project
     const project = await prisma.project.findUnique({
@@ -29,15 +37,18 @@ async function importCoverage(projectId: string) {
       select: { localPath: true, name: true },
     });
 
-    if (!project?.localPath) {
-      console.error('❌ Project not found or has no local path');
+    if (!project) {
+      console.error('❌ Project not found');
       process.exit(1);
     }
 
     console.log(`📈 Processing coverage for project: ${project.name}`);
+    console.log(`   Local path: ${project.localPath || '(not set)'}\n`);
 
     let updatedCount = 0;
-    let totalCoverage = { statements: 0, branches: 0, functions: 0, lines: 0, fileCount: 0 };
+    let skippedCount = 0;
+    let notFoundCount = 0;
+    let processedFiles: Array<{ path: string; coverage: number; status: string }> = [];
 
     // Process each file
     for (const [absolutePath, fileCoverage] of Object.entries(coverageData)) {
@@ -52,13 +63,13 @@ async function importCoverage(projectId: string) {
 
       // Remove known absolute path prefixes
       const pathPrefixes = [
-        project.localPath + '/',           // Project local path
-        '/opt/stack/AIStudio/',            // Host path
-        '/app/',                           // Container path
-      ];
+        project.localPath ? project.localPath + '/' : null,  // Project local path
+        '/opt/stack/AIStudio/',                               // Host path
+        '/app/',                                              // Container path
+      ].filter(Boolean) as string[];
 
       for (const prefix of pathPrefixes) {
-        if (prefix && relativePath.startsWith(prefix)) {
+        if (relativePath.startsWith(prefix)) {
           relativePath = relativePath.substring(prefix.length);
           break;
         }
@@ -79,6 +90,7 @@ async function importCoverage(projectId: string) {
 
       // Skip if we couldn't normalize the path
       if (relativePath.startsWith('/') || !relativePath.includes('/')) {
+        skippedCount++;
         continue;
       }
 
@@ -107,12 +119,6 @@ async function importCoverage(projectId: string) {
       // Overall coverage
       const coveragePercent = Math.round((stmtPercent + branchPercent + funcPercent) / 3);
 
-      // Accumulate totals
-      totalCoverage.statements += stmtPercent;
-      totalCoverage.branches += branchPercent;
-      totalCoverage.functions += funcPercent;
-      totalCoverage.fileCount++;
-
       // Update database
       try {
         const result = await prisma.codeMetrics.updateMany({
@@ -127,27 +133,42 @@ async function importCoverage(projectId: string) {
 
         if (result.count > 0) {
           updatedCount++;
-          if (updatedCount % 10 === 0) {
-            console.log(`  Updated ${updatedCount} files...`);
-          }
+          processedFiles.push({ path: relativePath, coverage: coveragePercent, status: 'UPDATED' });
+        } else {
+          notFoundCount++;
+          processedFiles.push({ path: relativePath, coverage: coveragePercent, status: 'NOT_FOUND_IN_DB' });
         }
       } catch (error) {
-        // Silently skip files not in database
+        processedFiles.push({ path: relativePath, coverage: coveragePercent, status: 'ERROR' });
       }
     }
 
     console.log(`\n✅ Coverage import complete!`);
     console.log(`   Updated: ${updatedCount} files`);
+    console.log(`   Not found in DB: ${notFoundCount} files`);
+    console.log(`   Skipped (path mismatch): ${skippedCount} files\n`);
 
-    if (totalCoverage.fileCount > 0) {
-      console.log(`\n📈 Overall Coverage:`);
-      console.log(`   Statements: ${Math.round(totalCoverage.statements / totalCoverage.fileCount)}%`);
-      console.log(`   Branches: ${Math.round(totalCoverage.branches / totalCoverage.fileCount)}%`);
-      console.log(`   Functions: ${Math.round(totalCoverage.functions / totalCoverage.fileCount)}%`);
+    // Show detailed results for key files
+    console.log('📋 Detailed results for key files:\n');
+    const keyFiles = [
+      'backend/src/coordinators/coordinators.service.ts',
+      'backend/src/workflows/workflows.service.ts'
+    ];
+
+    for (const keyFile of keyFiles) {
+      const found = processedFiles.find(f => f.path === keyFile);
+      if (found) {
+        console.log(`  ${found.status === 'UPDATED' ? '✅' : '❌'} ${found.path}`);
+        console.log(`     Coverage: ${found.coverage}% | Status: ${found.status}\n`);
+      } else {
+        console.log(`  ⚠️  ${keyFile}`);
+        console.log(`     NOT PROCESSED (not in coverage file)\n`);
+      }
     }
 
   } catch (error: any) {
     console.error('❌ Error importing coverage:', error.message);
+    console.error(error.stack);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
@@ -158,7 +179,7 @@ async function importCoverage(projectId: string) {
 const projectId = process.argv[2];
 
 if (!projectId) {
-  console.error('Usage: npx tsx scripts/import-coverage-from-final.ts <projectId>');
+  console.error('Usage: npx tsx scripts/import-coverage-debug.ts <projectId>');
   process.exit(1);
 }
 
