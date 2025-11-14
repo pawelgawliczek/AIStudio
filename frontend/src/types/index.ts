@@ -123,6 +123,12 @@ export interface Story {
   }>;
   baAnalysis?: string;
   architectAnalysis?: string;
+  contextExploration?: string;
+  designerAnalysis?: string;
+  contextExploredAt?: string;
+  baAnalyzedAt?: string;
+  designerAnalyzedAt?: string;
+  architectAnalyzedAt?: string;
 }
 
 // Layer types
