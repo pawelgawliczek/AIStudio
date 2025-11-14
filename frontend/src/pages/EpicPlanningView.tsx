@@ -54,6 +54,12 @@ export function EpicPlanningView() {
   // Epic collapse state (track which epics are collapsed, all others are expanded by default)
   const [collapsedEpics, setCollapsedEpics] = useState<Set<string>>(new Set());
 
+  // Hide completed items state (with sessionStorage persistence)
+  const [hideCompletedItems, setHideCompletedItems] = useState<boolean>(() => {
+    const stored = sessionStorage.getItem('hideCompletedItems');
+    return stored === null ? true : stored === 'true';
+  });
+
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeDragItem, setActiveDragItem] = useState<Story | Epic | null>(null);
@@ -154,6 +160,11 @@ export function EpicPlanningView() {
     // Apply filters
     const filterStories = (stories: Story[]) => {
       return stories.filter(story => {
+        // Hide completed items filter
+        if (hideCompletedItems && story.status === 'done') {
+          return false;
+        }
+
         // Status filter
         if (statusFilter.length > 0 && !statusFilter.includes(story.status)) {
           return false;
@@ -224,7 +235,7 @@ export function EpicPlanningView() {
     unassignedStories = sortStories(unassignedStories);
 
     return { epics, unassignedStories };
-  }, [planningData, statusFilter, typeFilter, epicFilter, searchQuery, sortOption]);
+  }, [planningData, statusFilter, typeFilter, epicFilter, searchQuery, sortOption, hideCompletedItems]);
 
   // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -390,6 +401,14 @@ export function EpicPlanningView() {
     });
   };
 
+  const toggleHideCompletedItems = () => {
+    setHideCompletedItems(prev => {
+      const newValue = !prev;
+      sessionStorage.setItem('hideCompletedItems', String(newValue));
+      return newValue;
+    });
+  };
+
   const updateFilter = (key: string, value: string[]) => {
     const newParams = new URLSearchParams(searchParams);
     if (value.length > 0) {
@@ -480,6 +499,14 @@ export function EpicPlanningView() {
                 <option value="title-za">Title: Z-A</option>
               </select>
 
+              {/* Show/Hide Completed Toggle */}
+              <button
+                onClick={toggleHideCompletedItems}
+                className="px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+              >
+                {hideCompletedItems ? 'Show Completed' : 'Hide Completed'}
+              </button>
+
               {/* Filters */}
               <PlanningFilters
                 statusFilter={statusFilter}
@@ -551,6 +578,7 @@ export function EpicPlanningView() {
                       onAddStory={handleAddStory}
                       isExpanded={!collapsedEpics.has(epic.id)}
                       onToggleExpand={() => toggleEpicExpansion(epic.id)}
+                      hideCompletedItems={hideCompletedItems}
                     />
                   ))}
 
@@ -561,6 +589,7 @@ export function EpicPlanningView() {
                       stories={filteredAndSortedData.unassignedStories}
                       onStoryClick={handleItemClick}
                       onAddStory={handleAddStory}
+                      hideCompletedItems={hideCompletedItems}
                     />
                   )}
 

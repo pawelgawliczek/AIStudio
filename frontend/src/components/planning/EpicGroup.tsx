@@ -12,15 +12,24 @@ interface EpicGroupProps {
   onAddStory?: (epicId: string | null) => void;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  hideCompletedItems?: boolean;
 }
 
-export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClick, onAddStory, isExpanded: propIsExpanded, onToggleExpand }: EpicGroupProps) {
+export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClick, onAddStory, isExpanded: propIsExpanded, onToggleExpand, hideCompletedItems = false }: EpicGroupProps) {
   // Use prop isExpanded if provided, otherwise default to true for unassigned group
   const isExpanded = propIsExpanded !== undefined ? propIsExpanded : true;
   const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string>>(new Set());
 
-  const stories = propStories || epic?.stories || [];
+  const allStories = propStories || epic?.stories || [];
   const isUnassigned = epic === null;
+
+  // Filter stories based on hideCompletedItems
+  const stories = hideCompletedItems
+    ? allStories.filter(s => s.status !== 'done')
+    : allStories;
+
+  // Count of hidden completed stories
+  const hiddenCompletedCount = allStories.filter(s => s.status === 'done').length;
 
   const { setNodeRef, isOver } = useDroppable({
     id: epic?.id || 'unassigned',
@@ -38,9 +47,9 @@ export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClic
 
   // Calculate completion for epic
   const getCompletion = () => {
-    if (stories.length === 0) return 0;
-    const doneStories = stories.filter(s => s.status === 'done').length;
-    return Math.round((doneStories / stories.length) * 100);
+    if (allStories.length === 0) return 0;
+    const doneStories = allStories.filter(s => s.status === 'done').length;
+    return Math.round((doneStories / allStories.length) * 100);
   };
 
   return (
@@ -86,8 +95,11 @@ export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClic
                   <div className="flex items-center gap-4 mt-1 text-sm text-blue-700">
                     <span>Priority: {epic.priority}</span>
                     <span className="capitalize">{epic.status.replace('_', ' ')}</span>
-                    <span>{stories.length} {stories.length === 1 ? 'Story' : 'Stories'}</span>
+                    <span>{allStories.length} {allStories.length === 1 ? 'Story' : 'Stories'}</span>
                     <span>Complete: {getCompletion()}%</span>
+                    {hideCompletedItems && hiddenCompletedCount > 0 && (
+                      <span className="text-green-600">({hiddenCompletedCount} completed hidden)</span>
+                    )}
                   </div>
                 </>
               ) : null}
