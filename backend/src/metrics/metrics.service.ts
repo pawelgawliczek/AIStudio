@@ -67,7 +67,7 @@ export class MetricsService {
     const workflowMetrics: WorkflowMetricsDto[] = [];
     for (const [wfId, wfRuns] of Object.entries(workflowGroups)) {
       const workflow = wfRuns[0].workflow;
-      const metrics = this.calculateAggregatedMetrics(wfRuns, query);
+      const metrics = await this.calculateAggregatedMetrics(wfRuns, query);
 
       workflowMetrics.push({
         workflowId: wfId,
@@ -354,7 +354,7 @@ export class MetricsService {
 
       for (const [wfId, wfRuns] of Object.entries(workflowGroups)) {
         const workflow = wfRuns[0].workflow;
-        const metrics = this.calculateAggregatedMetrics(wfRuns, {
+        const metrics = await this.calculateAggregatedMetrics(wfRuns, {
           granularity: TimeGranularity.WEEKLY,
         });
 
@@ -367,7 +367,7 @@ export class MetricsService {
       }
 
       // Calculate aggregated metrics for the entire week
-      const aggregated = this.calculateAggregatedMetrics(weekRuns, {
+      const aggregated = await this.calculateAggregatedMetrics(weekRuns, {
         granularity: TimeGranularity.WEEKLY,
       });
 
@@ -451,7 +451,7 @@ export class MetricsService {
     }, {});
   }
 
-  private calculateAggregatedMetrics(runs: any[], query: MetricsQueryDto): AggregatedMetricsDto {
+  private async calculateAggregatedMetrics(runs: any[], query: MetricsQueryDto): Promise<AggregatedMetricsDto> {
     const totalRuns = runs.length;
     const successfulRuns = runs.filter((r) => r.status === RunStatus.completed).length;
     const failedRuns = runs.filter((r) => r.status === RunStatus.failed).length;
@@ -478,6 +478,9 @@ export class MetricsService {
     const locs = runs.map((r) => r.totalLocGenerated || 0).filter((l) => l > 0);
     const totalLoc = locs.reduce((a, b) => a + b, 0);
     const avgLocPerStory = locs.length > 0 ? totalLoc / locs.length : undefined;
+
+    // Calculate tests added for stories in these runs
+    const testsAdded = await this.calculateTestsAdded(runs);
 
     // Efficiency metrics
     const avgTokensPerLoc = totalLoc > 0 && totalTokens > 0 ? totalTokens / totalLoc : undefined;
@@ -522,6 +525,7 @@ export class MetricsService {
       totalLoc,
       avgLocPerStory,
       avgLocPerPrompt,
+      testsAdded,
       avgRuntimePerLoc,
       avgRuntimePerToken: runtimePerToken,
       avgPromptsPerRun,
@@ -529,6 +533,43 @@ export class MetricsService {
       avgCost,
       totalCost,
     };
+  }
+
+  /**
+   * Calculate the number of tests added for stories in workflow runs
+   * Counts test cases created during the period covered by the workflow runs
+   */
+  private async calculateTestsAdded(runs: any[]): Promise<number | undefined> {
+    if (runs.length === 0) return undefined;
+
+    // Get unique story IDs from runs
+    const storyIds = [...new Set(runs.map((r) => r.storyId).filter(Boolean))];
+
+    if (storyIds.length === 0) return undefined;
+
+    // Get the time range for these runs
+    const startDates = runs.map((r) => new Date(r.startedAt));
+    const minDate = new Date(Math.min(...startDates.map((d) => d.getTime())));
+    const maxDate = new Date(Math.max(...startDates.map((d) => d.getTime())));
+
+    // Count test cases created during this period for use cases linked to these stories
+    const testCount = await this.prisma.testCase.count({
+      where: {
+        useCase: {
+          storyLinks: {
+            some: {
+              storyId: { in: storyIds },
+            },
+          },
+        },
+        createdAt: {
+          gte: minDate,
+          lte: maxDate,
+        },
+      },
+    });
+
+    return testCount > 0 ? testCount : undefined;
   }
 
   private calculateComponentMetrics(runs: any[], query: MetricsQueryDto): AggregatedMetricsDto {

@@ -27,6 +27,7 @@ export class AggregatedMetricsDto {
   totalLoc?: number;
   avgLocPerStory?: number;
   avgLocPerPrompt?: number;
+  testsAdded?: number; // Number of test cases added
 
   // Efficiency metrics
   avgRuntimePerLoc?: number; // seconds per LOC
