@@ -120,6 +120,10 @@ export interface UpdateStoryParams {
   businessComplexity?: number;
   technicalComplexity?: number;
   assignedFrameworkId?: string;
+  contextExploration?: string;
+  baAnalysis?: string;
+  designerAnalysis?: string;
+  architectAnalysis?: string;
 }
 
 // ============================================================================

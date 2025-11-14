@@ -133,6 +133,40 @@ interface TestSummary {
   lastExecution?: Date;
 }
 
+interface FileChange {
+  filePath: string;
+  status: 'added' | 'modified' | 'deleted';
+  language: string;
+  current: {
+    linesOfCode: number;
+    cyclomaticComplexity: number;
+    cognitiveComplexity: number;
+    maintainabilityIndex: number;
+    testCoverage: number;
+    riskScore: number;
+  } | null;
+  previous: {
+    linesOfCode: number;
+    cyclomaticComplexity: number;
+    cognitiveComplexity: number;
+    maintainabilityIndex: number;
+    testCoverage: number;
+    riskScore: number;
+  } | null;
+  changes: {
+    linesOfCode: number;
+    cyclomaticComplexity: number;
+    cognitiveComplexity: number;
+    maintainabilityIndex: number;
+    testCoverage: number;
+    riskScore: number;
+  } | null;
+}
+
+interface FileChangesData {
+  files: FileChange[];
+}
+
 type DrillDownLevel = 'project' | 'file';
 
 const CodeQualityDashboard: React.FC = () => {
@@ -173,8 +207,10 @@ const CodeQualityDashboard: React.FC = () => {
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus | null>(null);
   const [analysisComparison, setAnalysisComparison] = useState<AnalysisComparison | null>(null);
   const [testSummary, setTestSummary] = useState<TestSummary | null>(null);
+  const [fileChanges, setFileChanges] = useState<FileChangesData | null>(null);
   const [showAnalysisNotification, setShowAnalysisNotification] = useState(false);
   const [analysisJobId, setAnalysisJobId] = useState<string | null>(null);
+  const [showAnalysisResultsModal, setShowAnalysisResultsModal] = useState(false);
 
   // Story creation state
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
@@ -219,12 +255,14 @@ const CodeQualityDashboard: React.FC = () => {
 
   const fetchComparisonAndTests = async () => {
     try {
-      const [comparisonRes, testSummaryRes] = await Promise.all([
+      const [comparisonRes, testSummaryRes, fileChangesRes] = await Promise.all([
         axios.get(`/code-metrics/project/${projectId}/comparison`),
         axios.get(`/code-metrics/project/${projectId}/test-summary`),
+        axios.get(`/code-metrics/project/${projectId}/file-changes`),
       ]);
       setAnalysisComparison(comparisonRes.data);
       setTestSummary(testSummaryRes.data);
+      setFileChanges(fileChangesRes.data);
     } catch (err: any) {
       console.error('Failed to fetch comparison/test data:', err);
     }
@@ -241,6 +279,8 @@ const CodeQualityDashboard: React.FC = () => {
         // Fetch updated metrics and comparison
         await fetchMetrics();
         await fetchComparisonAndTests();
+        // Show the results modal
+        setShowAnalysisResultsModal(true);
         return true; // Stop polling
       } else if (response.data.status === 'failed') {
         setShowAnalysisNotification(true);
@@ -625,6 +665,340 @@ const CodeQualityDashboard: React.FC = () => {
                 ✕
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Results Modal */}
+      {showAnalysisResultsModal && analysisComparison && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-card rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slideUp border border-border">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-accent to-accent-dark text-accent-fg px-8 py-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="text-4xl">📊</div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Analysis Complete!</h2>
+                    <p className="text-sm opacity-90 mt-1">
+                      {analysisComparison.lastAnalysis
+                        ? `Comparison with analysis from ${new Date(analysisComparison.lastAnalysis).toLocaleDateString()}`
+                        : 'First analysis completed - baseline established'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAnalysisResultsModal(false)}
+                  className="text-accent-fg hover:bg-white hover:bg-opacity-20 rounded-full w-10 h-10 flex items-center justify-center transition-all"
+                >
+                  <span className="text-2xl">×</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8">
+              {analysisComparison.lastAnalysis ? (
+                <>
+                  {/* Overall Quality Badge */}
+                  <div className="text-center mb-8">
+                    <div className={`inline-flex items-center gap-3 px-6 py-4 rounded-full text-lg font-bold border-2 ${
+                      analysisComparison.qualityImprovement
+                        ? 'bg-green-100 text-green-800 border-green-300'
+                        : 'bg-bg-secondary text-fg border-border'
+                    }`}>
+                      <span className="text-3xl">{analysisComparison.qualityImprovement ? '📈' : '📊'}</span>
+                      {analysisComparison.qualityImprovement ? 'Quality Improved!' : 'Quality Maintained'}
+                    </div>
+                  </div>
+
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {/* Health Score */}
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-muted">Health Score</span>
+                        <span className="text-2xl">❤️</span>
+                      </div>
+                      <div className={`text-4xl font-bold ${
+                        analysisComparison.healthScoreChange >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {analysisComparison.healthScoreChange >= 0 ? '+' : ''}{analysisComparison.healthScoreChange}
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        {analysisComparison.healthScoreChange > 0 ? 'Improved' : analysisComparison.healthScoreChange < 0 ? 'Declined' : 'No change'}
+                      </div>
+                    </div>
+
+                    {/* Test Coverage */}
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-muted">Coverage</span>
+                        <span className="text-2xl">🛡️</span>
+                      </div>
+                      <div className={`text-4xl font-bold ${
+                        analysisComparison.coverageChange >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {analysisComparison.coverageChange >= 0 ? '+' : ''}{analysisComparison.coverageChange}%
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        {analysisComparison.coverageChange > 0 ? 'Increased' : analysisComparison.coverageChange < 0 ? 'Decreased' : 'No change'}
+                      </div>
+                    </div>
+
+                    {/* New Tests */}
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-muted">New Tests</span>
+                        <span className="text-2xl">🧪</span>
+                      </div>
+                      <div className="text-4xl font-bold text-accent">
+                        {analysisComparison.newTests > 0 ? '+' : ''}{analysisComparison.newTests}
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        {analysisComparison.newTests > 0 ? 'Added' : 'No new tests'}
+                      </div>
+                    </div>
+
+                    {/* Complexity */}
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-muted">Complexity</span>
+                        <span className="text-2xl">🔀</span>
+                      </div>
+                      <div className={`text-4xl font-bold ${
+                        analysisComparison.complexityChange <= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {analysisComparison.complexityChange >= 0 ? '+' : ''}{analysisComparison.complexityChange}
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        {analysisComparison.complexityChange < 0 ? 'Reduced' : analysisComparison.complexityChange > 0 ? 'Increased' : 'No change'}
+                      </div>
+                    </div>
+
+                    {/* New Files */}
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-muted">New Files</span>
+                        <span className="text-2xl">📄</span>
+                      </div>
+                      <div className="text-4xl font-bold text-accent">
+                        {analysisComparison.newFiles > 0 ? '+' : ''}{analysisComparison.newFiles}
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        Files added
+                      </div>
+                    </div>
+
+                    {/* Deleted Files */}
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-muted">Deleted Files</span>
+                        <span className="text-2xl">🗑️</span>
+                      </div>
+                      <div className="text-4xl font-bold text-fg">
+                        {analysisComparison.deletedFiles > 0 ? '-' : ''}{analysisComparison.deletedFiles}
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        Files removed
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Test Summary Section */}
+                  {testSummary && testSummary.totalTests > 0 && (
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border mb-8">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-2xl">🧪</span>
+                        <h3 className="text-lg font-bold text-fg">Test Execution Summary</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-accent">{testSummary.totalTests}</div>
+                          <div className="text-xs text-muted">Total Tests</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-green-600">{testSummary.passing}</div>
+                          <div className="text-xs text-muted">Passing ({testSummary.totalTests > 0 ? Math.round((testSummary.passing / testSummary.totalTests) * 100) : 0}%)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-red-600">{testSummary.failing}</div>
+                          <div className="text-xs text-muted">Failing ({testSummary.totalTests > 0 ? Math.round((testSummary.failing / testSummary.totalTests) * 100) : 0}%)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-yellow-600">{testSummary.skipped}</div>
+                          <div className="text-xs text-muted">Skipped ({testSummary.totalTests > 0 ? Math.round((testSummary.skipped / testSummary.totalTests) * 100) : 0}%)</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* File Changes Table */}
+                  {fileChanges && fileChanges.files.length > 0 && (
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-2xl">📁</span>
+                        <h3 className="text-lg font-bold text-fg">File Changes ({fileChanges.files.length})</h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-3 px-2 font-medium text-muted">Status</th>
+                              <th className="text-left py-3 px-2 font-medium text-muted">File Path</th>
+                              <th className="text-right py-3 px-2 font-medium text-muted">LOC</th>
+                              <th className="text-right py-3 px-2 font-medium text-muted">Complexity</th>
+                              <th className="text-right py-3 px-2 font-medium text-muted">Maintainability</th>
+                              <th className="text-right py-3 px-2 font-medium text-muted">Coverage</th>
+                              <th className="text-right py-3 px-2 font-medium text-muted">Risk</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {fileChanges.files.map((file, idx) => (
+                              <tr key={idx} className="border-b border-border hover:bg-bg transition-colors">
+                                <td className="py-3 px-2">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                                    file.status === 'added' ? 'bg-green-100 text-green-800' :
+                                    file.status === 'modified' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}>
+                                    {file.status === 'added' ? '✚' : file.status === 'modified' ? '~' : '✖'}
+                                    {file.status}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-2 font-mono text-xs text-fg max-w-xs truncate" title={file.filePath}>
+                                  {file.filePath}
+                                </td>
+                                <td className="py-3 px-2 text-right">
+                                  {file.status !== 'deleted' && file.current && (
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-fg font-medium">{file.current.linesOfCode}</span>
+                                      {file.changes && file.changes.linesOfCode !== 0 && (
+                                        <span className={`text-xs ${file.changes.linesOfCode > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {file.changes.linesOfCode > 0 ? '+' : ''}{file.changes.linesOfCode}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {file.status === 'deleted' && file.previous && (
+                                    <span className="text-muted line-through">{file.previous.linesOfCode}</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2 text-right">
+                                  {file.status !== 'deleted' && file.current && (
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-fg font-medium">{file.current.cyclomaticComplexity}</span>
+                                      {file.changes && file.changes.cyclomaticComplexity !== 0 && (
+                                        <span className={`text-xs ${file.changes.cyclomaticComplexity < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {file.changes.cyclomaticComplexity > 0 ? '+' : ''}{file.changes.cyclomaticComplexity}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {file.status === 'deleted' && file.previous && (
+                                    <span className="text-muted line-through">{file.previous.cyclomaticComplexity}</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2 text-right">
+                                  {file.status !== 'deleted' && file.current && (
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-fg font-medium">{file.current.maintainabilityIndex.toFixed(1)}</span>
+                                      {file.changes && file.changes.maintainabilityIndex !== 0 && (
+                                        <span className={`text-xs ${file.changes.maintainabilityIndex > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {file.changes.maintainabilityIndex > 0 ? '+' : ''}{file.changes.maintainabilityIndex}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {file.status === 'deleted' && file.previous && (
+                                    <span className="text-muted line-through">{file.previous.maintainabilityIndex.toFixed(1)}</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2 text-right">
+                                  {file.status !== 'deleted' && file.current && (
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-fg font-medium">{file.current.testCoverage?.toFixed(1) || '0.0'}%</span>
+                                      {file.changes && file.changes.testCoverage !== 0 && (
+                                        <span className={`text-xs ${file.changes.testCoverage > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {file.changes.testCoverage > 0 ? '+' : ''}{file.changes.testCoverage}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {file.status === 'deleted' && file.previous && (
+                                    <span className="text-muted line-through">{file.previous.testCoverage?.toFixed(1) || '0.0'}%</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2 text-right">
+                                  {file.status !== 'deleted' && file.current && (
+                                    <div className="flex flex-col items-end">
+                                      <span className={`font-medium ${
+                                        file.current.riskScore > 70 ? 'text-red-600' :
+                                        file.current.riskScore > 40 ? 'text-yellow-600' :
+                                        'text-green-600'
+                                      }`}>
+                                        {file.current.riskScore.toFixed(1)}
+                                      </span>
+                                      {file.changes && file.changes.riskScore !== 0 && (
+                                        <span className={`text-xs ${file.changes.riskScore < 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {file.changes.riskScore > 0 ? '+' : ''}{file.changes.riskScore}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {file.status === 'deleted' && file.previous && (
+                                    <span className="text-muted line-through">{file.previous.riskScore.toFixed(1)}</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* First Analysis - No Comparison */
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🎉</div>
+                  <h3 className="text-2xl font-bold text-fg mb-3">Baseline Analysis Complete!</h3>
+                  <p className="text-muted mb-6 max-w-md mx-auto">
+                    This is your first analysis. We've established a baseline for tracking quality improvements.
+                    Run another analysis in the future to see how your code quality evolves!
+                  </p>
+                  {testSummary && testSummary.totalTests > 0 && (
+                    <div className="bg-bg-secondary rounded-xl p-6 border border-border max-w-md mx-auto">
+                      <div className="flex items-center gap-2 mb-4 justify-center">
+                        <span className="text-2xl">🧪</span>
+                        <h4 className="text-lg font-bold text-fg">Test Suite Summary</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-accent">{testSummary.totalTests}</div>
+                          <div className="text-xs text-muted">Total Tests</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-green-600">{testSummary.passing}</div>
+                          <div className="text-xs text-muted">Passing</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-bg-secondary px-8 py-4 rounded-b-2xl border-t border-border flex justify-end">
+              <button
+                onClick={() => setShowAnalysisResultsModal(false)}
+                className="px-6 py-3 bg-accent text-accent-fg rounded-lg font-medium hover:bg-accent-dark transition-colors"
+              >
+                Got it, thanks!
+              </button>
+            </div>
           </div>
         </div>
       )}

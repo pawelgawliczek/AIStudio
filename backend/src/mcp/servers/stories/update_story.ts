@@ -19,7 +19,7 @@ import {
 export const tool: Tool = {
   name: 'update_story',
   description:
-    'Update an existing story (title, description, status, complexity, framework)',
+    'Update an existing story (title, description, status, complexity, framework, workflow analysis fields)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -55,6 +55,22 @@ export const tool: Tool = {
       assignedFrameworkId: {
         type: 'string',
         description: 'Framework UUID to assign this story to',
+      },
+      contextExploration: {
+        type: 'string',
+        description: 'Context exploration from Explore component',
+      },
+      baAnalysis: {
+        type: 'string',
+        description: 'BA agent analysis notes',
+      },
+      designerAnalysis: {
+        type: 'string',
+        description: 'Designer agent analysis notes',
+      },
+      architectAnalysis: {
+        type: 'string',
+        description: 'Architect agent analysis notes',
       },
     },
     required: ['storyId'],
@@ -110,6 +126,16 @@ export async function handler(
       updateData.technicalComplexity = params.technicalComplexity;
     if (params.assignedFrameworkId !== undefined)
       updateData.assignedFrameworkId = params.assignedFrameworkId;
+
+    // Workflow component analysis fields
+    if (params.contextExploration !== undefined)
+      updateData.contextExploration = params.contextExploration;
+    if (params.baAnalysis !== undefined)
+      updateData.baAnalysis = params.baAnalysis;
+    if (params.designerAnalysis !== undefined)
+      updateData.designerAnalysis = params.designerAnalysis;
+    if (params.architectAnalysis !== undefined)
+      updateData.architectAnalysis = params.architectAnalysis;
 
     // Update story
     const updatedStory = await prisma.story.update({

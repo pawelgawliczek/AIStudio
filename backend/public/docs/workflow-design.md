@@ -8,73 +8,41 @@ This workflow adapts proven agentic development patterns to the AIStudio MCP Con
 
 ## I. Workflow Phases & Decision Tree
 
-### Task Classification (by Coordinator/PM)
+### Task Classification (by Coordinator)
 
-**STEP 1: PM Estimates Complexity**
+**Trivial (⚡)**: < 10 lines, zero logic
+- "Fix typo, CSS tweak, comment, copy change"
+- Single component: Full-stack only
+- Duration: 5-10 minutes
+- Skip BA and Architect
 
-Coordinator first estimates three values:
-- **Business Complexity (BC)**: 1-10
-  - 1-3: Simple CRUD, basic UI
-  - 4-6: Multiple workflows, validation rules
-  - 7-10: Complex business logic, multiple systems
+**Simple (🏃)**: < 50 lines, single file, no DB/API
+- "UI bug fix, config change, minor logic fix"
+- Components: Full-stack → Architect (spot-check)
+- Duration: 20-30 minutes
+- Skip BA
 
-- **Technical Complexity (TC)**: 1-10
-  - 1-3: Single file, no DB changes
-  - 4-6: Multiple files, minor DB changes
-  - 7-10: Architecture changes, major DB schema
+**Medium (🚶)**: Multi-file, no DB/API changes
+- "New component, refactor, feature enhancement"
+- Components: BA → (Architect + Full-stack parallel) → QA
+- Duration: 1-2 hours
+- Full context gathering
 
-- **Token Cost**: Based on size
-  - Trivial: 50K-100K | Simple: 100K-200K | Medium: 200K-400K
-  - Complex: 400K-700K | Critical: 700K-1M+
+**Complex (🏋️)**: API/DB changes, new service
+- "New endpoint, schema migration, MCP tool integration"
+- Full workflow: BA → Architect → Full-stack → QA → DevOps
+- Duration: 2-4 hours
+- Full documentation
 
-**STEP 2: Workflow Classification**
-
-**Trivial (⚡)**: BC≤3 AND TC≤3
-- "Fix typo, CSS tweak, comment"
-- Components: Full-stack only
-- Duration: 5-10 minutes | Tokens: 50K-100K
-
-**Simple (🏃)**: BC≤5 AND TC≤5
-- "UI bug fix, config change"
-- Components: Full-stack → Architect spot-check
-- Duration: 20-30 minutes | Tokens: 100K-200K
-
-**Medium (🚶)**: BC≤7 OR TC≤7
-- "New component, refactor"
-- Components: Explore → BA → Designer → Architect → Full-stack → QA
-- Duration: 1-2 hours | Tokens: 200K-400K
-- **BA refines businessComplexity**
-- **Architect refines technicalComplexity**
-
-**Complex (🏋️)**: BC>7 OR TC>7
-- "New endpoint, schema migration"
-- Components: Explore → BA → Designer → Architect → Full-stack → QA → DevOps
-- Duration: 2-4 hours | Tokens: 400K-700K
-- **BA refines businessComplexity**
-- **Architect refines technicalComplexity**
-
-**Critical (🔒)**: DB schema OR metrics OR core system
-- "Prisma migrations, metrics aggregation"
-- Components: Full workflow + validation
-- Duration: 3-5 hours | Tokens: 700K-1M+
-- **BA refines businessComplexity**
-- **Architect refines technicalComplexity**
+**Critical (🔒)**: Database schema, metrics, code quality system
+- "Prisma migrations, metrics aggregation, code analysis"
+- Full workflow + extra validation
+- Testing on separate database instance
+- Duration: 3-5 hours
 
 ---
 
 ## II. Agent Components & MCP Tools
-
-**Total Components**: 8
-1. Coordinator Agent (Orchestrator)
-2. Context Explore
-3. Business Analyst
-4. UI/UX Designer
-5. Software Architect
-6. Full-Stack Developer
-7. QA Automation
-8. DevOps Engineer
-
----
 
 ### 1. Coordinator Agent (Orchestrator)
 
@@ -110,77 +78,27 @@ Coordinator first estimates three values:
 
 **Coordinator Instructions**:
 ```
-You are the Workflow Coordinator (PM) for AIStudio development tasks.
+You are the Workflow Coordinator for AIStudio development tasks.
 
-STEP 1: INITIAL ESTIMATION (ALWAYS DO FIRST)
-Before executing any components, estimate:
+Your job is to:
+1. Analyze the story and classify its complexity
+2. Decide which components to execute and in what order
+3. Manage context handoff between components
+4. Make decisions based on component outputs
+5. Track metrics and ensure quality
 
-1. Business Complexity (1-10):
-   - How complex are the business requirements?
-   - 1-3: Simple CRUD, basic UI
-   - 4-6: Multiple workflows, validation rules
-   - 7-10: Complex business logic, multiple systems
-
-2. Technical Complexity (1-10):
-   - How complex is the technical implementation?
-   - 1-3: Single file, no DB changes
-   - 4-6: Multiple files, minor DB changes
-   - 7-10: Architecture changes, major DB schema
-
-3. Estimated Token Cost (tokens):
-   - Based on story size and complexity
-   - Trivial: 50K-100K
-   - Simple: 100K-200K
-   - Medium: 200K-400K
-   - Complex: 400K-700K
-   - Critical: 700K-1M+
-
-Use update_story to save these estimates:
-- Story.businessComplexity
-- Story.technicalComplexity
-- Story.estimatedTokenCost
-
-STEP 2: CLASSIFY WORKFLOW COMPLEXITY
-Based on estimates, decide workflow:
-
-- Trivial (businessComplexity ≤3 AND technicalComplexity ≤3):
-  → Full-stack only
-
-- Simple (businessComplexity ≤5 AND technicalComplexity ≤5):
-  → Full-stack → Architect spot-check
-
-- Medium (businessComplexity ≤7 OR technicalComplexity ≤7):
-  → Explore → BA → Designer → Architect → Full-stack → QA
-
-- Complex (businessComplexity >7 OR technicalComplexity >7):
-  → Explore → BA → Designer → Architect → Full-stack → QA → DevOps
-
-- Critical (DB schema OR metrics OR core system):
-  → Full workflow + validation
-
-STEP 3: EXECUTE COMPONENTS
-- Log each component execution
-- Track metrics
-- Manage context via Story fields
-
-STEP 4: REFINEMENT
-- BA will refine businessComplexity after analysis
-- Architect will refine technicalComplexity after analysis
-- If refined estimates significantly change, adjust remaining components
-
-Context Storage via Database:
-- Explore component → Story.contextExploration
-- BA component → Story.baAnalysis + refines Story.businessComplexity
-- Designer component → Story.designerAnalysis
-- Architect component → Story.architectAnalysis + refines Story.technicalComplexity
-- All components read from Story fields
-- No temp files, full traceability
+Decision Strategy: Adaptive
+- Trivial: Full-stack only
+- Simple: Full-stack → Architect spot-check
+- Medium: BA → (Architect + Full-stack parallel) → QA
+- Complex: BA → Architect → Full-stack → QA → DevOps
+- Critical: Full workflow + validation
 
 Always use MCP tools to:
-- Retrieve story and use case context (get_story)
-- Update story fields (update_story)
-- Log component execution (record_component_start/complete)
-- Track workflow progress (update_workflow_status)
+- Retrieve story and use case context
+- Log component execution
+- Store intermediate outputs
+- Track workflow progress
 ```
 
 ---
@@ -234,9 +152,7 @@ Create a comprehensive context document with:
 
 **Output Instructions**:
 ```
-Store output in Story.contextExploration field via update_story MCP tool.
-
-Use markdown format with sections:
+Produce a compact TEMP_context.md file (<5KB) with:
 
 ## Relevant Files
 - `file/path.ts` (lines X-Y): Purpose and current behavior
@@ -260,8 +176,6 @@ Use markdown format with sections:
 
 ## Documentation
 - Links to relevant docs
-
-Also set Story.contextExploredAt timestamp.
 ```
 
 **Configuration**:
@@ -276,14 +190,13 @@ Also set Story.contextExploredAt timestamp.
 
 **MCP Tools**:
 - `get_story`
-- `update_story` (to store contextExploration)
 - `search_use_cases`
 - `find_related_use_cases`
 - `get_file_dependencies`
 - `get_file_health`
 - `analyze_file_impact`
 
-**Output Storage**: Story.contextExploration field in database
+**Output Artifact**: TEMP_context.md (stored via coordinator)
 
 **Token Savings**: 60-80% reduction on medium/complex tasks
 
@@ -297,11 +210,11 @@ Also set Story.contextExploredAt timestamp.
 ```
 You will receive:
 - Story title and description
-- Story.contextExploration (for medium+ tasks) - read from database
+- TEMP_context.md (for medium+ tasks)
 - Use case links
 - Project context
 
-Read context FIRST from Story.contextExploration - do not re-investigate the codebase.
+Read context FIRST - do not re-investigate the codebase.
 ```
 
 **Operation Instructions**:
@@ -333,9 +246,7 @@ Test Case Priority:
 
 **Output Instructions**:
 ```
-Store output in Story.baAnalysis field via update_story MCP tool.
-
-Use markdown format:
+Produce TEMP_requirements.md with:
 
 ## User Story
 As a [role], I want [goal], so that [benefit]
@@ -366,17 +277,6 @@ As a [role], I want [goal], so that [benefit]
 ## Use Cases Linked
 - UC-XXX-001: Use case title (implements/modifies)
 - ...
-
-## Business Complexity Assessment
-After analysis, refine the business complexity estimate (1-10):
-- Original PM estimate: [read from Story.businessComplexity]
-- Refined estimate: [your assessment]
-- Justification: [why adjusted up or down]
-
-Also update via update_story MCP tool:
-- Story.baAnalysis (above content)
-- Story.baAnalyzedAt (timestamp)
-- Story.businessComplexity (refined estimate)
 ```
 
 **Configuration**:
@@ -391,158 +291,20 @@ Also update via update_story MCP tool:
 
 **MCP Tools**:
 - `get_story`
-- `update_story` (to store baAnalysis)
 - `search_use_cases`
 - `find_related_use_cases`
 - `get_use_case_coverage`
 - `link_use_case_to_story`
 
-**Standard Tools**: Read, Grep, Glob
+**Standard Tools**: Read, Write, Grep, Glob
 
-**Output Storage**: Story.baAnalysis field in database
-
----
-
-### 4. UI/UX Designer Component
-
-**Purpose**: Create user interface and user experience designs
-
-**Input Instructions**:
-```
-You will receive:
-- Story.contextExploration (for medium+ tasks) - read from database
-- Story.baAnalysis (requirements and user stories)
-- Use case links
-- Story details
-
-Read context from Story fields FIRST.
-```
-
-**Operation Instructions**:
-```
-Your job is to:
-1. Analyze user requirements and acceptance criteria
-2. Design user interface layouts and component structure
-3. Create wireframes and user flows
-4. Define component hierarchy for frontend
-5. Specify interactions and transitions
-6. Consider accessibility and responsive design
-7. Reference existing UI patterns in codebase
-
-Use MCP tools to:
-- search_use_cases - Find related UI patterns
-- get_file_health - Check existing component quality
-- analyze_file_impact - See which components might be affected
-
-Use standard tools to:
-- Grep - Search for existing UI components
-- Read - Examine similar components
-- Glob - Find related frontend files
-
-Design Deliverables:
-- Page/Screen layouts
-- Component structure and hierarchy
-- User flows and navigation
-- Interaction patterns
-- State management approach
-- Responsive breakpoints
-- Accessibility considerations
-- Design system usage
-```
-
-**Output Instructions**:
-```
-Store output in Story.designerAnalysis field via update_story MCP tool.
-
-Use markdown format:
-
-## UI/UX Design
-
-### Pages/Screens
-- **Page Name**: Description and purpose
-  - Layout: Description
-  - Key components: List
-  - ...
-
-### Component Structure
-```
-PageName
-├── HeaderComponent
-│   ├── Logo
-│   ├── Navigation
-│   └── UserMenu
-├── MainContent
-│   ├── SidebarComponent
-│   └── ContentArea
-└── FooterComponent
-```
-
-### User Flows
-1. **Flow Name**: Step-by-step description
-   - User action → System response
-   - ...
-
-### Component Specifications
-#### ComponentName
-- **Purpose**: What it does
-- **Props**: List of props with types
-- **State**: Local state needed
-- **Events**: User interactions
-- **Styling**: Key design aspects
-
-### Interactions
-- Click/tap behaviors
-- Hover states
-- Loading states
-- Error states
-- Success feedback
-
-### Responsive Design
-- Mobile (< 768px): Behavior
-- Tablet (768-1024px): Behavior
-- Desktop (> 1024px): Behavior
-
-### Accessibility
-- ARIA labels needed
-- Keyboard navigation
-- Screen reader support
-- Color contrast considerations
-
-### Design System Usage
-- Colors: Which theme colors to use
-- Typography: Font sizes and weights
-- Spacing: Margin/padding guidelines
-- Components: Existing components to reuse
-
-Also set Story.designerAnalyzedAt timestamp.
-```
-
-**Configuration**:
-```json
-{
-  "modelId": "claude-sonnet-4-5-20250929",
-  "temperature": 0.4,
-  "maxInputTokens": 30000,
-  "maxOutputTokens": 4000
-}
-```
-
-**MCP Tools**:
-- `get_story`
-- `update_story` (to store designerAnalysis)
-- `search_use_cases`
-- `get_file_health`
-- `analyze_file_impact`
-
-**Standard Tools**: Read, Grep, Glob
-
-**Output Storage**: Story.designerAnalysis field in database
+**Output Artifact**: TEMP_requirements.md
 
 ---
 
-### 5. Software Architect Component
+### 4. Software Architect Component
 
-**Purpose**: Technical architecture design and validation (backend, database, APIs)
+**Purpose**: Technical design and architecture validation
 
 **Review Scope Decision**:
 - **Skip**: < 10 lines, trivial changes
@@ -552,9 +314,8 @@ Also set Story.designerAnalyzedAt timestamp.
 **Input Instructions**:
 ```
 You will receive:
-- Story.contextExploration (for medium+ tasks) - read from database
-- Story.baAnalysis (requirements)
-- Story.designerAnalysis (UI/UX design)
+- TEMP_context.md (for medium+ tasks)
+- TEMP_requirements.md
 - Story complexity classification
 
 Based on complexity, perform appropriate review level.
@@ -569,13 +330,12 @@ For Spot-Check:
 4. 5-minute quick review
 
 For Full Review:
-1. Review Designer's UI/UX design for technical feasibility
-2. Design API endpoints and payloads to support UI
+1. Analyze architectural approach
+2. Design API endpoints and payloads
 3. Design database schema changes
-4. Design backend service architecture
-5. Validate pattern consistency
-6. Security considerations
-7. Performance implications
+4. Validate pattern consistency
+5. Security considerations
+6. Performance implications
 
 Use MCP tools to:
 - get_project_health - Assess overall code quality
@@ -590,10 +350,9 @@ Use Explore component if needed for pattern discovery.
 **Output Instructions**:
 ```
 For Spot-Check:
-Store brief review in Story.architectAnalysis via update_story MCP tool.
-Also refine Story.technicalComplexity if needed.
+Brief inline review (no file needed)
 
-For Full Review, store in Story.architectAnalysis via update_story MCP tool:
+For Full Review, produce TEMP_design.md:
 
 ## Architecture Approach
 [High-level design explanation]
@@ -644,21 +403,6 @@ model Foo {
 
 ## Pattern Validation
 [Consistency with existing codebase patterns]
-
-## Technical Complexity Assessment
-After architecture analysis, refine the technical complexity estimate (1-10):
-- Original PM estimate: [read from Story.technicalComplexity]
-- Refined estimate: [your assessment]
-- Justification: [why adjusted up or down]
-- DB schema changes: Yes/No
-- API endpoints: Count
-- New services: Count
-- External integrations: Count
-
-Also update via update_story MCP tool:
-- Story.architectAnalysis (above content)
-- Story.architectAnalyzedAt (timestamp)
-- Story.technicalComplexity (refined estimate)
 ```
 
 **Configuration**:
@@ -672,8 +416,6 @@ Also update via update_story MCP tool:
 ```
 
 **MCP Tools**:
-- `get_story`
-- `update_story` (to store architectAnalysis)
 - `get_project_health`
 - `get_architect_insights`
 - `get_file_health`
@@ -682,13 +424,13 @@ Also update via update_story MCP tool:
 - `get_story_blast_radius`
 - `suggest_files_for_story`
 
-**Standard Tools**: Read, Grep, Glob, Task (for Explore)
+**Standard Tools**: Read, Write, Grep, Glob, Task (for Explore)
 
-**Output Storage**: Story.architectAnalysis field in database
+**Output Artifact**: TEMP_design.md (full review) or inline comments (spot-check)
 
 ---
 
-### 6. Full-Stack Developer Component
+### 5. Full-Stack Developer Component
 
 **Purpose**: Implementation with comprehensive testing (TDD)
 
@@ -697,13 +439,12 @@ Also update via update_story MCP tool:
 **Input Instructions**:
 ```
 You will receive:
-- Story.contextExploration
-- Story.baAnalysis
-- Story.designerAnalysis (UI/UX designs)
-- Story.architectAnalysis (technical architecture)
+- TEMP_context.md
+- TEMP_requirements.md
+- TEMP_design.md
 - Story details
 
-Read all context from Story fields FIRST.
+Read all context documents FIRST.
 ```
 
 **Operation Instructions**:
@@ -782,16 +523,15 @@ feat: Add workflow metrics tracking [Story-ST-123]
 
 ---
 
-### 7. QA Automation Component
+### 6. QA Automation Component
 
 **Purpose**: Playwright E2E tests for complex multi-user flows
 
 **Input Instructions**:
 ```
 You will receive:
-- Story.baAnalysis (requirements)
-- Story.designerAnalysis (UI/UX designs)
-- Story.architectAnalysis (technical design)
+- TEMP_requirements.md
+- TEMP_design.md
 - Implementation details
 - Story details
 
@@ -865,7 +605,7 @@ Coverage Report:
 
 ---
 
-### 8. DevOps Engineer Component
+### 7. DevOps Engineer Component
 
 **Purpose**: Build, deploy, and verify deployment
 
@@ -988,37 +728,33 @@ Provide deployment report:
 
 ### Where Parallelization Occurs
 
-**Sequential Workflow (No Parallelization)**:
+**BA + Architect (Simultaneous)**:
 ```
-Each component depends on previous outputs:
-- Explore gathers context → Story.contextExploration
-- BA analyzes requirements → Story.baAnalysis (reads contextExploration)
-- Designer creates UI/UX → Story.designerAnalysis (reads contextExploration + baAnalysis)
-- Architect designs backend → Story.architectAnalysis (reads all above)
-- Full-stack implements → reads all analysis fields
-- QA tests → reads all analysis fields
-- DevOps deploys → reads all analysis fields
+Coordinator spawns both components in parallel:
+- BA defines requirements (NEW information)
+- Architect reviews patterns (EXISTING codebase)
+- No data dependency between tasks
+- Saves ~30 minutes per medium/complex task
 ```
 
 **Implementation Pattern**:
 ```typescript
-// Coordinator executes components sequentially
-await executeComponent('Explore', { storyId });  // Updates Story.contextExploration
+// Coordinator spawns parallel components
+const [baOutput, architectOutput] = await Promise.all([
+  executeComponent('BA', { storyId, context }),
+  executeComponent('Architect', { storyId, context })
+]);
 
-await executeComponent('BA', { storyId });  // Reads contextExploration, writes baAnalysis
-
-await executeComponent('Designer', { storyId });  // Reads contextExploration + baAnalysis, writes designerAnalysis
-
-await executeComponent('Architect', { storyId });  // Reads all above, writes architectAnalysis
-
-await executeComponent('Full-Stack', { storyId });  // Reads all analysis fields
-
-// ... and so on
+// Merge outputs for next step
+const designContext = {
+  requirements: baOutput,
+  design: architectOutput
+};
 ```
 
 **Sequential Dependencies**:
 ```
-Explore → BA → Designer → Architect → Full-stack → QA → DevOps
+Explore → (BA + Architect parallel) → Full-stack → QA → DevOps
 ```
 
 ---
@@ -1033,12 +769,9 @@ Input: Story ID, project context
 Task: "Find all related files, explain current behavior, identify patterns"
 ```
 
-**2. Explore Updates Story.contextExploration**:
+**2. Explore Creates TEMP_context.md**:
 ```
-Uses: update_story MCP tool
-Field: Story.contextExploration (markdown text)
-Timestamp: Story.contextExploredAt
-
+Size: ~5KB
 Contents:
 - Relevant files with line ranges
 - Current behavior explanation
@@ -1047,12 +780,11 @@ Contents:
 - Dependencies
 ```
 
-**3. All Components Read from Story Fields**:
+**3. All Components Read TEMP_context.md**:
 ```
 No re-investigation of codebase
-Direct context consumption from database
+Direct context consumption
 Faster execution
-Full traceability
 ```
 
 ### Token Comparison
@@ -1060,27 +792,18 @@ Full traceability
 Traditional (every component explores):
 - Explore: 150K
 - BA: 150K
-- Designer: 150K
 - Architect: 200K
 - Full-stack: 250K
-- **Total: 900K tokens**
+- **Total: 750K tokens**
 
-Optimized (Explore once, share via DB):
-- Explore: 150K (once) → writes to Story.contextExploration
-- BA: 15K (reads Story.contextExploration) → writes to Story.baAnalysis
-- Designer: 20K (reads contextExploration + baAnalysis) → writes to Story.designerAnalysis
-- Architect: 25K (reads all above) → writes to Story.architectAnalysis
-- Full-stack: 45K (reads all Story fields)
-- **Total: 255K tokens**
+Optimized (Explore once, share via TEMP):
+- Explore: 150K (once)
+- BA: 15K (read context)
+- Architect: 20K (read context)
+- Full-stack: 40K (read context)
+- **Total: 225K tokens**
 
-**Savings: 645K tokens (72% reduction)**
-
-**Benefits**:
-- Full audit trail in database
-- No loose files to manage
-- Easy to view context in UI
-- Timestamps for each analysis phase
-- Can reuse context for related stories
+**Savings: 525K tokens (70% reduction)**
 
 ---
 
@@ -1140,20 +863,13 @@ test: Add integration tests for workflows [Story-ST-123]
 
 ## VI. Component Decision Matrix
 
-| Complexity | Explore | BA | Designer | Architect | Full-Stack | QA | DevOps | Duration |
-|------------|---------|----|---------|-----------|-----------|----|---------|----------|
-| Trivial ⚡ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | 5-10m |
-| Simple 🏃 | ❌ | ❌ | ❌ | ✅ (spot) | ✅ | ❌ | ❌ | 20-30m |
-| Medium 🚶 | ✅ | ✅ | ✅ | ✅ (full) | ✅ | ✅ | ❌ | 1-2h |
-| Complex 🏋️ | ✅ | ✅ | ✅ | ✅ (full) | ✅ | ✅ | ✅ | 2-4h |
-| Critical 🔒 | ✅ | ✅ | ✅ | ✅ (full) | ✅ | ✅ | ✅ | 3-5h |
-
-**Component Database Fields**:
-- Explore → `Story.contextExploration` + `Story.contextExploredAt`
-- BA → `Story.baAnalysis` + `Story.baAnalyzedAt`
-- Designer → `Story.designerAnalysis` + `Story.designerAnalyzedAt`
-- Architect → `Story.architectAnalysis` + `Story.architectAnalyzedAt`
-- Full-Stack, QA, DevOps → Read from above fields, output is code/tests/deployment
+| Complexity | Explore | BA | Architect | Full-Stack | QA | DevOps | Duration |
+|------------|---------|----|-----------|-----------|----|---------|----------|
+| Trivial ⚡ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | 5-10m |
+| Simple 🏃 | ❌ | ❌ | ✅ (spot) | ✅ | ❌ | ❌ | 20-30m |
+| Medium 🚶 | ✅ | ✅ | ✅ (full) | ✅ | ✅ | ❌ | 1-2h |
+| Complex 🏋️ | ✅ | ✅ | ✅ (full) | ✅ | ✅ | ✅ | 2-4h |
+| Critical 🔒 | ✅ | ✅ | ✅ (full) | ✅ | ✅ | ✅ | 3-5h |
 
 ---
 
@@ -1170,39 +886,29 @@ test: Add integration tests for workflows [Story-ST-123]
    - get_project (project details)
    - start_workflow_run (initialize tracking)
 
-3. Coordinator performs INITIAL ESTIMATION (PM role)
-   ├─ Analyze story title and description
-   ├─ Estimate businessComplexity (1-10)
-   ├─ Estimate technicalComplexity (1-10)
-   ├─ Estimate estimatedTokenCost (tokens)
-   └─ update_story with estimates
+3. Coordinator classifies complexity
+   ├─ Trivial: Skip to Full-stack
+   ├─ Simple: Skip to Full-stack + Architect spot-check
+   ├─ Medium: Execute Explore → (BA + Architect) → Full-stack → QA
+   ├─ Complex: Execute Explore → (BA + Architect) → Full-stack → QA → DevOps
+   └─ Critical: Execute Explore → (BA + Architect) → Full-stack → QA → DevOps + validation
 
-4. Coordinator classifies workflow based on estimates
-   ├─ Trivial (BC≤3 AND TC≤3): Full-stack only
-   ├─ Simple (BC≤5 AND TC≤5): Full-stack → Architect spot-check
-   ├─ Medium (BC≤7 OR TC≤7): Explore → BA → Designer → Architect → Full-stack → QA
-   ├─ Complex (BC>7 OR TC>7): Explore → BA → Designer → Architect → Full-stack → QA → DevOps
-   └─ Critical (DB schema/metrics/core): Full workflow + validation
-
-5. Coordinator executes components in order
+4. Coordinator executes components in order
    - record_component_start
    - Execute component
    - record_component_complete
-   - Component may refine estimates:
-     * BA refines Story.businessComplexity
-     * Architect refines Story.technicalComplexity
-   - If estimates change significantly, adjust remaining workflow
+   - store_artifact (if needed)
 
-6. Coordinator makes routing decisions
+5. Coordinator makes routing decisions
    - Analyze component outputs
-   - Check refined complexity estimates
    - Decide next steps
    - Handle errors/retries
 
-7. Coordinator completes workflow
+6. Coordinator completes workflow
    - update_workflow_status
-   - Update story status with final complexity estimates
-   - Generate summary with actual vs estimated metrics
+   - Update story status
+   - Cleanup temp files
+   - Generate summary
 ```
 
 ---
@@ -1280,12 +986,9 @@ test: Add integration tests for workflows [Story-ST-123]
 
 This workflow provides:
 - ✅ **Intelligent Routing**: Right-sized teams based on complexity
-- ✅ **Context Optimization**: 72% token reduction via Explore component
-- ✅ **Database Storage**: All context in Story fields, full audit trail
-- ✅ **UI/UX Focus**: Dedicated Designer component for user experience
-- ✅ **Sequential Flow**: BA → Designer → Architect ensures coherent design
+- ✅ **Context Optimization**: 70% token reduction via Explore component
+- ✅ **Parallel Execution**: BA + Architect run simultaneously
 - ✅ **Comprehensive Testing**: TDD with high coverage targets
 - ✅ **Automatic Metrics**: Complete tracking via MCP tools
 - ✅ **Quality Focus**: Architecture review and code quality checks
 - ✅ **Scalable Design**: Handles trivial to critical complexity
-- ✅ **Traceability**: Timestamps for each analysis phase
