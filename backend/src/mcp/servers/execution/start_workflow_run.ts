@@ -78,7 +78,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     },
   });
 
-  // Get component details
+  // Get component details with full instructions
   const components = await prisma.component.findMany({
     where: {
       id: { in: componentIds },
@@ -87,6 +87,11 @@ export async function handler(prisma: PrismaClient, params: any) {
       id: true,
       name: true,
       description: true,
+      inputInstructions: true,
+      operationInstructions: true,
+      outputInstructions: true,
+      config: true,
+      tools: true,
     },
   });
 
@@ -95,18 +100,29 @@ export async function handler(prisma: PrismaClient, params: any) {
     runId: workflowRun.id,
     workflowId: workflowRun.workflowId,
     workflowName: workflow.name,
-    coordinatorId: workflowRun.coordinatorId,
-    coordinatorName: workflow.coordinator.name,
-    coordinatorStrategy: workflow.coordinator.decisionStrategy,
+    coordinator: {
+      id: workflowRun.coordinatorId,
+      name: workflow.coordinator.name,
+      instructions: workflow.coordinator.coordinatorInstructions,
+      strategy: workflow.coordinator.decisionStrategy,
+      config: workflow.coordinator.config,
+      tools: workflow.coordinator.tools,
+      flowDiagram: workflow.coordinator.flowDiagram,
+    },
     components: components.map((c, index) => ({
-      id: c.id,
-      name: c.name,
+      componentId: c.id,
+      componentName: c.name,
       description: c.description,
+      inputInstructions: c.inputInstructions,
+      operationInstructions: c.operationInstructions,
+      outputInstructions: c.outputInstructions,
+      config: c.config,
+      tools: c.tools,
       order: index + 1,
     })),
     status: workflowRun.status,
     startedAt: workflowRun.startedAt.toISOString(),
     context: workflowRun.metadata,
-    message: `Workflow "${workflow.name}" started successfully. Run ID: ${workflowRun.id}`,
+    message: `Workflow "${workflow.name}" started successfully. Run ID: ${workflowRun.id}. Use coordinator instructions to begin orchestration.`,
   };
 }
