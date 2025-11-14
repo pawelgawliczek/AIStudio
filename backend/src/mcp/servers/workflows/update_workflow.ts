@@ -1,0 +1,185 @@
+/**
+ * Update Workflow Tool
+ * Updates an existing workflow
+ */
+
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
+import {
+  NotFoundError,
+  ValidationError,
+} from '../../types';
+import {
+  validateRequired,
+  handlePrismaError,
+} from '../../utils';
+
+export interface UpdateWorkflowParams {
+  workflowId: string;
+  coordinatorId?: string;
+  name?: string;
+  description?: string;
+  triggerConfig?: {
+    type: string;
+    filters?: any;
+    notifications?: any;
+  };
+  active?: boolean;
+  version?: string;
+}
+
+export interface WorkflowResponse {
+  id: string;
+  projectId: string;
+  coordinatorId: string;
+  name: string;
+  description: string | null;
+  version: string;
+  triggerConfig: any;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const tool: Tool = {
+  name: 'update_workflow',
+  description: 'Update an existing workflow definition. Supports partial updates - only provided fields will be modified.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      workflowId: {
+        type: 'string',
+        description: 'Workflow UUID to update',
+      },
+      coordinatorId: {
+        type: 'string',
+        description: 'Coordinator UUID (optional)',
+      },
+      name: {
+        type: 'string',
+        description: 'Workflow name (optional)',
+      },
+      description: {
+        type: 'string',
+        description: 'Workflow description (optional)',
+      },
+      triggerConfig: {
+        type: 'object',
+        description: 'Trigger configuration (optional)',
+        properties: {
+          type: {
+            type: 'string',
+            description: 'Trigger type (e.g., manual, story_assigned, webhook)',
+          },
+          filters: {
+            type: 'object',
+            description: 'Filters for when to trigger (optional)',
+          },
+          notifications: {
+            type: 'object',
+            description: 'Notification settings (optional)',
+          },
+        },
+        required: ['type'],
+      },
+      active: {
+        type: 'boolean',
+        description: 'Whether workflow is active (optional)',
+      },
+      version: {
+        type: 'string',
+        description: 'Version (optional)',
+      },
+    },
+    required: ['workflowId'],
+  },
+};
+
+export const metadata = {
+  category: 'workflows',
+  domain: 'workflow',
+  tags: ['workflow', 'update'],
+  version: '1.0.0',
+  since: 'update-tools',
+};
+
+export async function handler(
+  prisma: PrismaClient,
+  params: UpdateWorkflowParams,
+): Promise<WorkflowResponse> {
+  try {
+    validateRequired(params, ['workflowId']);
+
+    // Verify workflow exists
+    const existingWorkflow = await prisma.workflow.findUnique({
+      where: { id: params.workflowId },
+    });
+
+    if (!existingWorkflow) {
+      throw new NotFoundError('Workflow', params.workflowId);
+    }
+
+    // Build update data object with only provided fields
+    const updateData: any = {};
+
+    if (params.name !== undefined) updateData.name = params.name;
+    if (params.description !== undefined) updateData.description = params.description;
+    if (params.active !== undefined) updateData.active = params.active;
+    if (params.version !== undefined) updateData.version = params.version;
+
+    // Handle coordinatorId update (requires validation)
+    if (params.coordinatorId !== undefined) {
+      // Verify coordinator exists and belongs to same project
+      const coordinator = await prisma.coordinatorAgent.findUnique({
+        where: { id: params.coordinatorId },
+      });
+
+      if (!coordinator) {
+        throw new NotFoundError('Coordinator', params.coordinatorId);
+      }
+
+      if (coordinator.projectId !== existingWorkflow.projectId) {
+        throw new ValidationError('Coordinator does not belong to the same project as the workflow');
+      }
+
+      updateData.coordinatorId = params.coordinatorId;
+    }
+
+    // Handle triggerConfig update (requires validation)
+    if (params.triggerConfig !== undefined) {
+      if (!params.triggerConfig.type) {
+        throw new ValidationError('triggerConfig.type is required');
+      }
+      updateData.triggerConfig = params.triggerConfig;
+    }
+
+    // Check if there are any fields to update
+    if (Object.keys(updateData).length === 0) {
+      throw new ValidationError('No fields to update');
+    }
+
+    // Update workflow
+    const workflow = await prisma.workflow.update({
+      where: { id: params.workflowId },
+      data: updateData,
+    });
+
+    return {
+      id: workflow.id,
+      projectId: workflow.projectId,
+      coordinatorId: workflow.coordinatorId,
+      name: workflow.name,
+      description: workflow.description,
+      version: workflow.version,
+      triggerConfig: workflow.triggerConfig,
+      active: workflow.active,
+      createdAt: workflow.createdAt.toISOString(),
+      updatedAt: workflow.updatedAt.toISOString(),
+    };
+  } catch (error: any) {
+    if (error.name === 'MCPError') {
+      throw error;
+    }
+    throw handlePrismaError(error, 'update_workflow');
+  }
+}
