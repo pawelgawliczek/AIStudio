@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CheckCircleIcon, ClockIcon, CodeBracketIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { Story, StoryStatus, StoryType, Subtask } from '../types';
+import { WorkflowAnalysisDisplay } from './workflow/WorkflowAnalysisDisplay';
 import clsx from 'clsx';
 
 interface StoryDetailDrawerProps {
@@ -209,6 +210,9 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                             </div>
                           </div>
                         </div>
+
+                        {/* Workflow Analysis */}
+                        <WorkflowAnalysisDisplay story={story} compact={true} />
 
                         {/* Subtasks */}
                         {subtasksTotal > 0 && (

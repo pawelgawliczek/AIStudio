@@ -4,6 +4,7 @@ import { storiesService } from '../services/stories.service';
 import { subtasksService } from '../services/subtasks.service';
 import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { WorkflowAnalysisDisplay } from '../components/workflow/WorkflowAnalysisDisplay';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -333,6 +334,9 @@ export function StoryDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Workflow Analysis Section */}
+      <WorkflowAnalysisDisplay story={story} />
 
       {/* Subtasks Section */}
       <div className="bg-card border border-border rounded-lg shadow-md p-6">
