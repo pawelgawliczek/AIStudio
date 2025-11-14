@@ -591,16 +591,65 @@ export class CodeMetricsService {
     // Get current metrics
     const currentMetrics = await this.getProjectMetrics(projectId, { timeRangeDays: 30 });
 
-    // Get metrics from 7 days ago (approximate previous analysis)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // Find the most recent analysis timestamp
+    const mostRecentMetric = await this.prisma.codeMetrics.findFirst({
+      where: { projectId },
+      orderBy: { lastAnalyzedAt: 'desc' },
+      select: { lastAnalyzedAt: true },
+    });
 
+    if (!mostRecentMetric) {
+      // No metrics at all
+      return {
+        healthScoreChange: 0,
+        newTests: 0,
+        coverageChange: 0,
+        complexityChange: 0,
+        newFiles: 0,
+        deletedFiles: 0,
+        qualityImprovement: false,
+      };
+    }
+
+    const currentAnalysisTime = mostRecentMetric.lastAnalyzedAt;
+
+    // Find the previous analysis (any metrics older than current but within last 90 days)
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const previousAnalysisMetric = await this.prisma.codeMetrics.findFirst({
+      where: {
+        projectId,
+        lastAnalyzedAt: {
+          lt: currentAnalysisTime,
+          gte: ninetyDaysAgo,
+        },
+      },
+      orderBy: { lastAnalyzedAt: 'desc' },
+      select: { lastAnalyzedAt: true },
+    });
+
+    if (!previousAnalysisMetric) {
+      // No previous analysis found
+      return {
+        healthScoreChange: 0,
+        newTests: 0,
+        coverageChange: 0,
+        complexityChange: 0,
+        newFiles: 0,
+        deletedFiles: 0,
+        qualityImprovement: false,
+      };
+    }
+
+    const previousAnalysisTime = previousAnalysisMetric.lastAnalyzedAt;
+
+    // Get all metrics from the previous analysis (using a small time window around that timestamp)
+    const timeWindow = 5 * 60 * 1000; // 5 minutes window
     const previousMetrics = await this.prisma.codeMetrics.findMany({
       where: {
         projectId,
         lastAnalyzedAt: {
-          gte: thirtyDaysAgo,
-          lte: sevenDaysAgo,
+          gte: new Date(previousAnalysisTime.getTime() - timeWindow),
+          lte: new Date(previousAnalysisTime.getTime() + timeWindow),
         },
       },
     });
@@ -660,7 +709,7 @@ export class CodeMetricsService {
     const previousTestCount = await this.prisma.testCase.count({
       where: {
         projectId,
-        createdAt: { lte: sevenDaysAgo },
+        createdAt: { lte: previousAnalysisTime },
       },
     });
 
@@ -676,7 +725,7 @@ export class CodeMetricsService {
       newFiles,
       deletedFiles,
       qualityImprovement: healthScoreChange > 0,
-      lastAnalysis: currentMetrics.lastUpdate,
+      lastAnalysis: previousAnalysisTime,
     };
   }
 
@@ -740,6 +789,182 @@ export class CodeMetricsService {
       failing,
       skipped,
       lastExecution: lastExecutionDate,
+    };
+  }
+
+  /**
+   * Get detailed file-level changes between current and previous analysis
+   */
+  async getFileChanges(projectId: string): Promise<any> {
+    // Get most recent analysis timestamp
+    const mostRecentMetric = await this.prisma.codeMetrics.findFirst({
+      where: { projectId },
+      orderBy: { lastAnalyzedAt: 'desc' },
+    });
+
+    if (!mostRecentMetric) {
+      return { files: [] };
+    }
+
+    const currentAnalysisTime = mostRecentMetric.lastAnalyzedAt;
+    const fiveMinutesAgo = new Date(currentAnalysisTime.getTime() - 5 * 60 * 1000);
+    const fiveMinutesLater = new Date(currentAnalysisTime.getTime() + 5 * 60 * 1000);
+
+    // Get all files from current analysis (within 5-minute window)
+    const currentFiles = await this.prisma.codeMetrics.findMany({
+      where: {
+        projectId,
+        lastAnalyzedAt: {
+          gte: fiveMinutesAgo,
+          lte: fiveMinutesLater,
+        },
+      },
+      orderBy: { filePath: 'asc' },
+    });
+
+    // Find previous analysis
+    const ninetyDaysAgo = new Date(currentAnalysisTime.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const previousAnalysisMetric = await this.prisma.codeMetrics.findFirst({
+      where: {
+        projectId,
+        lastAnalyzedAt: {
+          lt: fiveMinutesAgo,
+          gte: ninetyDaysAgo,
+        },
+      },
+      orderBy: { lastAnalyzedAt: 'desc' },
+    });
+
+    if (!previousAnalysisMetric) {
+      // No previous analysis - all files are "added"
+      return {
+        files: currentFiles.map(file => ({
+          filePath: file.filePath,
+          status: 'added',
+          language: file.language,
+          current: {
+            linesOfCode: file.linesOfCode,
+            cyclomaticComplexity: file.cyclomaticComplexity,
+            cognitiveComplexity: file.cognitiveComplexity,
+            maintainabilityIndex: file.maintainabilityIndex,
+            testCoverage: file.testCoverage,
+            riskScore: file.riskScore,
+          },
+          previous: null,
+          changes: null,
+        })),
+      };
+    }
+
+    const previousAnalysisTime = previousAnalysisMetric.lastAnalyzedAt;
+    const prevFiveMinutesAgo = new Date(previousAnalysisTime.getTime() - 5 * 60 * 1000);
+    const prevFiveMinutesLater = new Date(previousAnalysisTime.getTime() + 5 * 60 * 1000);
+
+    // Get all files from previous analysis
+    const previousFiles = await this.prisma.codeMetrics.findMany({
+      where: {
+        projectId,
+        lastAnalyzedAt: {
+          gte: prevFiveMinutesAgo,
+          lte: prevFiveMinutesLater,
+        },
+      },
+    });
+
+    // Create maps for easy lookup
+    const currentFilesMap = new Map(currentFiles.map(f => [f.filePath, f]));
+    const previousFilesMap = new Map(previousFiles.map(f => [f.filePath, f]));
+
+    const fileChanges = [];
+
+    // Process current files (added or modified)
+    for (const currentFile of currentFiles) {
+      const previousFile = previousFilesMap.get(currentFile.filePath);
+
+      if (!previousFile) {
+        // New file
+        fileChanges.push({
+          filePath: currentFile.filePath,
+          status: 'added',
+          language: currentFile.language,
+          current: {
+            linesOfCode: currentFile.linesOfCode,
+            cyclomaticComplexity: currentFile.cyclomaticComplexity,
+            cognitiveComplexity: currentFile.cognitiveComplexity,
+            maintainabilityIndex: currentFile.maintainabilityIndex,
+            testCoverage: currentFile.testCoverage,
+            riskScore: currentFile.riskScore,
+          },
+          previous: null,
+          changes: null,
+        });
+      } else {
+        // Modified file - check if any metric changed
+        const hasChanges =
+          currentFile.linesOfCode !== previousFile.linesOfCode ||
+          currentFile.cyclomaticComplexity !== previousFile.cyclomaticComplexity ||
+          currentFile.cognitiveComplexity !== previousFile.cognitiveComplexity ||
+          Math.abs(currentFile.maintainabilityIndex - previousFile.maintainabilityIndex) > 0.1 ||
+          Math.abs((currentFile.testCoverage || 0) - (previousFile.testCoverage || 0)) > 0.1 ||
+          Math.abs(currentFile.riskScore - previousFile.riskScore) > 0.1;
+
+        if (hasChanges) {
+          fileChanges.push({
+            filePath: currentFile.filePath,
+            status: 'modified',
+            language: currentFile.language,
+            current: {
+              linesOfCode: currentFile.linesOfCode,
+              cyclomaticComplexity: currentFile.cyclomaticComplexity,
+              cognitiveComplexity: currentFile.cognitiveComplexity,
+              maintainabilityIndex: currentFile.maintainabilityIndex,
+              testCoverage: currentFile.testCoverage,
+              riskScore: currentFile.riskScore,
+            },
+            previous: {
+              linesOfCode: previousFile.linesOfCode,
+              cyclomaticComplexity: previousFile.cyclomaticComplexity,
+              cognitiveComplexity: previousFile.cognitiveComplexity,
+              maintainabilityIndex: previousFile.maintainabilityIndex,
+              testCoverage: previousFile.testCoverage,
+              riskScore: previousFile.riskScore,
+            },
+            changes: {
+              linesOfCode: currentFile.linesOfCode - previousFile.linesOfCode,
+              cyclomaticComplexity: currentFile.cyclomaticComplexity - previousFile.cyclomaticComplexity,
+              cognitiveComplexity: currentFile.cognitiveComplexity - previousFile.cognitiveComplexity,
+              maintainabilityIndex: Math.round((currentFile.maintainabilityIndex - previousFile.maintainabilityIndex) * 10) / 10,
+              testCoverage: Math.round(((currentFile.testCoverage || 0) - (previousFile.testCoverage || 0)) * 10) / 10,
+              riskScore: Math.round((currentFile.riskScore - previousFile.riskScore) * 10) / 10,
+            },
+          });
+        }
+      }
+    }
+
+    // Process deleted files
+    for (const previousFile of previousFiles) {
+      if (!currentFilesMap.has(previousFile.filePath)) {
+        fileChanges.push({
+          filePath: previousFile.filePath,
+          status: 'deleted',
+          language: previousFile.language,
+          current: null,
+          previous: {
+            linesOfCode: previousFile.linesOfCode,
+            cyclomaticComplexity: previousFile.cyclomaticComplexity,
+            cognitiveComplexity: previousFile.cognitiveComplexity,
+            maintainabilityIndex: previousFile.maintainabilityIndex,
+            testCoverage: previousFile.testCoverage,
+            riskScore: previousFile.riskScore,
+          },
+          changes: null,
+        });
+      }
+    }
+
+    return {
+      files: fileChanges,
     };
   }
 }

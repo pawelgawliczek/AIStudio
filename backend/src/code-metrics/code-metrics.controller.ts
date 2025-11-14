@@ -212,4 +212,15 @@ export class CodeMetricsController {
   }> {
     return this.codeMetricsService.getTestSummary(projectId);
   }
+
+  @Get('project/:projectId/file-changes')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get detailed file-level changes between current and previous analysis' })
+  @ApiResponse({
+    status: 200,
+    description: 'File-level changes with metrics',
+  })
+  async getFileChanges(@Param('projectId') projectId: string): Promise<any> {
+    return this.codeMetricsService.getFileChanges(projectId);
+  }
 }

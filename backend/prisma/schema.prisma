@@ -84,6 +84,7 @@ model Epic {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   stories Story[]
   commits Commit[]
+  workflowRuns WorkflowRun[]
 
   @@unique([projectId, key])
   @@index([projectId, status])
@@ -109,8 +110,16 @@ model Story {
   createdById          String       @map("created_by") @db.Uuid
 
   // Analysis fields (filled by agents)
-  baAnalysis           String?      @map("ba_analysis")  // Rich text from BA agent
-  architectAnalysis    String?      @map("architect_analysis")  // Rich text from Architect agent
+  contextExploration   String?      @map("context_exploration") @db.Text  // Context from Explore component
+  baAnalysis           String?      @map("ba_analysis") @db.Text  // Requirements from BA component
+  designerAnalysis     String?      @map("designer_analysis") @db.Text  // UI/UX design from Designer component
+  architectAnalysis    String?      @map("architect_analysis") @db.Text  // Technical design from Architect component
+
+  // Analysis timestamps
+  contextExploredAt    DateTime?    @map("context_explored_at")
+  baAnalyzedAt         DateTime?    @map("ba_analyzed_at")
+  designerAnalyzedAt   DateTime?    @map("designer_analyzed_at")
+  architectAnalyzedAt  DateTime?    @map("architect_analyzed_at")
 
   // Metadata (metrics, framework info, etc.)
   metadata             Json?        // Stores aggregated metrics, framework info, and other dynamic data
@@ -550,6 +559,7 @@ model CoordinatorAgent {
 
   // Coordinator instructions
   coordinatorInstructions String   @db.Text @map("coordinator_instructions")
+  flowDiagram             String?  @db.Text @map("flow_diagram") // Compact text diagram of workflow
 
   // Execution configuration
   config                  Json     // { modelId, temperature, maxInputTokens, maxOutputTokens, timeout, maxRetries, costLimit }
@@ -650,6 +660,7 @@ model WorkflowRun {
   project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   workflow      Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   story         Story?           @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  epic          Epic?            @relation(fields: [epicId], references: [id], onDelete: SetNull)
   coordinator   CoordinatorAgent? @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
   componentRuns ComponentRun[]
   defects       DefectNew[]
