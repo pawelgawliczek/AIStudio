@@ -5,6 +5,9 @@ import { subtasksService } from '../services/subtasks.service';
 import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { WorkflowAnalysisDisplay } from '../components/workflow/WorkflowAnalysisDisplay';
+import { WorkflowRunsSection } from '../components/story/WorkflowRunsSection';
+import { UseCasesSection } from '../components/story/UseCasesSection';
+import { CommitsSection } from '../components/story/CommitsSection';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -337,6 +340,20 @@ export function StoryDetailPage() {
 
       {/* Workflow Analysis Section */}
       <WorkflowAnalysisDisplay story={story} />
+
+      {/* Traceability Section */}
+      <div className="space-y-6 mb-6">
+        <h2 className="text-xl font-bold text-fg">Story Traceability</h2>
+
+        {/* Workflow Runs */}
+        <WorkflowRunsSection workflowRuns={(story as any).workflowRuns} />
+
+        {/* Use Cases & Test Cases */}
+        <UseCasesSection useCaseLinks={(story as any).useCaseLinks} />
+
+        {/* Git Commits */}
+        <CommitsSection commits={(story as any).commits} />
+      </div>
 
       {/* Subtasks Section */}
       <div className="bg-card border border-border rounded-lg shadow-md p-6">
