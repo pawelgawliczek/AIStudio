@@ -268,7 +268,7 @@ export class StoriesService {
    * Find one story by ID
    * @param id - Story ID
    * @param includeDetails - Whether to include related data
-   * @returns Story with optional related data
+   * @returns Story with optional related data including complete traceability
    */
   async findOne(id: string, includeDetails: boolean = true) {
     const include = includeDetails
@@ -288,19 +288,76 @@ export class StoriesService {
           useCaseLinks: {
             include: {
               useCase: {
-                select: { id: true, key: true, title: true },
+                select: {
+                  id: true,
+                  key: true,
+                  title: true,
+                  area: true,
+                },
+                include: {
+                  testCases: {
+                    select: {
+                      id: true,
+                      key: true,
+                      title: true,
+                      description: true,
+                      testLevel: true,
+                      priority: true,
+                      status: true,
+                      testFilePath: true,
+                      createdAt: true,
+                      updatedAt: true,
+                    },
+                    orderBy: { createdAt: 'asc' as const },
+                  },
+                },
               },
             },
+            orderBy: { createdAt: 'asc' as const },
           },
           commits: {
+            include: {
+              files: {
+                select: {
+                  id: true,
+                  filePath: true,
+                  locAdded: true,
+                  locDeleted: true,
+                  complexityBefore: true,
+                  complexityAfter: true,
+                  coverageBefore: true,
+                  coverageAfter: true,
+                },
+              },
+            },
             orderBy: { timestamp: 'desc' as const },
-            take: 10,
+            take: 20,
+          },
+          workflowRuns: {
+            include: {
+              workflow: {
+                select: { id: true, name: true },
+              },
+              coordinator: {
+                select: { id: true, name: true },
+              },
+              componentRuns: {
+                include: {
+                  component: {
+                    select: { id: true, name: true },
+                  },
+                },
+                orderBy: { executionOrder: 'asc' as const },
+              },
+            },
+            orderBy: { startedAt: 'desc' as const },
           },
           _count: {
             select: {
               subtasks: true,
               commits: true,
               runs: true,
+              workflowRuns: true,
             },
           },
         }

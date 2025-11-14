@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { StoriesService } from './stories.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { AppWebSocketGateway } from '../websocket/websocket.gateway';
-import { CreateStoryDto, UpdateStoryDto, UpdateStoryStatusDto, FilterStoryDto } from './dto';
+import { StoriesService } from '../stories.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
+import { CreateStoryDto, UpdateStoryDto, UpdateStoryStatusDto, FilterStoryDto } from '../dto';
 
 describe('StoriesService', () => {
   let service: StoriesService;
@@ -39,6 +39,9 @@ describe('StoriesService', () => {
 
   const mockWebSocketGateway = {
     notifyStoryUpdate: jest.fn(),
+    broadcastStoryCreated: jest.fn(),
+    broadcastStoryUpdated: jest.fn(),
+    broadcastStoryStatusChanged: jest.fn(),
   };
 
   const mockProject = {
@@ -214,10 +217,12 @@ describe('StoriesService', () => {
 
     it('should return all stories for a project', async () => {
       mockPrismaService.story.findMany.mockResolvedValue([mockStory]);
+      mockPrismaService.story.count.mockResolvedValue(1);
 
       const result = await service.findAll(filterDto);
 
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
       expect(mockPrismaService.story.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ projectId: 'project-id' }),
@@ -356,6 +361,184 @@ describe('StoriesService', () => {
         include: undefined,
       });
     });
+
+    it('should include workflow runs with complete traceability', async () => {
+      const mockWorkflowRuns = [{
+        id: 'run-1',
+        status: 'completed',
+        startedAt: new Date(),
+        finishedAt: new Date(),
+        durationSeconds: 300,
+        totalTokens: 50000,
+        estimatedCost: 0.25,
+        workflow: { id: 'wf-1', name: 'Full Stack Dev' },
+        componentRuns: [
+          {
+            id: 'comp-run-1',
+            component: { id: 'comp-1', name: 'Context Explore' },
+            status: 'completed',
+            output: 'Context exploration output',
+          },
+        ],
+      }];
+
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        ...mockStory,
+        workflowRuns: mockWorkflowRuns,
+        useCaseLinks: [],
+        testCases: [],
+        commits: [],
+        _count: { runs: 1 },
+      });
+
+      const result = await service.findOne('story-id');
+
+      expect(result.workflowRuns).toBeDefined();
+      expect(result.workflowRuns).toHaveLength(1);
+      expect(result.workflowRuns[0].id).toBe('run-1');
+      expect(result.workflowRuns[0].componentRuns).toHaveLength(1);
+    });
+
+    it('should include use cases with relationships', async () => {
+      const mockUseCaseLinks = [{
+        id: 'link-1',
+        relation: 'implements',
+        useCase: {
+          id: 'uc-1',
+          key: 'UC-EXEC-001',
+          title: 'Execute Story with Workflow',
+          area: 'Workflow Execution',
+        },
+      }];
+
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        ...mockStory,
+        workflowRuns: [],
+        useCaseLinks: mockUseCaseLinks,
+        testCases: [],
+        commits: [],
+        _count: { runs: 0 },
+      });
+
+      const result = await service.findOne('story-id');
+
+      expect(result.useCaseLinks).toBeDefined();
+      expect(result.useCaseLinks).toHaveLength(1);
+      expect(result.useCaseLinks[0].relation).toBe('implements');
+      expect(result.useCaseLinks[0].useCase.key).toBe('UC-EXEC-001');
+    });
+
+    it('should include test cases through use cases', async () => {
+      const mockUseCaseLinks = [{
+        id: 'link-1',
+        relation: 'implements',
+        useCase: {
+          id: 'uc-1',
+          key: 'UC-EXEC-001',
+          title: 'Execute Story with Workflow',
+          area: 'Workflow Execution',
+          testCases: [{
+            id: 'tc-1',
+            key: 'TC-EXEC-001',
+            title: 'Unit test for workflow execution',
+            testLevel: 'unit',
+            status: 'implemented',
+            testFilePath: 'backend/src/workflows/execution.spec.ts',
+          }],
+        },
+      }];
+
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        ...mockStory,
+        workflowRuns: [],
+        useCaseLinks: mockUseCaseLinks,
+        commits: [],
+        _count: { runs: 0 },
+      });
+
+      const result = await service.findOne('story-id');
+
+      expect(result.useCaseLinks).toBeDefined();
+      expect(result.useCaseLinks[0].useCase.testCases).toBeDefined();
+      expect(result.useCaseLinks[0].useCase.testCases).toHaveLength(1);
+      expect(result.useCaseLinks[0].useCase.testCases[0].key).toBe('TC-EXEC-001');
+      expect(result.useCaseLinks[0].useCase.testCases[0].status).toBe('implemented');
+    });
+
+    it('should include commits with file changes', async () => {
+      const mockCommits = [{
+        hash: 'abc123',
+        author: 'Test User <test@example.com>',
+        timestamp: new Date(),
+        message: 'feat: Add workflow execution',
+        files: [
+          {
+            filePath: 'backend/src/workflows/execution.ts',
+            locAdded: 50,
+            locDeleted: 10,
+          },
+        ],
+      }];
+
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        ...mockStory,
+        workflowRuns: [],
+        useCaseLinks: [],
+        testCases: [],
+        commits: mockCommits,
+        _count: { runs: 0 },
+      });
+
+      const result = await service.findOne('story-id');
+
+      expect(result.commits).toBeDefined();
+      expect(result.commits).toHaveLength(1);
+      expect(result.commits[0].hash).toBe('abc123');
+      expect(result.commits[0].files).toHaveLength(1);
+      expect(result.commits[0].files[0].locAdded).toBe(50);
+    });
+
+    it('should include complete traceability data in a single query', async () => {
+      const completeStory = {
+        ...mockStory,
+        workflowRuns: [{
+          id: 'run-1',
+          status: 'completed',
+          totalTokens: 50000,
+          componentRuns: [],
+        }],
+        useCaseLinks: [{
+          id: 'link-1',
+          relation: 'implements',
+          useCase: {
+            id: 'uc-1',
+            key: 'UC-001',
+            title: 'Test UC',
+            testCases: [{
+              id: 'tc-1',
+              key: 'TC-001',
+              title: 'Test case',
+              status: 'implemented',
+            }],
+          },
+        }],
+        commits: [{
+          hash: 'abc123',
+          message: 'feat: test',
+          files: [],
+        }],
+        _count: { runs: 1 },
+      };
+
+      mockPrismaService.story.findUnique.mockResolvedValue(completeStory);
+
+      const result = await service.findOne('story-id');
+
+      expect(result.workflowRuns).toHaveLength(1);
+      expect(result.useCaseLinks).toHaveLength(1);
+      expect(result.useCaseLinks[0].useCase.testCases).toHaveLength(1);
+      expect(result.commits).toHaveLength(1);
+    });
   });
 
   describe('update', () => {
@@ -445,7 +628,7 @@ describe('StoriesService', () => {
       const result = await service.updateStatus('story-id', updateStatusDto);
 
       expect(result.status).toBe('analysis');
-      expect(mockWebSocketGateway.notifyStoryUpdate).toHaveBeenCalled();
+      expect(mockWebSocketGateway.broadcastStoryStatusChanged).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if story not found', async () => {
@@ -482,7 +665,7 @@ describe('StoriesService', () => {
 
       const result = await service.updateStatus('story-id', {
         status: 'done' as any,
-      });
+      }, true); // isAdmin = true
 
       expect(result.status).toBe('done');
     });
