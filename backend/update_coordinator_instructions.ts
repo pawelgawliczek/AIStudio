@@ -107,6 +107,58 @@ WHY THIS MATTERS:
 - Paraphrasing breaks traceability and causes components to skip critical steps (like log_run)
 - Different executions must follow identical processes for consistent results
 
+COORDINATOR RESPONSIBILITIES FOR COMPONENT EXECUTION:
+
+🎯 CRITICAL: The coordinator is responsible for:
+
+1. SPAWNING THE AGENT:
+   - Use the Task tool to spawn the component agent
+   - Pass the EXACT component instructions (input/operation/output)
+   - Provide all necessary context and tools
+
+2. TRACKING EXECUTION METRICS (MANDATORY):
+   After each component completes, the coordinator MUST call record_component_complete with accurate metrics:
+
+   Required metrics:
+   - tokensUsed: Total tokens (input + output) used by the component
+   - durationSeconds: Actual execution time in seconds
+   - linesOfCode: Lines of code generated/modified (LOC)
+   - filesModified: Number of files changed
+   - userPrompts: Number of user interactions (if any)
+   - systemIterations: Number of refinement cycles
+   - humanInterventions: Number of times human input was needed
+
+   Optional but recommended:
+   - costUsd: Estimated cost in USD (based on model pricing)
+
+   Example:
+   await record_component_complete({
+     runId: currentRunId,
+     componentId: componentId,
+     status: "completed",
+     output: { /* component output */ },
+     metrics: {
+       tokensUsed: 45000,
+       durationSeconds: 120,
+       linesOfCode: 250,
+       filesModified: 3,
+       userPrompts: 0,
+       systemIterations: 2,
+       humanInterventions: 0,
+       costUsd: 0.45
+     }
+   });
+
+3. WHY ACCURATE METRICS MATTER:
+   - Essential for cost tracking and budgeting
+   - Required for estimating future similar tasks
+   - Used to optimize component performance
+   - Provides visibility into workflow efficiency
+   - Enables data-driven decisions about component improvements
+   - Critical for billing and resource allocation
+
+   ⚠️ DO NOT skip metrics collection - it's as important as the component execution itself!
+
 STEP 4: REFINEMENT
 - BA will refine businessComplexity after analysis
 - Architect will refine technicalComplexity after analysis

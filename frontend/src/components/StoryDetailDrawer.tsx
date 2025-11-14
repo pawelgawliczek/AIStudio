@@ -1,8 +1,10 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CheckCircleIcon, ClockIcon, CodeBracketIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { Story, StoryStatus, StoryType, Subtask } from '../types';
 import { WorkflowAnalysisDisplay } from './workflow/WorkflowAnalysisDisplay';
+import { StoryTraceabilityTabs } from './story/StoryTraceabilityTabs';
+import { storiesService } from '../services/stories.service';
 import clsx from 'clsx';
 
 interface StoryDetailDrawerProps {
@@ -28,14 +30,37 @@ const statusColors: Record<StoryStatus, string> = {
 };
 
 export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], runs = [] }: StoryDetailDrawerProps) {
-  if (!story) return null;
+  const [fullStory, setFullStory] = useState<Story | null>(story);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  const subtasksCompleted = story.subtasks?.filter(st => st.status === 'done').length || 0;
-  const subtasksTotal = story.subtasks?.length || 0;
+  // Fetch full story details when drawer opens
+  useEffect(() => {
+    if (open && story?.id) {
+      setIsLoadingDetails(true);
+      storiesService.getById(story.id)
+        .then(data => {
+          setFullStory(data);
+        })
+        .catch(error => {
+          console.error('Failed to load full story details:', error);
+          setFullStory(story);
+        })
+        .finally(() => {
+          setIsLoadingDetails(false);
+        });
+    } else {
+      setFullStory(story);
+    }
+  }, [open, story?.id]);
+
+  if (!fullStory) return null;
+
+  const subtasksCompleted = fullStory.subtasks?.filter(st => st.status === 'done').length || 0;
+  const subtasksTotal = fullStory.subtasks?.length || 0;
 
   const handleEdit = () => {
-    if (onEdit) {
-      onEdit(story);
+    if (onEdit && fullStory) {
+      onEdit(fullStory);
     }
   };
 
@@ -72,7 +97,7 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                     <div className="bg-accent px-4 py-6 sm:px-6">
                       <div className="flex items-start justify-between">
                         <Dialog.Title className="text-base font-semibold leading-6 text-white">
-                          {story.key}: {story.title}
+                          {fullStory.key}: {fullStory.title}
                         </Dialog.Title>
                         <div className="ml-3 flex h-7 items-center gap-2">
                           {onEdit && (
@@ -98,13 +123,18 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                       </div>
                       <div className="mt-3">
                         <p className="text-sm text-accent-fg">
-                          {story.project?.name} {story.epic && `• ${story.epic.key}`}
+                          {fullStory.project?.name} {fullStory.epic && `• ${fullStory.epic.key}`}
                         </p>
                       </div>
                     </div>
 
                     {/* Body */}
                     <div className="relative flex-1 px-4 py-6 sm:px-6">
+                      {isLoadingDetails && (
+                        <div className="flex justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+                        </div>
+                      )}
                       <div className="space-y-6">
                         {/* Status, Priority, Type */}
                         <div className="grid grid-cols-3 gap-4">
@@ -112,43 +142,129 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                             <label className="block text-sm font-medium text-muted">Status</label>
                             <span className={clsx(
                               'mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
-                              statusColors[story.status]
+                              statusColors[fullStory.status]
                             )}>
-                              {story.status}
+                              {fullStory.status}
                             </span>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-muted">Priority</label>
                             <div className="mt-1 text-yellow-500 text-lg">
-                              {'★'.repeat(Math.min(story.businessImpact || 3, 5))}
+                              {'★'.repeat(Math.min(fullStory.businessImpact || 3, 5))}
                             </div>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-muted">Type</label>
                             <span className="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                              {story.type}
+                              {fullStory.type}
                             </span>
                           </div>
                         </div>
 
-                        {/* Description */}
+                        {/* 1. Traceability Tabs */}
+                        {!isLoadingDetails && (
+                          <div>
+                            <h3 className="text-lg font-medium text-fg mb-3">Story Traceability</h3>
+                            <StoryTraceabilityTabs
+                              workflowRuns={(fullStory as any).workflowRuns}
+                              useCaseLinks={(fullStory as any).useCaseLinks}
+                              commits={(fullStory as any).commits}
+                            />
+                          </div>
+                        )}
+
+                        {/* 2. Complexity Assessment */}
+                        <div>
+                          <h3 className="text-lg font-medium text-fg mb-2">Complexity Assessment</h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-secondary p-3 rounded-lg">
+                              <div className="text-sm font-medium text-muted">Business Complexity</div>
+                              <div className="mt-1 text-2xl font-bold text-accent-dark">
+                                {fullStory.businessComplexity || 'N/A'}
+                              </div>
+                            </div>
+                            <div className="bg-secondary p-3 rounded-lg">
+                              <div className="text-sm font-medium text-muted">Technical Complexity</div>
+                              <div className="mt-1 text-2xl font-bold text-purple-600">
+                                {fullStory.technicalComplexity || 'N/A'}
+                              </div>
+                            </div>
+                            <div className="bg-secondary p-3 rounded-lg">
+                              <div className="text-sm font-medium text-muted">Estimated Tokens</div>
+                              <div className="mt-1 text-2xl font-bold text-blue-600">
+                                {fullStory.estimatedTokenCost ? fullStory.estimatedTokenCost.toLocaleString() : 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3. Workflow Analysis Fields */}
+                        {(fullStory.contextExploration || fullStory.baAnalysis || fullStory.architectAnalysis || fullStory.designerAnalysis) && (
+                          <div className="space-y-3">
+                            {fullStory.contextExploration && (
+                              <div className="bg-secondary p-4 rounded-lg">
+                                <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
+                                  <span className="mr-2">🔍</span> Context Exploration
+                                </h4>
+                                <div className="text-sm text-muted whitespace-pre-wrap">
+                                  {fullStory.contextExploration}
+                                </div>
+                              </div>
+                            )}
+
+                            {fullStory.baAnalysis && (
+                              <div className="bg-secondary p-4 rounded-lg">
+                                <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
+                                  <span className="mr-2">📋</span> Business Analysis
+                                </h4>
+                                <div className="text-sm text-muted whitespace-pre-wrap">
+                                  {fullStory.baAnalysis}
+                                </div>
+                              </div>
+                            )}
+
+                            {fullStory.architectAnalysis && (
+                              <div className="bg-secondary p-4 rounded-lg">
+                                <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
+                                  <span className="mr-2">🏗️</span> Architecture Design
+                                </h4>
+                                <div className="text-sm text-muted whitespace-pre-wrap">
+                                  {fullStory.architectAnalysis}
+                                </div>
+                              </div>
+                            )}
+
+                            {fullStory.designerAnalysis && (
+                              <div className="bg-secondary p-4 rounded-lg">
+                                <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
+                                  <span className="mr-2">🎨</span> UI/UX Design
+                                </h4>
+                                <div className="text-sm text-muted whitespace-pre-wrap">
+                                  {fullStory.designerAnalysis}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 4. Description */}
                         <div>
                           <h3 className="text-lg font-medium text-fg mb-2">Description</h3>
                           <p className="text-sm text-muted whitespace-pre-wrap">
-                            {story.description || 'No description provided.'}
+                            {fullStory.description || 'No description provided.'}
                           </p>
                         </div>
 
                         {/* Layers & Components */}
-                        {((story.layers && story.layers.length > 0) || (story.components && story.components.length > 0)) && (
+                        {((fullStory.layers && fullStory.layers.length > 0) || (fullStory.components && fullStory.components.length > 0)) && (
                           <div>
                             <h3 className="text-lg font-medium text-fg mb-2">Architecture</h3>
                             <div className="space-y-3">
-                              {story.layers && story.layers.length > 0 && (
+                              {fullStory.layers && fullStory.layers.length > 0 && (
                                 <div>
                                   <div className="text-sm font-medium text-muted mb-2">Layers</div>
                                   <div className="flex flex-wrap gap-2">
-                                    {story.layers.map((sl) => (
+                                    {fullStory.layers.map((sl) => (
                                       <span
                                         key={sl.layer.id}
                                         className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium"
@@ -166,11 +282,11 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                                   </div>
                                 </div>
                               )}
-                              {story.components && story.components.length > 0 && (
+                              {fullStory.components && fullStory.components.length > 0 && (
                                 <div>
                                   <div className="text-sm font-medium text-muted mb-2">Components</div>
                                   <div className="flex flex-wrap gap-2">
-                                    {story.components.map((sc) => (
+                                    {fullStory.components.map((sc) => (
                                       <span
                                         key={sc.component.id}
                                         className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium"
@@ -192,28 +308,6 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                           </div>
                         )}
 
-                        {/* Complexity Assessment */}
-                        <div>
-                          <h3 className="text-lg font-medium text-fg mb-2">Complexity Assessment</h3>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-secondary p-3 rounded-lg">
-                              <div className="text-sm font-medium text-muted">Business Complexity</div>
-                              <div className="mt-1 text-2xl font-bold text-accent-dark">
-                                {story.businessComplexity || 'N/A'}
-                              </div>
-                            </div>
-                            <div className="bg-secondary p-3 rounded-lg">
-                              <div className="text-sm font-medium text-muted">Technical Complexity</div>
-                              <div className="mt-1 text-2xl font-bold text-purple-600">
-                                {story.technicalComplexity || 'N/A'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Workflow Analysis */}
-                        <WorkflowAnalysisDisplay story={story} compact={true} />
-
                         {/* Subtasks */}
                         {subtasksTotal > 0 && (
                           <div>
@@ -221,7 +315,7 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                               Subtasks ({subtasksCompleted}/{subtasksTotal} completed)
                             </h3>
                             <div className="space-y-2">
-                              {story.subtasks?.map((subtask) => (
+                              {fullStory.subtasks?.map((subtask) => (
                                 <div
                                   key={subtask.id}
                                   className="flex items-center justify-between p-3 bg-secondary rounded-lg"
@@ -252,62 +346,6 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                           </div>
                         )}
 
-                        {/* Commits */}
-                        {commits.length > 0 && (
-                          <div>
-                            <h3 className="text-lg font-medium text-fg mb-2">
-                              Commits ({commits.length})
-                            </h3>
-                            <div className="space-y-2">
-                              {commits.slice(0, 5).map((commit: any) => (
-                                <div key={commit.hash} className="flex items-start space-x-3 p-3 bg-secondary rounded-lg">
-                                  <CodeBracketIcon className="w-5 h-5 text-muted mt-0.5" />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-fg font-mono">
-                                      {commit.hash.substring(0, 7)}
-                                    </div>
-                                    <div className="text-sm text-muted truncate">{commit.message}</div>
-                                    <div className="text-xs text-muted mt-1">
-                                      {commit.author} • {new Date(commit.timestamp).toLocaleDateString()}
-                                      {commit.filesChanged > 0 && ` • ${commit.filesChanged} files`}
-                                      {commit.linesAdded > 0 && ` • +${commit.linesAdded} −${commit.linesDeleted}`}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Agent Executions */}
-                        {runs.length > 0 && (
-                          <div>
-                            <h3 className="text-lg font-medium text-fg mb-2">
-                              Agent Executions ({runs.length})
-                            </h3>
-                            <div className="space-y-2">
-                              {runs.slice(0, 5).map((run: any) => (
-                                <div key={run.id} className="p-3 bg-secondary rounded-lg">
-                                  <div className="flex items-center justify-between">
-                                    <div className="text-sm font-medium text-fg">
-                                      {run.success ? '✓' : '✗'} Run {run.id.substring(0, 8)}
-                                    </div>
-                                    <span className={clsx(
-                                      'px-2 py-1 text-xs rounded-full',
-                                      run.success ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-red-500/10 text-red-600 border border-red-500/20'
-                                    )}>
-                                      {run.success ? 'Success' : 'Failed'}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs text-muted mt-1">
-                                    Tokens: {run.tokensInput + run.tokensOutput} ({run.tokensInput} in, {run.tokensOutput} out)
-                                    {run.iterations > 1 && ` • ${run.iterations} iterations`}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>

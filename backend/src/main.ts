@@ -5,6 +5,12 @@ import { AppModule } from './app.module';
 import { WinstonLoggerService, AllExceptionsFilter, LoggingInterceptor } from './common';
 
 async function bootstrap() {
+  // Fix BigInt serialization issue
+  // @ts-ignore
+  BigInt.prototype.toJSON = function () {
+    return this.toString();
+  };
+
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
