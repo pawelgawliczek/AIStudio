@@ -640,6 +640,7 @@ model WorkflowRun {
   totalTokensOutput Int?       @map("total_tokens_output")
   totalTokens      Int?        @map("total_tokens")
   totalLocGenerated Int?       @map("total_loc_generated")
+  totalTestsAdded   Int?       @map("total_tests_added")
   estimatedCost    Float?      @map("estimated_cost")
 
   // Iteration metrics (NEW)
@@ -699,6 +700,7 @@ model ComponentRun {
   cost             Float?      @default(0)
   iterations       Int?        @default(1)
   locGenerated     Int?        @map("loc_generated") // Lines of code (if applicable)
+  testsAdded       Int?        @map("tests_added") // Number of tests added (if applicable)
 
   // Code changes
   filesModified    String[]    @default([]) @map("files_modified")
