@@ -273,41 +273,17 @@ export class StoriesService {
   async findOne(id: string, includeDetails: boolean = true) {
     const include = includeDetails
       ? {
-          project: {
-            select: { id: true, name: true },
-          },
-          epic: {
-            select: { id: true, key: true, title: true },
-          },
-          assignedFramework: {
-            select: { id: true, name: true },
-          },
+          project: true,
+          epic: true,
+          assignedFramework: true,
           subtasks: {
             orderBy: { createdAt: 'asc' as const },
           },
           useCaseLinks: {
             include: {
               useCase: {
-                select: {
-                  id: true,
-                  key: true,
-                  title: true,
-                  area: true,
-                },
                 include: {
                   testCases: {
-                    select: {
-                      id: true,
-                      key: true,
-                      title: true,
-                      description: true,
-                      testLevel: true,
-                      priority: true,
-                      status: true,
-                      testFilePath: true,
-                      createdAt: true,
-                      updatedAt: true,
-                    },
                     orderBy: { createdAt: 'asc' as const },
                   },
                 },
@@ -317,35 +293,18 @@ export class StoriesService {
           },
           commits: {
             include: {
-              files: {
-                select: {
-                  id: true,
-                  filePath: true,
-                  locAdded: true,
-                  locDeleted: true,
-                  complexityBefore: true,
-                  complexityAfter: true,
-                  coverageBefore: true,
-                  coverageAfter: true,
-                },
-              },
+              files: true,
             },
             orderBy: { timestamp: 'desc' as const },
             take: 20,
           },
           workflowRuns: {
             include: {
-              workflow: {
-                select: { id: true, name: true },
-              },
-              coordinator: {
-                select: { id: true, name: true },
-              },
+              workflow: true,
+              coordinator: true,
               componentRuns: {
                 include: {
-                  component: {
-                    select: { id: true, name: true },
-                  },
+                  component: true,
                 },
                 orderBy: { executionOrder: 'asc' as const },
               },
