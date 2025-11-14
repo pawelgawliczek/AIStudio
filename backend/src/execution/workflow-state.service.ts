@@ -17,6 +17,8 @@ export interface WorkflowRunStatus {
     totalUserPrompts: number | null;
     totalIterations: number | null;
     totalInterventions: number | null;
+    totalLocGenerated: number | null;
+    totalTestsAdded: number | null;
     componentsCompleted: number;
     componentsTotal: number;
     percentComplete: number;
@@ -31,6 +33,8 @@ export interface WorkflowRunStatus {
     tokensUsed?: number;
     userPrompts: number;
     artifacts: any[];
+    locGenerated?: number;
+    testsAdded?: number;
   }>;
 }
 
@@ -97,6 +101,8 @@ export class WorkflowStateService {
         totalUserPrompts: workflowRun.totalUserPrompts,
         totalIterations: workflowRun.totalIterations,
         totalInterventions: workflowRun.totalInterventions,
+        totalLocGenerated: workflowRun.totalLocGenerated,
+        totalTestsAdded: workflowRun.totalTestsAdded,
         componentsCompleted,
         componentsTotal: coordinatorComponentIds.length,
         percentComplete,
@@ -111,6 +117,8 @@ export class WorkflowStateService {
         tokensUsed: cr.totalTokens || undefined,
         userPrompts: cr.userPrompts || 0,
         artifacts: Array.isArray(cr.artifacts) ? cr.artifacts : [],
+        locGenerated: cr.locGenerated || undefined,
+        testsAdded: cr.testsAdded || undefined,
       })),
     };
   }

@@ -7,6 +7,8 @@ import {
   ChatBubbleOutline,
   Loop,
   CheckCircle,
+  Code,
+  Science,
 } from '@mui/icons-material';
 
 interface Metrics {
@@ -16,6 +18,8 @@ interface Metrics {
   totalUserPrompts: number | null;
   totalIterations: number | null;
   totalInterventions: number | null;
+  totalLocGenerated: number | null;
+  totalTestsAdded: number | null;
   componentsCompleted: number;
   componentsTotal: number;
   percentComplete: number;
@@ -93,7 +97,7 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
       )}
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div>
           <MetricCard
             icon={<CheckCircle />}
@@ -124,6 +128,22 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
             label="Cost"
             value={formatCost(metrics.totalCost)}
             color="warning"
+          />
+        </div>
+        <div>
+          <MetricCard
+            icon={<Code />}
+            label="LOC Generated"
+            value={formatNumber(metrics.totalLocGenerated)}
+            color="success"
+          />
+        </div>
+        <div>
+          <MetricCard
+            icon={<Science />}
+            label="Tests Added"
+            value={formatNumber(metrics.totalTestsAdded)}
+            color="info"
           />
         </div>
         <div>

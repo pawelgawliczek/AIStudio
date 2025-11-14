@@ -37,6 +37,8 @@ interface WorkflowRunStatus {
     totalUserPrompts: number | null;
     totalIterations: number | null;
     totalInterventions: number | null;
+    totalLocGenerated: number | null;
+    totalTestsAdded: number | null;
     componentsCompleted: number;
     componentsTotal: number;
     percentComplete: number;
@@ -51,6 +53,8 @@ interface WorkflowRunStatus {
     tokensUsed?: number;
     userPrompts: number;
     artifacts: string[];
+    locGenerated?: number;
+    testsAdded?: number;
   }>;
 }
 

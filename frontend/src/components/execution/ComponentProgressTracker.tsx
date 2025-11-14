@@ -22,6 +22,8 @@ interface ComponentRun {
   tokensUsed?: number;
   userPrompts: number;
   artifacts: string[];
+  locGenerated?: number;
+  testsAdded?: number;
 }
 
 interface ComponentProgressTrackerProps {
@@ -118,6 +120,16 @@ const ComponentProgressTracker: React.FC<ComponentProgressTrackerProps> = ({
                   {componentRun.userPrompts > 0 && (
                     <Typography variant="caption" color="text.secondary">
                       Prompts: {componentRun.userPrompts}
+                    </Typography>
+                  )}
+                  {componentRun.locGenerated !== undefined && componentRun.locGenerated > 0 && (
+                    <Typography variant="caption" color="text.secondary">
+                      LOC: {componentRun.locGenerated.toLocaleString()}
+                    </Typography>
+                  )}
+                  {componentRun.testsAdded !== undefined && componentRun.testsAdded > 0 && (
+                    <Typography variant="caption" color="text.secondary">
+                      Tests: {componentRun.testsAdded}
                     </Typography>
                   )}
                   {componentRun.artifacts.length > 0 && (
