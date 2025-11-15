@@ -113,6 +113,17 @@ export const componentsApi = {
     api.get('/components', { params: { projectId } }),
 };
 
+// Workflow runs API
+export const workflowRunsApi = {
+  getActiveWorkflowForProject: async (projectId: string) => {
+    const response = await api.get(`/projects/${projectId}/workflow-runs/active/current`);
+    return response.data;
+  },
+};
+
+// Export named functions for convenience
+export const getActiveWorkflowForProject = workflowRunsApi.getActiveWorkflowForProject;
+
 // Export api as named export for convenience
 export { api };
 

@@ -412,6 +412,102 @@ export class WorkflowRunsService {
     }
   }
 
+  /**
+   * Get active workflow run for a project (for global tracking bar)
+   * Returns null if no workflow is currently running
+   */
+  async getActiveWorkflowForProject(projectId: string): Promise<any | null> {
+    // Find the most recent workflow run that is running or pending
+    const workflowRun = await this.prisma.workflowRun.findFirst({
+      where: {
+        projectId,
+        status: {
+          in: [RunStatus.running, RunStatus.pending],
+        },
+      },
+      include: {
+        workflow: {
+          include: {
+            coordinator: true,
+          },
+        },
+        story: {
+          select: {
+            id: true,
+            key: true,
+            title: true,
+            type: true,
+          },
+        },
+        epic: {
+          select: {
+            id: true,
+            key: true,
+            title: true,
+          },
+        },
+        componentRuns: {
+          include: {
+            component: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            executionOrder: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        startedAt: 'desc',
+      },
+    });
+
+    if (!workflowRun) {
+      return null;
+    }
+
+    // Calculate progress
+    const totalComponents = await this.prisma.componentRun.count({
+      where: {
+        workflowRunId: workflowRun.id,
+      },
+    });
+
+    const completedComponents = workflowRun.componentRuns.filter(
+      (run) => run.status === RunStatus.completed,
+    ).length;
+
+    // Find currently running component
+    const activeComponent = workflowRun.componentRuns.find(
+      (run) => run.status === RunStatus.running,
+    );
+
+    const percentComplete =
+      totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
+
+    // Determine story key and title (could be from story or epic)
+    const storyKey = workflowRun.story?.key || workflowRun.epic?.key || null;
+    const storyTitle = workflowRun.story?.title || workflowRun.epic?.title || null;
+
+    return {
+      runId: workflowRun.id,
+      status: workflowRun.status,
+      storyKey,
+      storyTitle,
+      activeComponentName: activeComponent?.component?.name || null,
+      progress: {
+        completed: completedComponents,
+        total: totalComponents,
+        percentage: percentComplete,
+      },
+      startedAt: workflowRun.startedAt?.toISOString(),
+      estimatedCost: workflowRun.estimatedCost,
+    };
+  }
+
   private mapToResponseDto(workflowRun: any): WorkflowRunResponseDto {
     return {
       id: workflowRun.id,
