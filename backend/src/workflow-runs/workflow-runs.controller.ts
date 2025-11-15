@@ -129,6 +129,16 @@ export class WorkflowRunsController {
     return this.workflowRunsService.getContext(id);
   }
 
+  @Get('active/current')
+  @ApiOperation({ summary: 'Get active workflow run for project (for global tracking bar)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active workflow retrieved successfully (or null if none active)',
+  })
+  async getActiveWorkflow(@Param('projectId') projectId: string): Promise<any> {
+    return this.workflowRunsService.getActiveWorkflowForProject(projectId);
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Update a workflow run' })
   @ApiResponse({
