@@ -113,4 +113,7 @@ export const componentsApi = {
     api.get('/components', { params: { projectId } }),
 };
 
+// Export api as named export for convenience
+export { api };
+
 export default api;

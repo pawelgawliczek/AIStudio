@@ -391,15 +391,22 @@ export class StoriesService {
       },
     };
 
-    // First try to find by ID (UUID format)
-    let story = await this.prisma.story.findUnique({
-      where: { id: idOrKey },
-      include,
-    });
+    // Check if idOrKey is a valid UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrKey);
+
+    let story = null;
+
+    // Try to find by ID if it's a UUID format
+    if (isUUID) {
+      story = await this.prisma.story.findUnique({
+        where: { id: idOrKey },
+        include,
+      });
+    }
 
     // If not found by ID, try by key (e.g., ST-26)
     if (!story) {
-      story = await this.prisma.story.findUnique({
+      story = await this.prisma.story.findFirst({
         where: { key: idOrKey },
         include,
       });
@@ -462,7 +469,8 @@ export class StoriesService {
       const components = run.componentRuns.map((compRun) => {
         const tokensInput = compRun.tokensInput || 0;
         const tokensOutput = compRun.tokensOutput || 0;
-        const tokens = tokensInput + tokensOutput;
+        // Use totalTokens as fallback if input/output breakdown not available
+        const tokens = (tokensInput + tokensOutput) || compRun.totalTokens || 0;
 
         // Calculate cost for component (proportional to tokens)
         const componentCost = runTokens > 0 ? (tokens / runTokens) * runCost : 0;

@@ -114,6 +114,7 @@ export interface Story {
     subtasks: number;
     commits: number;
     runs: number;
+    workflowRuns: number;
   };
   layers?: Array<{
     layer: Layer;
@@ -129,6 +130,10 @@ export interface Story {
   baAnalyzedAt?: string;
   designerAnalyzedAt?: string;
   architectAnalyzedAt?: string;
+  // Traceability properties
+  workflowRuns?: any[];
+  useCaseLinks?: any[];
+  commits?: any[];
 }
 
 // Layer types

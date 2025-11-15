@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { storiesService } from '../services/stories.service';
 import { subtasksService } from '../services/subtasks.service';
 import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service';
@@ -85,8 +86,20 @@ export function StoryDetailPage() {
     }
     try {
       setIsLoading(true);
+      console.log('[StoryDetailPage] Fetching story with idOrKey:', storyIdOrKey);
       // Use the new endpoint that supports both ID and storyKey
       const data = await storiesService.getById(storyIdOrKey);
+      console.log('[StoryDetailPage] Story data received:', data);
+      console.log('[StoryDetailPage] Complexity scores:', {
+        businessComplexity: data.businessComplexity,
+        technicalComplexity: data.technicalComplexity,
+        businessImpact: data.businessImpact,
+      });
+      console.log('[StoryDetailPage] Traceability data:', {
+        workflowRuns: data.workflowRuns?.length || 0,
+        useCaseLinks: data.useCaseLinks?.length || 0,
+        commits: data.commits?.length || 0,
+      });
       setStory(data);
     } catch (error) {
       console.error('Failed to load story:', error);
@@ -121,12 +134,12 @@ export function StoryDetailPage() {
   // Real-time updates
   useStoryEvents({
     onStoryUpdated: (data) => {
-      if (data.story.id === storyId) {
+      if (data.story.id === story?.id) {
         setStory(data.story);
       }
     },
     onStoryStatusChanged: (data) => {
-      if (data.storyId === storyId) {
+      if (data.storyId === story?.id) {
         setStory(prev => prev ? { ...prev, status: data.newStatus } : null);
       }
     },
@@ -134,21 +147,21 @@ export function StoryDetailPage() {
 
   useSubtaskEvents({
     onSubtaskCreated: (data) => {
-      if (data.subtask.storyId === storyId) {
+      if (data.subtask.storyId === story?.id) {
         setSubtasks(prev => [...prev, data.subtask]);
       }
     },
     onSubtaskUpdated: (data) => {
-      if (data.subtask.storyId === storyId) {
+      if (data.subtask.storyId === story?.id) {
         setSubtasks(prev => prev.map(s => s.id === data.subtask.id ? data.subtask : s));
       }
     },
   });
 
   const handleStatusTransition = async (newStatus: StoryStatus) => {
-    if (!storyId) return;
+    if (!story?.id) return;
     try {
-      await storiesService.updateStatus(storyId, { status: newStatus });
+      await storiesService.updateStatus(story.id, { status: newStatus });
       loadStory();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to update status');
@@ -156,9 +169,9 @@ export function StoryDetailPage() {
   };
 
   const handleOverrideStatus = async () => {
-    if (!storyId || !isAdmin) return;
+    if (!story?.id || !isAdmin) return;
     try {
-      await storiesService.updateStatus(storyId, { status: overrideStatus });
+      await storiesService.updateStatus(story.id, { status: overrideStatus });
       setShowOverride(false);
       loadStory();
     } catch (error) {
@@ -167,10 +180,10 @@ export function StoryDetailPage() {
   };
 
   const handleCreateSubtask = async () => {
-    if (!newSubtask.title || !storyId) return;
+    if (!newSubtask.title || !story?.id) return;
     try {
-      await subtasksService.create({ ...newSubtask, storyId });
-      setNewSubtask({ storyId, title: '', description: '', layer: undefined, component: '' });
+      await subtasksService.create({ ...newSubtask, storyId: story.id });
+      setNewSubtask({ storyId: story.id, title: '', description: '', layer: undefined, component: '' });
       setShowAddSubtask(false);
       loadSubtasks();
     } catch (error) {
@@ -230,17 +243,51 @@ export function StoryDetailPage() {
       <div className="mb-6">
         <Breadcrumbs
           items={[
-            { name: 'Stories', href: `/projects/${projectId}/stories`, testId: 'breadcrumb-stories' },
+            { name: 'Stories', href: '/epic-planning', testId: 'breadcrumb-stories' },
             { name: story.key, testId: 'breadcrumb-story' },
           ]}
         />
       </div>
 
+      {/* Live Workflow Execution Tracker */}
+      {(story as any).workflowRuns?.some((run: any) => run.status === 'running') && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-900">Workflow Execution in Progress</h3>
+              <p className="text-xs text-blue-700 mt-1">
+                {(() => {
+                  const runningRun = (story as any).workflowRuns?.find((r: any) => r.status === 'running');
+                  const completedComponents = runningRun?.componentRuns?.filter((cr: any) => cr.status === 'completed').length || 0;
+                  const totalComponents = runningRun?.componentRuns?.length || 0;
+                  const currentComponent = runningRun?.componentRuns?.find((cr: any) => cr.status === 'running')?.component?.name;
+                  return currentComponent
+                    ? `Currently executing: ${currentComponent} (${completedComponents}/${totalComponents} components completed)`
+                    : `${completedComponents}/${totalComponents} components completed`;
+                })()}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                const runningRun = (story as any).workflowRuns?.find((r: any) => r.status === 'running');
+                if (runningRun) {
+                  navigate(`/workflow-runs/${runningRun.id}/monitor`);
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              View Live Monitor
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Story Header */}
       <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
               <span className="text-sm font-mono text-muted">{story.key}</span>
               <span
                 data-testid="current-status"
@@ -251,15 +298,30 @@ export function StoryDetailPage() {
               >
                 {story.status}
               </span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                {story.type}
+              </span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                Priority: {story.priority}
+              </span>
               {story.epic && (
                 <span className="text-xs text-muted">{story.epic.key}</span>
               )}
             </div>
             <h1 className="text-2xl font-bold text-fg mb-2">{story.title}</h1>
             {story.description && (
-              <p className="text-muted">{story.description}</p>
+              <div className="text-muted prose prose-sm max-w-none prose-headings:text-fg prose-p:text-muted prose-strong:text-fg prose-code:text-fg prose-pre:bg-bg-secondary">
+                <ReactMarkdown>{story.description}</ReactMarkdown>
+              </div>
             )}
           </div>
+          <button
+            onClick={() => navigate(`/epic-planning?editStory=${story.key}`)}
+            className="ml-4 px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm inline-flex items-center"
+          >
+            <PencilIcon className="h-4 w-4 mr-1" />
+            Edit
+          </button>
         </div>
 
         {/* Complexity Warning */}
@@ -353,28 +415,35 @@ export function StoryDetailPage() {
         </div>
       </div>
 
-      {/* Workflow Analysis Section */}
-      <WorkflowAnalysisDisplay story={story} />
+      {/* 2-Column Responsive Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Workflow Analysis Section */}
+          <WorkflowAnalysisDisplay story={story} />
+        </div>
 
-      {/* Token Metrics Section */}
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Traceability Section */}
+          <StoryTraceabilityTabs
+            workflowRuns={(story as any).workflowRuns}
+            useCaseLinks={(story as any).useCaseLinks}
+            commits={(story as any).commits}
+          />
+        </div>
+      </div>
+
+      {/* Token Metrics Section - Full Width */}
       {story?.id && (
         <div className="mb-6">
           <TokenMetricsPanel storyId={story.id} />
         </div>
       )}
 
-      {/* Traceability Section */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-fg mb-4">Story Traceability</h2>
-        <StoryTraceabilityTabs
-          workflowRuns={(story as any).workflowRuns}
-          useCaseLinks={(story as any).useCaseLinks}
-          commits={(story as any).commits}
-        />
-      </div>
-
-      {/* Subtasks Section */}
-      <div className="bg-card border border-border rounded-lg shadow-md p-6">
+      {/* Subtasks Section - Hidden */}
+      {false && (
+        <div className="bg-card border border-border rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-fg">Subtasks</h2>
           <div className="flex gap-2">
@@ -455,7 +524,7 @@ export function StoryDetailPage() {
               <button
                 onClick={() => {
                   setShowAddSubtask(false);
-                  setNewSubtask({ storyId: storyId!, title: '', description: '', layer: undefined, component: '' });
+                  setNewSubtask({ storyId: story?.id || '', title: '', description: '', layer: undefined, component: '' });
                 }}
                 className="px-4 py-2 rounded-md font-semibold bg-bg-secondary text-fg hover:bg-muted shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm"
               >
@@ -527,6 +596,7 @@ export function StoryDetailPage() {
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

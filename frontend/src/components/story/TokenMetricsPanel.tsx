@@ -129,42 +129,42 @@ export function TokenMetricsPanel({ storyId }: TokenMetricsPanelProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+    <div className="bg-card rounded-lg border border-border shadow-md overflow-hidden">
       {/* Header */}
-      <div className="border-b border-gray-200 p-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+      <div className="border-b border-border p-4 bg-bg-secondary">
+        <h2 className="text-lg font-semibold text-fg flex items-center gap-2">
           <CurrencyDollarIcon className="w-5 h-5 text-green-600" />
           Token Usage & Cost
-        </h3>
+        </h2>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 border-b border-gray-200">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-bg-secondary border-b border-border">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Total Tokens</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{formatNumber(metrics.totalTokens)}</p>
+              <p className="text-sm font-medium text-muted">Total Tokens</p>
+              <p className="text-2xl font-bold text-fg mt-1">{formatNumber(metrics.totalTokens)}</p>
             </div>
             <CpuChipIcon className="w-8 h-8 text-blue-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Total Cost</p>
+              <p className="text-sm font-medium text-muted">Total Cost</p>
               <p className="text-2xl font-bold text-green-600 mt-1">${metrics.totalCost.toFixed(2)}</p>
             </div>
             <CurrencyDollarIcon className="w-8 h-8 text-green-500" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500">Workflow Runs</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{metrics.breakdown.length}</p>
+              <p className="text-sm font-medium text-muted">Workflow Runs</p>
+              <p className="text-2xl font-bold text-fg mt-1">{metrics.breakdown.length}</p>
             </div>
             <ClockIcon className="w-8 h-8 text-purple-500" />
           </div>
@@ -173,25 +173,25 @@ export function TokenMetricsPanel({ storyId }: TokenMetricsPanelProps) {
 
       {/* Workflow Runs Breakdown */}
       <div className="p-4 space-y-3">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Workflow Execution History</h4>
+        <h4 className="text-sm font-semibold text-fg mb-3">Workflow Execution History</h4>
         {metrics.breakdown.map((run) => (
-          <div key={run.workflowRunId} className="border border-gray-200 rounded-lg overflow-hidden">
+          <div key={run.workflowRunId} className="border border-border rounded-lg overflow-hidden">
             {/* Run Header */}
             <button
               onClick={() => toggleRun(run.workflowRunId)}
-              className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left flex items-center justify-between"
+              className="w-full px-4 py-3 bg-bg-secondary hover:bg-muted transition-colors text-left flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-900">{run.workflowName}</span>
+                <span className="text-sm font-medium text-fg">{run.workflowName}</span>
                 <span className={`px-2 py-1 rounded-md text-xs font-medium border ${STATUS_COLORS[run.status] || STATUS_COLORS.pending}`}>
                   {run.status}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-4 text-sm text-muted">
                 <span>{formatNumber(run.tokens)} tokens</span>
                 <span className="font-semibold text-green-600">${run.cost.toFixed(2)}</span>
                 <svg
-                  className={`w-5 h-5 text-gray-400 transition-transform ${expandedRuns.has(run.workflowRunId) ? 'transform rotate-180' : ''}`}
+                  className={`w-5 h-5 text-muted transition-transform ${expandedRuns.has(run.workflowRunId) ? 'transform rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -203,26 +203,26 @@ export function TokenMetricsPanel({ storyId }: TokenMetricsPanelProps) {
 
             {/* Run Details (Expandable) */}
             {expandedRuns.has(run.workflowRunId) && (
-              <div className="bg-white p-4 border-t border-gray-200">
+              <div className="bg-card p-4 border-t border-border">
                 <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Started:</span>
-                    <span className="ml-2 text-gray-900">{formatDate(run.startedAt)}</span>
+                    <span className="text-muted">Started:</span>
+                    <span className="ml-2 text-fg">{formatDate(run.startedAt)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Duration:</span>
-                    <span className="ml-2 text-gray-900">{calculateDuration(run.startedAt, run.completedAt)}</span>
+                    <span className="text-muted">Duration:</span>
+                    <span className="ml-2 text-fg">{calculateDuration(run.startedAt, run.completedAt)}</span>
                   </div>
                 </div>
 
                 {run.components.length > 0 && (
                   <div>
-                    <h5 className="text-xs font-semibold text-gray-700 mb-2">Component Breakdown</h5>
+                    <h5 className="text-xs font-semibold text-fg mb-2">Component Breakdown</h5>
                     <div className="space-y-2">
                       {run.components.map((comp, idx) => (
-                        <div key={idx} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded border border-gray-100">
-                          <span className="text-sm font-medium text-gray-700">{comp.componentName}</span>
-                          <div className="flex items-center gap-4 text-xs text-gray-600">
+                        <div key={idx} className="flex items-center justify-between py-2 px-3 bg-bg-secondary rounded border border-border">
+                          <span className="text-sm font-medium text-fg">{comp.componentName}</span>
+                          <div className="flex items-center gap-4 text-xs text-muted">
                             <span>{formatNumber(comp.tokens)} tokens</span>
                             <span className="text-green-600 font-semibold">${comp.cost.toFixed(4)}</span>
                             {comp.userPrompts > 0 && (

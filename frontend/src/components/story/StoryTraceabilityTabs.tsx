@@ -103,6 +103,11 @@ export function StoryTraceabilityTabs({
 
   return (
     <div className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
+      {/* Title */}
+      <div className="border-b border-border p-4 bg-bg-secondary">
+        <h2 className="text-lg font-semibold text-fg">Story Traceability</h2>
+      </div>
+
       <Tab.Group>
         <Tab.List className="flex border-b border-border bg-bg-secondary">
           <Tab as={Fragment}>
