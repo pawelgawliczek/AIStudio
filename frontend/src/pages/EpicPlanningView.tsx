@@ -557,30 +557,30 @@ export function EpicPlanningView() {
           {/* Active Filters Display */}
           {hasActiveFilters && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Filters:</span>
+              <span className="text-muted">Filters:</span>
               {statusFilter.length > 0 && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded">
                   Status: {statusFilter.join(', ')}
                 </span>
               )}
               {typeFilter.length > 0 && (
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded">
                   Type: {typeFilter.join(', ')}
                 </span>
               )}
               {epicFilter.length > 0 && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded">
                   Epic: {epicFilter.length} selected
                 </span>
               )}
               {searchQuery && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                <span className="px-2 py-1 bg-bg-secondary text-fg rounded border border-border">
                   Search: "{searchQuery}"
                 </span>
               )}
               <button
                 onClick={clearAllFilters}
-                className="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                className="ml-2 px-3 py-1 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
               >
                 Clear All
               </button>
