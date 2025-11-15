@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { PlanningView } from './pages/PlanningView';
 import { EpicPlanningView } from './pages/EpicPlanningView';
+import { StoryDetailPage } from './pages/StoryDetailPage';
 import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
@@ -34,6 +35,8 @@ function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="planning" element={<PlanningView />} />
               <Route path="epic-planning" element={<EpicPlanningView />} />
+              <Route path="story/:storyKey" element={<StoryDetailPage />} />
+              <Route path="stories/:storyKey" element={<StoryDetailPage />} />
               <Route path="timeline" element={<TimelineView />} />
               <Route path="use-cases" element={<UseCaseLibraryView />} />
               <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
