@@ -249,40 +249,6 @@ export function StoryDetailPage() {
         />
       </div>
 
-      {/* Live Workflow Execution Tracker */}
-      {(story as any).workflowRuns?.some((run: any) => run.status === 'running') && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900">Workflow Execution in Progress</h3>
-              <p className="text-xs text-blue-700 mt-1">
-                {(() => {
-                  const runningRun = (story as any).workflowRuns?.find((r: any) => r.status === 'running');
-                  const completedComponents = runningRun?.componentRuns?.filter((cr: any) => cr.status === 'completed').length || 0;
-                  const totalComponents = runningRun?.componentRuns?.length || 0;
-                  const currentComponent = runningRun?.componentRuns?.find((cr: any) => cr.status === 'running')?.component?.name;
-                  return currentComponent
-                    ? `Currently executing: ${currentComponent} (${completedComponents}/${totalComponents} components completed)`
-                    : `${completedComponents}/${totalComponents} components completed`;
-                })()}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                const runningRun = (story as any).workflowRuns?.find((r: any) => r.status === 'running');
-                if (runningRun) {
-                  navigate(`/workflow-runs/${runningRun.id}/monitor`);
-                }
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              View Live Monitor
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Story Header */}
       <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
@@ -300,9 +266,6 @@ export function StoryDetailPage() {
               </span>
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                 {story.type}
-              </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                Priority: {story.priority}
               </span>
               {story.epic && (
                 <span className="text-xs text-muted">{story.epic.key}</span>

@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Box, LinearProgress, Typography, Chip, CircularProgress } from '@mui/material';
-import { PlayArrow as PlayArrowIcon } from '@mui/icons-material';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { getActiveWorkflowForProject } from '../../services/api';
 
 interface ActiveWorkflowStatus {
@@ -43,131 +42,78 @@ export const GlobalWorkflowTrackingBar: React.FC = () => {
   const isRunning = status === 'running';
 
   return (
-    <Box
+    <div
       data-testid="workflow-tracking-bar"
-      sx={{
-        position: 'fixed',
-        top: 64, // Below MUI AppBar default height
-        left: 0,
-        right: 0,
-        width: '100%',
-        height: '48px',
-        backgroundColor: 'primary.main',
-        color: 'primary.contrastText',
-        boxShadow: 2,
-        zIndex: 1100,
-        display: 'flex',
-        alignItems: 'center',
-        px: 3,
-        gap: 2,
-      }}
+      className="bg-card shadow-sm border-b border-border"
     >
-      {/* Spinning indicator */}
-      {isRunning && (
-        <CircularProgress
-          data-testid="workflow-spinner"
-          size={20}
-          sx={{
-            color: 'primary.contrastText',
-            '& .MuiCircularProgress-circle': {
-              animation: 'spinning 1s linear infinite',
-            },
-          }}
-          className="spinning"
-        />
-      )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-12 gap-4">
+          {/* Left section: Spinning icon + Story info */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {/* Spinning indicator */}
+            {isRunning && (
+              <ArrowPathIcon
+                data-testid="workflow-spinner"
+                className="h-5 w-5 text-accent animate-spin"
+              />
+            )}
 
-      {/* Story key and title */}
-      {storyKey && (
-        <Link
-          to={`/stories/${storyKey}`}
-          style={{
-            textDecoration: 'none',
-            color: 'inherit',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            maxWidth: '40%',
-          }}
-        >
-          <Chip
-            label={storyKey}
-            size="small"
-            sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              color: 'primary.contrastText',
-              fontWeight: 'bold',
-            }}
-          />
-          <Typography
-            variant="body2"
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {storyTitle}
-          </Typography>
-        </Link>
-      )}
+            {/* Story key and title */}
+            {storyKey && (
+              <Link
+                to={`/stories/${storyKey}`}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0"
+              >
+                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-accent/10 text-accent border border-accent/20">
+                  {storyKey}
+                </span>
+                <span className="text-sm text-fg truncate">
+                  {storyTitle}
+                </span>
+              </Link>
+            )}
 
-      {/* Active component */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <PlayArrowIcon sx={{ fontSize: 16 }} />
-        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-          {activeComponentName || 'Initializing...'}
-        </Typography>
-      </Box>
+            {/* Active component */}
+            <div className="hidden md:flex items-center gap-2 text-sm text-muted">
+              <span>•</span>
+              <span className="font-medium text-fg">
+                {activeComponentName || 'Initializing...'}
+              </span>
+            </div>
+          </div>
 
-      {/* Progress indicator */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
-        <Typography variant="body2">
-          {progress.completed}/{progress.total} components completed
-        </Typography>
-        <Chip
-          label={`${progress.percentage}%`}
-          size="small"
-          sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            color: 'primary.contrastText',
-            minWidth: '50px',
-          }}
-        />
-      </Box>
+          {/* Right section: Progress + Monitor Link */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted whitespace-nowrap">
+              {progress.completed}/{progress.total} components
+            </span>
 
-      {/* Linear progress bar */}
-      <LinearProgress
-        variant="determinate"
-        value={progress.percentage}
-        role="progressbar"
-        aria-valuenow={progress.percentage}
-        sx={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 2,
-          backgroundColor: 'rgba(255, 255, 255, 0.2)',
-          '& .MuiLinearProgress-bar': {
-            backgroundColor: 'secondary.main',
-          },
-        }}
-      />
+            {/* Visual Progress Bar */}
+            <div className="flex items-center gap-2">
+              <div className="w-32 h-2 bg-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-accent transition-all duration-300 rounded-full"
+                  style={{ width: `${progress.percentage}%` }}
+                  role="progressbar"
+                  aria-valuenow={progress.percentage}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                />
+              </div>
+              <span className="text-xs font-semibold text-accent min-w-[35px] text-right">
+                {progress.percentage}%
+              </span>
+            </div>
 
-      {/* Spinning animation keyframes */}
-      <style>
-        {`
-          @keyframes spinning {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}
-      </style>
-    </Box>
+            <Link
+              to={`/workflow-runs/${activeWorkflow.runId}/monitor`}
+              className="text-sm text-accent hover:text-accent-dark font-medium transition-colors whitespace-nowrap"
+            >
+              Monitor →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

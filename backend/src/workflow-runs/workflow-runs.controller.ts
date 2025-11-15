@@ -69,6 +69,16 @@ export class WorkflowRunsController {
     });
   }
 
+  @Get('active/current')
+  @ApiOperation({ summary: 'Get active workflow run for project (for global tracking bar)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active workflow retrieved successfully (or null if none active)',
+  })
+  async getActiveWorkflow(@Param('projectId') projectId: string): Promise<any> {
+    return this.workflowRunsService.getActiveWorkflowForProject(projectId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a workflow run by ID' })
   @ApiQuery({ name: 'includeRelations', required: false, type: Boolean })
@@ -127,16 +137,6 @@ export class WorkflowRunsController {
   @ApiResponse({ status: 404, description: 'Workflow run not found' })
   async getContext(@Param('id') id: string): Promise<any> {
     return this.workflowRunsService.getContext(id);
-  }
-
-  @Get('active/current')
-  @ApiOperation({ summary: 'Get active workflow run for project (for global tracking bar)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Active workflow retrieved successfully (or null if none active)',
-  })
-  async getActiveWorkflow(@Param('projectId') projectId: string): Promise<any> {
-    return this.workflowRunsService.getActiveWorkflowForProject(projectId);
   }
 
   @Put(':id')
