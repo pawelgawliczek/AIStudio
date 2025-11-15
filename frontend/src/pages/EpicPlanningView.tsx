@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -27,6 +27,7 @@ type SortOption = 'priority-high' | 'priority-low' | 'created-new' | 'created-ol
 
 export function EpicPlanningView() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { selectedProject } = useProject();
   const projectId = selectedProject?.id || '';
 
@@ -39,6 +40,7 @@ export function EpicPlanningView() {
   const typeFilter = searchParams.get('type')?.split(',') || [];
   const epicFilter = searchParams.get('epic')?.split(',') || [];
   const searchQuery = searchParams.get('search') || '';
+  const editStoryKey = searchParams.get('editStory') || null;
 
   // Modal/drawer state
   const [selectedItem, setSelectedItem] = useState<Story | Epic | null>(null);
@@ -149,6 +151,29 @@ export function EpicPlanningView() {
       }
     },
   });
+
+  // Handle editStory query parameter - open directly in edit modal
+  useEffect(() => {
+    if (editStoryKey && planningData && !showEditModal) {
+      // Find the story in all epics and unassigned stories
+      const allStories = [
+        ...planningData.epics.flatMap(epic => epic.stories || []),
+        ...planningData.unassignedStories,
+      ];
+
+      const storyToEdit = allStories.find(story => story.key === editStoryKey);
+
+      if (storyToEdit) {
+        // Open directly in edit modal, skip the read-only drawer
+        setEditingStory(storyToEdit);
+        setShowEditModal(true);
+        // Clear the query parameter after opening
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('editStory');
+        setSearchParams(newParams, { replace: true });
+      }
+    }
+  }, [editStoryKey, planningData, showEditModal, searchParams, setSearchParams]);
 
   // Filter and sort logic
   const filteredAndSortedData = useMemo(() => {
@@ -315,8 +340,15 @@ export function EpicPlanningView() {
   };
 
   const handleItemClick = (item: Story | Epic) => {
-    setSelectedItem(item);
-    setDrawerOpen(true);
+    // Navigate to dedicated story page for stories
+    if ('status' in item) {
+      // It's a Story
+      navigate(`/story/${item.key}`);
+    } else {
+      // It's an Epic - open drawer
+      setSelectedItem(item);
+      setDrawerOpen(true);
+    }
   };
 
   const handleDrawerClose = () => {

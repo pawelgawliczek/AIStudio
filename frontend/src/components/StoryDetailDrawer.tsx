@@ -189,12 +189,7 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                                 {fullStory.technicalComplexity || 'N/A'}
                               </div>
                             </div>
-                            <div className="bg-secondary p-3 rounded-lg">
-                              <div className="text-sm font-medium text-muted">Estimated Tokens</div>
-                              <div className="mt-1 text-2xl font-bold text-blue-600">
-                                {fullStory.estimatedTokenCost ? fullStory.estimatedTokenCost.toLocaleString() : 'N/A'}
-                              </div>
-                            </div>
+                            {/* Token metrics now available in dedicated TokenMetricsPanel */}
                           </div>
                         </div>
 
