@@ -493,13 +493,13 @@ export function EpicPlanningView() {
             <h1 className="text-2xl font-bold text-fg">Epic Planning</h1>
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
-              <div className="flex items-center bg-muted rounded-lg p-1">
+              <div className="flex items-center bg-bg-secondary rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grouped')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'grouped'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-fg'
+                      ? 'bg-primary-600 dark:bg-primary-700 text-white'
+                      : 'text-muted hover:text-fg hover:bg-card'
                   }`}
                 >
                   Grouped by Epics
@@ -508,8 +508,8 @@ export function EpicPlanningView() {
                   onClick={() => setViewMode('flat')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'flat'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-fg'
+                      ? 'bg-primary-600 dark:bg-primary-700 text-white'
+                      : 'text-muted hover:text-fg hover:bg-card'
                   }`}
                 >
                   Flat View
@@ -520,7 +520,7 @@ export function EpicPlanningView() {
               <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="px-4 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-4 py-2 bg-card border border-border rounded-lg text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="priority-high">Priority: High to Low</option>
                 <option value="priority-low">Priority: Low to High</option>
@@ -534,7 +534,7 @@ export function EpicPlanningView() {
               {/* Show/Hide Completed Toggle */}
               <button
                 onClick={toggleHideCompletedItems}
-                className="px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+                className="px-4 py-2 bg-card border border-border rounded-lg text-sm text-fg font-medium hover:bg-bg-secondary transition-colors"
               >
                 {hideCompletedItems ? 'Show Completed' : 'Hide Completed'}
               </button>
@@ -593,8 +593,8 @@ export function EpicPlanningView() {
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-2 text-muted-foreground">Loading planning data...</p>
+                <div className="inline-block w-8 h-8 border-4 border-primary-600 dark:border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-2 text-muted">Loading planning data...</p>
               </div>
             </div>
           ) : (
@@ -627,7 +627,7 @@ export function EpicPlanningView() {
 
                   {filteredAndSortedData.epics.length === 0 && filteredAndSortedData.unassignedStories.length === 0 && (
                     <div className="text-center py-12">
-                      <p className="text-muted-foreground">No items match the current filters.</p>
+                      <p className="text-muted">No items match the current filters.</p>
                     </div>
                   )}
                 </div>
