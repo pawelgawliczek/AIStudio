@@ -479,8 +479,8 @@ export class StoriesService {
           componentName: compRun.component.name,
           tokens,
           cost: Number(componentCost.toFixed(4)),
-          userPrompts: compRun.metrics?.['userPrompts'] || 0,
-          iterations: compRun.metrics?.['systemIterations'] || 0,
+          userPrompts: (compRun as any).metrics?.['userPrompts'] || 0,
+          iterations: (compRun as any).metrics?.['systemIterations'] || 0,
         };
       });
 
