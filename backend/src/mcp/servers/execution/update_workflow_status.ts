@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { ValidationError, NotFoundError } from '../../types';
 
 export const tool: Tool = {
   name: 'update_workflow_status',
@@ -40,15 +41,22 @@ export const metadata = {
 export async function handler(prisma: PrismaClient, params: any) {
   // Validate required fields
   if (!params.runId) {
-    throw new Error('runId is required');
+    throw new ValidationError('Missing required parameter: runId', {
+      expectedState: 'A valid workflow run ID must be provided'
+    });
   }
   if (!params.status) {
-    throw new Error('status is required');
+    throw new ValidationError('Missing required parameter: status', {
+      expectedState: 'A valid status value must be provided'
+    });
   }
 
   const validStatuses = ['running', 'paused', 'completed', 'failed', 'cancelled'];
   if (!validStatuses.includes(params.status)) {
-    throw new Error(`status must be one of: ${validStatuses.join(', ')}`);
+    throw new ValidationError(`Invalid status value. Status must be one of: ${validStatuses.join(', ')}`, {
+      expectedState: 'One of: running, paused, completed, failed, cancelled',
+      currentState: params.status || 'none'
+    });
   }
 
   // Get workflow run
@@ -60,7 +68,10 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   if (!workflowRun) {
-    throw new Error(`Workflow run with ID ${params.runId} not found`);
+    throw new NotFoundError('Workflow run', params.runId, {
+      searchTool: 'list_workflow_runs',
+      createTool: 'start_workflow_run'
+    });
   }
 
   // Prepare update data
