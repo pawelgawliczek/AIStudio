@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { ValidationError } from '../../types';
 
 export const tool: Tool = {
   name: 'record_component_complete',
@@ -82,15 +83,22 @@ export const metadata = {
 export async function handler(prisma: PrismaClient, params: any) {
   // Validate required fields
   if (!params.runId) {
-    throw new Error('runId is required');
+    throw new ValidationError('Missing required parameter: runId', {
+      expectedState: 'A valid workflow run ID must be provided'
+    });
   }
   if (!params.componentId) {
-    throw new Error('componentId is required');
+    throw new ValidationError('Missing required parameter: componentId', {
+      expectedState: 'A valid component ID must be provided'
+    });
   }
 
   const status = params.status || 'completed';
   if (!['completed', 'failed'].includes(status)) {
-    throw new Error('status must be either "completed" or "failed"');
+    throw new ValidationError('Invalid status value. Status must be either "completed" or "failed"', {
+      expectedState: 'Either "completed" or "failed"',
+      currentState: status
+    });
   }
 
   // Find the component run (most recent running one for this component in this workflow run)
@@ -106,8 +114,13 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   if (!componentRun) {
-    throw new Error(
-      `No running component execution found for runId ${params.runId} and componentId ${params.componentId}. Did you call record_component_start first?`
+    throw new ValidationError(
+      `No running component execution found for workflow run ${params.runId} and component ${params.componentId}.`,
+      {
+        expectedState: 'Component must be in "running" state',
+        currentState: 'No running component found',
+        resourceId: `runId: ${params.runId}, componentId: ${params.componentId}`
+      }
     );
   }
 
