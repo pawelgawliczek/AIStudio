@@ -65,7 +65,7 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-blue-50 border border-blue-200 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow ${
+        className={`bg-blue-50 dark:bg-blue-900/20 border border-border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow ${
           isDragging ? 'opacity-50' : ''
         }`}
         onClick={() => onClick(epic)}
@@ -76,7 +76,7 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
             <div
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+              className="cursor-grab active:cursor-grabbing text-muted hover:text-fg"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
@@ -84,21 +84,21 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
             </div>
 
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-blue-900">{epic.title}</h3>
-              <div className="flex items-center gap-4 mt-1 text-sm text-blue-700">
+              <h3 className="text-lg font-semibold text-fg">{epic.title}</h3>
+              <div className="flex items-center gap-4 mt-1 text-sm text-muted">
                 <span>Priority: {epic.priority}</span>
                 <span className="capitalize">{epic.status.replace('_', ' ')}</span>
                 <span>{epic._count?.stories || 0} Stories</span>
                 <span>{getEpicCompletion(epic)}% Complete</span>
               </div>
               {epic.description && (
-                <p className="mt-2 text-sm text-blue-600 line-clamp-2">{epic.description}</p>
+                <p className="mt-2 text-sm text-muted line-clamp-2">{epic.description}</p>
               )}
             </div>
           </div>
 
           {/* Expand Icon (will be handled by EpicGroup) */}
-          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
@@ -113,7 +113,7 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
       <div
         ref={setNodeRef}
         style={style}
-        className={`bg-white border border-gray-200 border-l-4 ${typeColor} rounded-lg p-4 cursor-pointer hover:shadow-md transition-all ${
+        className={`bg-card border border-border border-l-4 ${typeColor} rounded-lg p-4 cursor-pointer hover:shadow-md transition-all ${
           isDragging ? 'opacity-50' : ''
         }`}
         onClick={() => onClick(story)}
@@ -123,7 +123,7 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1"
+            className="cursor-grab active:cursor-grabbing text-muted hover:text-fg mt-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
@@ -132,23 +132,23 @@ export function PlanningItemCard({ item, onClick, showEpicBadge = false, isDragg
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono text-gray-500">{story.key}</span>
-              <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded capitalize">
+              <span className="text-xs font-mono text-muted">{story.key}</span>
+              <span className="px-2 py-0.5 text-xs font-medium bg-bg-secondary text-fg rounded capitalize">
                 {story.type.replace('_', ' ')}
               </span>
               {showEpicBadge && story.epic && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
                   {story.epic.title}
                 </span>
               )}
             </div>
 
-            <h4 className="font-medium text-gray-900 mb-2">{story.title}</h4>
+            <h4 className="font-medium text-fg mb-2">{story.title}</h4>
 
-            <div className="flex items-center gap-4 text-xs text-gray-600">
+            <div className="flex items-center gap-4 text-xs text-muted">
               <span className="capitalize">Impact: {story.businessImpact || 0}</span>
               {story.status === 'done' ? (
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded font-medium">Done</span>
+                <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded font-medium">Done</span>
               ) : (
                 <span className="capitalize">{story.status.replace('_', ' ')}</span>
               )}
