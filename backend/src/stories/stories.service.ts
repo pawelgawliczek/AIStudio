@@ -335,6 +335,169 @@ export class StoriesService {
   }
 
   /**
+   * Find one story by ID or storyKey (e.g., ST-26)
+   * Supports both UUID and human-readable story keys for shareable URLs
+   * @param idOrKey - Story ID (UUID) or story key (e.g., ST-26)
+   * @returns Story with complete traceability
+   */
+  async findOneByIdOrKey(idOrKey: string) {
+    const include = {
+      project: true,
+      epic: true,
+      assignedFramework: true,
+      assignedWorkflow: true,
+      subtasks: {
+        orderBy: { createdAt: 'asc' as const },
+      },
+      useCaseLinks: {
+        include: {
+          useCase: {
+            include: {
+              testCases: {
+                orderBy: { createdAt: 'asc' as const },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' as const },
+      },
+      commits: {
+        include: {
+          files: true,
+        },
+        orderBy: { timestamp: 'desc' as const },
+        take: 20,
+      },
+      workflowRuns: {
+        include: {
+          workflow: true,
+          coordinator: true,
+          componentRuns: {
+            include: {
+              component: true,
+            },
+            orderBy: { executionOrder: 'asc' as const },
+          },
+        },
+        orderBy: { startedAt: 'desc' as const },
+      },
+      _count: {
+        select: {
+          subtasks: true,
+          commits: true,
+          runs: true,
+          workflowRuns: true,
+        },
+      },
+    };
+
+    // First try to find by ID (UUID format)
+    let story = await this.prisma.story.findUnique({
+      where: { id: idOrKey },
+      include,
+    });
+
+    // If not found by ID, try by key (e.g., ST-26)
+    if (!story) {
+      story = await this.prisma.story.findUnique({
+        where: { key: idOrKey },
+        include,
+      });
+    }
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID or key ${idOrKey} not found`);
+    }
+
+    return story;
+  }
+
+  /**
+   * Get aggregated token metrics for a story across all workflow runs
+   * @param storyId - Story ID (UUID)
+   * @returns Token metrics with breakdown by workflow run and component
+   */
+  async getTokenMetrics(storyId: string) {
+    // Verify story exists
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: { id: true, key: true, title: true },
+    });
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID ${storyId} not found`);
+    }
+
+    // Fetch all workflow runs for this story
+    const workflowRuns = await this.prisma.workflowRun.findMany({
+      where: { storyId },
+      include: {
+        workflow: {
+          select: { id: true, name: true },
+        },
+        componentRuns: {
+          include: {
+            component: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { executionOrder: 'asc' },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    // Calculate totals and breakdown
+    let totalTokens = 0;
+    let totalCost = 0;
+
+    const breakdown = workflowRuns.map((run) => {
+      const runTokens = run.totalTokens || 0;
+      const runCost = run.estimatedCost ? Number(run.estimatedCost) : 0;
+
+      totalTokens += runTokens;
+      totalCost += runCost;
+
+      // Aggregate component metrics
+      const components = run.componentRuns.map((compRun) => {
+        const tokensInput = compRun.tokensInput || 0;
+        const tokensOutput = compRun.tokensOutput || 0;
+        const tokens = tokensInput + tokensOutput;
+
+        // Calculate cost for component (proportional to tokens)
+        const componentCost = runTokens > 0 ? (tokens / runTokens) * runCost : 0;
+
+        return {
+          componentName: compRun.component.name,
+          tokens,
+          cost: Number(componentCost.toFixed(4)),
+          userPrompts: compRun.metrics?.['userPrompts'] || 0,
+          iterations: compRun.metrics?.['systemIterations'] || 0,
+        };
+      });
+
+      return {
+        workflowRunId: run.id,
+        workflowName: run.workflow.name,
+        status: run.status,
+        startedAt: run.startedAt.toISOString(),
+        completedAt: run.finishedAt?.toISOString() || null,
+        tokens: runTokens,
+        cost: runCost,
+        components,
+      };
+    });
+
+    return {
+      storyId: story.id,
+      storyKey: story.key,
+      totalTokens,
+      totalCost: Number(totalCost.toFixed(2)),
+      breakdown,
+    };
+  }
+
+  /**
    * Update story
    * @param id - Story ID
    * @param updateStoryDto - Update data

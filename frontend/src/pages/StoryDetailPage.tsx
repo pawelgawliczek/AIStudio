@@ -6,6 +6,7 @@ import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service'
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { WorkflowAnalysisDisplay } from '../components/workflow/WorkflowAnalysisDisplay';
 import { StoryTraceabilityTabs } from '../components/story/StoryTraceabilityTabs';
+import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -41,10 +42,18 @@ const STATUS_TRANSITIONS: Record<string, StoryStatus[]> = {
 };
 
 export function StoryDetailPage() {
-  const { projectId, storyId } = useParams<{ projectId: string; storyId: string }>();
+  // Support both /story/:storyKey and legacy /projects/:projectId/stories/:storyId patterns
+  const { storyKey, storyId: legacyStoryId, projectId } = useParams<{
+    storyKey?: string;
+    storyId?: string;
+    projectId?: string;
+  }>();
   const navigate = useNavigate();
 
-  console.log('[StoryDetailPage] Component mounted, params:', { projectId, storyId });
+  // Use storyKey if available, otherwise use legacy storyId
+  const storyIdOrKey = storyKey || legacyStoryId;
+
+  console.log('[StoryDetailPage] Component mounted, params:', { storyKey, legacyStoryId, projectId, storyIdOrKey });
 
   const [story, setStory] = useState<Story | null>(null);
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
@@ -59,7 +68,7 @@ export function StoryDetailPage() {
 
   // New subtask form
   const [newSubtask, setNewSubtask] = useState<CreateSubtaskDto>({
-    storyId: storyId!,
+    storyId: story?.id || '',
     title: '',
     description: '',
     layer: undefined,
@@ -70,13 +79,14 @@ export function StoryDetailPage() {
   const isAdmin = currentUser.role === 'admin';
 
   const loadStory = async () => {
-    if (!storyId || storyId === 'new') {
+    if (!storyIdOrKey || storyIdOrKey === 'new') {
       setIsLoading(false);  // Set loading to false for 'new' story creation
       return;
     }
     try {
       setIsLoading(true);
-      const data = await storiesService.getById(storyId);
+      // Use the new endpoint that supports both ID and storyKey
+      const data = await storiesService.getById(storyIdOrKey);
       setStory(data);
     } catch (error) {
       console.error('Failed to load story:', error);
@@ -86,9 +96,9 @@ export function StoryDetailPage() {
   };
 
   const loadSubtasks = async () => {
-    if (!storyId || storyId === 'new') return;
+    if (!story?.id) return;
     try {
-      const data = await subtasksService.getAll({ storyId });
+      const data = await subtasksService.getAll({ storyId: story.id });
       setSubtasks(data);
     } catch (error) {
       console.error('Failed to load subtasks:', error);
@@ -96,10 +106,17 @@ export function StoryDetailPage() {
   };
 
   useEffect(() => {
-    console.log('[StoryDetailPage] useEffect triggered, storyId:', storyId);
+    console.log('[StoryDetailPage] useEffect triggered, storyIdOrKey:', storyIdOrKey);
     loadStory();
-    loadSubtasks();
-  }, [storyId]);
+  }, [storyIdOrKey]);
+
+  useEffect(() => {
+    if (story?.id) {
+      loadSubtasks();
+      // Update newSubtask storyId when story loads
+      setNewSubtask(prev => ({ ...prev, storyId: story.id }));
+    }
+  }, [story?.id]);
 
   // Real-time updates
   useStoryEvents({
@@ -338,6 +355,13 @@ export function StoryDetailPage() {
 
       {/* Workflow Analysis Section */}
       <WorkflowAnalysisDisplay story={story} />
+
+      {/* Token Metrics Section */}
+      {story?.id && (
+        <div className="mb-6">
+          <TokenMetricsPanel storyId={story.id} />
+        </div>
+      )}
 
       {/* Traceability Section */}
       <div className="mb-6">
