@@ -264,9 +264,9 @@ export function DashboardPage() {
               <div className="space-y-3">
                 <Link
                   to={`/planning?projectId=${selectedProject.id}`}
-                  className="flex items-center p-3 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                  className="flex items-center p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                 >
-                  <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-primary-600 flex items-center justify-center">
+                  <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-primary-600 dark:bg-primary-700 flex items-center justify-center">
                     <span className="text-white text-xl">🎯</span>
                   </div>
                   <div className="ml-4">
@@ -277,9 +277,9 @@ export function DashboardPage() {
 
                 <Link
                   to={`/projects/${selectedProject.id}/epics`}
-                  className="flex items-center p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                  className="flex items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
                 >
-                  <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-purple-600 flex items-center justify-center">
+                  <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-purple-600 dark:bg-purple-700 flex items-center justify-center">
                     <span className="text-white text-xl">🟣</span>
                   </div>
                   <div className="ml-4">
@@ -290,9 +290,9 @@ export function DashboardPage() {
 
                 <Link
                   to={`/projects/${selectedProject.id}/stories`}
-                  className="flex items-center p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  className="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                 >
-                  <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                  <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-blue-600 dark:bg-blue-700 flex items-center justify-center">
                     <span className="text-white text-xl">📖</span>
                   </div>
                   <div className="ml-4">
