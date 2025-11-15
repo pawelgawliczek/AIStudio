@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EpicPlanningView } from './EpicPlanningView';
+import { ThemeProvider } from '../context/ThemeContext';
 
 // Mock the project context
 vi.mock('../context/ProjectContext', () => ({
@@ -100,7 +101,9 @@ const createWrapper = () => {
 
   return ({ children }: { children: React.ReactNode }) => (
     <BrowserRouter>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   );
 };
@@ -108,6 +111,9 @@ const createWrapper = () => {
 beforeEach(() => {
   // Clear sessionStorage before each test
   sessionStorage.clear();
+  // Reset to light theme
+  localStorage.clear();
+  document.documentElement.removeAttribute('data-theme');
 });
 
 describe('EpicPlanningView', () => {
@@ -246,5 +252,94 @@ describe('EpicPlanningView - Show/Hide Completed Items', () => {
     // Completed items should be visible
     expect(screen.getByText('Story 1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /show completed/i })).toBeInTheDocument();
+  });
+});
+
+describe('EpicPlanningView - Theme Support', () => {
+  it('renders with light theme by default', async () => {
+    render(<EpicPlanningView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading planning data/i)).not.toBeInTheDocument();
+    });
+
+    // Check that document has no dark theme attribute
+    expect(document.documentElement.getAttribute('data-theme')).toBeNull();
+  });
+
+  it('applies theme-aware classes to header and cards', async () => {
+    const { container } = render(<EpicPlanningView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading planning data/i)).not.toBeInTheDocument();
+    });
+
+    // Find elements with theme-aware classes
+    const cards = container.querySelectorAll('.bg-card');
+    expect(cards.length).toBeGreaterThan(0);
+
+    const fgElements = container.querySelectorAll('.text-fg');
+    expect(fgElements.length).toBeGreaterThan(0);
+
+    const mutedElements = container.querySelectorAll('.text-muted');
+    expect(mutedElements.length).toBeGreaterThan(0);
+  });
+
+  it('uses theme-aware border colors', async () => {
+    const { container } = render(<EpicPlanningView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading planning data/i)).not.toBeInTheDocument();
+    });
+
+    // Check for theme-aware border classes
+    const borderElements = container.querySelectorAll('.border-border');
+    expect(borderElements.length).toBeGreaterThan(0);
+  });
+
+  it('filter badges support dark mode with dark: prefix', async () => {
+    // Add a status filter
+    window.history.pushState({}, '', '/epic-planning?status=planning');
+
+    const { container } = render(<EpicPlanningView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading planning data/i)).not.toBeInTheDocument();
+    });
+
+    // Check for dark mode classes on filter badges
+    const filterBadge = container.querySelector('[class*="dark:bg-blue-900"]');
+    expect(filterBadge).toBeTruthy();
+  });
+
+  it('maintains proper styling in dark mode', async () => {
+    // Set dark theme
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+
+    const { container } = render(<EpicPlanningView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading planning data/i)).not.toBeInTheDocument();
+    });
+
+    // Verify dark theme is applied
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+    // All cards should still use theme-aware classes
+    const cards = container.querySelectorAll('.bg-card');
+    expect(cards.length).toBeGreaterThan(0);
+  });
+
+  it('uses theme-aware background for view mode toggles', async () => {
+    const { container } = render(<EpicPlanningView />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading planning data/i)).not.toBeInTheDocument();
+    });
+
+    // View mode toggle should use theme-aware muted background
+    const mutedBackground = container.querySelector('.bg-muted');
+    expect(mutedBackground).toBeTruthy();
   });
 });

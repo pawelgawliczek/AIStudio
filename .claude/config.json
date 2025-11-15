@@ -1,0 +1,10 @@
+{
+  "project": {
+    "id": "345a29ee-d6ab-477d-8079-c5dda0844d77",
+    "name": "AI Studio",
+    "repositoryUrl": "https://github.com/pawelgawliczek/AIStudio"
+  },
+  "mcp": {
+    "defaultProjectId": "345a29ee-d6ab-477d-8079-c5dda0844d77"
+  }
+}

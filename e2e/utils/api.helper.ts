@@ -254,4 +254,50 @@ export class ApiHelper {
   ): Promise<void> {
     await request.post(`${API_URL}/auth/register`, { data });
   }
+
+  // ============================================================================
+  // Generic HTTP Methods (for workflow runs and other endpoints)
+  // ============================================================================
+
+  async get(endpoint: string): Promise<any> {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const response = await this.request.get(url, {
+      headers: this.headers,
+    });
+    return { data: await response.json() };
+  }
+
+  async post(endpoint: string, data?: any): Promise<any> {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const response = await this.request.post(url, {
+      headers: this.headers,
+      data,
+    });
+    return { data: await response.json() };
+  }
+
+  async put(endpoint: string, data?: any): Promise<any> {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const response = await this.request.put(url, {
+      headers: this.headers,
+      data,
+    });
+    return { data: await response.json() };
+  }
+
+  async patch(endpoint: string, data?: any): Promise<any> {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    const response = await this.request.patch(url, {
+      headers: this.headers,
+      data,
+    });
+    return { data: await response.json() };
+  }
+
+  async delete(endpoint: string): Promise<void> {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+    await this.request.delete(url, {
+      headers: this.headers,
+    });
+  }
 }
