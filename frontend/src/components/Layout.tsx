@@ -85,6 +85,8 @@ export function Layout() {
                         { label: 'Use Cases', icon: '📖', path: '/use-cases' },
                         { label: 'Code Quality', icon: '🔍', path: `/code-quality/${selectedProject.id}` },
                         { label: 'Agent Performance', icon: '📈', path: `/agent-performance/${selectedProject.id}` },
+                        { label: 'Agent Metrics', icon: '📊', path: '/analytics/agent-metrics' },
+                        { label: 'Workflow Analytics', icon: '📈', path: '/analytics/workflow' },
                         { label: 'Test Coverage', icon: '🧪', path: `/test-coverage/project/${selectedProject.id}` },
                       ]}
                     />

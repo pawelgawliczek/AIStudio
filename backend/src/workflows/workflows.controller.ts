@@ -13,7 +13,8 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { WorkflowsService } from './workflows.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ActivationService } from '../mcp/services/activation.service';
 import { CreateWorkflowDto, UpdateWorkflowDto, WorkflowResponseDto } from './dto';
 import {
   ActivateWorkflowDto,
@@ -23,11 +24,10 @@ import {
   SyncResponseDto,
   ActiveWorkflowResponseDto,
 } from './dto/activate-workflow.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ActivationService } from '../mcp/services/activation.service';
+import { WorkflowsService } from './workflows.service';
 
 @ApiTags('workflows')
-@Controller('api/projects/:projectId/workflows')
+@Controller('projects/:projectId/workflows')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class WorkflowsController {
