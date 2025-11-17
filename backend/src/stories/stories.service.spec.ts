@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { StoriesService } from './stories.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { StoryStatus, StoryType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
-import { StoryStatus, StoryType } from '@prisma/client';
+import { StoriesService } from './stories.service';
 
 describe('StoriesService', () => {
   let service: StoriesService;

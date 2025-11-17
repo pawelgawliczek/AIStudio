@@ -1,10 +1,10 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';
+import OpenAI from 'openai';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../constants';
-import OpenAI from 'openai';
-import { ConfigService } from '@nestjs/config';
 
 /**
  * EmbeddingProcessor

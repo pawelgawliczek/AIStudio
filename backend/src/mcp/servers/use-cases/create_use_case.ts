@@ -1,7 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { getSystemUserId } from '../../utils';
 import { ValidationError } from '../../types';
+import { getSystemUserId } from '../../utils';
 
 export const tool: Tool = {
   name: 'create_use_case',

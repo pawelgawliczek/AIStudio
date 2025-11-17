@@ -1,7 +1,7 @@
-import { Controller, Get, Res, Param } from '@nestjs/common';
-import { Response } from 'express';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { Controller, Get, Res, Param } from '@nestjs/common';
+import { Response } from 'express';
 
 @Controller('docs')
 export class DocsController {

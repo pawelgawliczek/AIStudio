@@ -1,7 +1,7 @@
-import { IsOptional, IsEnum, IsUUID, IsInt, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import { TestCaseType, TestPriority, TestCaseStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
+import { IsOptional, IsEnum, IsUUID, IsInt, Min } from 'class-validator';
 
 export class TestCaseSearchDto {
   @ApiPropertyOptional({ description: 'Project ID filter' })

@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { WorkflowRunsModule } from '../workflow-runs.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RunStatus } from '../dto';
+import { WorkflowRunsModule } from '../workflow-runs.module';
 
 describe('WorkflowRunsController (Integration)', () => {
   let app: INestApplication;

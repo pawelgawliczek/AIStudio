@@ -65,6 +65,7 @@ model Project {
   activeWorkflows     ActiveWorkflow[]
   metricsAggregations MetricsAggregation[]
   fileUseCaseLinks    FileUseCaseLink[]
+  otelEvents          OtelEvent[]
 
   @@map("projects")
 }
@@ -665,6 +666,7 @@ model WorkflowRun {
   coordinator   CoordinatorAgent? @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
   componentRuns ComponentRun[]
   defects       DefectNew[]
+  otelEvents    OtelEvent[]
 
   @@index([projectId])
   @@index([workflowId])
@@ -718,6 +720,43 @@ model ComponentRun {
   humanInterventions  Int?    @default(0) @map("human_interventions")
   iterationLog        Json?   @map("iteration_log") // Array of iterations with timestamps
 
+  // ST-27 Comprehensive Metrics - Session Tracking
+  sessionId           String?    @map("session_id") // Claude Code session ID for OTEL mapping
+
+  // ST-27 Comprehensive Metrics - Cache Metrics
+  tokensCacheRead     Int?       @default(0) @map("tokens_cache_read")
+  tokensCacheWrite    Int?       @default(0) @map("tokens_cache_write")
+  cacheHits           Int?       @default(0) @map("cache_hits")
+  cacheMisses         Int?       @default(0) @map("cache_misses")
+  cacheHitRate        Float?     @map("cache_hit_rate") // Percentage 0.0-1.0
+
+  // ST-27 Comprehensive Metrics - Code Impact Metrics
+  linesAdded          Int?       @default(0) @map("lines_added")
+  linesDeleted        Int?       @default(0) @map("lines_deleted")
+  linesModified       Int?       @default(0) @map("lines_modified")
+  complexityBefore    Float?     @map("complexity_before") // Cyclomatic complexity
+  complexityAfter     Float?     @map("complexity_after")
+  coverageBefore      Float?     @map("coverage_before") // Test coverage %
+  coverageAfter       Float?     @map("coverage_after")
+
+  // ST-27 Comprehensive Metrics - Quality Metrics
+  errorRate           Float?     @map("error_rate") // Failed tools / total tools
+  successRate         Float?     @map("success_rate") // Successful completions
+  toolBreakdown       Json?      @map("tool_breakdown") // Tool-level stats {toolName: {calls, errors, avgDuration}}
+
+  // ST-27 Comprehensive Metrics - Agent Behavior
+  contextSwitches     Int?       @default(0) @map("context_switches") // File/domain changes
+  explorationDepth    Int?       @default(0) @map("exploration_depth") // Files analyzed before implementing
+
+  // ST-27 Comprehensive Metrics - Cost & Performance
+  costBreakdown       Json?      @map("cost_breakdown") // {input: $, output: $, cache: $}
+  modelId             String?    @map("model_id") // Model used (e.g., claude-3-opus-20240229)
+  temperature         Float?     // Model temperature setting
+  maxTokens           Int?       @map("max_tokens") // Max tokens configuration
+  stopReason          String?    @map("stop_reason") // end_turn, max_tokens, tool_use, error
+  timeToFirstToken    Float?     @map("time_to_first_token") // Seconds
+  tokensPerSecond     Float?     @map("tokens_per_second") // Throughput
+
   // Execution details
   startedAt        DateTime    @map("started_at")
   finishedAt       DateTime?   @map("finished_at")
@@ -737,12 +776,55 @@ model ComponentRun {
   workflowRun  WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
   component    Component   @relation(fields: [componentId], references: [id], onDelete: Restrict)
   subtasks     Subtask[]
+  otelEvents   OtelEvent[]
 
   @@index([workflowRunId])
   @@index([componentId])
   @@index([startedAt])
   @@index([status])
   @@map("component_runs")
+}
+
+// ST-27: OtelEvent - OpenTelemetry event tracking for actual metrics
+model OtelEvent {
+  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId        String      @map("project_id") @db.Uuid
+  sessionId        String      @map("session_id") // Claude Code session identifier
+  workflowRunId    String?     @map("workflow_run_id") @db.Uuid // Extracted from metadata
+  componentRunId   String?     @map("component_run_id") @db.Uuid // Linked via session mapping
+
+  // Event data
+  timestamp        DateTime    // When event occurred
+  eventType        String      @map("event_type") // claude_code.api_request, claude_code.tool_use, etc.
+  eventName        String?     @map("event_name") // Human-readable event name
+
+  // General metadata
+  metadata         Json?       // Event metadata (tokens, model, etc.)
+  attributes       Json?       // Event attributes
+
+  // Tool usage specific fields
+  toolName         String?     @map("tool_name") // Read, Write, Edit, Bash, MCP tool name
+  toolParameters   Json?       @map("tool_parameters") // Tool input parameters
+  toolDuration     Float?      @map("tool_duration") // Tool execution time in seconds
+  toolSuccess      Boolean?    @map("tool_success") // Whether tool succeeded
+  toolError        String?     @map("tool_error") // Error message if failed
+
+  // Processed flags
+  processed        Boolean     @default(false) // Whether event has been processed for aggregation
+  aggregatedAt     DateTime?   @map("aggregated_at") // When metrics were aggregated
+
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflowRun      WorkflowRun? @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  componentRun     ComponentRun? @relation(fields: [componentRunId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, timestamp])
+  @@index([workflowRunId, componentRunId])
+  @@index([projectId, eventType, timestamp])
+  @@index([processed, aggregatedAt])
+  @@map("otel_events")
 }
 
 // DefectNew - Enhanced defect tracking with origin story

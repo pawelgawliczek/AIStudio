@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { apiClient } from './api.client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -53,22 +54,12 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
-    const accessToken = localStorage.getItem('accessToken');
-
-    if (accessToken) {
-      try {
-        await axios.post(
-          `${API_URL}/auth/logout`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
+    try {
+      // Use apiClient which already includes the auth token
+      await apiClient.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with logout even if API call fails
     }
 
     localStorage.removeItem('accessToken');

@@ -5,10 +5,10 @@
  * and handlers on-demand instead of static imports.
  */
 
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { pathToFileURL } from 'url';
-import path from 'path';
 import fs from 'fs/promises';
+import path from 'path';
+import { pathToFileURL } from 'url';
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export interface ToolModule {
   tool: Tool;

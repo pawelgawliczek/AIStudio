@@ -6,6 +6,7 @@
  * Implements progressive disclosure pattern with file-based tool discovery.
  */
 
+import path from 'path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -13,7 +14,6 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import path from 'path';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
 

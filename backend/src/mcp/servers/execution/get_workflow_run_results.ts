@@ -3,8 +3,8 @@
  * Query comprehensive execution results with metrics, components, and artifacts
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'get_workflow_run_results',

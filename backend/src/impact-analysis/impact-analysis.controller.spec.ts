@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { MappingSource } from '@prisma/client';
 import { ImpactAnalysisController } from './impact-analysis.controller';
 import { ImpactAnalysisService } from './impact-analysis.service';
-import { MappingSource } from '@prisma/client';
 
 describe('ImpactAnalysisController', () => {
   let controller: ImpactAnalysisController;

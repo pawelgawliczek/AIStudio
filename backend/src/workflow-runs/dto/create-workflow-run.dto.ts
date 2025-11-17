@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsDateString, IsInt, IsNumber, IsEnum, IsArray, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RunStatus } from '@prisma/client';
+import { IsString, IsOptional, IsDateString, IsInt, IsNumber, IsEnum, IsArray, IsObject } from 'class-validator';
 
 // Re-export RunStatus for convenience
 export { RunStatus };

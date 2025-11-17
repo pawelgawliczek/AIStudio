@@ -3,8 +3,8 @@
  * Pre-configure workflow for a story
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'assign_workflow_to_story',

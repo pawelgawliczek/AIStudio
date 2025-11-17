@@ -3,8 +3,8 @@
  * Trigger workflow execution for a specific story
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { handler as startWorkflowRunHandler } from './start_workflow_run.js';
 
 export const tool: Tool = {

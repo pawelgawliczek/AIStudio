@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { ComponentsService } from './components.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { ComponentsService } from './components.service';
 import { CreateComponentDto, UpdateComponentDto } from './dto';
 
 describe('ComponentsService', () => {

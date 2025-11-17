@@ -24,7 +24,7 @@ export function WorkflowRunsHistory({ workflowId, projectId }: WorkflowRunsHisto
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 p-2">
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-fg"></div>
         <span className="text-sm text-muted">Loading runs...</span>
       </div>
     );
@@ -36,17 +36,17 @@ export function WorkflowRunsHistory({ workflowId, projectId }: WorkflowRunsHisto
         {runs.length} {runs.length === 1 ? 'run' : 'runs'}
       </span>
       {completedCount > 0 && (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
+        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800">
           {completedCount} completed
         </span>
       )}
       {failedCount > 0 && (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 border border-red-200">
+        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800">
           {failedCount} failed
         </span>
       )}
       {runningCount > 0 && (
-        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
           {runningCount} running
         </span>
       )}

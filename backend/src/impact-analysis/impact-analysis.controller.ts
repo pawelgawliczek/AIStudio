@@ -7,13 +7,13 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import { MappingSource } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   ImpactAnalysisService,
   FileToUseCasesQuery,
   UseCaseToFilesQuery,
 } from './impact-analysis.service';
-import { MappingSource } from '@prisma/client';
 
 @Controller('api/impact-analysis')
 @UseGuards(JwtAuthGuard)

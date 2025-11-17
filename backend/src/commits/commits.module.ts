@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { CommitsService } from './commits.service';
-import { CommitsController } from './commits.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WorkersModule } from '../workers/workers.module';
+import { CommitsController } from './commits.controller';
+import { CommitsService } from './commits.service';
 
 @Module({
   imports: [PrismaModule, WorkersModule],

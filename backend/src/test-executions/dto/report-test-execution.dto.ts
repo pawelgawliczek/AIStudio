@@ -1,7 +1,7 @@
-import { IsUUID, IsNotEmpty, IsEnum, IsInt, IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import { TestExecutionStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
+import { IsUUID, IsNotEmpty, IsEnum, IsInt, IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 
 export class ReportTestExecutionDto {
   @ApiProperty({ description: 'Test case ID' })

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LinkCommitDto, CommitResponseDto } from './dto';
 import { WorkersService } from '../workers/workers.service';
+import { LinkCommitDto, CommitResponseDto } from './dto';
 
 @Injectable()
 export class CommitsService {

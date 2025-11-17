@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WorkflowStateService } from './workflow-state.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WorkflowStateService } from './workflow-state.service';
 
 describe('WorkflowStateService', () => {
   let service: WorkflowStateService;
