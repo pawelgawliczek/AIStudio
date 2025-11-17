@@ -319,7 +319,14 @@ export class CodeMetricsService {
     });
 
     if (metrics.length === 0) {
-      throw new NotFoundException(`No metrics found for project ${projectId}`);
+      // Return empty folder structure instead of throwing error (Null Object Pattern)
+      return {
+        path: '',
+        name: 'root',
+        type: 'folder',
+        metrics: this.createEmptyMetrics(),
+        children: [],
+      };
     }
 
     // Build tree structure
@@ -411,7 +418,7 @@ export class CodeMetricsService {
 
         const priority = Math.round(complexityFactor + riskFactor + locFactor + coveragePenalty);
 
-        let reason = [];
+        const reason = [];
         if (m.riskScore > 70) reason.push('High risk');
         if (m.cyclomaticComplexity > 15) reason.push('Complex code');
         if (m.linesOfCode > 300) reason.push('Large file');
