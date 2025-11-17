@@ -219,12 +219,15 @@ export class CodeAnalysisProcessor {
    * Now includes test files (.test., .spec.) for complete codebase analysis
    */
   private isSourceFile(filePath: string): boolean {
-    const extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs'];
+    const extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs', '.sql', '.json'];
     return extensions.some((ext) => filePath.endsWith(ext)) &&
            !filePath.includes('node_modules/') &&
            !filePath.includes('dist/') &&
            !filePath.includes('build/') &&
-           !filePath.includes('coverage/');
+           !filePath.includes('coverage/') &&
+           !filePath.includes('package.json') &&
+           !filePath.includes('package-lock.json') &&
+           !filePath.includes('tsconfig.json');
   }
 
   /**
@@ -844,6 +847,7 @@ export class CodeAnalysisProcessor {
         try {
           const content = await fs.readFile(coveragePath, 'utf8');
           const coverageData = JSON.parse(content);
+          let filesLoaded = 0;
 
           // Parse coverage based on file type
           for (const [filePath, data] of Object.entries(coverageData)) {
@@ -916,24 +920,29 @@ export class CodeAnalysisProcessor {
               }
             }
 
-            // Only add to map if we successfully normalized the path
-            if (!relativePath.startsWith('/') && relativePath.includes('/')) {
+            // Only add to map if we successfully normalized the path AND not already present
+            // This allows merging coverage from multiple locations (frontend + backend)
+            if (!relativePath.startsWith('/') && relativePath.includes('/') && !coverageMap.has(relativePath)) {
               coverageMap.set(relativePath, coverage);
+              filesLoaded++;
               this.logger.debug(`Mapped coverage: ${filePath} -> ${relativePath} (${coverage}%)`);
+            } else if (coverageMap.has(relativePath)) {
+              this.logger.debug(`Skipping duplicate coverage: ${relativePath}`);
             } else {
               this.logger.warn(`Failed to normalize coverage path: ${filePath}`);
             }
           }
-          // Successfully loaded coverage from this file, don't try others
-          if (coverageMap.size > 0) {
-            this.logger.log(`Loaded coverage from ${coveragePath} (${type} format)`);
-            break;
+          // Log what was loaded from this file, but continue to load from other locations
+          if (filesLoaded > 0) {
+            this.logger.log(`Loaded coverage from ${coveragePath} (${type} format) - ${filesLoaded} files`);
           }
         } catch (err) {
           // File doesn't exist, try next location
           continue;
         }
       }
+
+      this.logger.log(`Total coverage data loaded for ${coverageMap.size} files`);
 
       return coverageMap;
     } catch (error) {
