@@ -19,6 +19,9 @@ import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
 import ComponentCoverageView from './pages/ComponentCoverageView';
+import { AgentMetricsDashboard } from './pages/AgentMetricsDashboard';
+import WorkflowAnalyticsDashboard from './pages/WorkflowAnalyticsDashboard';
+import WorkflowDetailsPage from './pages/WorkflowDetailsPage';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
 
@@ -50,6 +53,9 @@ function App() {
               <Route path="workflow-runs/:runId/results" element={<WorkflowResultsView />} />
               <Route path="workflow-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />
+              <Route path="analytics/agent-metrics" element={<AgentMetricsDashboard />} />
+              <Route path="analytics/workflow" element={<WorkflowAnalyticsDashboard />} />
+              <Route path="analytics/workflow-details" element={<WorkflowDetailsPage />} />
             </Route>
           </Routes>
         </ProjectProvider>

@@ -14,9 +14,9 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { AgentMetricsService } from './agent-metrics.service';
 import {
   GetFrameworkMetricsDto,
@@ -30,6 +30,11 @@ import {
   ComplexityBand,
   DateRange,
   ComparisonBaseline,
+  // ST-27 Workflow Metrics
+  GetWorkflowMetricsDto,
+  WorkflowMetricsResponseDto,
+  AggregationLevel,
+  WorkflowComparisonResponseDto,
 } from './dto';
 
 @ApiTags('Agent Metrics')
@@ -347,4 +352,301 @@ export class AgentMetricsController {
       generatedAt: new Date().toISOString(),
     };
   }
+
+  // ========== ST-27 Workflow Metrics Endpoints ==========
+
+  @Get('workflow-metrics')
+  @Roles('admin', 'pm', 'architect', 'viewer')
+  @ApiOperation({
+    summary: 'Get comprehensive workflow metrics with multi-level aggregation',
+    description:
+      'Returns all KPIs including tokens (in/out/cached), prompts, interactions, LOC, tests, cost, and efficiency ratios. Supports aggregation by workflow, story, epic, or agent.',
+  })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
+  @ApiQuery({
+    name: 'workflowId',
+    required: false,
+    type: String,
+    description: 'Filter by specific workflow',
+  })
+  @ApiQuery({
+    name: 'dateRange',
+    required: false,
+    type: String,
+    description: 'Date range: week, month, quarter, custom',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Custom start date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'Custom end date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'aggregateBy',
+    required: false,
+    enum: AggregationLevel,
+    description: 'Aggregation level: workflow, story, epic, agent',
+  })
+  @ApiQuery({
+    name: 'businessComplexityMin',
+    required: false,
+    type: Number,
+    description: 'Minimum business complexity (1-10)',
+  })
+  @ApiQuery({
+    name: 'businessComplexityMax',
+    required: false,
+    type: Number,
+    description: 'Maximum business complexity (1-10)',
+  })
+  @ApiQuery({
+    name: 'technicalComplexityMin',
+    required: false,
+    type: Number,
+    description: 'Minimum technical complexity (1-10)',
+  })
+  @ApiQuery({
+    name: 'technicalComplexityMax',
+    required: false,
+    type: Number,
+    description: 'Maximum technical complexity (1-10)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Workflow metrics returned successfully',
+    type: WorkflowMetricsResponseDto,
+  })
+  @HttpCode(HttpStatus.OK)
+  async getWorkflowMetrics(
+    @Query('projectId') projectId: string,
+    @Query('workflowId') workflowId?: string,
+    @Query('dateRange') dateRange?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('aggregateBy') aggregateBy?: AggregationLevel,
+    @Query('businessComplexityMin') businessComplexityMin?: number,
+    @Query('businessComplexityMax') businessComplexityMax?: number,
+    @Query('technicalComplexityMin') technicalComplexityMin?: number,
+    @Query('technicalComplexityMax') technicalComplexityMax?: number,
+  ): Promise<WorkflowMetricsResponseDto> {
+    this.logger.log(`GET /agent-metrics/workflow-metrics`);
+
+    const dto: GetWorkflowMetricsDto = {
+      projectId,
+      workflowId,
+      dateRange,
+      startDate,
+      endDate,
+      aggregateBy,
+      businessComplexityMin: businessComplexityMin
+        ? Number(businessComplexityMin)
+        : undefined,
+      businessComplexityMax: businessComplexityMax
+        ? Number(businessComplexityMax)
+        : undefined,
+      technicalComplexityMin: technicalComplexityMin
+        ? Number(technicalComplexityMin)
+        : undefined,
+      technicalComplexityMax: technicalComplexityMax
+        ? Number(technicalComplexityMax)
+        : undefined,
+    };
+
+    return this.agentMetricsService.getWorkflowMetrics(dto);
+  }
+
+  @Get('workflow-comparison')
+  @Roles('admin', 'pm', 'architect', 'viewer')
+  @ApiOperation({
+    summary: 'Compare two workflows side by side',
+    description:
+      'Returns detailed comparison of two workflows including percentage differences in tokens/LOC, cost/story, duration, and defects. Generates insights and recommendations.',
+  })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
+  @ApiQuery({
+    name: 'workflow1Id',
+    required: true,
+    type: String,
+    description: 'First workflow ID',
+  })
+  @ApiQuery({
+    name: 'workflow2Id',
+    required: true,
+    type: String,
+    description: 'Second workflow ID',
+  })
+  @ApiQuery({
+    name: 'dateRange',
+    required: false,
+    type: String,
+    description: 'Date range: week, month, quarter, custom',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Custom start date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'Custom end date (ISO format)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Workflow comparison returned successfully',
+    type: WorkflowComparisonResponseDto,
+  })
+  @HttpCode(HttpStatus.OK)
+  async compareWorkflows(
+    @Query('projectId') projectId: string,
+    @Query('workflow1Id') workflow1Id: string,
+    @Query('workflow2Id') workflow2Id: string,
+    @Query('dateRange') dateRange?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<WorkflowComparisonResponseDto> {
+    this.logger.log(`GET /agent-metrics/workflow-comparison`);
+
+    return this.agentMetricsService.compareWorkflows(
+      projectId,
+      workflow1Id,
+      workflow2Id,
+      dateRange,
+      startDate,
+      endDate,
+    );
+  }
+
+  @Get('performance-dashboard')
+  @Roles('admin', 'pm', 'architect', 'viewer')
+  @ApiOperation({
+    summary: 'Get performance dashboard trends and KPIs',
+    description:
+      'Returns KPIs with change percentages and daily trend data for charting. Supports workflow filtering where selected workflows show as solid line and all workflows as dotted line.',
+  })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
+  @ApiQuery({
+    name: 'workflowIds',
+    required: false,
+    type: String,
+    description: 'Comma-separated workflow IDs to filter (empty = all workflows)',
+  })
+  @ApiQuery({
+    name: 'dateRange',
+    required: false,
+    type: String,
+    description: 'Date range: week, month, quarter, custom',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Custom start date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'Custom end date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'businessComplexityMin',
+    required: false,
+    type: Number,
+    description: 'Minimum business complexity (1-10)',
+  })
+  @ApiQuery({
+    name: 'businessComplexityMax',
+    required: false,
+    type: Number,
+    description: 'Maximum business complexity (1-10)',
+  })
+  @ApiQuery({
+    name: 'technicalComplexityMin',
+    required: false,
+    type: Number,
+    description: 'Minimum technical complexity (1-10)',
+  })
+  @ApiQuery({
+    name: 'technicalComplexityMax',
+    required: false,
+    type: Number,
+    description: 'Maximum technical complexity (1-10)',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Performance dashboard data returned successfully',
+  })
+  @HttpCode(HttpStatus.OK)
+  async getPerformanceDashboard(
+    @Query('projectId') projectId: string,
+    @Query('workflowIds') workflowIds?: string,
+    @Query('dateRange') dateRange?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('businessComplexityMin') businessComplexityMin?: number,
+    @Query('businessComplexityMax') businessComplexityMax?: number,
+    @Query('technicalComplexityMin') technicalComplexityMin?: number,
+    @Query('technicalComplexityMax') technicalComplexityMax?: number,
+  ) {
+    this.logger.log(`GET /agent-metrics/performance-dashboard`);
+
+    const params = {
+      projectId,
+      workflowIds: workflowIds ? workflowIds.split(',').map((id) => id.trim()) : undefined,
+      dateRange,
+      startDate,
+      endDate,
+      businessComplexityMin: businessComplexityMin ? Number(businessComplexityMin) : undefined,
+      businessComplexityMax: businessComplexityMax ? Number(businessComplexityMax) : undefined,
+      technicalComplexityMin: technicalComplexityMin ? Number(technicalComplexityMin) : undefined,
+      technicalComplexityMax: technicalComplexityMax ? Number(technicalComplexityMax) : undefined,
+    };
+
+    return this.agentMetricsService.getPerformanceDashboardTrends(params);
+  }
+
+  @Get('workflow-details')
+  @Roles('admin', 'pm', 'architect', 'viewer')
+  @ApiOperation({
+    summary: 'Get detailed metrics for one or two workflows',
+    description:
+      'Returns comprehensive KPIs for workflow comparison including execution metrics, token/cost metrics, code generation stats, cache metrics, and quality indicators.',
+  })
+  @ApiQuery({ name: 'projectId', required: true, type: String })
+  @ApiQuery({ name: 'workflowAId', required: true, type: String })
+  @ApiQuery({ name: 'workflowBId', required: false, type: String })
+  @ApiQuery({ name: 'businessComplexity', required: false, type: String })
+  @ApiQuery({ name: 'technicalComplexity', required: false, type: String })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Workflow details returned successfully',
+  })
+  @HttpCode(HttpStatus.OK)
+  async getWorkflowDetails(
+    @Query('projectId') projectId: string,
+    @Query('workflowAId') workflowAId: string,
+    @Query('workflowBId') workflowBId?: string,
+    @Query('businessComplexity') businessComplexity?: string,
+    @Query('technicalComplexity') technicalComplexity?: string,
+  ) {
+    this.logger.log(`GET /agent-metrics/workflow-details for workflow ${workflowAId}`);
+
+    return this.agentMetricsService.getWorkflowDetails({
+      projectId,
+      workflowAId,
+      workflowBId,
+      businessComplexity: businessComplexity || 'all',
+      technicalComplexity: technicalComplexity || 'all',
+    });
+  }
 }
+
