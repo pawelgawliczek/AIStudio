@@ -329,16 +329,6 @@ export function DashboardPage() {
                   <span className="text-accent">→</span>
                 </Link>
 
-                <Link
-                  to={`/agent-performance/${selectedProject.id}`}
-                  className="flex items-center justify-between p-3 border border-border rounded-lg hover:border-accent hover:bg-bg-secondary transition-colors"
-                >
-                  <div className="flex items-center">
-                    <ChartBarIcon className="h-5 w-5 text-muted mr-3" />
-                    <span className="text-sm font-medium text-fg">Agent Performance</span>
-                  </div>
-                  <span className="text-accent">→</span>
-                </Link>
               </div>
 
               <div className="mt-6 pt-6 border-t border-border">
