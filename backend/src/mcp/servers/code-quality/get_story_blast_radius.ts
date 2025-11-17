@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {

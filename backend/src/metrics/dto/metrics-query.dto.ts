@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsDateString, IsEnum, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsDateString, IsEnum, IsInt, Min, Max } from 'class-validator';
 
 export enum TimeGranularity {
   DAILY = 'DAILY',

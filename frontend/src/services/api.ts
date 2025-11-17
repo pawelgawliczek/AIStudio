@@ -1,24 +1,8 @@
-import axios from 'axios';
 import type { Story, Epic, Subtask, FilterStoryDto, UpdateStoryStatusDto, CreateStoryDto, UpdateStoryDto } from '../types';
+import { apiClient } from './api.client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
-// Create axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Use the unified apiClient with token refresh and request queueing
+const api = apiClient;
 
 // Stories API
 export const storiesApi = {

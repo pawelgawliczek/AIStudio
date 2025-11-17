@@ -1,5 +1,5 @@
-import { IsString, IsOptional, IsUrl, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsUrl, MinLength } from 'class-validator';
 
 export class CreateProjectDto {
   @ApiProperty({

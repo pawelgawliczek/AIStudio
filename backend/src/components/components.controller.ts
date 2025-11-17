@@ -12,9 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ComponentsService } from './components.service';
 import { CreateComponentDto, UpdateComponentDto, ComponentResponseDto } from './dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('components')
 @Controller('api/projects/:projectId/components')

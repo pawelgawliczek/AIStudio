@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { TestExecutionsService } from './test-executions.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportTestExecutionDto } from './dto';
+import { TestExecutionsService } from './test-executions.service';
 
 describe('TestExecutionsService', () => {
   let service: TestExecutionsService;

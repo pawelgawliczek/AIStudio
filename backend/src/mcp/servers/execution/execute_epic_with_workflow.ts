@@ -3,8 +3,8 @@
  * Batch execution of all stories in an epic
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { handler as executeStoryHandler } from './execute_story_with_workflow.js';
 
 export const tool: Tool = {

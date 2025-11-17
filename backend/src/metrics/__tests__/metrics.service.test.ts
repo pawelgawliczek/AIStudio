@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MetricsService } from '../metrics.service';
-import { PrismaService } from '../../prisma/prisma.service';
 import { RunStatus } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import { TimeGranularity } from '../dto/metrics-query.dto';
+import { MetricsService } from '../metrics.service';
 
 describe('MetricsService', () => {
   let service: MetricsService;

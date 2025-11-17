@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { CommitsService } from './commits.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { WorkersService } from '../workers/workers.service';
+import { CommitsService } from './commits.service';
 import { LinkCommitDto } from './dto';
 
 describe('CommitsService', () => {

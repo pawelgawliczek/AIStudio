@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiTags,
   ApiOperation,
@@ -17,17 +18,16 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { StoriesService } from './stories.service';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   CreateStoryDto,
   UpdateStoryDto,
   FilterStoryDto,
   UpdateStoryStatusDto,
 } from './dto';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { StoriesService } from './stories.service';
 
 @ApiTags('stories')
 @Controller('stories')

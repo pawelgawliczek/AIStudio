@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsUUID, IsArray, IsInt, Min, Max } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type, Transform } from 'class-transformer';
+import { IsString, IsOptional, IsUUID, IsArray, IsInt, Min, Max } from 'class-validator';
 
 export class SearchUseCasesDto {
   @ApiPropertyOptional({

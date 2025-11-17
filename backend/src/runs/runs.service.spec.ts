@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { RunsService } from './runs.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRunDto } from './dto';
+import { RunsService } from './runs.service';
 
 describe('RunsService', () => {
   let service: RunsService;

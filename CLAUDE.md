@@ -1,0 +1,3 @@
+- for builds and deployments: build frontend without cache always. For any build use prod docker file.
+- use docker compose (without hyphen)
+- use cache for building only for frontend. Backend only when needed.

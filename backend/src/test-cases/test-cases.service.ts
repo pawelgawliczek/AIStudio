@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { TestCaseType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTestCaseDto, UpdateTestCaseDto, TestCaseSearchDto } from './dto';
-import { TestCaseType } from '@prisma/client';
 
 @Injectable()
 export class TestCasesService {

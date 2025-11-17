@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ImpactAnalysisService } from './impact-analysis.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { MappingSource } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { ImpactAnalysisService } from './impact-analysis.service';
 
 describe('ImpactAnalysisService', () => {
   let service: ImpactAnalysisService;

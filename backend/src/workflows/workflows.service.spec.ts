@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { WorkflowsService } from './workflows.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWorkflowDto, UpdateWorkflowDto } from './dto';
+import { WorkflowsService } from './workflows.service';
 
 describe('WorkflowsService', () => {
   let service: WorkflowsService;

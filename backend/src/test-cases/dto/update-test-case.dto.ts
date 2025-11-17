@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsEnum, IsUUID } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TestCaseType, TestPriority, TestCaseStatus } from '@prisma/client';
+import { IsString, IsOptional, IsEnum, IsUUID } from 'class-validator';
 
 export class UpdateTestCaseDto {
   @ApiPropertyOptional({ description: 'Test case title' })

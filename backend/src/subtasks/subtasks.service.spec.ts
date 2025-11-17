@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { SubtasksService } from './subtasks.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { CreateSubtaskDto, UpdateSubtaskDto, FilterSubtaskDto } from './dto';
+import { SubtasksService } from './subtasks.service';
 
 describe('SubtasksService', () => {
   let service: SubtasksService;

@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'log_run',

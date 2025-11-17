@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ImpactAnalysisService } from '../../../impact-analysis/impact-analysis.service';
 
 export const tool: Tool = {

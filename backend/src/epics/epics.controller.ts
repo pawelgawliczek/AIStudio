@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiTags,
   ApiOperation,
@@ -16,12 +17,11 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { EpicsService } from './epics.service';
-import { CreateEpicDto, UpdateEpicDto, FilterEpicDto } from './dto';
+import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { CreateEpicDto, UpdateEpicDto, FilterEpicDto } from './dto';
+import { EpicsService } from './epics.service';
 
 @ApiTags('epics')
 @Controller('epics')

@@ -116,13 +116,13 @@ export function WorkflowManagementView() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-lg" />
+            <div key={i} className="h-64 bg-bg-secondary animate-pulse rounded-lg" />
           ))}
         </div>
       ) : workflows.length === 0 ? (
         <div className="text-center py-12">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -176,7 +176,7 @@ export function WorkflowManagementView() {
               {workflow.coordinator?.flowDiagram && (
                 <div className="mb-3 pb-3 border-b border-border">
                   <div className="text-xs font-semibold text-fg mb-2">Execution Flow</div>
-                  <pre className="text-xs font-mono leading-relaxed text-fg bg-gray-50 dark:bg-gray-900 overflow-x-auto rounded p-3 whitespace-pre border border-border">
+                  <pre className="text-xs font-mono leading-relaxed text-fg bg-bg-secondary overflow-x-auto rounded p-3 whitespace-pre border border-border">
                     {workflow.coordinator.flowDiagram}
                   </pre>
                 </div>
@@ -344,7 +344,7 @@ export function WorkflowManagementView() {
               {selectedWorkflow.coordinator?.flowDiagram && (
                 <div>
                   <h3 className="text-sm font-semibold text-fg mb-2">Execution Flow</h3>
-                  <pre className="text-xs font-mono leading-relaxed text-fg bg-gray-50 dark:bg-gray-900 overflow-x-auto rounded p-3 whitespace-pre border border-border">
+                  <pre className="text-xs font-mono leading-relaxed text-fg bg-bg-secondary overflow-x-auto rounded p-3 whitespace-pre border border-border">
                     {selectedWorkflow.coordinator.flowDiagram}
                   </pre>
                 </div>
@@ -384,7 +384,7 @@ export function WorkflowManagementView() {
               {/* Trigger Configuration */}
               <div>
                 <h3 className="text-sm font-semibold text-fg mb-2">Trigger Configuration</h3>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 border border-border">
+                <div className="bg-bg-secondary rounded p-3 border border-border">
                   <pre className="text-xs font-mono text-fg overflow-x-auto">
                     {JSON.stringify(selectedWorkflow.triggerConfig, null, 2)}
                   </pre>

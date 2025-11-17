@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from 'react';
+import { ThemeProvider as MUIThemeProvider, createTheme, CssBaseline } from '@mui/material';
 
 type Theme = 'light' | 'dark';
 
@@ -23,6 +24,47 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return 'light';
   });
 
+  // Create MUI theme based on current theme
+  const muiTheme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: theme,
+          ...(theme === 'dark'
+            ? {
+                background: {
+                  default: '#0f172a',
+                  paper: '#1e293b',
+                },
+                text: {
+                  primary: '#f1f5f9',
+                  secondary: '#94a3b8',
+                },
+              }
+            : {
+                background: {
+                  default: '#ffffff',
+                  paper: '#ffffff',
+                },
+                text: {
+                  primary: '#0f172a',
+                  secondary: '#64748b',
+                },
+              }),
+        },
+        components: {
+          MuiPaper: {
+            styleOverrides: {
+              root: {
+                backgroundImage: 'none',
+              },
+            },
+          },
+        },
+      }),
+    [theme]
+  );
+
   useEffect(() => {
     // Apply theme to document
     if (theme === 'dark') {
@@ -45,7 +87,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
-      {children}
+      <MUIThemeProvider theme={muiTheme}>
+        <CssBaseline />
+        {children}
+      </MUIThemeProvider>
     </ThemeContext.Provider>
   );
 }

@@ -1,10 +1,10 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { CommitsService } from './commits.service';
-import { LinkCommitDto, CommitResponseDto } from './dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { CommitsService } from './commits.service';
+import { LinkCommitDto, CommitResponseDto } from './dto';
 
 @ApiTags('commits')
 @ApiBearerAuth()

@@ -38,13 +38,13 @@ export function CoordinatorLibraryView() {
   }, [coordinators]);
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => coordinatorsService.delete(id),
+    mutationFn: (id: string) => coordinatorsService.delete(projectId, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coordinators'] }),
   });
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      active ? coordinatorsService.deactivate(id) : coordinatorsService.activate(id),
+      active ? coordinatorsService.deactivate(projectId, id) : coordinatorsService.activate(projectId, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coordinators'] }),
   });
 

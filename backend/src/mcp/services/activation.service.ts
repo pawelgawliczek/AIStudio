@@ -1,12 +1,12 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CoordinatorAgentGenerator } from '../generators/coordinator-agent-generator';
 import { ComponentAgentGenerator } from '../generators/component-agent-generator';
+import { CoordinatorAgentGenerator } from '../generators/coordinator-agent-generator';
 import { WorkflowSkillGenerator } from '../generators/workflow-skill-generator';
 import { AgentFileValidator, ValidationError } from '../validators/agent-file-validator';
 import { WorkflowMetadataValidator } from '../validators/workflow-metadata-validator';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
 export interface ActivationOptions {
   forceOverwrite?: boolean;

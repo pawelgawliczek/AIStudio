@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
@@ -7,8 +6,17 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const { login, redirectPath } = useAuth();
+
+  // Show redirect notification if there's a saved path
+  const [showRedirectNotice, setShowRedirectNotice] = useState(false);
+
+  useEffect(() => {
+    const savedPath = sessionStorage.getItem('redirectAfterLogin');
+    if (savedPath || redirectPath) {
+      setShowRedirectNotice(true);
+    }
+  }, [redirectPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,8 +24,8 @@ export function LoginPage() {
     setLoading(true);
 
     try {
+      // Login method now handles redirect internally
       await login({ email, password });
-      navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -39,6 +47,14 @@ export function LoginPage() {
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {showRedirectNotice && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                <p className="text-sm font-medium text-blue-600">
+                  You'll be redirected back to your previous page after login.
+                </p>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                 <p className="text-sm font-medium text-red-600">{error}</p>

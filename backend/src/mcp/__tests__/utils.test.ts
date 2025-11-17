@@ -3,14 +3,14 @@
  */
 
 import {
-  formatError,
-} from '../utils';
-import {
   MCPError,
   NotFoundError,
   ValidationError,
   DatabaseError,
 } from '../types';
+import {
+  formatError,
+} from '../utils';
 
 describe('formatError', () => {
   describe('ValidationError formatting', () => {

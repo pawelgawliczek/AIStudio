@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
+import { Injectable } from '@nestjs/common';
 import { Queue } from 'bull';
 import { QUEUE_NAMES } from './constants';
 
