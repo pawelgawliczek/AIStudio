@@ -806,34 +806,6 @@ const CodeQualityDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Test Summary Section */}
-                  {testSummary && testSummary.totalTests > 0 && (
-                    <div className="bg-bg-secondary rounded-xl p-6 border border-border mb-8">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="text-2xl">🧪</span>
-                        <h3 className="text-lg font-bold text-fg">Test Execution Summary</h3>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-accent">{testSummary.totalTests}</div>
-                          <div className="text-xs text-muted">Total Tests</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-green-600">{testSummary.passing}</div>
-                          <div className="text-xs text-muted">Passing ({testSummary.totalTests > 0 ? Math.round((testSummary.passing / testSummary.totalTests) * 100) : 0}%)</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-red-600">{testSummary.failing}</div>
-                          <div className="text-xs text-muted">Failing ({testSummary.totalTests > 0 ? Math.round((testSummary.failing / testSummary.totalTests) * 100) : 0}%)</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-yellow-600">{testSummary.skipped}</div>
-                          <div className="text-xs text-muted">Skipped ({testSummary.totalTests > 0 ? Math.round((testSummary.skipped / testSummary.totalTests) * 100) : 0}%)</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* File Changes Table */}
                   {fileChanges && fileChanges.files.length > 0 && (
                     <div className="bg-bg-secondary rounded-xl p-6 border border-border">
