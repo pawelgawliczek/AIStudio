@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
@@ -71,9 +71,43 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
   });
 
   if (allMetrics.length === 0) {
-    throw new Error(
-      'No code metrics found. Run CodeAnalysisWorker first to analyze the codebase.',
-    );
+    // Return empty health metrics instead of throwing error (Null Object Pattern)
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            project: {
+              id: projectId,
+              name: project.name,
+              totalFiles: 0,
+              totalLoc: 0,
+            },
+            health: {
+              score: 0,
+              rating: 'Unknown',
+            },
+            metrics: {
+              complexity: { avg: 0, status: 'No data' },
+              maintainability: { avg: 0, status: 'No data' },
+              churn: { avg: 0, level: 'unknown' },
+              codeSmells: { total: 0, perFile: 0 },
+            },
+            folders: [],
+            subfolders: [],
+            criticalHotspots: [],
+            insights: ['No code metrics found. Run CodeAnalysisWorker first to analyze the codebase.'],
+            recommendations: ['1. Run code analysis worker to populate metrics data'],
+            analysis: {
+              analyzedBy: 'CodeAnalysisWorker',
+              lastUpdate: null,
+              dataSource: 'code_metrics table',
+              filesAnalyzed: 0,
+            },
+          }, null, 2),
+        },
+      ],
+    };
   }
 
   // Calculate project-level aggregates
