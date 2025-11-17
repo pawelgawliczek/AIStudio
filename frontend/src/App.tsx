@@ -16,11 +16,8 @@ import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { PerformanceDashboard } from './pages/PerformanceDashboard';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
-import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
 import ComponentCoverageView from './pages/ComponentCoverageView';
-import { AgentMetricsDashboard } from './pages/AgentMetricsDashboard';
-import WorkflowAnalyticsDashboard from './pages/WorkflowAnalyticsDashboard';
 import WorkflowDetailsPage from './pages/WorkflowDetailsPage';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
@@ -43,7 +40,6 @@ function App() {
               <Route path="timeline" element={<TimelineView />} />
               <Route path="use-cases" element={<UseCaseLibraryView />} />
               <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
-              <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
               <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
               <Route path="layers-components" element={<LayersComponentsPage />} />
@@ -53,8 +49,6 @@ function App() {
               <Route path="workflow-runs/:runId/results" element={<WorkflowResultsView />} />
               <Route path="workflow-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />
-              <Route path="analytics/agent-metrics" element={<AgentMetricsDashboard />} />
-              <Route path="analytics/workflow" element={<WorkflowAnalyticsDashboard />} />
               <Route path="analytics/workflow-details" element={<WorkflowDetailsPage />} />
             </Route>
           </Routes>
