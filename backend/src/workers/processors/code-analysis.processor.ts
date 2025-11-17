@@ -1,10 +1,10 @@
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../constants';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
@@ -106,15 +106,26 @@ export class CodeAnalysisProcessor {
         throw new Error(`Project ${projectId} has no local repository path`);
       }
 
+      // Load previous analysis baseline for delta comparison
+      const baseline = await this.loadBaseline(projectId);
+      this.logger.log(`Baseline: ${baseline.totalFiles} files, ${baseline.totalLOC} LOC, ${baseline.avgCoverage.toFixed(2)}% coverage`);
+
       // Load coverage data if available
       const coverageMap = await this.loadCoverageData(project.localPath);
       if (coverageMap.size > 0) {
         this.logger.log(`Loaded coverage data for ${coverageMap.size} files`);
       }
 
-      // Get all files in repository
+      // Get all files in repository (including test files)
       const allFiles = await this.getAllSourceFiles(project.localPath);
-      this.logger.log(`Found ${allFiles.length} source files to analyze`);
+      this.logger.log(`Found ${allFiles.length} source files to analyze (including test files)`);
+
+      // Build test-source correlation map
+      const testCorrelation = await this.buildTestSourceCorrelation(allFiles, project.localPath);
+      this.logger.log(`Built test correlations for ${testCorrelation.size} source files`);
+
+      // Track analysis results for baseline comparison
+      const analysisResults: FileMetrics[] = [];
 
       // Analyze in batches to avoid overwhelming the system
       const batchSize = 10;
@@ -127,20 +138,39 @@ export class CodeAnalysisProcessor {
         );
 
         for (const fileMetric of fileMetrics) {
-          // Add coverage if available
-          const coverage = coverageMap.get(fileMetric.filePath) || 0;
-          if (coverage > 0) {
-            this.logger.debug(`Applying ${coverage}% coverage to ${fileMetric.filePath}`);
+          // Add coverage if available (only for non-test files)
+          let coverage = 0;
+          if (!this.isTestFile(fileMetric.filePath)) {
+            coverage = coverageMap.get(fileMetric.filePath) || 0;
+            if (coverage > 0) {
+              this.logger.debug(`Applying ${coverage}% coverage to ${fileMetric.filePath}`);
+            }
           }
-          await this.saveFileMetrics(projectId, fileMetric, undefined, coverage);
+
+          // Add test file correlation
+          const testFiles = testCorrelation.get(fileMetric.filePath) || [];
+
+          await this.saveFileMetrics(projectId, fileMetric, undefined, coverage, testFiles);
+          analysisResults.push(fileMetric);
         }
       }
 
-      // Update project-level metrics
-      await this.updateProjectHealth(projectId);
+      // Calculate deltas from baseline
+      const deltas = await this.calculateDeltas(projectId, baseline, analysisResults);
+      this.logger.log(`Delta analysis: ${deltas.filesChanged} files changed, ${deltas.locDelta} LOC delta, ${deltas.coverageDelta.toFixed(2)}% coverage delta`);
+
+      // Update project-level metrics with delta information
+      await this.updateProjectHealth(projectId, deltas);
 
       this.logger.log(`Completed full project analysis for ${projectId}`);
-      return { success: true, filesAnalyzed: allFiles.length };
+      return {
+        success: true,
+        filesAnalyzed: allFiles.length,
+        totalLOC: analysisResults.reduce((sum, f) => sum + f.loc, 0),
+        testFiles: allFiles.filter(f => this.isTestFile(f)).length,
+        sourceFiles: allFiles.filter(f => !this.isTestFile(f)).length,
+        deltas
+      };
     } catch (error) {
       this.logger.error(`Failed to analyze project ${projectId}:`, error);
       throw error;
@@ -186,14 +216,24 @@ export class CodeAnalysisProcessor {
 
   /**
    * Check if file is a source file we should analyze
+   * Now includes test files (.test., .spec.) for complete codebase analysis
    */
   private isSourceFile(filePath: string): boolean {
     const extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs'];
     return extensions.some((ext) => filePath.endsWith(ext)) &&
            !filePath.includes('node_modules/') &&
            !filePath.includes('dist/') &&
-           !filePath.includes('.test.') &&
-           !filePath.includes('.spec.');
+           !filePath.includes('build/') &&
+           !filePath.includes('coverage/');
+  }
+
+  /**
+   * Check if file is a test file
+   */
+  private isTestFile(filePath: string): boolean {
+    return filePath.includes('.test.') ||
+           filePath.includes('.spec.') ||
+           filePath.includes('__tests__/');
   }
 
   /**
@@ -482,12 +522,16 @@ export class CodeAnalysisProcessor {
     metrics: FileMetrics,
     _storyId?: string,
     testCoverage?: number,
+    correlatedTestFiles?: string[],
   ) {
     // Calculate risk score: complexity × churn × (100 - maintainability) / 100
     // Normalized to a 0-100 scale
     const riskScore = Math.min(100,
       (metrics.complexity.cyclomatic * metrics.churn * (100 - metrics.maintainability)) / 100
     );
+
+    // Determine if this is a test file
+    const isTest = this.isTestFile(metrics.filePath);
 
     // Store in code_metrics table (or create new table structure)
     await this.prisma.codeMetrics.upsert({
@@ -513,6 +557,8 @@ export class CodeAnalysisProcessor {
         metadata: {
           codeSmells: metrics.codeSmells,
           functions: metrics.complexity.functions,
+          isTestFile: isTest,
+          correlatedTestFiles: correlatedTestFiles || [],
         } as any,
       },
       update: {
@@ -529,6 +575,8 @@ export class CodeAnalysisProcessor {
         metadata: {
           codeSmells: metrics.codeSmells,
           functions: metrics.complexity.functions,
+          isTestFile: isTest,
+          correlatedTestFiles: correlatedTestFiles || [],
         } as any,
       },
     });
@@ -537,15 +585,20 @@ export class CodeAnalysisProcessor {
   /**
    * Update project-level health score
    */
-  private async updateProjectHealth(projectId: string) {
+  private async updateProjectHealth(projectId: string, deltas?: DeltaMetrics) {
     const stats = await this.prisma.codeMetrics.aggregate({
       where: { projectId },
       _avg: {
         maintainabilityIndex: true,
         cyclomaticComplexity: true,
+        testCoverage: true,
       },
       _sum: {
         codeSmellCount: true,
+        linesOfCode: true,
+      },
+      _count: {
+        filePath: true,
       },
     });
 
@@ -559,7 +612,211 @@ export class CodeAnalysisProcessor {
       Math.min(100, maintainability - complexityPenalty - smellPenalty),
     );
 
-    this.logger.log(`Project ${projectId} health score: ${healthScore.toFixed(1)}`);
+    // Log comprehensive metrics
+    this.logger.log(`Project ${projectId} metrics:`);
+    this.logger.log(`  - Files analyzed: ${stats._count.filePath}`);
+    this.logger.log(`  - Total LOC: ${stats._sum.linesOfCode}`);
+    this.logger.log(`  - Average coverage: ${(stats._avg.testCoverage || 0).toFixed(2)}%`);
+    this.logger.log(`  - Health score: ${healthScore.toFixed(1)}`);
+
+    if (deltas) {
+      this.logger.log(`  - Delta: ${deltas.filesChanged} files changed`);
+      this.logger.log(`  - LOC delta: ${deltas.locDelta}`);
+      this.logger.log(`  - Coverage delta: ${deltas.coverageDelta.toFixed(2)}%`);
+      this.logger.log(`  - New tests: ${deltas.newTestCount}`);
+    }
+  }
+
+  /**
+   * Load baseline metrics from previous analysis
+   */
+  private async loadBaseline(projectId: string): Promise<BaselineMetrics> {
+    const stats = await this.prisma.codeMetrics.aggregate({
+      where: { projectId },
+      _sum: {
+        linesOfCode: true,
+      },
+      _avg: {
+        testCoverage: true,
+      },
+      _count: {
+        filePath: true,
+      },
+    });
+
+    // Load individual file checksums for delta detection
+    const files = await this.prisma.codeMetrics.findMany({
+      where: { projectId },
+      select: {
+        filePath: true,
+        linesOfCode: true,
+        cyclomaticComplexity: true,
+        testCoverage: true,
+        lastAnalyzedAt: true,
+      },
+    });
+
+    const fileMap = new Map<string, {
+      loc: number;
+      complexity: number;
+      coverage: number;
+      lastAnalyzed: Date;
+    }>();
+
+    for (const file of files) {
+      fileMap.set(file.filePath, {
+        loc: file.linesOfCode,
+        complexity: file.cyclomaticComplexity,
+        coverage: file.testCoverage || 0,
+        lastAnalyzed: file.lastAnalyzedAt,
+      });
+    }
+
+    return {
+      totalFiles: stats._count.filePath || 0,
+      totalLOC: stats._sum.linesOfCode || 0,
+      avgCoverage: stats._avg.testCoverage || 0,
+      fileMap,
+    };
+  }
+
+  /**
+   * Calculate deltas between current analysis and baseline
+   */
+  private async calculateDeltas(
+    projectId: string,
+    baseline: BaselineMetrics,
+    currentResults: FileMetrics[],
+  ): Promise<DeltaMetrics> {
+    let filesChanged = 0;
+    let locDelta = 0;
+    let newTestCount = 0;
+
+    // Track current totals
+    const currentTotalLOC = currentResults.reduce((sum, f) => sum + f.loc, 0);
+    const currentTestFiles = currentResults.filter(f => this.isTestFile(f.filePath)).length;
+
+    // Compare each file with baseline
+    for (const file of currentResults) {
+      const baselineFile = baseline.fileMap.get(file.filePath);
+
+      if (!baselineFile) {
+        // New file
+        filesChanged++;
+        locDelta += file.loc;
+        if (this.isTestFile(file.filePath)) {
+          newTestCount++;
+        }
+      } else {
+        // Existing file - check for changes
+        if (
+          baselineFile.loc !== file.loc ||
+          baselineFile.complexity !== file.complexity.cyclomatic
+        ) {
+          filesChanged++;
+          locDelta += file.loc - baselineFile.loc;
+        }
+      }
+    }
+
+    // Check for deleted files
+    for (const [filePath, data] of baseline.fileMap) {
+      const stillExists = currentResults.some(f => f.filePath === filePath);
+      if (!stillExists) {
+        filesChanged++;
+        locDelta -= data.loc;
+      }
+    }
+
+    // Calculate coverage delta
+    const currentCoverage = await this.prisma.codeMetrics.aggregate({
+      where: { projectId },
+      _avg: {
+        testCoverage: true,
+      },
+    });
+
+    const coverageDelta = (currentCoverage._avg.testCoverage || 0) - baseline.avgCoverage;
+
+    return {
+      filesChanged,
+      locDelta,
+      coverageDelta,
+      newTestCount,
+      totalFiles: currentResults.length,
+      totalLOC: currentTotalLOC,
+      testFileCount: currentTestFiles,
+    };
+  }
+
+  /**
+   * Build correlation map between source files and their test files
+   */
+  private async buildTestSourceCorrelation(
+    allFiles: string[],
+    repoPath: string,
+  ): Promise<Map<string, string[]>> {
+    const correlation = new Map<string, string[]>();
+
+    const testFiles = allFiles.filter(f => this.isTestFile(f));
+    const sourceFiles = allFiles.filter(f => !this.isTestFile(f));
+
+    // Common patterns for test file naming:
+    // 1. foo.spec.ts tests foo.ts
+    // 2. foo.test.ts tests foo.ts
+    // 3. __tests__/foo.test.ts tests foo.ts
+    // 4. foo.service.spec.ts tests foo.service.ts
+    for (const testFile of testFiles) {
+      // Extract potential source file names
+      const testFileName = testFile.split('/').pop() || '';
+
+      // Remove test suffixes
+      const baseNames: string[] = [];
+
+      if (testFileName.includes('.test.')) {
+        baseNames.push(testFileName.replace('.test.', '.'));
+      }
+      if (testFileName.includes('.spec.')) {
+        baseNames.push(testFileName.replace('.spec.', '.'));
+      }
+
+      // Try to match with source files
+      for (const baseName of baseNames) {
+        for (const sourceFile of sourceFiles) {
+          const sourceName = sourceFile.split('/').pop() || '';
+
+          if (sourceName === baseName) {
+            // Found correlation
+            if (!correlation.has(sourceFile)) {
+              correlation.set(sourceFile, []);
+            }
+            correlation.get(sourceFile)!.push(testFile);
+          }
+        }
+      }
+
+      // Also try directory-based matching (__tests__ folder)
+      if (testFile.includes('__tests__/')) {
+        const testDir = testFile.substring(0, testFile.indexOf('__tests__/'));
+        for (const sourceFile of sourceFiles) {
+          if (sourceFile.startsWith(testDir)) {
+            const sourceName = sourceFile.split('/').pop() || '';
+            const testBaseName = testFileName.replace('.test.', '.').replace('.spec.', '');
+
+            if (sourceName === testBaseName) {
+              if (!correlation.has(sourceFile)) {
+                correlation.set(sourceFile, []);
+              }
+              if (!correlation.get(sourceFile)!.includes(testFile)) {
+                correlation.get(sourceFile)!.push(testFile);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return correlation;
   }
 
   /**
@@ -715,4 +972,26 @@ interface CodeSmell {
   severity: 'critical' | 'major' | 'minor';
   message: string;
   line: number;
+}
+
+interface BaselineMetrics {
+  totalFiles: number;
+  totalLOC: number;
+  avgCoverage: number;
+  fileMap: Map<string, {
+    loc: number;
+    complexity: number;
+    coverage: number;
+    lastAnalyzed: Date;
+  }>;
+}
+
+interface DeltaMetrics {
+  filesChanged: number;
+  locDelta: number;
+  coverageDelta: number;
+  newTestCount: number;
+  totalFiles: number;
+  totalLOC: number;
+  testFileCount: number;
 }
