@@ -55,14 +55,18 @@ export function useCodeQualityMetrics(
     try {
       setLoading(true);
 
+      // BR-1 (Real-Time Data Refresh): Add cache-busting timestamp parameter
+      // to ensure fresh data after analysis (ST-16 Issue #1 fix per architect_analysis)
+      const cacheBuster = Date.now();
+
       const [projectRes, hotspotsRes, hierarchyRes, coverageGapsRes, issuesRes, trendsRes] =
         await Promise.all([
-          axios.get(`/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}`),
-          axios.get(`/code-metrics/project/${projectId}/hotspots?limit=50`),
-          axios.get(`/code-metrics/project/${projectId}/hierarchy`),
-          axios.get(`/code-metrics/project/${projectId}/coverage-gaps?limit=20`),
-          axios.get(`/code-metrics/project/${projectId}/issues`),
-          axios.get(`/code-metrics/project/${projectId}/trends?days=${filters.timeRange}`),
+          axios.get(`/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}&_t=${cacheBuster}`),
+          axios.get(`/code-metrics/project/${projectId}/hotspots?limit=50&_t=${cacheBuster}`),
+          axios.get(`/code-metrics/project/${projectId}/hierarchy?_t=${cacheBuster}`),
+          axios.get(`/code-metrics/project/${projectId}/coverage-gaps?limit=20&_t=${cacheBuster}`),
+          axios.get(`/code-metrics/project/${projectId}/issues?_t=${cacheBuster}`),
+          axios.get(`/code-metrics/project/${projectId}/trends?days=${filters.timeRange}&_t=${cacheBuster}`),
         ]);
 
       setProjectMetrics(projectRes.data);
@@ -83,10 +87,13 @@ export function useCodeQualityMetrics(
     if (!projectId) return;
 
     try {
+      // BR-1 (Real-Time Data Refresh): Add cache-busting timestamp parameter
+      const cacheBuster = Date.now();
+
       const [comparisonRes, testSummaryRes, fileChangesRes] = await Promise.all([
-        axios.get(`/code-metrics/project/${projectId}/comparison`),
-        axios.get(`/code-metrics/project/${projectId}/test-summary`),
-        axios.get(`/code-metrics/project/${projectId}/file-changes`),
+        axios.get(`/code-metrics/project/${projectId}/comparison?_t=${cacheBuster}`),
+        axios.get(`/code-metrics/project/${projectId}/test-summary?_t=${cacheBuster}`),
+        axios.get(`/code-metrics/project/${projectId}/file-changes?_t=${cacheBuster}`),
       ]);
       setAnalysisComparison(comparisonRes.data);
       setTestSummary(testSummaryRes.data);
