@@ -63,11 +63,12 @@ describe('ST-28: Risk Score E2E Consistency', () => {
   function retrieveMCPToolRiskScore(storedRiskScore: number | null, metrics: any): number {
     // Use stored risk score (calculated by worker using canonical formula)
     // Only recalculate if stored value is missing (backward compatibility)
-    return storedRiskScore ?? Math.round(
+    // Cap fallback calculation at 100 per AC17 requirements (ST-36)
+    return storedRiskScore ?? Math.max(0, Math.min(100, Math.round(
       (metrics.cyclomaticComplexity / 10) *
         metrics.churnRate *
         (100 - metrics.maintainabilityIndex)
-    );
+    )));
   }
 
   describe('Worker → Database → MCP Tool Flow', () => {
@@ -269,7 +270,7 @@ describe('ST-28: Risk Score E2E Consistency', () => {
         { c: 0, h: 0, m: 0, expected: 0 },
         { c: 100, h: 100, m: 0, expected: 100 }, // Capped
         { c: 1, h: 1, m: 99, expected: 0 }, // Rounds to 0
-        { c: 10, h: 10, m: 50, expected: 50 },
+        { c: 10, h: 10, m: 50, expected: 100 }, // (10/10) * 10 * 50 = 500 → capped at 100
       ];
 
       for (const { c, h, m, expected } of edgeCases) {
