@@ -229,10 +229,12 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
       complexity: m.cyclomaticComplexity,
       maintainability: m.maintainabilityIndex,
       churn: m.churnRate,
-      riskScore: Math.round(m.riskScore || 0) || Math.round(
+      // Use stored risk score (already calculated correctly by worker) - ST-28
+      // Fallback to recalculation only if missing (BR-CALC-003)
+      riskScore: m.riskScore ?? Math.round(
         (m.cyclomaticComplexity / 10) *
           m.churnRate *
-          (100 - m.maintainabilityIndex),
+          (100 - m.maintainabilityIndex)
       ),
     }))
     .filter((f) => f.riskScore > 60)
