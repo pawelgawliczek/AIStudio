@@ -6,6 +6,7 @@
 import React, { useState, useMemo } from 'react';
 import { CodeIssue, FileIssue, IssueSeverity } from '../../types/codeQualityTypes';
 import { getSeverityColor } from '../../utils/codeQuality/healthCalculations';
+import { CheckCircleIcon, WarningIcon, ErrorIcon, InfoIcon, ChevronDownIcon } from './Icons';
 
 interface CodeSmellsListProps {
   issues: CodeIssue[];
@@ -68,10 +69,9 @@ export const CodeSmellsList: React.FC<CodeSmellsListProps> = ({
   }
 
   return (
-    <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-xl">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
       {/* Filter Bar */}
-      <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-200 dark:border-[#3b4354]">
-        <span className="material-symbols-outlined text-gray-500 text-xl">filter_alt</span>
+      <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">
           Filter by severity:
         </span>
@@ -91,13 +91,13 @@ export const CodeSmellsList: React.FC<CodeSmellsListProps> = ({
       </div>
 
       {/* Issues List */}
-      <div className="divide-y divide-gray-200 dark:divide-[#3b4354]">
+      <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {filteredIssues.length === 0 ? (
           <div className="px-6 py-8 text-center">
-            <span className="material-symbols-outlined text-gray-400 text-4xl mb-2 block">
-              check_circle
-            </span>
-            <p className="text-gray-500 dark:text-[#9da6b9]">
+            <div className="text-green-500 mb-3 flex justify-center">
+              <CheckCircleIcon className="w-12 h-12" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400">
               No issues found with selected filter
             </p>
           </div>
@@ -137,9 +137,7 @@ export const CodeSmellsList: React.FC<CodeSmellsListProps> = ({
                       className="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors"
                       aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
                     >
-                      <span className="material-symbols-outlined text-gray-500 text-xl">
-                        {isExpanded ? 'expand_less' : 'expand_more'}
-                      </span>
+                      <ChevronDownIcon className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     </button>
                   </div>
                 </div>
@@ -152,10 +150,8 @@ export const CodeSmellsList: React.FC<CodeSmellsListProps> = ({
                     </p>
                     <ul className="space-y-1">
                       {issue.sampleFiles.map((file, fileIdx) => (
-                        <li key={fileIdx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-[#9da6b9]">
-                          <span className="material-symbols-outlined text-gray-400 text-sm">
-                            description
-                          </span>
+                        <li key={fileIdx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                          <span className="text-gray-400">•</span>
                           <code className="font-mono">{file}</code>
                         </li>
                       ))}
