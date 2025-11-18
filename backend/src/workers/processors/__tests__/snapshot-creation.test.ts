@@ -9,7 +9,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { CodeAnalysisProcessor } from '../code-analysis.processor';
-import { PrismaService } from '../../../common/services/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 
 describe('CodeAnalysisProcessor - Snapshot Creation (ST-18)', () => {

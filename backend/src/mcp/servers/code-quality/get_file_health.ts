@@ -90,11 +90,13 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
   // Use stored risk score (calculated by worker using canonical formula) - ST-28
   // Only recalculate if stored value is missing (backward compatibility)
   // Implements BR-2 (Single Source of Truth) and BR-CALC-002 from baAnalysis
-  const riskScore = fileMetric.riskScore ?? Math.round(
+  const rawRiskScore = fileMetric.riskScore ?? Math.round(
     (fileMetric.cyclomaticComplexity / 10) *
       fileMetric.churnRate *
       (100 - fileMetric.maintainabilityIndex)
   );
+  // Cap risk score at 100 per AC17 requirements
+  const riskScore = Math.min(100, rawRiskScore);
 
   // Parse code smells from metadata
   const codeSmells = (fileMetric.metadata as any)?.codeSmells || [];

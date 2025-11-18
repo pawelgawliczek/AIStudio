@@ -40,7 +40,8 @@ model Project {
   name        String        @unique
   description String?
   repositoryUrl String?     @map("repository_url")
-  localPath   String?       @map("local_path") // Local path to git repository for code analysis
+  localPath   String?       @map("local_path") // Local path to git repository for code analysis (Docker container path)
+  hostPath    String?       @map("host_path")  // Host filesystem path for transcript tracking (where Claude Code runs)
   status      ProjectStatus @default(active)
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
