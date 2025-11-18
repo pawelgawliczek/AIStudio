@@ -4,6 +4,7 @@ import { XMarkIcon, CheckCircleIcon, ClockIcon, CodeBracketIcon, PencilIcon } fr
 import { Story, StoryStatus, StoryType, Subtask } from '../types';
 import { WorkflowAnalysisDisplay } from './workflow/WorkflowAnalysisDisplay';
 import { StoryTraceabilityTabs } from './story/StoryTraceabilityTabs';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { storiesService } from '../services/stories.service';
 import clsx from 'clsx';
 
@@ -201,9 +202,7 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                                 <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
                                   <span className="mr-2">🔍</span> Context Exploration
                                 </h4>
-                                <div className="text-sm text-muted whitespace-pre-wrap">
-                                  {fullStory.contextExploration}
-                                </div>
+                                <MarkdownRenderer content={fullStory.contextExploration} />
                               </div>
                             )}
 
@@ -212,9 +211,7 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                                 <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
                                   <span className="mr-2">📋</span> Business Analysis
                                 </h4>
-                                <div className="text-sm text-muted whitespace-pre-wrap">
-                                  {fullStory.baAnalysis}
-                                </div>
+                                <MarkdownRenderer content={fullStory.baAnalysis} />
                               </div>
                             )}
 
@@ -223,9 +220,7 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                                 <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
                                   <span className="mr-2">🏗️</span> Architecture Design
                                 </h4>
-                                <div className="text-sm text-muted whitespace-pre-wrap">
-                                  {fullStory.architectAnalysis}
-                                </div>
+                                <MarkdownRenderer content={fullStory.architectAnalysis} />
                               </div>
                             )}
 
@@ -234,9 +229,7 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                                 <h4 className="text-sm font-semibold text-fg mb-2 flex items-center">
                                   <span className="mr-2">🎨</span> UI/UX Design
                                 </h4>
-                                <div className="text-sm text-muted whitespace-pre-wrap">
-                                  {fullStory.designerAnalysis}
-                                </div>
+                                <MarkdownRenderer content={fullStory.designerAnalysis} />
                               </div>
                             )}
                           </div>
@@ -245,9 +238,11 @@ export function StoryDetailDrawer({ story, open, onClose, onEdit, commits = [], 
                         {/* 4. Description */}
                         <div>
                           <h3 className="text-lg font-medium text-fg mb-2">Description</h3>
-                          <p className="text-sm text-muted whitespace-pre-wrap">
-                            {fullStory.description || 'No description provided.'}
-                          </p>
+                          {fullStory.description ? (
+                            <MarkdownRenderer content={fullStory.description} />
+                          ) : (
+                            <p className="text-sm text-muted italic">No description provided.</p>
+                          )}
                         </div>
 
                         {/* Layers & Components */}
