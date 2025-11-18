@@ -17,7 +17,33 @@ import { FileDetailsPanel } from '../components/CodeQuality/FileDetailsPanel';
 import { AnalysisRefreshButton, AnalysisStatusBanner } from '../components/CodeQuality/AnalysisRefreshButton';
 import { StoryCreationDialog } from '../components/CodeQuality/StoryCreationDialog';
 import { CodeSmellsList } from '../components/CodeQuality/CodeSmellsList';
+import { TrendChart } from '../components/CodeQuality/TrendChart';
 import { CodeQualityFilters } from '../types/codeQualityTypes';
+
+// Helper function to generate mock trend data for visualization
+// TODO: Replace with real historical data from backend
+const generateMockTrendData = (currentValue: number, days: number = 30, inverted: boolean = false) => {
+  const data = [];
+  const today = new Date();
+  const variation = currentValue * 0.15; // 15% variation range
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+
+    // Generate trending data (improving over time if not inverted)
+    const trendFactor = inverted ? (i / days) : (1 - i / days);
+    const randomNoise = (Math.random() - 0.5) * variation * 0.3;
+    const value = Math.max(0, currentValue - (variation * trendFactor) + randomNoise);
+
+    data.push({
+      date: date.toISOString().split('T')[0],
+      value: parseFloat(value.toFixed(2)),
+    });
+  }
+
+  return data;
+};
 
 const CodeQualityDashboard: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -75,11 +101,11 @@ const CodeQualityDashboard: React.FC = () => {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622]">
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Sidebar - Hidden on mobile */}
-        <div className="hidden md:block w-64 bg-[#111318] text-white fixed left-0 top-0 h-screen flex flex-col">
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-xl font-black tracking-tight">Code Quality</h1>
+        <div className="hidden md:block w-64 bg-gray-900 text-white fixed left-0 top-0 h-screen flex flex-col">
+        <div className="p-6 border-b border-gray-800">
+          <h1 className="text-xl font-bold tracking-tight">Code Quality</h1>
         </div>
         <nav className="flex-1 py-4">
           {[
@@ -141,74 +167,110 @@ const CodeQualityDashboard: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* KPI Cards - Responsive Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricsSummaryCard
                   title="Health Score"
-                  value={healthScore.toFixed(0)}
-                  icon="favorite"
-                  healthScore={healthScore}
-                  trend={{
-                    direction: metrics.projectMetrics?.healthScore.trend || 'stable',
-                    value: metrics.projectMetrics?.healthScore.weeklyChange || 0,
-                  }}
+                  value={healthScore}
+                  unit="/100"
+                  change={metrics.projectMetrics?.healthScore.weeklyChange || 0}
+                  infoText="Overall codebase health based on complexity, coverage, and maintainability"
                 />
                 <MetricsSummaryCard
                   title="Test Coverage"
-                  value={`${coverage.toFixed(1)}%`}
-                  icon="verified"
-                  healthScore={coverage}
+                  value={coverage.toFixed(1)}
+                  unit="%"
+                  change={metrics.projectMetrics?.coverage?.weeklyChange || 0}
+                  infoText="Percentage of code covered by automated tests"
                 />
                 <MetricsSummaryCard
                   title="Avg Complexity"
                   value={complexity.toFixed(1)}
-                  icon="psychology"
-                  healthScore={100 - complexity * 10}
+                  change={metrics.projectMetrics?.complexity?.weeklyChange || 0}
+                  invertColor={true}
+                  infoText="Average cyclomatic complexity across all functions (lower is better)"
                 />
                 <MetricsSummaryCard
                   title="Tech Debt"
-                  value={`${techDebt.toFixed(1)}%`}
-                  icon="build"
-                  healthScore={100 - techDebt}
+                  value={techDebt.toFixed(1)}
+                  unit="%"
+                  change={metrics.projectMetrics?.techDebt?.weeklyChange || 0}
+                  invertColor={true}
+                  infoText="Percentage of code requiring refactoring or maintenance"
+                />
+              </div>
+
+              {/* Trend Charts Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <TrendChart
+                  title="Health Score Trend"
+                  subtitle="Overall code health over time"
+                  data={generateMockTrendData(healthScore, 30)}
+                  dataKey="value"
+                  color="#10b981"
+                />
+                <TrendChart
+                  title="Test Coverage Trend"
+                  subtitle="Code coverage percentage"
+                  data={generateMockTrendData(coverage, 30)}
+                  dataKey="value"
+                  color="#135bec"
+                />
+                <TrendChart
+                  title="Complexity Trend"
+                  subtitle="Average cyclomatic complexity"
+                  data={generateMockTrendData(complexity, 30, true)}
+                  dataKey="value"
+                  color="#f59e0b"
+                />
+                <TrendChart
+                  title="Tech Debt Trend"
+                  subtitle="Technical debt percentage"
+                  data={generateMockTrendData(techDebt, 30, true)}
+                  dataKey="value"
+                  color="#ef4444"
                 />
               </div>
 
               {/* Hotspots Table */}
-              <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-[#3b4354]">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Top Hotspots</h3>
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Top Hotspots</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Files requiring immediate attention</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 dark:bg-gray-700/30">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           File
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Risk
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Complexity
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Coverage
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-[#3b4354]">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {metrics.hotspots.slice(0, 10).map((hotspot) => (
                         <tr
                           key={hotspot.filePath}
-                          className="hover:bg-gray-50 dark:hover:bg-white/5"
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                         >
-                          <td className="px-6 py-4 text-sm text-gray-900 dark:text-white font-mono">
+                          <td className="px-6 py-4 text-sm text-gray-900 dark:text-white font-mono max-w-md truncate" title={hotspot.filePath}>
                             {hotspot.filePath}
                           </td>
-                          <td className="px-6 py-4 text-sm font-bold text-red-600">
-                            {hotspot.riskScore.toFixed(0)}
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                              {hotspot.riskScore.toFixed(0)}
+                            </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                             {hotspot.complexity}
@@ -219,9 +281,9 @@ const CodeQualityDashboard: React.FC = () => {
                           <td className="px-6 py-4">
                             <button
                               onClick={() => storyCreation.createStoryForFile(hotspot)}
-                              className="text-xs text-primary hover:underline"
+                              className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                             >
-                              Create Story
+                              Create Story →
                             </button>
                           </td>
                         </tr>
