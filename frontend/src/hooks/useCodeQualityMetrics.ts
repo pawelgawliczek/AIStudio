@@ -16,6 +16,7 @@ import {
   FileChangesData,
   CodeQualityFilters,
   TrendDataPoint,
+  RecentAnalysis,
 } from '../types/codeQualityTypes';
 
 interface UseCodeQualityMetricsReturn {
@@ -28,9 +29,13 @@ interface UseCodeQualityMetricsReturn {
   testSummary: TestSummary | null;
   fileChanges: FileChangesData | null;
   trendData: TrendDataPoint[];
+  recentAnalyses: RecentAnalysis[];
+  recentAnalysesLoading: boolean;
+  recentAnalysesError: string | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  refetchRecentAnalyses: () => Promise<void>;
 }
 
 export function useCodeQualityMetrics(
@@ -46,6 +51,9 @@ export function useCodeQualityMetrics(
   const [testSummary, setTestSummary] = useState<TestSummary | null>(null);
   const [fileChanges, setFileChanges] = useState<FileChangesData | null>(null);
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
+  const [recentAnalyses, setRecentAnalyses] = useState<RecentAnalysis[]>([]);
+  const [recentAnalysesLoading, setRecentAnalysesLoading] = useState(false);
+  const [recentAnalysesError, setRecentAnalysesError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,15 +111,39 @@ export function useCodeQualityMetrics(
     }
   }, [projectId]);
 
+  const fetchRecentAnalyses = useCallback(async () => {
+    if (!projectId) return;
+
+    try {
+      setRecentAnalysesLoading(true);
+      const cacheBuster = Date.now();
+
+      const response = await axios.get(
+        `/code-metrics/project/${projectId}/recent-analyses?limit=7&_t=${cacheBuster}`
+      );
+
+      setRecentAnalyses(response.data.analyses || []);
+      setRecentAnalysesError(null);
+    } catch (err: any) {
+      console.error('Failed to fetch recent analyses:', err);
+      setRecentAnalysesError(err.response?.data?.message || 'Failed to load recent analyses');
+      // Keep existing data on error (graceful degradation)
+    } finally {
+      setRecentAnalysesLoading(false);
+    }
+  }, [projectId]);
+
   const refetch = useCallback(async () => {
     await fetchMainMetrics();
     await fetchComparisonAndTests();
-  }, [fetchMainMetrics, fetchComparisonAndTests]);
+    await fetchRecentAnalyses();
+  }, [fetchMainMetrics, fetchComparisonAndTests, fetchRecentAnalyses]);
 
   useEffect(() => {
     fetchMainMetrics();
     fetchComparisonAndTests();
-  }, [fetchMainMetrics, fetchComparisonAndTests]);
+    fetchRecentAnalyses();
+  }, [fetchMainMetrics, fetchComparisonAndTests, fetchRecentAnalyses]);
 
   return {
     projectMetrics,
@@ -123,8 +155,12 @@ export function useCodeQualityMetrics(
     testSummary,
     fileChanges,
     trendData,
+    recentAnalyses,
+    recentAnalysesLoading,
+    recentAnalysesError,
     loading,
     error,
     refetch,
+    refetchRecentAnalyses: fetchRecentAnalyses,
   };
 }

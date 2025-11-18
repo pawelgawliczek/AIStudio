@@ -140,6 +140,27 @@ export interface TestSummary {
   failing: number;
   skipped: number;
   lastExecution?: Date;
+  coveragePercentage?: number;
+}
+
+// BR-Analysis-1: Analysis status types (from baAnalysis)
+export type AnalysisRunStatus = 'completed' | 'failed' | 'partial' | 'running' | 'unknown';
+
+// Recent analysis interface for displaying analysis history
+export interface RecentAnalysis {
+  id: string;                    // Snapshot ID or analysis run ID
+  timestamp: Date;               // Analysis completion timestamp (snapshotDate)
+  status: AnalysisRunStatus;     // Analysis outcome
+  commitHash?: string;           // Git commit hash (7+ chars)
+  healthScore?: number;          // Overall health score from snapshot
+  totalFiles?: number;           // Files analyzed (optional detail)
+  errorMessage?: string;         // Error detail if status = 'failed'
+}
+
+export interface RecentAnalysesResponse {
+  analyses: RecentAnalysis[];
+  total: number;                 // Total count (for pagination)
+  hasMore: boolean;              // Indicates if more analyses exist
 }
 
 export interface FileMetrics {
