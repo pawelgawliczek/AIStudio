@@ -527,11 +527,19 @@ export class CodeAnalysisProcessor {
     testCoverage?: number,
     correlatedTestFiles?: string[],
   ) {
-    // Calculate risk score: complexity × churn × (100 - maintainability) / 100
-    // Normalized to a 0-100 scale
-    const riskScore = Math.min(100,
-      (metrics.complexity.cyclomatic * metrics.churn * (100 - metrics.maintainability)) / 100
+    // Calculate risk score using canonical formula (ST-28)
+    // Formula: round((complexity / 10) × churn × (100 - maintainability))
+    // This matches the MCP tool formula for consistency across the system
+    // Implements BR-1 (Formula Standardization) from baAnalysis
+    const rawRiskScore = Math.round(
+      (metrics.complexity.cyclomatic / 10) *
+      metrics.churn *
+      (100 - metrics.maintainability)
     );
+
+    // Ensure bounded to 0-100 scale (BR-CALC-001)
+    // Cap at 100 for extremely high-risk files
+    const riskScore = Math.max(0, Math.min(100, rawRiskScore));
 
     // Determine if this is a test file
     const isTest = this.isTestFile(metrics.filePath);
