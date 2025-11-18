@@ -178,3 +178,11 @@ export interface CodeQualityFilters {
   typeFilter: string | 'all';
   showOnlyHighRisk: boolean;
 }
+
+export interface TrendDataPoint {
+  date: Date;
+  healthScore: number;
+  coverage: number;
+  complexity: number;
+  techDebt: number;
+}

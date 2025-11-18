@@ -80,7 +80,7 @@ export const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ file, loadin
       </div>
 
       {/* Detailed Breakdown */}
-      <div className="mb-6">
+      <div className="mb-6 border-t border-gray-200 dark:border-[#3b4354] pt-4">
         <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Detailed Breakdown</h4>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
@@ -106,18 +106,37 @@ export const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ file, loadin
 
       {/* Recent Changes */}
       {file.recentChanges && file.recentChanges.length > 0 && (
-        <div className="mb-6">
+        <div className="mb-6 border-t border-gray-200 dark:border-[#3b4354] pt-4">
           <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Recent Changes</h4>
-          <div className="space-y-2">
-            {file.recentChanges.slice(0, 5).map((change, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-sm">
-                <span className="material-symbols-outlined text-blue-500 text-base">build</span>
-                <span className="text-gray-900 dark:text-white font-medium">{change.storyKey}</span>
-                <span className="text-gray-500 dark:text-[#9da6b9] text-xs">
-                  {change.linesChanged > 0 ? '+' : ''}{change.linesChanged} lines
-                </span>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {file.recentChanges.slice(0, 3).map((change, idx) => {
+              // Determine icon and color based on change type
+              const getChangeIcon = () => {
+                if (change.linesChanged > 50) return { icon: 'add', color: 'green' };
+                if (change.linesChanged < 0) return { icon: 'remove', color: 'red' };
+                if (Math.abs(change.linesChanged) < 10) return { icon: 'style', color: 'gray' };
+                return { icon: 'build', color: 'blue' };
+              };
+              const { icon, color } = getChangeIcon();
+
+              return (
+                <div key={idx} className="flex items-center gap-3">
+                  <div className={`bg-${color}-500/10 p-2 rounded-full flex-shrink-0`}>
+                    <span className={`material-symbols-outlined text-${color}-500 text-base`}>
+                      {icon}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {change.storyKey || 'Code change'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {change.linesChanged > 0 ? '+' : ''}{change.linesChanged} lines - {new Date(change.date || change.timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

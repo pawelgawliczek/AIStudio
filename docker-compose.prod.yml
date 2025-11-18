@@ -84,6 +84,7 @@ services:
       - ./backend/src:/app/backend/src
       - ./backend/prisma:/app/backend/prisma
       - ./shared/src:/app/shared/src
+      - ./frontend/src:/app/frontend/src:ro
       # Mount .git for code analysis
       - ./.git:/app/.git:ro
       # Mount coverage data for test coverage analysis
