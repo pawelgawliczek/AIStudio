@@ -81,7 +81,7 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
       }}
     >
       <div
-        className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-xl shadow-2xl w-full max-w-full md:max-w-3xl mx-4 md:mx-0 max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
