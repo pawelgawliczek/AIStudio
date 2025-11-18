@@ -21,6 +21,8 @@ export const fixtures = {
     id: 'proj-test-001',
     name: 'Test Project',
     description: 'Test project for workflow execution',
+    localPath: '/app',
+    hostPath: '/opt/stack/AIStudio',
     status: 'active' as const,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
