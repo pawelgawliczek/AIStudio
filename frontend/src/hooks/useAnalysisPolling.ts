@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import axios from '../lib/axios';
 import { AnalysisStatus } from '../types/codeQualityTypes';
 
@@ -57,12 +58,32 @@ export function useAnalysisPolling(
       if (response.data.status === 'completed') {
         setShowAnalysisNotification(true);
         setIsAnalyzing(false);
+
+        // BR-1 (Real-Time Data Refresh): Add 500ms delay to ensure DB commits complete
+        // This prevents race condition where frontend fetches data before worker
+        // finishes writing all metrics (ST-16 Issue #1 fix per architect_analysis)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         await onAnalysisComplete();
+
+        // UI Enhancement (Designer Analysis): Show success toast notification
+        toast.success('Analysis complete! Dashboard metrics have been updated.', {
+          duration: 4000,
+          position: 'top-right',
+        });
+
         setShowAnalysisResultsModal(true);
         return true; // Stop polling
       } else if (response.data.status === 'failed') {
         setShowAnalysisNotification(true);
         setIsAnalyzing(false);
+
+        // UI Enhancement (Designer Analysis): Show error toast notification
+        toast.error(response.data.message || 'Analysis failed. Please try again.', {
+          duration: 5000,
+          position: 'top-right',
+        });
+
         return true; // Stop polling
       }
       return false; // Continue polling
@@ -111,9 +132,16 @@ export function useAnalysisPolling(
       }, MAX_POLL_DURATION_MS);
     } catch (error: any) {
       setIsAnalyzing(false);
+      const errorMessage = error.response?.data?.message || 'Failed to start analysis';
       setAnalysisStatus({
         status: 'failed',
-        message: error.response?.data?.message || 'Failed to start analysis',
+        message: errorMessage,
+      });
+
+      // UI Enhancement (Designer Analysis): Show error toast for failed start
+      toast.error(errorMessage, {
+        duration: 5000,
+        position: 'top-right',
       });
     }
   }, [isAnalyzing, projectId, pollStatus, clearTimers]);

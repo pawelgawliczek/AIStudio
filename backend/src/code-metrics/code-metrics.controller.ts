@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { NoCacheInterceptor } from '../common/interceptors/no-cache.interceptor';
 import { CodeMetricsService } from './code-metrics.service';
 import {
   ProjectMetricsDto,
@@ -18,6 +19,7 @@ import { QueryMetricsDto, GetHotspotsDto } from './dto/query-metrics.dto';
 @ApiTags('code-metrics')
 @Controller('code-metrics')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(NoCacheInterceptor) // Prevents caching - ensures fresh data after analysis (ST-16 Issue #1 fix)
 @ApiBearerAuth()
 export class CodeMetricsController {
   constructor(private readonly codeMetricsService: CodeMetricsService) {}

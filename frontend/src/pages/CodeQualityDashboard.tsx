@@ -313,7 +313,10 @@ const CodeQualityDashboard: React.FC = () => {
                     Project Phoenix - Code Quality Dashboard
                   </h1>
                   <p className="text-gray-600 dark:text-[#9da6b9] text-base font-normal leading-normal">
-                    Last updated: {new Date().toLocaleString()}
+                    {/* BR-1 (Real-Time Data Refresh): Display actual last analysis timestamp */}
+                    Last updated: {metrics.projectMetrics?.lastUpdate
+                      ? new Date(metrics.projectMetrics.lastUpdate).toLocaleString()
+                      : 'Never'}
                   </p>
                 </div>
                 <AnalysisRefreshButton

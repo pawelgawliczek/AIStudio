@@ -754,6 +754,9 @@ export class CodeAnalysisProcessor {
 
   /**
    * Build correlation map between source files and their test files
+   *
+   * BR-2 (Accurate Test Coverage): Fixed to properly handle compound test file extensions
+   * like .integration.test.tsx, .e2e.test.ts, .unit.spec.ts (ST-16 Issue #2 fix)
    */
   private async buildTestSourceCorrelation(
     allFiles: string[],
@@ -767,15 +770,34 @@ export class CodeAnalysisProcessor {
     // Common patterns for test file naming:
     // 1. foo.spec.ts tests foo.ts
     // 2. foo.test.ts tests foo.ts
-    // 3. __tests__/foo.test.ts tests foo.ts
-    // 4. foo.service.spec.ts tests foo.service.ts
+    // 3. __tests__/foo.test.ts tests foo.ts (same dir)
+    // 4. __tests__/foo.integration.test.tsx tests foo.tsx (compound extension)
+    // 5. foo.service.spec.ts tests foo.service.ts
     for (const testFile of testFiles) {
       // Extract potential source file names
       const testFileName = testFile.split('/').pop() || '';
 
-      // Remove test suffixes
+      // Extract base name by removing ALL test-related patterns
+      // This handles compound extensions like .integration.test.tsx → .tsx
       const baseNames: string[] = [];
 
+      // Strategy 1: Remove .test.* or .spec.* and everything before the final extension
+      // Example: "Foo.integration.test.tsx" → "Foo.tsx"
+      const extensionMatch = testFileName.match(/\.(tsx?|jsx?|mjs|cjs)$/);
+      if (extensionMatch) {
+        const extension = extensionMatch[0]; // e.g., ".tsx"
+        const nameWithoutExt = testFileName.slice(0, -extension.length); // "Foo.integration.test"
+
+        // Remove all test/spec patterns and get the core name
+        const coreName = nameWithoutExt
+          .replace(/\.(test|spec)$/, '')           // Remove trailing .test or .spec
+          .replace(/\.(unit|integration|e2e)$/, '') // Remove test type qualifiers
+          .replace(/\.(test|spec)$/, '');          // Remove again in case of multiple patterns
+
+        baseNames.push(coreName + extension); // "Foo.tsx"
+      }
+
+      // Strategy 2: Simple replace for backward compatibility
       if (testFileName.includes('.test.')) {
         baseNames.push(testFileName.replace('.test.', '.'));
       }
@@ -783,7 +805,7 @@ export class CodeAnalysisProcessor {
         baseNames.push(testFileName.replace('.spec.', '.'));
       }
 
-      // Try to match with source files
+      // Try to match with source files using filename-based matching
       for (const baseName of baseNames) {
         for (const sourceFile of sourceFiles) {
           const sourceName = sourceFile.split('/').pop() || '';
@@ -793,25 +815,32 @@ export class CodeAnalysisProcessor {
             if (!correlation.has(sourceFile)) {
               correlation.set(sourceFile, []);
             }
-            correlation.get(sourceFile)!.push(testFile);
+            if (!correlation.get(sourceFile)!.includes(testFile)) {
+              correlation.get(sourceFile)!.push(testFile);
+            }
           }
         }
       }
 
-      // Also try directory-based matching (__tests__ folder)
+      // Strategy 3: Directory-based matching for __tests__ folders
+      // Example: pages/__tests__/Foo.integration.test.tsx tests pages/Foo.tsx
       if (testFile.includes('__tests__/')) {
         const testDir = testFile.substring(0, testFile.indexOf('__tests__/'));
-        for (const sourceFile of sourceFiles) {
-          if (sourceFile.startsWith(testDir)) {
-            const sourceName = sourceFile.split('/').pop() || '';
-            const testBaseName = testFileName.replace('.test.', '.').replace('.spec.', '');
 
-            if (sourceName === testBaseName) {
-              if (!correlation.has(sourceFile)) {
-                correlation.set(sourceFile, []);
-              }
-              if (!correlation.get(sourceFile)!.includes(testFile)) {
-                correlation.get(sourceFile)!.push(testFile);
+        for (const sourceFile of sourceFiles) {
+          // Source must be in same parent directory (not subdirectory)
+          if (sourceFile.startsWith(testDir) && !sourceFile.includes('__tests__/')) {
+            const sourceName = sourceFile.split('/').pop() || '';
+
+            // Use the cleaned base names from Strategy 1
+            for (const baseName of baseNames) {
+              if (sourceName === baseName) {
+                if (!correlation.has(sourceFile)) {
+                  correlation.set(sourceFile, []);
+                }
+                if (!correlation.get(sourceFile)!.includes(testFile)) {
+                  correlation.get(sourceFile)!.push(testFile);
+                }
               }
             }
           }
