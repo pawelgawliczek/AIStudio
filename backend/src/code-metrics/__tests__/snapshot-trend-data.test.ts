@@ -11,6 +11,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CodeMetricsService } from '../code-metrics.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WorkersService } from '../../workers/workers.service';
 
 describe('CodeMetricsService - getTrendData (ST-18)', () => {
   let service: CodeMetricsService;
@@ -38,9 +39,9 @@ describe('CodeMetricsService - getTrendData (ST-18)', () => {
           },
         },
         {
-          provide: 'WorkersService',
+          provide: WorkersService,
           useValue: {
-            // Mock WorkersService methods if needed
+            analyzeProject: jest.fn(),
           },
         },
       ],

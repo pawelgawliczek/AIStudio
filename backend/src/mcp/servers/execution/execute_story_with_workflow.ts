@@ -136,10 +136,19 @@ export async function handler(prisma: PrismaClient, params: any) {
   // 3. PROJECT_HOST_PATH env var (fallback)
   // 4. story.project.localPath (Docker path, last resort)
 
+  // Debug logging to diagnose path resolution
+  console.log('[execute_story_with_workflow] Path resolution debug:');
+  console.log('  params.cwd:', params.cwd);
+  console.log('  story.project.hostPath:', story.project.hostPath);
+  console.log('  process.env.PROJECT_HOST_PATH:', process.env.PROJECT_HOST_PATH);
+  console.log('  story.project.localPath:', story.project.localPath);
+
   const hostPath = params.cwd ||
                    story.project.hostPath ||
                    process.env.PROJECT_HOST_PATH ||
                    story.project.localPath;
+
+  console.log('  final hostPath:', hostPath);
 
   const workflowRunResult = await startWorkflowRunHandler(prisma, {
     workflowId: params.workflowId,
