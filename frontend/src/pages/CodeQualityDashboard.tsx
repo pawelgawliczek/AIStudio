@@ -24,6 +24,7 @@ import { ChurnVsComplexityChart } from '../components/CodeQuality/ChurnVsComplex
 import { HotspotDetailsPanel } from '../components/CodeQuality/HotspotDetailsPanel';
 import { DashboardIcon, FolderIcon, ShieldCheckIcon, BugIcon, FlameIcon } from '../components/CodeQuality/Icons';
 import { CodeQualityFilters, FileHotspot } from '../types/codeQualityTypes';
+import { formatAnalysisTimestamp, getAnalysisStatusConfig, getCommitUrl, getTestStatusIcon } from '../utils/analysisFormatters';
 
 // Helper functions to transform trend data for different chart needs
 const transformTrendDataForCoverage = (trendData: any[]) => {
@@ -97,6 +98,7 @@ const CodeQualityDashboard: React.FC = () => {
   const [coverageTab, setCoverageTab] = useState<'gaps' | 'test-files' | 'by-folder' | 'use-cases'>('gaps');
   const [useCases, setUseCases] = useState<any[]>([]);
   const [useCasesLoading, setUseCasesLoading] = useState(false);
+  const [projectRepoUrl, setProjectRepoUrl] = useState<string | undefined>();
 
   // Hotspots state
   const [hotspotSearchQuery, setHotspotSearchQuery] = useState('');
@@ -110,6 +112,20 @@ const CodeQualityDashboard: React.FC = () => {
   const polling = useAnalysisPolling(projectId, metrics.refetch);
   const fileTree = useFileTree(projectId);
   const storyCreation = useStoryCreation(projectId);
+
+  // Fetch project data for repository URL (needed for commit links)
+  useEffect(() => {
+    const fetchProject = async () => {
+      if (!projectId) return;
+      try {
+        const response = await axios.get(`/projects/${projectId}`);
+        setProjectRepoUrl(response.data.repositoryUrl);
+      } catch (error) {
+        console.error('Failed to fetch project data:', error);
+      }
+    };
+    fetchProject();
+  }, [projectId]);
 
   // Fetch use cases when Use Cases tab is active
   useEffect(() => {
@@ -536,74 +552,111 @@ const CodeQualityDashboard: React.FC = () => {
                     </ul>
                   </div>
 
-                  {/* Recent Analyses */}
+                  {/* Recent Analyses - ST-37 Issue #2: Dynamic data from database */}
                   <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-xl p-6">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Analyses</h3>
-                    <ul className="space-y-2.5">
-                      <li className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-green-500 text-xl flex-shrink-0">check_circle</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Analysis Completed</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            2 hours ago - Commit <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-mono">a8b4c2f</a>
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-red-500 text-xl flex-shrink-0">cancel</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Analysis Failed</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Yesterday, 4:15 PM - Commit <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-mono">e1d3f5a</a>
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-green-500 text-xl flex-shrink-0">check_circle</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Analysis Completed</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            3 days ago - Commit <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-mono">b9c8d7e</a>
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-green-500 text-xl flex-shrink-0">check_circle</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Analysis Completed</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            5 days ago - Commit <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-mono">7f2c1a9</a>
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-yellow-500 text-xl flex-shrink-0">warning</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Partial Analysis</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            1 week ago - Commit <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-mono">3d8e5b2</a>
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-green-500 text-xl flex-shrink-0">check_circle</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Analysis Completed</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            2 weeks ago - Commit <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-mono">9a1f4cd</a>
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-green-500 text-xl flex-shrink-0">check_circle</span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">Analysis Completed</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            3 weeks ago - Commit <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline font-mono">2e6b8fa</a>
-                          </p>
-                        </div>
-                      </li>
-                    </ul>
+
+                    {metrics.recentAnalysesLoading ? (
+                      <div className="text-center py-8">
+                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                          Loading recent analyses...
+                        </p>
+                      </div>
+                    ) : metrics.recentAnalysesError && metrics.recentAnalyses.length === 0 ? (
+                      <div className="text-center py-8">
+                        <span className="material-symbols-outlined text-4xl text-red-400 mb-2 block">
+                          error_outline
+                        </span>
+                        <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                          Failed to load recent analyses
+                        </p>
+                        <button
+                          onClick={metrics.refetchRecentAnalyses}
+                          className="mt-3 text-sm text-primary hover:underline"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : metrics.recentAnalyses.length === 0 ? (
+                      <div className="text-center py-12">
+                        <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">
+                          analytics
+                        </span>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">
+                          No analyses yet
+                        </p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                          Run your first code analysis to see historical trends
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        {metrics.recentAnalysesError && (
+                          <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded text-xs text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-sm">warning</span>
+                            Showing cached data. Unable to refresh.
+                            <button onClick={metrics.refetchRecentAnalyses} className="ml-auto underline">
+                              Retry
+                            </button>
+                          </div>
+                        )}
+
+                        <ul className="space-y-2.5">
+                          {metrics.recentAnalyses.map((analysis) => {
+                            const statusConfig = getAnalysisStatusConfig(analysis.status);
+                            const commitUrl = analysis.commitHash ? getCommitUrl(analysis.commitHash, projectRepoUrl) : undefined;
+
+                            return (
+                              <li
+                                key={analysis.id}
+                                className="flex items-center gap-3 p-2 -mx-2 rounded transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                              >
+                                <span
+                                  className={`material-symbols-outlined text-xl flex-shrink-0 ${statusConfig.color}`}
+                                  aria-label={statusConfig.label}
+                                  role="img"
+                                >
+                                  {statusConfig.icon}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {statusConfig.label}
+                                  </p>
+                                  <p
+                                    className="text-xs text-gray-500 dark:text-gray-400 truncate"
+                                    title={`Full timestamp: ${new Date(analysis.timestamp).toLocaleString()}`}
+                                  >
+                                    {formatAnalysisTimestamp(analysis.timestamp)}
+                                    {analysis.commitHash && commitUrl ? (
+                                      <>
+                                        {' • '}
+                                        <a
+                                          href={commitUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 dark:text-blue-400 hover:underline font-mono"
+                                          aria-label={`View commit ${analysis.commitHash.substring(0, 7)} in repository`}
+                                        >
+                                          {analysis.commitHash.substring(0, 7)}
+                                        </a>
+                                      </>
+                                    ) : analysis.commitHash ? (
+                                      <>
+                                        {' • '}
+                                        <span className="font-mono">{analysis.commitHash.substring(0, 7)}</span>
+                                      </>
+                                    ) : (
+                                      <span className="text-gray-400"> • Manual run</span>
+                                    )}
+                                  </p>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -859,17 +912,46 @@ const CodeQualityDashboard: React.FC = () => {
                       : 'No trend data'}
                   </p>
                 </div>
+                {/* ST-37 Issue #1: Enhanced test metrics from coverage file */}
                 <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-lg p-5">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Tests</p>
-                    <span className="material-symbols-outlined text-green-500">check_circle</span>
+                    {(() => {
+                      const totalTests = metrics.testSummary?.totalTests || 0;
+                      const passing = metrics.testSummary?.passing || 0;
+                      const statusIcon = getTestStatusIcon(passing, totalTests);
+                      return (
+                        <span className={`material-symbols-outlined ${statusIcon.color}`}>
+                          {statusIcon.icon}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <p className="text-3xl font-bold text-gray-900 dark:text-white">
                     {metrics.testSummary?.totalTests || 0}
                   </p>
-                  <p className="text-sm text-green-500">
-                    {metrics.testSummary?.passing || 0} passing
+                  <p className="text-sm">
+                    <span className={metrics.testSummary?.passing === metrics.testSummary?.totalTests ? 'text-green-500' : 'text-yellow-500'}>
+                      {metrics.testSummary?.passing || 0} passing
+                    </span>
+                    {metrics.testSummary?.failing ? (
+                      <span className="text-red-500"> • {metrics.testSummary.failing} failing</span>
+                    ) : null}
                   </p>
+                  {metrics.testSummary?.lastExecution && (
+                    <p
+                      className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1"
+                      title={new Date(metrics.testSummary.lastExecution).toLocaleString()}
+                    >
+                      <span className="material-symbols-outlined text-xs">schedule</span>
+                      Last run: {formatAnalysisTimestamp(metrics.testSummary.lastExecution)}
+                    </p>
+                  )}
+                  {metrics.testSummary?.coveragePercentage !== undefined && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Coverage: {metrics.testSummary.coveragePercentage.toFixed(2)}%
+                    </p>
+                  )}
                 </div>
               </div>
 

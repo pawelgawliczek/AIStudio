@@ -15,6 +15,7 @@ import {
   CoverageGapDto,
 } from './dto';
 import { QueryMetricsDto, GetHotspotsDto } from './dto/query-metrics.dto';
+import { RecentAnalysesResponseDto } from './dto/recent-analysis.dto';
 
 @ApiTags('code-metrics')
 @Controller('code-metrics')
@@ -188,10 +189,10 @@ export class CodeMetricsController {
 
   @Get('project/:projectId/test-summary')
   @Roles('admin', 'pm', 'architect', 'dev', 'qa')
-  @ApiOperation({ summary: 'Get test execution summary (pass/fail/skip counts)' })
+  @ApiOperation({ summary: 'Get test execution summary (ST-37: Now from coverage file)' })
   @ApiResponse({
     status: 200,
-    description: 'Test execution summary',
+    description: 'Test execution summary from coverage report',
     schema: {
       type: 'object',
       properties: {
@@ -200,6 +201,7 @@ export class CodeMetricsController {
         failing: { type: 'number' },
         skipped: { type: 'number' },
         lastExecution: { type: 'string', format: 'date-time' },
+        coveragePercentage: { type: 'number' },
       },
     },
   })
@@ -211,8 +213,25 @@ export class CodeMetricsController {
     failing: number;
     skipped: number;
     lastExecution?: Date;
+    coveragePercentage?: number;
   }> {
     return this.codeMetricsService.getTestSummary(projectId);
+  }
+
+  @Get('project/:projectId/recent-analyses')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get recent code analysis runs with commit links (ST-37 Issue #2)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recent analysis history',
+    type: RecentAnalysesResponseDto,
+  })
+  async getRecentAnalyses(
+    @Param('projectId') projectId: string,
+    @Query('limit') limit?: number,
+  ): Promise<RecentAnalysesResponseDto> {
+    const parsedLimit = Math.min(parseInt(limit?.toString() || '7'), 20);
+    return this.codeMetricsService.getRecentAnalyses(projectId, parsedLimit);
   }
 
   @Get('project/:projectId/file-changes')

@@ -13,9 +13,16 @@ import {
   CoverageGapDto,
 } from './dto';
 import { QueryMetricsDto, GetHotspotsDto } from './dto/query-metrics.dto';
+import { RecentAnalysisDto, RecentAnalysesResponseDto } from './dto/recent-analysis.dto';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { glob } from 'glob';
 
 @Injectable()
 export class CodeMetricsService {
+  private readonly logger = new Logger(CodeMetricsService.name);
+
   constructor(
     private prisma: PrismaService,
     private workersService: WorkersService,
@@ -746,7 +753,7 @@ export class CodeMetricsService {
   }
 
   /**
-   * Get test execution summary (pass/fail/skip counts)
+   * Get test execution summary (ST-37: Now uses coverage file instead of database)
    */
   async getTestSummary(projectId: string): Promise<{
     totalTests: number;
@@ -754,58 +761,10 @@ export class CodeMetricsService {
     failing: number;
     skipped: number;
     lastExecution?: Date;
+    coveragePercentage?: number;
   }> {
-    // Get total test cases
-    const totalTests = await this.prisma.testCase.count({
-      where: { projectId },
-    });
-
-    // Get most recent execution for each test case
-    const testCases = await this.prisma.testCase.findMany({
-      where: { projectId },
-      include: {
-        executions: {
-          orderBy: { executedAt: 'desc' },
-          take: 1,
-        },
-      },
-    });
-
-    let passing = 0;
-    let failing = 0;
-    let skipped = 0;
-    let lastExecutionDate: Date | undefined;
-
-    testCases.forEach(tc => {
-      if (tc.executions.length > 0) {
-        const latestExecution = tc.executions[0];
-
-        if (!lastExecutionDate || latestExecution.executedAt > lastExecutionDate) {
-          lastExecutionDate = latestExecution.executedAt;
-        }
-
-        switch (latestExecution.status) {
-          case 'pass':
-            passing++;
-            break;
-          case 'fail':
-          case 'error':
-            failing++;
-            break;
-          case 'skip':
-            skipped++;
-            break;
-        }
-      }
-    });
-
-    return {
-      totalTests,
-      passing,
-      failing,
-      skipped,
-      lastExecution: lastExecutionDate,
-    };
+    // ST-37 Issue #1: Parse coverage file instead of database query
+    return this.getTestSummaryFromCoverage(projectId);
   }
 
   /**
@@ -981,6 +940,162 @@ export class CodeMetricsService {
 
     return {
       files: fileChanges,
+    };
+  }
+
+  /**
+   * ST-37 Issue #1: Get test summary from coverage file
+   * Parses coverage-summary.json instead of querying TestCase database
+   * BR-Test-1: Coverage report is source of truth for test metrics
+   */
+  async getTestSummaryFromCoverage(projectId: string): Promise<{
+    totalTests: number;
+    passing: number;
+    failing: number;
+    skipped: number;
+    lastExecution?: Date;
+    coveragePercentage?: number;
+  }> {
+    // Get project to find local path
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { localPath: true },
+    });
+
+    if (!project?.localPath) {
+      throw new NotFoundException('Project local path not configured');
+    }
+
+    // Sanitize path to prevent directory traversal
+    const sanitizedPath = path.normalize(project.localPath).replace(/\.\./g, '');
+    const coveragePath = path.join(sanitizedPath, 'coverage', 'coverage-summary.json');
+
+    // Verify path is within project directory
+    if (!coveragePath.startsWith(sanitizedPath)) {
+      throw new ForbiddenException('Invalid coverage file path');
+    }
+
+    // Read and parse coverage file
+    let coverageData: string;
+    let coverage: any;
+    let lastExecution: Date | undefined;
+
+    try {
+      coverageData = fs.readFileSync(coveragePath, 'utf-8');
+      lastExecution = fs.statSync(coveragePath).mtime;
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        throw new NotFoundException(
+          'Coverage report not found. Run tests with --coverage flag.',
+        );
+      }
+      throw error;
+    }
+
+    try {
+      coverage = JSON.parse(coverageData);
+    } catch (error) {
+      throw new BadRequestException('Coverage file is corrupted or invalid JSON');
+    }
+
+    // Extract coverage percentage
+    const coveragePercentage = coverage.total?.lines?.pct || 0;
+
+    // Count test files (BR-Test-2: Total tests = count of test files)
+    const testFilePatterns = [
+      `${sanitizedPath}/**/*.test.ts`,
+      `${sanitizedPath}/**/*.test.tsx`,
+      `${sanitizedPath}/**/*.spec.ts`,
+      `${sanitizedPath}/**/*.spec.tsx`,
+    ];
+
+    let totalTests = 0;
+    for (const pattern of testFilePatterns) {
+      const files = await glob(pattern, { ignore: '**/node_modules/**' });
+      totalTests += files.length;
+    }
+
+    this.logger.log(
+      `Parsed coverage file for project ${projectId}: ${totalTests} tests, ${coveragePercentage}% coverage`,
+    );
+
+    // Coverage files don't track pass/fail, so infer passing = total
+    // (actual test execution results would require test runner integration)
+    return {
+      totalTests,
+      passing: totalTests, // Inferred - actual value requires test execution data
+      failing: 0,
+      skipped: 0,
+      lastExecution,
+      coveragePercentage,
+    };
+  }
+
+  /**
+   * ST-37 Issue #2: Get recent code analysis runs
+   * Queries CodeMetricsSnapshot table with commit linking
+   * BR-Analysis-2: Link commit if timestamp matches within ±5 minutes
+   */
+  async getRecentAnalyses(
+    projectId: string,
+    limit: number = 7,
+  ): Promise<RecentAnalysesResponseDto> {
+    // Query recent snapshots
+    const snapshots = await this.prisma.codeMetricsSnapshot.findMany({
+      where: { projectId },
+      orderBy: { snapshotDate: 'desc' },
+      take: limit,
+    });
+
+    // Get total count
+    const total = await this.prisma.codeMetricsSnapshot.count({
+      where: { projectId },
+    });
+
+    // Transform snapshots to DTOs with commit linking
+    const analyses: RecentAnalysisDto[] = await Promise.all(
+      snapshots.map(async snapshot => {
+        // BR-Analysis-2: Find commit within ±5 minute window
+        const fiveMinutesBefore = new Date(snapshot.snapshotDate.getTime() - 5 * 60 * 1000);
+        const fiveMinutesAfter = new Date(snapshot.snapshotDate.getTime() + 5 * 60 * 1000);
+
+        const commit = await this.prisma.commit.findFirst({
+          where: {
+            projectId,
+            timestamp: {
+              gte: fiveMinutesBefore,
+              lte: fiveMinutesAfter,
+            },
+          },
+          orderBy: { timestamp: 'desc' },
+          select: { hash: true },
+        });
+
+        if (!commit) {
+          this.logger.debug(
+            `No commit found for snapshot ${snapshot.id} (timestamp: ${snapshot.snapshotDate})`,
+          );
+        }
+
+        // BR-Analysis-1: Status = "completed" for all snapshots (MVP)
+        // Future enhancement: Read Bull queue job status via analysisRunId
+        return {
+          id: snapshot.id,
+          timestamp: snapshot.snapshotDate,
+          status: 'completed' as const,
+          commitHash: commit?.hash || undefined,
+          healthScore: snapshot.healthScore,
+          totalFiles: snapshot.totalFiles,
+        };
+      }),
+    );
+
+    this.logger.log(`Found ${analyses.length} recent analyses for project ${projectId}`);
+
+    return {
+      analyses,
+      total,
+      hasMore: total > limit,
     };
   }
 }
