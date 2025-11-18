@@ -300,10 +300,24 @@ export async function handler(prisma: PrismaClient, params: any) {
     await prisma.workflowRun.update({
       where: { id: params.runId },
       data: {
-        // Store orchestrator metrics only (not agent costs)
+        // Store aggregated workflow metrics (orchestrator + agents) - fixes ST-17
+        totalTokensInput: componentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0), 0) + orchestratorMetrics.tokensInput,
+        totalTokensOutput: componentRuns.reduce((sum, cr) => sum + (cr.tokensOutput || 0), 0) + orchestratorMetrics.tokensOutput,
         totalTokens: finalMetrics.totalTokens,
         estimatedCost: finalMetrics.totalCost,
-        // Store orchestrator metrics in metadata for UI display
+        // Store coordinator metrics in dedicated field (fixes ST-17)
+        coordinatorMetrics: {
+          tokensInput: orchestratorMetrics.tokensInput,
+          tokensOutput: orchestratorMetrics.tokensOutput,
+          totalTokens: orchestratorMetrics.totalTokens,
+          costUsd: orchestratorMetrics.costUsd,
+          toolCalls: orchestratorMetrics.toolCalls,
+          userPrompts: orchestratorMetrics.userPrompts,
+          iterations: orchestratorMetrics.iterations,
+          dataSource: orchestratorMetrics.dataSource,
+          transcriptPath: orchestratorMetrics.transcriptPath,
+        },
+        // Store orchestrator metrics in metadata for UI display (backward compatibility)
         metadata: {
           ...cleanMetadata,
           orchestratorMetrics: {
