@@ -15,6 +15,7 @@ import {
   TestSummary,
   FileChangesData,
   CodeQualityFilters,
+  TrendDataPoint,
 } from '../types/codeQualityTypes';
 
 interface UseCodeQualityMetricsReturn {
@@ -26,6 +27,7 @@ interface UseCodeQualityMetricsReturn {
   analysisComparison: AnalysisComparison | null;
   testSummary: TestSummary | null;
   fileChanges: FileChangesData | null;
+  trendData: TrendDataPoint[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -43,6 +45,7 @@ export function useCodeQualityMetrics(
   const [analysisComparison, setAnalysisComparison] = useState<AnalysisComparison | null>(null);
   const [testSummary, setTestSummary] = useState<TestSummary | null>(null);
   const [fileChanges, setFileChanges] = useState<FileChangesData | null>(null);
+  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,13 +55,14 @@ export function useCodeQualityMetrics(
     try {
       setLoading(true);
 
-      const [projectRes, hotspotsRes, hierarchyRes, coverageGapsRes, issuesRes] =
+      const [projectRes, hotspotsRes, hierarchyRes, coverageGapsRes, issuesRes, trendsRes] =
         await Promise.all([
           axios.get(`/code-metrics/project/${projectId}?timeRangeDays=${filters.timeRange}`),
           axios.get(`/code-metrics/project/${projectId}/hotspots?limit=50`),
           axios.get(`/code-metrics/project/${projectId}/hierarchy`),
           axios.get(`/code-metrics/project/${projectId}/coverage-gaps?limit=20`),
           axios.get(`/code-metrics/project/${projectId}/issues`),
+          axios.get(`/code-metrics/project/${projectId}/trends?days=${filters.timeRange}`),
         ]);
 
       setProjectMetrics(projectRes.data);
@@ -66,6 +70,7 @@ export function useCodeQualityMetrics(
       setFolderHierarchy(hierarchyRes.data);
       setCoverageGaps(coverageGapsRes.data);
       setCodeIssues(issuesRes.data);
+      setTrendData(trendsRes.data);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load code quality metrics');
@@ -110,6 +115,7 @@ export function useCodeQualityMetrics(
     analysisComparison,
     testSummary,
     fileChanges,
+    trendData,
     loading,
     error,
     refetch,

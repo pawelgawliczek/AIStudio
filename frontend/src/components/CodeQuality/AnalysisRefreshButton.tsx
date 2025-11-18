@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { AnalysisStatus } from '../../types/codeQualityTypes';
+import { RefreshIcon, CheckCircleIcon, ErrorIcon } from './Icons';
 
 interface AnalysisRefreshButtonProps {
   isAnalyzing: boolean;
@@ -28,31 +29,28 @@ export const AnalysisRefreshButton: React.FC<AnalysisRefreshButtonProps> = ({
     return 'Refresh Analysis';
   };
 
-  const getStatusIcon = () => {
-    if (isAnalyzing) {
-      return (
-        <span className="material-symbols-outlined animate-spin text-xl">
-          progress_activity
-        </span>
-      );
-    }
-    return <span className="material-symbols-outlined text-xl">refresh</span>;
-  };
-
   return (
     <button
       onClick={onRefresh}
       disabled={disabled || isAnalyzing}
       className={`
-        flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
+        flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm
         ${
           disabled || isAnalyzing
-            ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
-            : 'bg-primary text-white hover:bg-primary/90 hover:shadow-lg'
+            ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+            : 'bg-primary text-white hover:bg-primary/90 hover:shadow-md'
         }
       `}
     >
-      {getStatusIcon()}
+      {isAnalyzing ? (
+        <div className="flex gap-1">
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+        </div>
+      ) : (
+        <RefreshIcon />
+      )}
       <span>{getButtonText()}</span>
     </button>
   );
@@ -85,9 +83,15 @@ export const AnalysisStatusBanner: React.FC<AnalysisStatusBannerProps> = ({
   };
 
   const getIcon = () => {
-    if (isFailed) return 'error';
-    if (isSuccess) return 'check_circle';
-    return 'hourglass_top';
+    if (isFailed) return <ErrorIcon className="w-6 h-6" />;
+    if (isSuccess) return <CheckCircleIcon className="w-6 h-6" />;
+    return (
+      <div className="flex gap-1">
+        <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse"></div>
+        <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+        <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+      </div>
+    );
   };
 
   return (
@@ -98,9 +102,7 @@ export const AnalysisStatusBanner: React.FC<AnalysisStatusBannerProps> = ({
       `}
     >
       <div className="flex items-center gap-3">
-        <span className="material-symbols-outlined text-2xl">
-          {getIcon()}
-        </span>
+        {getIcon()}
         <div>
           <p className="font-bold">
             {isFailed
@@ -116,10 +118,12 @@ export const AnalysisStatusBanner: React.FC<AnalysisStatusBannerProps> = ({
       </div>
       <button
         onClick={onDismiss}
-        className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors"
+        className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors"
         aria-label="Dismiss notification"
       >
-        <span className="material-symbols-outlined">close</span>
+        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 6L14 14M6 14L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
       </button>
     </div>
   );
