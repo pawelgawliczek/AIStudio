@@ -628,6 +628,43 @@ export class CodeAnalysisProcessor {
       this.logger.log(`  - Coverage delta: ${deltas.coverageDelta.toFixed(2)}%`);
       this.logger.log(`  - New tests: ${deltas.newTestCount}`);
     }
+
+    // ST-18: Create historical snapshot after analysis
+    await this.createSnapshot(projectId, stats, healthScore);
+  }
+
+  /**
+   * ST-18: Create historical snapshot of code metrics
+   * Stores aggregated project metrics for trend analysis
+   */
+  private async createSnapshot(
+    projectId: string,
+    stats: any,
+    healthScore: number,
+  ): Promise<void> {
+    try {
+      // Calculate tech debt ratio from maintainability index
+      const techDebtRatio = 100 - (stats._avg.maintainabilityIndex || 0);
+
+      // Create snapshot with current date/time
+      await this.prisma.codeMetricsSnapshot.create({
+        data: {
+          projectId,
+          snapshotDate: new Date(),
+          totalFiles: stats._count.filePath || 0,
+          totalLOC: stats._sum.linesOfCode || 0,
+          avgComplexity: stats._avg.cyclomaticComplexity || 0,
+          avgCoverage: stats._avg.testCoverage || 0,
+          healthScore,
+          techDebtRatio,
+        },
+      });
+
+      this.logger.log(`Created code metrics snapshot for project ${projectId}`);
+    } catch (error) {
+      // Log error but don't fail the analysis if snapshot creation fails
+      this.logger.error(`Failed to create code metrics snapshot for project ${projectId}:`, error);
+    }
   }
 
   /**

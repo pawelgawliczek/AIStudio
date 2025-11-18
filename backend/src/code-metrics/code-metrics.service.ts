@@ -211,29 +211,38 @@ export class CodeMetricsService {
   }
 
   /**
-   * Get trend data (mock for now - need historical snapshots)
+   * ST-18: Get trend data from real historical snapshots
+   * Replaces previous mocked/interpolated implementation
    */
   async getTrendData(
     projectId: string,
     days: number = 30,
   ): Promise<TrendDataPointDto[]> {
-    const current = await this.getProjectMetrics(projectId, { timeRangeDays: days });
+    // Calculate start date for query
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    const trends: TrendDataPointDto[] = [];
-    for (let i = days; i >= 0; i -= 7) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
+    // Query real historical snapshots from database
+    const snapshots = await this.prisma.codeMetricsSnapshot.findMany({
+      where: {
+        projectId,
+        snapshotDate: {
+          gte: startDate,
+        },
+      },
+      orderBy: {
+        snapshotDate: 'asc',
+      },
+    });
 
-      trends.push({
-        date,
-        healthScore: current.healthScore.overallScore + Math.random() * 5 - 2.5,
-        coverage: current.healthScore.coverage + Math.random() * 3 - 1.5,
-        complexity: current.healthScore.complexity + Math.random() * 0.5 - 0.25,
-        techDebt: current.healthScore.techDebtRatio + Math.random() * 2 - 1,
-      });
-    }
-
-    return trends;
+    // Transform snapshots to TrendDataPointDto format
+    return snapshots.map(snapshot => ({
+      date: snapshot.snapshotDate,
+      healthScore: snapshot.healthScore,
+      coverage: snapshot.avgCoverage,
+      complexity: snapshot.avgComplexity,
+      techDebt: snapshot.techDebtRatio,
+    }));
   }
 
   /**

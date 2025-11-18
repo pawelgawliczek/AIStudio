@@ -57,6 +57,7 @@ model Project {
   releases            Release[]
   auditLogs           AuditLog[]
   codeMetrics         CodeMetrics[]
+  codeMetricsSnapshots CodeMetricsSnapshot[]
   components          Component[]
   coordinators        CoordinatorAgent[]
   workflows           Workflow[]
@@ -214,6 +215,37 @@ model CodeMetrics {
   @@index([projectId, maintainabilityIndex])
   @@index([projectId, riskScore(sort: Desc)])
   @@map("code_metrics")
+}
+
+// ST-18: Historical snapshots for Code Quality trends
+model CodeMetricsSnapshot {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  snapshotDate    DateTime @default(now()) @map("snapshot_date")
+
+  // Aggregated project metrics at time of snapshot
+  totalFiles      Int      @map("total_files")
+  totalLOC        Int      @map("total_loc")
+  avgComplexity   Float    @map("avg_complexity")
+  avgCoverage     Float    @map("avg_coverage")
+  healthScore     Float    @map("health_score")
+  techDebtRatio   Float    @map("tech_debt_ratio")
+
+  // Optional: Store additional metadata (locByLanguage, topHotspots, etc.)
+  metadata        Json?    // { locByLanguage: {...}, topHotspots: [...] }
+
+  // Provenance tracking
+  analysisRunId   String?  @map("analysis_run_id") // Link to analysis job if available
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Constraints: Prevent duplicate snapshots for same date
+  @@unique([projectId, snapshotDate])
+  @@index([projectId, snapshotDate(sort: Desc)])
+  @@index([projectId, createdAt(sort: Desc)])
+  @@map("code_metrics_snapshots")
 }
 
 // ============================================================================
