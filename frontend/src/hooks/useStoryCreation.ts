@@ -5,6 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { storiesService } from '../services/stories.service';
 import { StoryType } from '../types';
 import {
@@ -119,7 +120,7 @@ export function useStoryCreation(
 
   const saveStory = useCallback(async () => {
     if (!storyTitle.trim() || !projectId) {
-      alert('Please enter a story title');
+      toast.error('Please enter a story title');
       return;
     }
 
@@ -132,7 +133,7 @@ export function useStoryCreation(
         type: StoryType.CHORE,
       });
 
-      alert('Story created successfully!');
+      toast.success('Story created successfully!');
       setIsStoryModalOpen(false);
       setStoryTitle('');
       setStoryDescription('');
@@ -140,7 +141,7 @@ export function useStoryCreation(
 
       navigate(`/projects/${projectId}/planning`);
     } catch (error: any) {
-      alert(`Failed to create story: ${error.message}`);
+      toast.error(`Failed to create story: ${error.message}`);
     } finally {
       setCreatingStory(false);
     }

@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useCodeQualityMetrics } from '../hooks/useCodeQualityMetrics';
 import { useAnalysisPolling } from '../hooks/useAnalysisPolling';
 import { useFileTree } from '../hooks/useFileTree';
@@ -72,9 +73,11 @@ const CodeQualityDashboard: React.FC = () => {
   const techDebt = metrics.projectMetrics?.healthScore.techDebtRatio || 0;
 
   return (
-    <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622]">
-      {/* Sidebar */}
-      <div className="w-64 bg-[#111318] text-white fixed left-0 top-0 h-screen flex flex-col">
+    <>
+      <Toaster position="top-right" />
+      <div className="flex min-h-screen bg-[#f6f6f8] dark:bg-[#101622]">
+        {/* Sidebar - Hidden on mobile */}
+        <div className="hidden md:block w-64 bg-[#111318] text-white fixed left-0 top-0 h-screen flex flex-col">
         <div className="p-6 border-b border-gray-700">
           <h1 className="text-xl font-black tracking-tight">Code Quality</h1>
         </div>
@@ -104,13 +107,13 @@ const CodeQualityDashboard: React.FC = () => {
         </nav>
       </div>
 
-      {/* Main Content */}
-      <div className="ml-64 flex-1">
-        <div className="max-w-7xl mx-auto p-8">
+      {/* Main Content - No margin on mobile */}
+      <div className="md:ml-64 flex-1">
+        <div className="max-w-7xl mx-auto p-4 md:p-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
                 {activeTab === 'overview' && 'Code Quality Overview'}
                 {activeTab === 'files' && 'Files & Folders'}
                 {activeTab === 'coverage' && 'Test Coverage'}
@@ -137,7 +140,7 @@ const CodeQualityDashboard: React.FC = () => {
           {/* Tab Content */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* KPI Cards */}
+              {/* KPI Cards - Responsive Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricsSummaryCard
                   title="Health Score"
@@ -231,8 +234,8 @@ const CodeQualityDashboard: React.FC = () => {
           )}
 
           {activeTab === 'files' && (
-            <div className="grid grid-cols-3 gap-6">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
                 {metrics.folderHierarchy && (
                   <FileTreeView
                     tree={metrics.folderHierarchy.children || [metrics.folderHierarchy]}
@@ -243,7 +246,7 @@ const CodeQualityDashboard: React.FC = () => {
                   />
                 )}
               </div>
-              <div>
+              <div className="lg:sticky lg:top-8">
                 <FileDetailsPanel file={fileTree.selectedFile} loading={fileTree.loadingDetail} />
               </div>
             </div>
@@ -292,7 +295,7 @@ const CodeQualityDashboard: React.FC = () => {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                   Risk Distribution
                 </h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                     <div className="text-3xl font-bold text-red-600">
                       {metrics.hotspots.filter((h) => h.riskScore > 70).length}
@@ -334,7 +337,8 @@ const CodeQualityDashboard: React.FC = () => {
         onSave={storyCreation.saveStory}
         onClose={storyCreation.closeModal}
       />
-    </div>
+      </div>
+    </>
   );
 };
 
