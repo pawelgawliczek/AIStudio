@@ -76,6 +76,8 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_THIS_PASSWORD}@postgres:5432/vibestudio?schema=public
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379
       PORT: 3000
+      # HOST path for transcript tracking (where Claude Code runs, not Docker path)
+      PROJECT_HOST_PATH: /opt/stack/AIStudio
     ports:
       # Only expose to localhost (Caddy will reverse proxy)
       - '127.0.0.1:3000:3000'

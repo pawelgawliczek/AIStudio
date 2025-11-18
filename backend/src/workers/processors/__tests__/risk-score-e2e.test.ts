@@ -16,14 +16,14 @@
  * 4. Both worker and MCP tool produce identical results
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { CodeAnalysisProcessor } from '../code-analysis.processor';
 
 describe('ST-28: Risk Score E2E Consistency', () => {
-  let prisma: PrismaClient;
+  let prisma: PrismaService;
   let processor: CodeAnalysisProcessor;
 
-  const mockPrismaClient = {
+  const mockPrismaService = {
     project: {
       findUnique: jest.fn(),
     },
@@ -36,7 +36,7 @@ describe('ST-28: Risk Score E2E Consistency', () => {
   };
 
   beforeEach(() => {
-    prisma = mockPrismaClient as any;
+    prisma = mockPrismaService as any;
     processor = new CodeAnalysisProcessor(prisma);
     jest.clearAllMocks();
   });

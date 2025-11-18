@@ -30,6 +30,10 @@ export const tool: Tool = {
         type: 'object',
         description: 'Additional context data for workflow execution',
       },
+      cwd: {
+        type: 'string',
+        description: 'Current working directory for transcript tracking (defaults to project localPath if not provided)',
+      },
     },
     required: ['storyId', 'workflowId'],
   },
@@ -123,10 +127,25 @@ export async function handler(prisma: PrismaClient, params: any) {
   };
 
   // Start workflow run using existing handler
+  // IMPORTANT: For transcript tracking, we need the HOST path where Claude Code runs,
+  // not the Docker container path. The MCP server runs on the host and needs access
+  // to ~/.claude/projects/<escaped-host-path>/
+  // Priority order:
+  // 1. params.cwd (explicit path from caller)
+  // 2. story.project.hostPath (HOST filesystem path for transcript tracking)
+  // 3. PROJECT_HOST_PATH env var (fallback)
+  // 4. story.project.localPath (Docker path, last resort)
+
+  const hostPath = params.cwd ||
+                   story.project.hostPath ||
+                   process.env.PROJECT_HOST_PATH ||
+                   story.project.localPath;
+
   const workflowRunResult = await startWorkflowRunHandler(prisma, {
     workflowId: params.workflowId,
     triggeredBy: params.triggeredBy || 'mcp-user',
     context: executionContext,
+    cwd: hostPath, // Pass the HOST path for transcript tracking
   });
 
   // Update WorkflowRun to link it to the story

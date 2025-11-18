@@ -67,8 +67,10 @@ export async function handler(prisma: PrismaClient, params: any) {
   // Get component IDs from coordinator
   const componentIds = workflow.coordinator.componentIds || [];
 
-  // Determine transcript directory from cwd or project localPath
-  const projectPath = params.cwd || workflow.project.localPath || process.cwd();
+  // Determine transcript directory from cwd
+  // IMPORTANT: cwd should be the HOST path (from PROJECT_HOST_PATH env or explicit param)
+  // DO NOT use workflow.project.localPath here as it contains Docker path (/app)
+  const projectPath = params.cwd || process.cwd();
   // Claude Code stores transcripts in ~/.claude/projects/<escaped-path>/
   // Path escaping: /opt/stack/AIStudio → -opt-stack-AIStudio
   const escapedPath = projectPath.replace(/^\//, '-').replace(/\//g, '-');
