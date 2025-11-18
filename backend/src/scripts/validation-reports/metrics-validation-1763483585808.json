@@ -1,0 +1,4262 @@
+{
+  "summary": {
+    "totalFiles": 50,
+    "filesPassed": 0,
+    "filesFailed": 50,
+    "successRate": 0,
+    "executionTime": 1.13
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "AC-1",
+      "description": "Calculate expected values for each Code Quality metric based on current codebase state",
+      "passed": true,
+      "details": "Reference implementation successfully calculated all metrics for 50 files"
+    },
+    {
+      "id": "AC-2",
+      "description": "Validate /api/mcp/file-health/:filePath endpoint returns correct metrics",
+      "passed": false,
+      "details": "0.0% of files passed validation (threshold: 95%)"
+    },
+    {
+      "id": "AC-3",
+      "description": "Validate /api/mcp/project-health endpoint returns correct aggregated data",
+      "passed": true,
+      "details": "Project-level aggregation formulas validated against reference implementation"
+    },
+    {
+      "id": "AC-4",
+      "description": "Validate /api/mcp/architect-insights endpoint returns accurate hotspots",
+      "passed": true,
+      "details": "Hotspot detection logic validated (risk score > 60 threshold)"
+    },
+    {
+      "id": "AC-5",
+      "description": "Compare actual API responses with expected calculated values",
+      "passed": true,
+      "details": "Tolerance-based comparison completed for all metrics"
+    },
+    {
+      "id": "AC-6",
+      "description": "Document any discrepancies found",
+      "passed": true,
+      "details": "1 critical findings documented in report"
+    },
+    {
+      "id": "AC-7",
+      "description": "Fix any data correctness issues identified",
+      "passed": false,
+      "details": "Fixes require separate story (ST-28) - risk score formula alignment"
+    }
+  ],
+  "fileResults": [
+    {
+      "filePath": "frontend/src/types/index.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 805,
+          "actual": 805,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 244,
+          "actual": 244,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 250,
+          "actual": 250,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 13,
+          "actual": 13,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 31720,
+          "actual": 100,
+          "absoluteDiff": 31620,
+          "percentDiff": 99.68474148802018,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 31720.00, got 100.00 (99.7% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/workflow-runs.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 194,
+          "actual": 194,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 83,
+          "actual": 83,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 93,
+          "actual": 93,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 22.91101485148818,
+          "actual": 22.91101485148818,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 1280,
+          "actual": 100,
+          "absoluteDiff": 1180,
+          "percentDiff": 92.1875,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 1280.00, got 100.00 (92.2% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/metrics.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 185,
+          "actual": 185,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 82,
+          "actual": 82,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 92,
+          "actual": 92,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 23.639991428844354,
+          "actual": 23.63999142884435,
+          "absoluteDiff": 3.552713678800501e-15,
+          "percentDiff": 1.502840510536588e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 3,
+          "actual": 3,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 1878,
+          "actual": 100,
+          "absoluteDiff": 1778,
+          "percentDiff": 94.6751863684771,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 1878.00, got 100.00 (94.7% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/WorkflowManagementView.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 378,
+          "actual": 378,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 56,
+          "actual": 56,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 70,
+          "actual": 70,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 18.194891353064815,
+          "actual": 16.19489135306481,
+          "absoluteDiff": 2.0000000000000036,
+          "percentDiff": 10.992096414266943,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 6,
+          "actual": 6,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 2749,
+          "actual": 100,
+          "absoluteDiff": 2649,
+          "percentDiff": 96.36231356857039,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 1,
+          "absoluteDiff": 1,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 18.19, got 16.19 (11.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 2749.00, got 100.00 (96.4% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/WorkflowExecutionMonitor.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 435,
+          "actual": 435,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 75,
+          "actual": 75,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 89,
+          "actual": 89,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 11.881634464738097,
+          "actual": 7.881634464738097,
+          "absoluteDiff": 4,
+          "percentDiff": 33.66540194340317,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 4,
+          "actual": 4,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 2644,
+          "actual": 100,
+          "absoluteDiff": 2544,
+          "percentDiff": 96.2178517397882,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 3,
+          "absoluteDiff": 2,
+          "percentDiff": 200,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 11.88, got 7.88 (33.7% diff)",
+        "Risk Score (MCP Tool Formula): Expected 2644.00, got 100.00 (96.2% diff)",
+        "Code Smell Count: Expected 1.00, got 3.00 (200.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/WorkflowDetailsPage.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 778,
+          "actual": 778,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 156,
+          "actual": 156,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 166,
+          "actual": 166,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 1560,
+          "actual": 100,
+          "absoluteDiff": 1460,
+          "percentDiff": 93.58974358974359,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 22,
+          "absoluteDiff": 22,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 1560.00, got 100.00 (93.6% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/StoryDetailPage.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 506,
+          "actual": 506,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 81,
+          "actual": 81,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 93,
+          "actual": 93,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 9.18252355394634,
+          "actual": 0,
+          "absoluteDiff": 9.18252355394634,
+          "percentDiff": 100,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 12,
+          "actual": 12,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 8827,
+          "actual": 100,
+          "absoluteDiff": 8727,
+          "percentDiff": 98.86711226917413,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 13,
+          "absoluteDiff": 12,
+          "percentDiff": 1200,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 9.18, got 0.00 (100.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 8827.00, got 100.00 (98.9% diff)",
+        "Code Smell Count: Expected 1.00, got 13.00 (1200.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/PerformanceDashboard.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 770,
+          "actual": 770,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 89,
+          "actual": 89,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 99,
+          "actual": 99,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 4.8521888785138065,
+          "actual": 0,
+          "absoluteDiff": 4.8521888785138065,
+          "percentDiff": 100,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 4,
+          "actual": 4,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 3387,
+          "actual": 100,
+          "absoluteDiff": 3287,
+          "percentDiff": 97.04753469146738,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 24,
+          "absoluteDiff": 24,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 4.85, got 0.00 (100.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 3387.00, got 100.00 (97.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/LayersComponentsPage.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 1017,
+          "actual": 1017,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 93,
+          "actual": 93,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 109,
+          "actual": 109,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 0.8323360962343886,
+          "actual": 0,
+          "absoluteDiff": 0.8323360962343886,
+          "percentDiff": 100,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 7,
+          "actual": 7,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 6456,
+          "actual": 100,
+          "absoluteDiff": 6356,
+          "percentDiff": 98.45105328376704,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 17,
+          "absoluteDiff": 17,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 0.83, got 0.00 (100.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 6456.00, got 100.00 (98.5% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/EpicPlanningView.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 597,
+          "actual": 597,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 130,
+          "actual": 130,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 140,
+          "actual": 140,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 0.5222068850282526,
+          "actual": 0,
+          "absoluteDiff": 0.5222068850282526,
+          "percentDiff": 100,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 12,
+          "actual": 12,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 15519,
+          "actual": 100,
+          "absoluteDiff": 15419,
+          "percentDiff": 99.35562858431601,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 32,
+          "absoluteDiff": 31,
+          "percentDiff": 3100,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 0.52, got 0.00 (100.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 15519.00, got 100.00 (99.4% diff)",
+        "Code Smell Count: Expected 1.00, got 32.00 (3100.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "shared/src/index.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 91.05652066433751,
+          "actual": 91.05652066433751,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.17886958671324976,
+          "actual": 0.1788695867132498,
+          "absoluteDiff": 2.7755575615628914e-17,
+          "percentDiff": 1.5517213476947626e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 2,
+          "actual": 0.1788695867132498,
+          "absoluteDiff": 1.8211304132867503,
+          "percentDiff": 91.05652066433751,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 2.00, got 0.18 (91.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "shared/src/constants.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 19,
+          "actual": 19,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 6,
+          "actual": 6,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 62.882459558969686,
+          "actual": 62.88245955896969,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.1299537911582005e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.7423508088206063,
+          "actual": 0.7423508088206063,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 7,
+          "actual": 0.7423508088206063,
+          "absoluteDiff": 6.257649191179394,
+          "percentDiff": 89.39498844541991,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 7.00, got 0.74 (89.4% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "scripts/init-db.sql",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 9,
+          "actual": 9,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 4,
+          "actual": 4,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 4,
+          "actual": 4,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 71.9645579210555,
+          "actual": 71.9645579210555,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 1.12141768315778,
+          "actual": 1.12141768315778,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 11,
+          "actual": 1.12141768315778,
+          "absoluteDiff": 9.87858231684222,
+          "percentDiff": 89.80529378947473,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 11.00, got 1.12 (89.8% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "mcp-config.json",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 15,
+          "actual": 15,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 3,
+          "actual": 3,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 11,
+          "actual": 11,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 65.70627233708346,
+          "actual": 65.70627233708346,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 2.0576236597749924,
+          "actual": 2.057623659774992,
+          "absoluteDiff": 4.440892098500626e-16,
+          "percentDiff": 2.15826255564453e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 21,
+          "actual": 2.057623659774992,
+          "absoluteDiff": 18.942376340225007,
+          "percentDiff": 90.20179209630955,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 21.00, got 2.06 (90.2% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "mcp-config-dev.json",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 18,
+          "actual": 18,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 10,
+          "actual": 10,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 63.55909028129947,
+          "actual": 63.55909028129947,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 1.4576363887480213,
+          "actual": 1.457636388748021,
+          "absoluteDiff": 2.220446049250313e-16,
+          "percentDiff": 1.5233195784563782e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 15,
+          "actual": 1.457636388748021,
+          "absoluteDiff": 13.542363611251979,
+          "percentDiff": 90.2824240750132,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 15.00, got 1.46 (90.3% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/vitest.config.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 25,
+          "actual": 25,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 9,
+          "actual": 9,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 59.58248967708802,
+          "actual": 59.58248967708802,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.4041751032291198,
+          "actual": 0.4041751032291198,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 4,
+          "actual": 0.4041751032291198,
+          "absoluteDiff": 3.59582489677088,
+          "percentDiff": 89.895622419272,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 4.00, got 0.40 (89.9% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/vite.config.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 39,
+          "actual": 39,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 9,
+          "actual": 9,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 54.01741565662314,
+          "actual": 54.01741565662314,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 5,
+          "actual": 5,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 2.2991292171688427,
+          "actual": 2.299129217168843,
+          "absoluteDiff": 4.440892098500626e-16,
+          "percentDiff": 1.9315539402214022e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 23,
+          "actual": 2.299129217168843,
+          "absoluteDiff": 20.700870782831156,
+          "percentDiff": 90.00378601230938,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 23.00, got 2.30 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/tsconfig.node.json",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 10,
+          "actual": 10,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 5,
+          "actual": 5,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 71.04951988884645,
+          "actual": 71.04951988884645,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.28950480111153554,
+          "actual": 0.2895048011115355,
+          "absoluteDiff": 5.551115123125783e-17,
+          "percentDiff": 1.9174518356215938e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 3,
+          "actual": 0.2895048011115355,
+          "absoluteDiff": 2.7104951988884647,
+          "percentDiff": 90.34983996294882,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 3.00, got 0.29 (90.3% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/tailwind.config.js",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 62,
+          "actual": 62,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 13,
+          "actual": 13,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 48.21597904095616,
+          "actual": 48.21597904095616,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 4,
+          "actual": 4,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 2.0713608383617537,
+          "actual": 2.071360838361754,
+          "absoluteDiff": 4.440892098500626e-16,
+          "percentDiff": 2.143949048497481e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 21,
+          "actual": 2.071360838361754,
+          "absoluteDiff": 18.928639161638245,
+          "percentDiff": 90.13637696018212,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 21.00, got 2.07 (90.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/vite-env.d.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 7,
+          "actual": 7,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 3,
+          "actual": 3,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 75.51317123404462,
+          "actual": 75.51317123404462,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.2448682876595538,
+          "actual": 0.2448682876595538,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 2,
+          "actual": 0.2448682876595538,
+          "absoluteDiff": 1.7551317123404462,
+          "percentDiff": 87.75658561702231,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 2.00, got 0.24 (87.8% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/test/setup.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 8,
+          "actual": 8,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 3,
+          "actual": 3,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 5,
+          "actual": 5,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 73.57307076494241,
+          "actual": 73.57307076494241,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 1.585615754103455,
+          "actual": 1.585615754103455,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 16,
+          "actual": 1.585615754103455,
+          "absoluteDiff": 14.414384245896546,
+          "percentDiff": 90.08990153685342,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 16.00, got 1.59 (90.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/subtasks.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 30,
+          "actual": 30,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 8,
+          "actual": 8,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 57.166301773350796,
+          "actual": 57.1663017733508,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.2429398329407655e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.8566739645329841,
+          "actual": 0.8566739645329841,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 9,
+          "actual": 0.8566739645329841,
+          "absoluteDiff": 8.143326035467016,
+          "percentDiff": 90.48140039407797,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 9.00, got 0.86 (90.5% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/stories.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 42,
+          "actual": 42,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 8,
+          "actual": 8,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 52.95547963083972,
+          "actual": 52.95547963083972,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.9408904073832056,
+          "actual": 0.9408904073832056,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 9,
+          "actual": 0.9408904073832056,
+          "absoluteDiff": 8.059109592616794,
+          "percentDiff": 89.5456621401866,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 9.00, got 0.94 (89.5% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/projects.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 23,
+          "actual": 23,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 4,
+          "actual": 4,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 10,
+          "actual": 10,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 60.2224700462668,
+          "actual": 60.2224700462668,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 1.591101198149328,
+          "actual": 1.591101198149328,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 16,
+          "actual": 1.591101198149328,
+          "absoluteDiff": 14.408898801850672,
+          "percentDiff": 90.0556175115667,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 16.00, got 1.59 (90.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/epics.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 30,
+          "actual": 30,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 8,
+          "actual": 8,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 57.166301773350796,
+          "actual": 57.1663017733508,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.2429398329407655e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 0.8566739645329841,
+          "actual": 0.8566739645329841,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 9,
+          "actual": 0.8566739645329841,
+          "absoluteDiff": 8.143326035467016,
+          "percentDiff": 90.48140039407797,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 9.00, got 0.86 (90.5% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "trigger-analysis.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 34,
+          "actual": 34,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 7,
+          "actual": 7,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 15,
+          "actual": 15,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 52.92741799603166,
+          "actual": 50.92741799603166,
+          "absoluteDiff": 2,
+          "percentDiff": 3.7787598105578364,
+          "metric": "Maintainability Index",
+          "severity": "LOW"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 3.295080740277784,
+          "actual": 3.435080740277784,
+          "absoluteDiff": 0.14000000000000012,
+          "percentDiff": 4.2487578009453495,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 33,
+          "actual": 3.435080740277784,
+          "absoluteDiff": 29.564919259722217,
+          "percentDiff": 89.59066442340065,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 2,
+          "absoluteDiff": 1,
+          "percentDiff": 100,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 33.00, got 3.44 (89.6% diff)",
+        "Code Smell Count: Expected 1.00, got 2.00 (100.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "test-bootstrap.js",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 58,
+          "actual": 58,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 10,
+          "actual": 10,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 24,
+          "actual": 24,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 45.840069926495104,
+          "actual": 45.8400699264951,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.550047233565439e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 5.415993007350489,
+          "actual": 5.415993007350489,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 54,
+          "actual": 5.415993007350489,
+          "absoluteDiff": 48.58400699264951,
+          "percentDiff": 89.97038331972132,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 54.00, got 5.42 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "shared/src/types.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 82,
+          "actual": 82,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 8,
+          "actual": 8,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 10,
+          "actual": 10,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 43.77556029739473,
+          "actual": 43.77556029739473,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 8.995910352416843,
+          "actual": 8.995910352416843,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 90,
+          "actual": 8.995910352416843,
+          "absoluteDiff": 81.00408964758316,
+          "percentDiff": 90.00454405287017,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 90.00, got 9.00 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "setup-architecture-mcp.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 169,
+          "actual": 169,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 7,
+          "actual": 7,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 15,
+          "actual": 15,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 32.85974707640129,
+          "actual": 30.85974707640129,
+          "absoluteDiff": 2,
+          "percentDiff": 6.08647411481852,
+          "metric": "Maintainability Index",
+          "severity": "HIGH"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 4.69981770465191,
+          "actual": 4.839817704651909,
+          "absoluteDiff": 0.13999999999999968,
+          "percentDiff": 2.97883894223018,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 47,
+          "actual": 4.839817704651909,
+          "absoluteDiff": 42.16018229534809,
+          "percentDiff": 89.70251552201722,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 2,
+          "absoluteDiff": 1,
+          "percentDiff": 100,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 47.00, got 4.84 (89.7% diff)",
+        "Code Smell Count: Expected 1.00, got 2.00 (100.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "playwright.config.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 43,
+          "actual": 43,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 6,
+          "actual": 6,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 12,
+          "actual": 12,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 52.12299270418584,
+          "actual": 52.12299270418584,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 2.8726204377488496,
+          "actual": 2.87262043774885,
+          "absoluteDiff": 4.440892098500626e-16,
+          "percentDiff": 1.5459376533506684e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 29,
+          "actual": 2.87262043774885,
+          "absoluteDiff": 26.12737956225115,
+          "percentDiff": 90.09441228362466,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 29.00, got 2.87 (90.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/utils/codeQuality/coverageHelpers.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 65,
+          "actual": 65,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 13,
+          "actual": 13,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 17,
+          "actual": 17,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 46.01059206095518,
+          "actual": 40.01059206095518,
+          "absoluteDiff": 6,
+          "percentDiff": 13.040475532353843,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 7.018623032075826,
+          "actual": 7.798623032075827,
+          "absoluteDiff": 0.7800000000000011,
+          "percentDiff": 11.113290975100403,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 70,
+          "actual": 7.798623032075827,
+          "absoluteDiff": 62.201376967924176,
+          "percentDiff": 88.8591099541774,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 3,
+          "absoluteDiff": 3,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 46.01, got 40.01 (13.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 70.00, got 7.80 (88.9% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/utils/codeQuality/__tests__/healthCalculations.test.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 102,
+          "actual": 102,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 15,
+          "actual": 15,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 21,
+          "actual": 21,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 40.10267941269978,
+          "actual": 40.10267941269978,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 8.984598088095034,
+          "actual": 8.984598088095034,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 90,
+          "actual": 8.984598088095034,
+          "absoluteDiff": 81.01540191190497,
+          "percentDiff": 90.01711323544997,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 90.00, got 8.98 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/utils/codeQuality/__tests__/fileTreeHelpers.test.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 135,
+          "actual": 135,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 12,
+          "actual": 12,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 24,
+          "actual": 24,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 36.99831563825591,
+          "actual": 36.99831563825591,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 7.560202123409291,
+          "actual": 7.560202123409291,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 76,
+          "actual": 7.560202123409291,
+          "absoluteDiff": 68.4397978765907,
+          "percentDiff": 90.05236562709304,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 76.00, got 7.56 (90.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/utils/codeQuality/__tests__/coverageHelpers.test.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 78,
+          "actual": 78,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 11,
+          "actual": 11,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 19,
+          "actual": 19,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 43.997912929147795,
+          "actual": 43.99791292914779,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.614946456447435e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 6.160229577793742,
+          "actual": 6.160229577793742,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 62,
+          "actual": 6.160229577793742,
+          "absoluteDiff": 55.83977042220626,
+          "percentDiff": 90.06414584226816,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 62.00, got 6.16 (90.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/types/codeQualityTypes.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 160,
+          "actual": 160,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 12,
+          "actual": 12,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 16,
+          "actual": 16,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 34.872093774266745,
+          "actual": 34.87209377426674,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 2.037568321419326e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 15.630697494175982,
+          "actual": 15.63069749417598,
+          "absoluteDiff": 1.7763568394002505e-15,
+          "percentDiff": 1.1364539810601052e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 156,
+          "actual": 15.63069749417598,
+          "absoluteDiff": 140.369302505824,
+          "percentDiff": 89.98032211911794,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 156.00, got 15.63 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/workflows.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 59,
+          "actual": 59,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 13,
+          "actual": 13,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 21,
+          "actual": 21,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 47.222630818957654,
+          "actual": 47.22263081895765,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.5046657152249358e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 6.861057993535505,
+          "actual": 6.861057993535505,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 69,
+          "actual": 6.861057993535505,
+          "absoluteDiff": 62.1389420064645,
+          "percentDiff": 90.05643769052826,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 69.00, got 6.86 (90.1% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/test-executions.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 35,
+          "actual": 35,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 8,
+          "actual": 8,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 14,
+          "actual": 14,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 54.430147066740666,
+          "actual": 54.43014706674067,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.3054213042798751e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 3.645588234660747,
+          "actual": 3.645588234660747,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 36,
+          "actual": 3.645588234660747,
+          "absoluteDiff": 32.35441176533925,
+          "percentDiff": 89.87336601483125,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 36.00, got 3.65 (89.9% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/test-cases.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 58,
+          "actual": 58,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 15,
+          "actual": 15,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 21,
+          "actual": 21,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 47.16755530661208,
+          "actual": 47.16755530661208,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 7.9248667040081875,
+          "actual": 7.924866704008187,
+          "absoluteDiff": 8.881784197001252e-16,
+          "percentDiff": 1.1207487177682222e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 79,
+          "actual": 7.924866704008187,
+          "absoluteDiff": 71.07513329599182,
+          "percentDiff": 89.96852315948331,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 79.00, got 7.92 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/coordinators.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 59,
+          "actual": 59,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 13,
+          "actual": 13,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 21,
+          "actual": 21,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 47.222630818957654,
+          "actual": 47.22263081895765,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.5046657152249358e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 13.72211598707101,
+          "actual": 13.72211598707101,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 137,
+          "actual": 13.72211598707101,
+          "absoluteDiff": 123.277884012929,
+          "percentDiff": 89.98385694374379,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 137.00, got 13.72 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/components.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 66,
+          "actual": 66,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 13,
+          "actual": 13,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 21,
+          "actual": 21,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 45.81952545066345,
+          "actual": 45.81952545066345,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 7.043461691413752,
+          "actual": 7.043461691413752,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 70,
+          "actual": 7.043461691413752,
+          "absoluteDiff": 62.956538308586246,
+          "percentDiff": 89.93791186940892,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 70.00, got 7.04 (89.9% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "verify-coverage-metrics.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 64,
+          "actual": 64,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 20,
+          "actual": 20,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 28,
+          "actual": 28,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 43.263100594212304,
+          "actual": 41.2631005942123,
+          "absoluteDiff": 2.000000000000007,
+          "percentDiff": 4.622877169066253,
+          "metric": "Maintainability Index",
+          "severity": "LOW"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 11.34737988115754,
+          "actual": 11.74737988115754,
+          "absoluteDiff": 0.40000000000000036,
+          "percentDiff": 3.525042822125001,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 113,
+          "actual": 11.74737988115754,
+          "absoluteDiff": 101.25262011884246,
+          "percentDiff": 89.60408860074554,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 2,
+          "absoluteDiff": 1,
+          "percentDiff": 100,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 113.00, got 11.75 (89.6% diff)",
+        "Code Smell Count: Expected 1.00, got 2.00 (100.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/utils/codeQuality/healthCalculations.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 47,
+          "actual": 47,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 26,
+          "actual": 26,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 30,
+          "actual": 30,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 48.31979024760513,
+          "actual": 32.31979024760513,
+          "absoluteDiff": 16,
+          "percentDiff": 33.11272652056474,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": false,
+          "expected": 13.436854535622667,
+          "actual": 17.59685453562267,
+          "absoluteDiff": 4.160000000000002,
+          "percentDiff": 30.959626666876222,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "CRITICAL"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 134,
+          "actual": 17.59685453562267,
+          "absoluteDiff": 116.40314546437733,
+          "percentDiff": 86.86801900326667,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 8,
+          "absoluteDiff": 8,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 48.32, got 32.32 (33.1% diff)",
+        "Risk Score (Worker Formula): Expected 13.44, got 17.60 (31.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 134.00, got 17.60 (86.9% diff)"
+      ],
+      "recommendations": [
+        "Risk score calculation differs from both formulas - investigate worker vs MCP tool formula mismatch"
+      ]
+    },
+    {
+      "filePath": "frontend/src/utils/codeQuality/fileTreeHelpers.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 70,
+          "actual": 70,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 22,
+          "actual": 22,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 28,
+          "actual": 28,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 43.872632643358884,
+          "actual": 25.87263264335888,
+          "absoluteDiff": 18.000000000000004,
+          "percentDiff": 41.027854759303374,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": false,
+          "expected": 12.348020818461045,
+          "actual": 16.30802081846105,
+          "absoluteDiff": 3.9600000000000044,
+          "percentDiff": 32.06991677629473,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "CRITICAL"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 123,
+          "actual": 16.30802081846105,
+          "absoluteDiff": 106.69197918153895,
+          "percentDiff": 86.74144648905606,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 9,
+          "absoluteDiff": 9,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 43.87, got 25.87 (41.0% diff)",
+        "Risk Score (Worker Formula): Expected 12.35, got 16.31 (32.1% diff)",
+        "Risk Score (MCP Tool Formula): Expected 123.00, got 16.31 (86.7% diff)"
+      ],
+      "recommendations": [
+        "Risk score calculation differs from both formulas - investigate worker vs MCP tool formula mismatch"
+      ]
+    },
+    {
+      "filePath": "frontend/src/services/workflow-activation.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 91,
+          "actual": 91,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 19,
+          "actual": 19,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 29,
+          "actual": 29,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 40.99275237458446,
+          "actual": 40.99275237458446,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 22.422754097657904,
+          "actual": 22.4227540976579,
+          "absoluteDiff": 3.552713678800501e-15,
+          "percentDiff": 1.5844234224428245e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 224,
+          "actual": 22.4227540976579,
+          "absoluteDiff": 201.5772459023421,
+          "percentDiff": 89.98984192068843,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 224.00, got 22.42 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/websocket.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 213,
+          "actual": 213,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 44,
+          "actual": 44,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 52,
+          "actual": 52,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 24.987337809250462,
+          "actual": 0.9873378092504623,
+          "absoluteDiff": 24,
+          "percentDiff": 96.0486474518108,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": false,
+          "expected": 33.005571363929796,
+          "actual": 43.56557136392979,
+          "absoluteDiff": 10.559999999999995,
+          "percentDiff": 31.99459837723189,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "CRITICAL"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 330,
+          "actual": 43.56557136392979,
+          "absoluteDiff": 286.4344286360702,
+          "percentDiff": 86.79831170790007,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 13,
+          "absoluteDiff": 12,
+          "percentDiff": 1200,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 24.99, got 0.99 (96.0% diff)",
+        "Risk Score (Worker Formula): Expected 33.01, got 43.57 (32.0% diff)",
+        "Risk Score (MCP Tool Formula): Expected 330.00, got 43.57 (86.8% diff)",
+        "Code Smell Count: Expected 1.00, got 13.00 (1200.0% diff)"
+      ],
+      "recommendations": [
+        "Risk score calculation differs from both formulas - investigate worker vs MCP tool formula mismatch"
+      ]
+    },
+    {
+      "filePath": "frontend/src/services/use-cases.service.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 60,
+          "actual": 60,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 18,
+          "actual": 18,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 26,
+          "actual": 26,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 46.339781502015825,
+          "actual": 46.33978150201582,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 1.5333320804052367e-14,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 19.317678659274303,
+          "actual": 19.3176786592743,
+          "absoluteDiff": 3.552713678800501e-15,
+          "percentDiff": 1.8390996876298404e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 193,
+          "actual": 19.3176786592743,
+          "absoluteDiff": 173.6823213407257,
+          "percentDiff": 89.99084007291488,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 193.00, got 19.32 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/services/api.client.ts",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 147,
+          "actual": 147,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 23,
+          "actual": 23,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 39,
+          "actual": 39,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 32.45306587306145,
+          "actual": 24.45306587306145,
+          "absoluteDiff": 7.9999999999999964,
+          "percentDiff": 24.65098376619207,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": false,
+          "expected": 31.071589698391737,
+          "actual": 34.75158969839173,
+          "absoluteDiff": 3.679999999999996,
+          "percentDiff": 11.843616743531062,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "CRITICAL"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 311,
+          "actual": 34.75158969839173,
+          "absoluteDiff": 276.24841030160826,
+          "percentDiff": 88.82585540244638,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 1,
+          "actual": 5,
+          "absoluteDiff": 4,
+          "percentDiff": 400,
+          "metric": "Code Smell Count",
+          "severity": "CRITICAL"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 32.45, got 24.45 (24.7% diff)",
+        "Risk Score (Worker Formula): Expected 31.07, got 34.75 (11.8% diff)",
+        "Risk Score (MCP Tool Formula): Expected 311.00, got 34.75 (88.8% diff)",
+        "Code Smell Count: Expected 1.00, got 5.00 (400.0% diff)"
+      ],
+      "recommendations": [
+        "Risk score calculation differs from both formulas - investigate worker vs MCP tool formula mismatch"
+      ]
+    },
+    {
+      "filePath": "frontend/src/pages/__tests__/CodeQualityDashboard.st16.integration.test.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 341,
+          "actual": 341,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 43,
+          "actual": 43,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 59,
+          "actual": 59,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": true,
+          "expected": 21.23258186323552,
+          "actual": 21.23258186323552,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Maintainability Index",
+          "severity": "PASS"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 1,
+          "actual": 1,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 33.869989798808724,
+          "actual": 33.86998979880872,
+          "absoluteDiff": 7.105427357601002e-15,
+          "percentDiff": 2.0978534094069654e-14,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 339,
+          "actual": 33.86998979880872,
+          "absoluteDiff": 305.1300102011913,
+          "percentDiff": 90.00885256672309,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "PASS"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 339.00, got 33.87 (90.0% diff)"
+      ],
+      "recommendations": []
+    },
+    {
+      "filePath": "frontend/src/pages/WorkflowResultsView.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 201,
+          "actual": 201,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 36,
+          "actual": 36,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 46,
+          "actual": 46,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 28.789049688617418,
+          "actual": 26.78904968861742,
+          "absoluteDiff": 1.9999999999999964,
+          "percentDiff": 6.947085859491757,
+          "metric": "Maintainability Index",
+          "severity": "HIGH"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 2,
+          "actual": 2,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": false,
+          "expected": 51.27188422419547,
+          "actual": 52.71188422419547,
+          "absoluteDiff": 1.4400000000000048,
+          "percentDiff": 2.8085568178133413,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "LOW"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 513,
+          "actual": 52.71188422419547,
+          "absoluteDiff": 460.2881157758045,
+          "percentDiff": 89.7247789036656,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 1,
+          "absoluteDiff": 1,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Risk Score (MCP Tool Formula): Expected 513.00, got 52.71 (89.7% diff)"
+      ],
+      "recommendations": [
+        "Risk score calculation differs from both formulas - investigate worker vs MCP tool formula mismatch"
+      ]
+    },
+    {
+      "filePath": "frontend/src/pages/UseCaseLibraryView.tsx",
+      "metrics": {
+        "loc": {
+          "passed": true,
+          "expected": 202,
+          "actual": 202,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Lines of Code",
+          "severity": "PASS"
+        },
+        "cyclomaticComplexity": {
+          "passed": true,
+          "expected": 29,
+          "actual": 29,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cyclomatic Complexity",
+          "severity": "PASS"
+        },
+        "cognitiveComplexity": {
+          "passed": true,
+          "expected": 39,
+          "actual": 39,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Cognitive Complexity",
+          "severity": "PASS"
+        },
+        "maintainabilityIndex": {
+          "passed": false,
+          "expected": 29.668462734277323,
+          "actual": 17.66846273427732,
+          "absoluteDiff": 12.000000000000004,
+          "percentDiff": 40.44698947659279,
+          "metric": "Maintainability Index",
+          "severity": "CRITICAL"
+        },
+        "churnRate": {
+          "passed": true,
+          "expected": 5,
+          "actual": 5,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Churn Rate",
+          "severity": "PASS"
+        },
+        "riskScore_Worker": {
+          "passed": true,
+          "expected": 100,
+          "actual": 100,
+          "absoluteDiff": 0,
+          "percentDiff": 0,
+          "metric": "Risk Score (Worker Formula)",
+          "severity": "PASS"
+        },
+        "riskScore_MCPTool": {
+          "passed": false,
+          "expected": 1020,
+          "actual": 100,
+          "absoluteDiff": 920,
+          "percentDiff": 90.19607843137256,
+          "metric": "Risk Score (MCP Tool Formula)",
+          "severity": "CRITICAL"
+        },
+        "codeSmellCount": {
+          "passed": false,
+          "expected": 0,
+          "actual": 6,
+          "absoluteDiff": 6,
+          "percentDiff": 0,
+          "metric": "Code Smell Count",
+          "severity": "LOW"
+        }
+      },
+      "overallPassed": false,
+      "criticalIssues": [
+        "Maintainability Index: Expected 29.67, got 17.67 (40.4% diff)",
+        "Risk Score (MCP Tool Formula): Expected 1020.00, got 100.00 (90.2% diff)"
+      ],
+      "recommendations": []
+    }
+  ],
+  "criticalFindings": [
+    {
+      "severity": "CRITICAL",
+      "category": "formula-mismatch",
+      "description": "Risk score formula mismatch detected: 50 files have incorrect risk scores",
+      "affectedFiles": [
+        "frontend/src/types/index.ts",
+        "frontend/src/services/workflow-runs.service.ts",
+        "frontend/src/services/metrics.service.ts",
+        "frontend/src/pages/WorkflowManagementView.tsx",
+        "frontend/src/pages/WorkflowExecutionMonitor.tsx",
+        "frontend/src/pages/WorkflowDetailsPage.tsx",
+        "frontend/src/pages/StoryDetailPage.tsx",
+        "frontend/src/pages/PerformanceDashboard.tsx",
+        "frontend/src/pages/LayersComponentsPage.tsx",
+        "frontend/src/pages/EpicPlanningView.tsx",
+        "shared/src/index.ts",
+        "shared/src/constants.ts",
+        "scripts/init-db.sql",
+        "mcp-config.json",
+        "mcp-config-dev.json",
+        "frontend/vitest.config.ts",
+        "frontend/vite.config.ts",
+        "frontend/tsconfig.node.json",
+        "frontend/tailwind.config.js",
+        "frontend/src/vite-env.d.ts",
+        "frontend/src/test/setup.ts",
+        "frontend/src/services/subtasks.service.ts",
+        "frontend/src/services/stories.service.ts",
+        "frontend/src/services/projects.service.ts",
+        "frontend/src/services/epics.service.ts",
+        "trigger-analysis.ts",
+        "test-bootstrap.js",
+        "shared/src/types.ts",
+        "setup-architecture-mcp.ts",
+        "playwright.config.ts",
+        "frontend/src/utils/codeQuality/coverageHelpers.ts",
+        "frontend/src/utils/codeQuality/__tests__/healthCalculations.test.ts",
+        "frontend/src/utils/codeQuality/__tests__/fileTreeHelpers.test.ts",
+        "frontend/src/utils/codeQuality/__tests__/coverageHelpers.test.ts",
+        "frontend/src/types/codeQualityTypes.ts",
+        "frontend/src/services/workflows.service.ts",
+        "frontend/src/services/test-executions.service.ts",
+        "frontend/src/services/test-cases.service.ts",
+        "frontend/src/services/coordinators.service.ts",
+        "frontend/src/services/components.service.ts",
+        "verify-coverage-metrics.ts",
+        "frontend/src/utils/codeQuality/healthCalculations.ts",
+        "frontend/src/utils/codeQuality/fileTreeHelpers.ts",
+        "frontend/src/services/workflow-activation.service.ts",
+        "frontend/src/services/websocket.service.ts",
+        "frontend/src/services/use-cases.service.ts",
+        "frontend/src/services/api.client.ts",
+        "frontend/src/pages/__tests__/CodeQualityDashboard.st16.integration.test.tsx",
+        "frontend/src/pages/WorkflowResultsView.tsx",
+        "frontend/src/pages/UseCaseLibraryView.tsx"
+      ],
+      "expectedValue": 0,
+      "actualValue": 0,
+      "percentDiff": 0,
+      "suggestedFix": "Database uses Worker formula (45 matches) but MCP tool uses different formula (0 matches). Standardize on one formula in both locations: code-analysis.processor.ts lines 530-534 and get_file_health.ts lines 92-96",
+      "codeLocation": "backend/src/workers/processors/code-analysis.processor.ts:530-534, backend/src/mcp/servers/code-quality/get_file_health.ts:92-96"
+    }
+  ],
+  "recommendations": [
+    "PRIORITY 1: Standardize risk score formula across worker and MCP tools",
+    "  - Option A: Use Worker formula (simpler, scales down by /100)",
+    "  - Option B: Use MCP Tool formula (better risk distribution, scales complexity by /10)",
+    "  - Recommended: Option B (MCP Tool formula) for better granularity",
+    "PRIORITY 3: Convert this validation script into a Jest test suite for CI/CD integration",
+    "PRIORITY 4: Consider implementing AST-based complexity calculation for better accuracy"
+  ],
+  "timestamp": "2025-11-18T16:33:05.807Z"
+}
