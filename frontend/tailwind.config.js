@@ -29,7 +29,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Roboto', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
       },
       fontSize: {
         xs: '0.75rem',    // 12px

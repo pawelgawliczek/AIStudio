@@ -60,7 +60,7 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
                   Complexity: <span className={getHealthColor(100 - node.metrics.avgComplexity)}>{node.metrics.avgComplexity.toFixed(1)}</span>
                 </span>
                 <span className="text-gray-500">
-                  Coverage: {node.metrics.avgCoverage.toFixed(1)}%
+                  Coverage: <span className={node.metrics.avgCoverage >= 70 ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'}>{node.metrics.avgCoverage.toFixed(1)}%</span>
                 </span>
                 <div
                   className={`w-2 h-2 rounded-full ${getHealthColor(node.metrics.healthScore)}`}
@@ -110,7 +110,7 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
               Complexity: <span className={getHealthColor(100 - node.metrics.avgComplexity)}>{node.metrics.avgComplexity.toFixed(1)}</span>
             </span>
             <span className="text-gray-500">
-              Coverage: {node.metrics.avgCoverage.toFixed(1)}%
+              Coverage: <span className={node.metrics.avgCoverage >= 70 ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'}>{node.metrics.avgCoverage.toFixed(1)}%</span>
             </span>
             <div
               className={`w-2 h-2 rounded-full ${getHealthColor(node.metrics.healthScore)}`}

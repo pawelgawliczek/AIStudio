@@ -35,7 +35,7 @@ export function useFileTree(projectId: string | undefined): UseFileTreeReturn {
       setLoadingDetail(true);
       try {
         const response = await axios.get(
-          `/code-metrics/project/${projectId}/file/${encodeURIComponent(filePath)}`
+          `/code-metrics/file/${projectId}?filePath=${encodeURIComponent(filePath)}`
         );
         setSelectedFile(response.data);
         setDrillDownLevel('file');
