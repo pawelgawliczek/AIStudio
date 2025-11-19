@@ -229,6 +229,7 @@ export class CodeMetricsController {
   async getRecentAnalyses(
     @Param('projectId') projectId: string,
     @Query('limit') limit?: number,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<RecentAnalysesResponseDto> {
     const parsedLimit = Math.min(parseInt(limit?.toString() || '7'), 20);
     return this.codeMetricsService.getRecentAnalyses(projectId, parsedLimit);
