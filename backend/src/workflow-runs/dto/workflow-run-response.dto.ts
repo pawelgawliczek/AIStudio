@@ -1,6 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { RunStatus } from './create-workflow-run.dto';
 
+// ST-57: Define CoordinatorMetricsDto FIRST to avoid circular dependency
+export class CoordinatorMetricsDto {
+  @ApiProperty({ required: false })
+  tokensInput?: number;
+
+  @ApiProperty({ required: false })
+  tokensOutput?: number;
+
+  @ApiProperty({ required: false })
+  totalTokens?: number;
+
+  @ApiProperty({ required: false })
+  costUsd?: number;
+
+  @ApiProperty({ required: false })
+  toolCalls?: number;
+
+  @ApiProperty({ required: false })
+  userPrompts?: number;
+
+  @ApiProperty({ required: false })
+  iterations?: number;
+
+  @ApiProperty({ required: false })
+  dataSource?: string;
+
+  @ApiProperty({ required: false })
+  transcriptPath?: string;
+}
+
 export class WorkflowRunResponseDto {
   @ApiProperty()
   id: string;
@@ -135,33 +165,4 @@ export class ComponentRunSummaryDto {
 
   @ApiProperty()
   success: boolean;
-}
-
-export class CoordinatorMetricsDto {
-  @ApiProperty({ required: false })
-  tokensInput?: number;
-
-  @ApiProperty({ required: false })
-  tokensOutput?: number;
-
-  @ApiProperty({ required: false })
-  totalTokens?: number;
-
-  @ApiProperty({ required: false })
-  costUsd?: number;
-
-  @ApiProperty({ required: false })
-  toolCalls?: number;
-
-  @ApiProperty({ required: false })
-  userPrompts?: number;
-
-  @ApiProperty({ required: false })
-  iterations?: number;
-
-  @ApiProperty({ required: false })
-  dataSource?: string;
-
-  @ApiProperty({ required: false })
-  transcriptPath?: string;
 }
