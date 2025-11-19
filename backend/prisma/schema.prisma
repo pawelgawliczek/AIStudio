@@ -124,6 +124,9 @@ model Story {
   designerAnalyzedAt   DateTime?    @map("designer_analyzed_at")
   architectAnalyzedAt  DateTime?    @map("architect_analyzed_at")
 
+  // Workflow phase tracking (Epic EP-7 - ST-38)
+  currentPhase         StoryPhase?  @map("current_phase")
+
   // Metadata (metrics, framework info, etc.)
   metadata             Json?        // Stores aggregated metrics, framework info, and other dynamic data
 
@@ -149,6 +152,9 @@ model Story {
   defectsIntroduced DefectNew[]          @relation("DefectsIntroducedByStory")
   defectsFound      DefectNew[]          @relation("DefectsFoundInStory")
   releaseItems      ReleaseItem[]
+  worktrees         Worktree[]
+  testQueueEntries  TestQueue[]
+  pullRequests      PullRequest[]
 
   @@unique([projectId, key])
   @@index([projectId, status, type])
@@ -926,6 +932,70 @@ model ActiveWorkflow {
   @@map("active_workflows")
 }
 
+// Worktree - Git worktree tracking for parallel development
+model Worktree {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId      String         @map("story_id") @db.Uuid
+  branchName   String         @map("branch_name")
+  worktreePath String         @map("worktree_path")
+  baseBranch   String         @map("base_branch") @default("main")
+  status       WorktreeStatus @default(active)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, status])
+  @@index([status])
+  @@index([branchName])
+  @@map("worktrees")
+}
+
+// TestQueue - Queue-based story testing with priority management
+model TestQueue {
+  id           String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId      String       @map("story_id") @db.Uuid
+  position     Int
+  priority     Int          @default(0)
+  status       QueueStatus  @default(pending)
+  submittedBy  String       @map("submitted_by")
+  testResults  Json?        @map("test_results")
+  errorMessage String?      @map("error_message")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([status, position])
+  @@index([status, priority])
+  @@index([storyId])
+  @@index([submittedBy])
+  @@map("test_queue")
+}
+
+// PullRequest - GitHub/GitLab pull request tracking
+model PullRequest {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId     String    @map("story_id") @db.Uuid
+  prNumber    Int       @map("pr_number")
+  prUrl       String    @map("pr_url")
+  title       String
+  description String?
+  status      PRStatus  @default(draft)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, status])
+  @@index([prNumber])
+  @@index([status])
+  @@map("pull_requests")
+}
+
 // MetricsAggregation - Pre-calculated metrics for performance
 model MetricsAggregation {
   id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
@@ -1144,4 +1214,45 @@ enum RunStatus {
   cancelled
   skipped
   paused
+}
+
+// ============================================================================
+// GIT WORKFLOW MANAGEMENT (Epic EP-7 - ST-38)
+// ============================================================================
+
+enum WorktreeStatus {
+  active    // Worktree is active and in use
+  idle      // Worktree exists but not actively used
+  cleaning  // Worktree being cleaned up
+  removed   // Worktree removed
+}
+
+enum QueueStatus {
+  pending   // Waiting in queue
+  running   // Tests currently executing
+  passed    // Tests passed
+  failed    // Tests failed
+  cancelled // Removed from queue
+  skipped   // Skipped (dependency failed)
+}
+
+enum PRStatus {
+  draft              // PR created as draft
+  open               // PR open for review
+  approved           // PR approved by reviewers
+  changes_requested  // Changes requested
+  merged             // PR merged into base branch
+  closed             // PR closed without merge
+  conflict           // PR has merge conflicts
+}
+
+enum StoryPhase {
+  context         // Context exploration phase
+  ba              // BA analysis phase
+  design          // Design phase
+  architecture    // Architecture phase
+  implementation  // Development phase
+  testing         // Testing phase (TestQueue)
+  review          // Code review (PullRequest)
+  done            // Complete
 }
