@@ -104,6 +104,32 @@ export async function handler(
       });
     }
 
+    // 1.5. Check for active queue lock (ST-43 integration)
+    const activeLock = await prisma.testQueueLock.findFirst({
+      where: {
+        active: true,
+        expiresAt: { gt: new Date() },
+      },
+      select: {
+        id: true,
+        reason: true,
+        expiresAt: true,
+      },
+    });
+
+    if (activeLock) {
+      throw new ValidationError(
+        `Test queue is locked: ${activeLock.reason}. Unlocks at ${activeLock.expiresAt.toISOString()}.`,
+        {
+          lockId: activeLock.id,
+          reason: activeLock.reason,
+          expiresAt: activeLock.expiresAt.toISOString(),
+          unlockTool: 'mcp__vibestudio__unlock_test_queue',
+          statusTool: 'mcp__vibestudio__get_queue_lock_status',
+        }
+      );
+    }
+
     // 2. Check for duplicate pending/running entry (AC-6 - duplicate prevention)
     const existingEntry = await prisma.testQueue.findFirst({
       where: {
@@ -181,8 +207,8 @@ export async function handler(
       message: `Successfully added ${story.key} to test queue at position ${queuePosition} (estimated wait: ${estimatedWaitMinutes} minutes)`,
     };
   } catch (error: any) {
-    // Re-throw MCP errors
-    if (error.name === 'MCPError') {
+    // Re-throw MCP errors (ValidationError, NotFoundError, etc.)
+    if (error.name === 'MCPError' || error.code === 'VALIDATION_ERROR' || error.code === 'NOT_FOUND') {
       throw error;
     }
     // Convert Prisma errors

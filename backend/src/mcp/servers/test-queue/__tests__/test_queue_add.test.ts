@@ -15,6 +15,13 @@ describe('test_queue_add', () => {
   beforeEach(() => {
     prisma = new PrismaClient();
     jest.clearAllMocks();
+
+    // Mock testQueueLock to always return null (no active lock) by default
+    // Individual tests can override this if they need to test lock behavior
+    if (!prisma.testQueueLock) {
+      (prisma as any).testQueueLock = {};
+    }
+    (prisma as any).testQueueLock.findFirst = jest.fn().mockResolvedValue(null);
   });
 
   afterEach(async () => {

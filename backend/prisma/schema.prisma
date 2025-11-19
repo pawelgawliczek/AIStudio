@@ -945,6 +945,22 @@ model TestQueue {
   @@map("test_queue")
 }
 
+// TestQueueLock - Queue locking for schema migrations (ST-43)
+model TestQueueLock {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reason    String
+  lockedBy  String    @map("locked_by")
+  lockedAt  DateTime  @default(now()) @map("locked_at")
+  expiresAt DateTime  @map("expires_at")
+  active    Boolean   @default(true)
+  metadata  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([active, expiresAt])
+  @@map("test_queue_locks")
+}
+
 // PullRequest - GitHub/GitLab pull request tracking
 model PullRequest {
   id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
