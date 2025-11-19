@@ -60,7 +60,6 @@ model Project {
   codeMetrics         CodeMetrics[]
   codeMetricsSnapshots CodeMetricsSnapshot[]
   components          Component[]
-  coordinators        CoordinatorAgent[]
   workflows           Workflow[]
   workflowRuns        WorkflowRun[]
   defectsNew          DefectNew[]
@@ -579,9 +578,11 @@ model Component {
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  componentRuns ComponentRun[]
-  defects       DefectNew[]
+  project                Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  componentRuns          ComponentRun[]
+  defects                DefectNew[]
+  workflowsAsCoordinator Workflow[]     @relation("WorkflowCoordinator")
+  workflowRunsAsCoordinator WorkflowRun[] @relation("WorkflowRunCoordinator")
 
   @@index([projectId])
   @@index([projectId, active])
@@ -589,40 +590,9 @@ model Component {
   @@map("components")
 }
 
-// CoordinatorAgent - Intelligent orchestrator that decides workflow
-model CoordinatorAgent {
-  id                      String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId               String   @map("project_id") @db.Uuid
-  name                    String
-  description             String
-  domain                  String   // software-development, content-creation, etc.
-
-  // Coordinator instructions
-  coordinatorInstructions String   @db.Text @map("coordinator_instructions")
-  flowDiagram             String?  @db.Text @map("flow_diagram") // Compact text diagram of workflow
-
-  // Execution configuration
-  config                  Json     // { modelId, temperature, maxInputTokens, maxOutputTokens, timeout, maxRetries, costLimit }
-  tools                   String[] // MCP tool names (includes special coordinator tools)
-  decisionStrategy        String   @map("decision_strategy") // sequential, adaptive, parallel, conditional
-  componentIds            String[] @map("component_ids") // Array of Component IDs in library
-
-  // Metadata
-  active                  Boolean  @default(true)
-  version                 String   @default("v1.0")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  workflows    Workflow[]
-  workflowRuns WorkflowRun[]
-
-  @@index([projectId])
-  @@index([projectId, active])
-  @@index([domain])
-  @@map("coordinator_agents")
-}
+// CoordinatorAgent - DEPRECATED: Coordinators are now stored as Components with tags=['coordinator']
+// This model is kept for reference but the table has been dropped.
+// Relations updated to point to Component model instead.
 
 // Workflow - Links coordinator + trigger configuration
 model Workflow {
@@ -643,7 +613,7 @@ model Workflow {
 
   // Relations
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  coordinator     CoordinatorAgent @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
+  coordinator     Component        @relation("WorkflowCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
   stories         Story[]
   workflowRuns    WorkflowRun[]
   activeWorkflows ActiveWorkflow[]
@@ -702,7 +672,7 @@ model WorkflowRun {
   workflow      Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   story         Story?           @relation(fields: [storyId], references: [id], onDelete: SetNull)
   epic          Epic?            @relation(fields: [epicId], references: [id], onDelete: SetNull)
-  coordinator   CoordinatorAgent? @relation(fields: [coordinatorId], references: [id], onDelete: Restrict)
+  coordinator   Component?       @relation("WorkflowRunCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
   componentRuns ComponentRun[]
   defects       DefectNew[]
   otelEvents    OtelEvent[]

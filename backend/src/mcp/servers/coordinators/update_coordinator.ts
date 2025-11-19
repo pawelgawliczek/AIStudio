@@ -176,7 +176,7 @@ export async function handler(
     validateRequired(params, ['coordinatorId']);
 
     // Verify coordinator exists
-    const existingCoordinator = await prisma.coordinatorAgent.findUnique({
+    const existingCoordinator = await prisma.component.findUnique({
       where: { id: params.coordinatorId },
     });
 
@@ -217,20 +217,22 @@ export async function handler(
         components.find(c => c.id === id)!
       );
 
-      // Regenerate flow diagram
-      const decisionStrategy = params.decisionStrategy || existingCoordinator.decisionStrategy;
-      const coordinatorInstructions = params.coordinatorInstructions || existingCoordinator.coordinatorInstructions;
+      // Extract existing values from config
+      const existingConfig = (existingCoordinator.config as any) || {};
+      const decisionStrategy = params.decisionStrategy || existingConfig.decisionStrategy;
+      const coordinatorInstructions = params.coordinatorInstructions || existingCoordinator.operationInstructions;
 
-      updateData.componentIds = params.componentIds;
-      updateData.flowDiagram = generateFlowDiagram(
-        sortedComponents,
-        decisionStrategy,
-        coordinatorInstructions,
-      );
+      // Store component IDs in config for update
+      updateData.config = {
+        ...existingConfig,
+        componentIds: params.componentIds,
+        flowDiagram: generateFlowDiagram(sortedComponents, decisionStrategy, coordinatorInstructions),
+      };
     } else if (params.decisionStrategy !== undefined || params.coordinatorInstructions !== undefined) {
       // Regenerate flow diagram if strategy or instructions changed
-      const componentIds = existingCoordinator.componentIds;
-      if (componentIds && componentIds.length > 0) {
+      const existingConfig = (existingCoordinator.config as any) || {};
+      const componentIds = existingConfig.componentIds || [];
+      if (componentIds.length > 0) {
         const components = await prisma.component.findMany({
           where: {
             id: { in: componentIds },
@@ -244,14 +246,13 @@ export async function handler(
             components.find(c => c.id === id)!
           );
 
-          const decisionStrategy = params.decisionStrategy || existingCoordinator.decisionStrategy;
-          const coordinatorInstructions = params.coordinatorInstructions || existingCoordinator.coordinatorInstructions;
+          const decisionStrategy = params.decisionStrategy || existingConfig.decisionStrategy;
+          const coordinatorInstructions = params.coordinatorInstructions || existingCoordinator.operationInstructions;
 
-          updateData.flowDiagram = generateFlowDiagram(
-            sortedComponents,
-            decisionStrategy,
-            coordinatorInstructions,
-          );
+          updateData.config = {
+            ...existingConfig,
+            flowDiagram: generateFlowDiagram(sortedComponents, decisionStrategy, coordinatorInstructions),
+          };
         }
       }
     }
@@ -262,23 +263,26 @@ export async function handler(
     }
 
     // Update coordinator
-    const coordinator = await prisma.coordinatorAgent.update({
+    const coordinator = await prisma.component.update({
       where: { id: params.coordinatorId },
       data: updateData,
     });
+
+    // Extract fields from config for response
+    const finalConfig = (coordinator.config as any) || {};
 
     return {
       id: coordinator.id,
       projectId: coordinator.projectId,
       name: coordinator.name,
       description: coordinator.description,
-      domain: coordinator.domain,
-      coordinatorInstructions: coordinator.coordinatorInstructions,
-      flowDiagram: coordinator.flowDiagram,
+      domain: finalConfig.domain,
+      coordinatorInstructions: coordinator.operationInstructions,
+      flowDiagram: finalConfig.flowDiagram,
       config: coordinator.config,
       tools: coordinator.tools,
-      decisionStrategy: coordinator.decisionStrategy,
-      componentIds: coordinator.componentIds,
+      decisionStrategy: finalConfig.decisionStrategy,
+      componentIds: finalConfig.componentIds || [],
       active: coordinator.active,
       version: coordinator.version,
       createdAt: coordinator.createdAt.toISOString(),

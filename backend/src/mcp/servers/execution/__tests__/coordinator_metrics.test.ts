@@ -37,18 +37,24 @@ describe('ST-17: Coordinator Statistics Not Updated', () => {
     });
     testProjectId = project.id;
 
-    // Create test coordinator
-    const coordinator = await prisma.coordinatorAgent.create({
+    // Create test coordinator as component with coordinator tags
+    const coordinator = await prisma.component.create({
       data: {
         projectId: testProjectId,
         name: 'Test Coordinator',
         description: 'Test coordinator for metrics tracking',
-        domain: 'software-development',
-        coordinatorInstructions: 'Test instructions',
-        config: { modelId: 'claude-sonnet-4-5-20250929', temperature: 1.0 },
+        inputInstructions: 'Coordinator receives workflow context',
+        operationInstructions: 'Test instructions',
+        outputInstructions: 'Coordinator spawns components',
+        config: {
+          modelId: 'claude-sonnet-4-5-20250929',
+          temperature: 1.0,
+          domain: 'software-development',
+          decisionStrategy: 'sequential',
+          componentIds: [],
+        },
         tools: ['record_component_start', 'record_component_complete'],
-        decisionStrategy: 'sequential',
-        componentIds: [],
+        tags: ['coordinator', 'orchestrator', 'software-development'],
       },
     });
     testCoordinatorId = coordinator.id;
@@ -88,7 +94,7 @@ describe('ST-17: Coordinator Statistics Not Updated', () => {
     // Cleanup test data
     await prisma.workflow.deleteMany({ where: { projectId: testProjectId } });
     await prisma.component.deleteMany({ where: { projectId: testProjectId } });
-    await prisma.coordinatorAgent.deleteMany({ where: { projectId: testProjectId } });
+    // Coordinators are now stored in components table, deleted by line above
     await prisma.project.delete({ where: { id: testProjectId } });
     await prisma.$disconnect();
   });

@@ -58,7 +58,8 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   // Get coordinator's component IDs to determine remaining components
-  const coordinatorComponentIds = workflowRun.coordinator.componentIds || [];
+  const coordinatorConfig = (workflowRun.coordinator.config as any) || {};
+  const coordinatorComponentIds = coordinatorConfig.componentIds || [];
   const completedComponentIds = completedComponentRuns.map((cr) => cr.componentId);
   const remainingComponentIds = coordinatorComponentIds.filter((id) => !completedComponentIds.includes(id));
 
@@ -89,11 +90,11 @@ export async function handler(prisma: PrismaClient, params: any) {
     coordinator: {
       id: workflowRun.coordinator.id,
       name: workflowRun.coordinator.name,
-      instructions: workflowRun.coordinator.coordinatorInstructions,
-      strategy: workflowRun.coordinator.decisionStrategy,
+      instructions: workflowRun.coordinator.operationInstructions,
+      strategy: coordinatorConfig.decisionStrategy || 'adaptive',
       config: workflowRun.coordinator.config,
       tools: workflowRun.coordinator.tools,
-      flowDiagram: workflowRun.coordinator.flowDiagram,
+      flowDiagram: coordinatorConfig.flowDiagram,
     },
     completedComponents: completedComponentRuns.map((cr) => ({
       componentRunId: cr.id,

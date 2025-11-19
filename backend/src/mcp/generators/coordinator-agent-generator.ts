@@ -1,13 +1,17 @@
-import { CoordinatorAgent } from '@prisma/client';
+import { Component } from '@prisma/client';
 
-export interface CoordinatorWithComponents extends CoordinatorAgent {
-  componentIds: string[];
+export interface CoordinatorWithComponents extends Component {
   components?: Array<{
     id: string;
     name: string;
-    description: string;
+    description: string | null;
     tags: string[];
   }>;
+  // Legacy fields for backward compatibility
+  domain?: string;
+  decisionStrategy?: string;
+  coordinatorInstructions?: string;
+  componentIds?: string[];
 }
 
 export class CoordinatorAgentGenerator {
@@ -50,10 +54,13 @@ export class CoordinatorAgentGenerator {
     const customTools = coordinator.tools || [];
     const allTools = [...executionTools, ...customTools];
 
+    // Extract domain from tags or use default
+    const domain = coordinator.domain || coordinator.tags.find(tag => !['coordinator', 'orchestrator'].includes(tag)) || 'software-development';
+
     return `---
 name: ${coordinator.name}
-description: ${coordinator.description}
-domain: ${coordinator.domain}
+description: ${coordinator.description || 'Workflow coordinator'}
+domain: ${domain}
 tools:
 ${allTools.map((tool) => `  - ${tool}`).join('\n')}
 ---`;
@@ -196,22 +203,23 @@ ${allTools.map((tool) => `  - ${tool}`).join('\n')}
 
     sections.push('### Step 3: Make Next Decision');
     sections.push('');
-    sections.push(`**Your Decision Strategy**: ${coordinator.decisionStrategy}`);
+    const decisionStrategy = coordinator.decisionStrategy || 'adaptive';
+    sections.push(`**Your Decision Strategy**: ${decisionStrategy}`);
     sections.push('');
 
-    if (coordinator.decisionStrategy === 'sequential') {
+    if (decisionStrategy === 'sequential') {
       sections.push('Execute components in order:');
       coordinator.components?.forEach((c, i) => {
         sections.push(`${i + 1}. ${c.name}`);
       });
-    } else if (coordinator.decisionStrategy === 'adaptive') {
+    } else if (decisionStrategy === 'adaptive') {
       sections.push('Before deciding the next component:');
       sections.push('1. Call `get_workflow_context` to get previous component outputs');
       sections.push('2. Analyze the results');
       sections.push('3. Decide which component to run next based on the context');
       sections.push('4. Example: If code review found critical issues, run "Fix Issues" before "Run Tests"');
     } else {
-      sections.push(`Follow the ${coordinator.decisionStrategy} strategy to decide component execution order.`);
+      sections.push(`Follow the ${decisionStrategy} strategy to decide component execution order.`);
     }
     sections.push('');
 
@@ -256,7 +264,7 @@ ${allTools.map((tool) => `  - ${tool}`).join('\n')}
 
     // Decision Strategy section
     sections.push('## Decision Strategy Details');
-    sections.push(coordinator.decisionStrategy || 'Sequential execution');
+    sections.push(decisionStrategy || 'Adaptive execution based on component outputs');
     sections.push('');
 
     // Available Components section
@@ -276,7 +284,8 @@ ${allTools.map((tool) => `  - ${tool}`).join('\n')}
     // Instructions section
     sections.push('## Coordinator Instructions');
     sections.push('');
-    sections.push(coordinator.coordinatorInstructions);
+    // Use operationInstructions as the main coordinator logic
+    sections.push(coordinator.coordinatorInstructions || coordinator.operationInstructions);
     sections.push('');
 
     // Configuration section
@@ -290,13 +299,24 @@ ${allTools.map((tool) => `  - ${tool}`).join('\n')}
     }
 
     // Component IDs reference
-    sections.push('## Component References');
-    sections.push('');
-    sections.push('**Component IDs**:');
-    coordinator.componentIds.forEach((id, index) => {
-      const componentName = coordinator.components?.[index]?.name || 'Unknown';
-      sections.push(`- ${componentName}: \`${id}\``);
-    });
+    if (coordinator.componentIds && coordinator.componentIds.length > 0) {
+      sections.push('## Component References');
+      sections.push('');
+      sections.push('**Component IDs**:');
+      coordinator.componentIds.forEach((id, index) => {
+        const componentName = coordinator.components?.[index]?.name || 'Unknown';
+        sections.push(`- ${componentName}: \`${id}\``);
+      });
+      sections.push('');
+    } else if (coordinator.components && coordinator.components.length > 0) {
+      sections.push('## Component References');
+      sections.push('');
+      sections.push('**Component IDs**:');
+      coordinator.components.forEach((component) => {
+        sections.push(`- ${component.name}: \`${component.id}\``);
+      });
+      sections.push('');
+    }
 
     return sections.join('\n');
   }

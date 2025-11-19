@@ -36,9 +36,9 @@ describe('test_queue_add', () => {
     });
 
     it('should define priority range as 0-10', () => {
-      expect(tool.inputSchema.properties.priority.minimum).toBe(0);
-      expect(tool.inputSchema.properties.priority.maximum).toBe(10);
-      expect(tool.inputSchema.properties.priority.default).toBe(5);
+      expect((tool.inputSchema.properties.priority as any).minimum).toBe(0);
+      expect((tool.inputSchema.properties.priority as any).maximum).toBe(10);
+      expect((tool.inputSchema.properties.priority as any).default).toBe(5);
     });
   });
 

@@ -227,19 +227,27 @@ export async function handler(
       params.coordinatorInstructions,
     );
 
-    // Create coordinator
-    const coordinator = await prisma.coordinatorAgent.create({
+    // Store coordinator-specific fields in config
+    const coordinatorConfig = {
+      ...params.config,
+      domain: params.domain,
+      decisionStrategy: params.decisionStrategy,
+      componentIds: params.componentIds || [],
+      flowDiagram,
+    };
+
+    // Create coordinator as component with coordinator tags
+    const coordinator = await prisma.component.create({
       data: {
         projectId: params.projectId,
         name: params.name,
         description: params.description,
-        domain: params.domain,
-        coordinatorInstructions: params.coordinatorInstructions,
-        flowDiagram,
-        config: params.config,
+        inputInstructions: 'Coordinator receives workflow context and story details.',
+        operationInstructions: params.coordinatorInstructions,
+        outputInstructions: 'Coordinator spawns component agents and tracks execution state.',
+        config: coordinatorConfig,
         tools: params.tools,
-        decisionStrategy: params.decisionStrategy,
-        componentIds: params.componentIds || [],
+        tags: ['coordinator', 'orchestrator', params.domain],
         active: params.active !== undefined ? params.active : true,
         version: params.version || 'v1.0',
       },
@@ -250,13 +258,13 @@ export async function handler(
       projectId: coordinator.projectId,
       name: coordinator.name,
       description: coordinator.description,
-      domain: coordinator.domain,
-      coordinatorInstructions: coordinator.coordinatorInstructions,
-      flowDiagram: coordinator.flowDiagram,
+      domain: params.domain,
+      coordinatorInstructions: coordinator.operationInstructions,
+      flowDiagram: coordinatorConfig.flowDiagram,
       config: coordinator.config,
       tools: coordinator.tools,
-      decisionStrategy: coordinator.decisionStrategy,
-      componentIds: coordinator.componentIds,
+      decisionStrategy: params.decisionStrategy,
+      componentIds: params.componentIds || [],
       active: coordinator.active,
       version: coordinator.version,
       createdAt: coordinator.createdAt.toISOString(),

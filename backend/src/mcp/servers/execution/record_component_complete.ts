@@ -504,7 +504,12 @@ export async function handler(prisma: PrismaClient, params: any) {
       locGenerated: linesAdded + linesModified, // Total LOC generated/modified
       // Metrics from transcript or manual input
       durationSeconds,
-      userPrompts: transcriptMetrics?.userPrompts || metrics.userPrompts || 0,
+      // ST-68 FIX: Only count userPrompts for orchestrator (executionOrder=0)
+      // Regular components (executionOrder>0) have orchestrator→component messages in their transcript,
+      // which are NOT human prompts. Human prompts only appear in the orchestrator's transcript.
+      userPrompts: componentRun.executionOrder === 0
+        ? (transcriptMetrics?.userPrompts || metrics.userPrompts || 0)
+        : 0,
       systemIterations: transcriptMetrics?.systemIterations || metrics.systemIterations || 1,
       humanInterventions: metrics.humanInterventions || 0,
       finishedAt: completedAt,

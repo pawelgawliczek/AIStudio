@@ -5,9 +5,9 @@ const prisma = new PrismaClient();
 async function updateCoordinatorInstructions() {
   const coordinatorId = '0f37e71a-b69c-4ff8-a3c1-3ea83d098181';
   
-  const currentCoordinator = await prisma.coordinatorAgent.findUnique({
+  const currentCoordinator = await prisma.component.findUnique({
     where: { id: coordinatorId },
-    select: { coordinatorInstructions: true },
+    select: { operationInstructions: true },
   });
 
   if (!currentCoordinator) {
@@ -46,15 +46,15 @@ When calling record_component_complete, use these EXACT extracted values:
 
 `;
 
-  const updatedInstructions = currentCoordinator.coordinatorInstructions.replace(
+  const updatedInstructions = currentCoordinator.operationInstructions.replace(
     'STEP 3: EXECUTE COMPONENTS - CRITICAL SPAWNING INSTRUCTIONS',
     'STEP 3: EXECUTE COMPONENTS - CRITICAL SPAWNING INSTRUCTIONS' + metricsExtractionSection
   );
 
-  const result = await prisma.coordinatorAgent.update({
+  const result = await prisma.component.update({
     where: { id: coordinatorId },
     data: {
-      coordinatorInstructions: updatedInstructions,
+      operationInstructions: updatedInstructions,
     },
   });
 

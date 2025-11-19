@@ -332,8 +332,8 @@ export function WorkflowDetailsPage() {
           {workflow.name || label}
         </h2>
 
-        {/* Main KPIs - 3 big cards */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* Main KPIs - 4 big cards */}
+        <div className="grid grid-cols-4 gap-4">
           <div
             className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white cursor-pointer hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg"
             onClick={() => { setSelectedMetric('tokensPerLOC'); setShowModal(true); }}
@@ -357,6 +357,18 @@ export function WorkflowDetailsPage() {
             <p className="text-sm font-medium opacity-90">Cost / Story</p>
             <p className="text-3xl font-bold mt-1">${workflow.costPerStory.toFixed(2)}</p>
             <p className="text-xs opacity-75 mt-2">System Avg: ${systemAverages.costPerStory.toFixed(2)}</p>
+          </div>
+          <div
+            className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white cursor-pointer hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg"
+            onClick={() => { setSelectedMetric('humanPromptsPerLOC'); setShowModal(true); }}
+          >
+            <p className="text-sm font-medium opacity-90">Human Prompts / LOC</p>
+            <p className="text-3xl font-bold mt-1">
+              {workflow.totalLOC > 0 ? (workflow.totalUserPrompts / workflow.totalLOC).toFixed(2) : '0.00'}
+            </p>
+            <p className="text-xs opacity-75 mt-2">
+              System Avg: {systemAverages.totalLOC > 0 ? (systemAverages.totalUserPrompts / systemAverages.totalLOC).toFixed(2) : '0.00'}
+            </p>
           </div>
         </div>
 
@@ -438,7 +450,7 @@ export function WorkflowDetailsPage() {
             Agent Behavior
           </h3>
           <div className="grid grid-cols-3 gap-3">
-            <KPICard title="User Prompts" value={workflow.totalUserPrompts} compareValue={compareWorkflow?.totalUserPrompts ?? systemAverages.totalUserPrompts} compareLabel={compareLabel} invertColor={true} onClick={() => { setSelectedMetric('totalUserPrompts'); setShowModal(true); }} />
+            <KPICard title="Human Prompts" value={workflow.totalUserPrompts} compareValue={compareWorkflow?.totalUserPrompts ?? systemAverages.totalUserPrompts} compareLabel={compareLabel} invertColor={true} onClick={() => { setSelectedMetric('totalUserPrompts'); setShowModal(true); }} />
             <KPICard title="Interventions" value={workflow.humanInterventions} compareValue={compareWorkflow?.humanInterventions ?? systemAverages.humanInterventions} compareLabel={compareLabel} invertColor={true} onClick={() => { setSelectedMetric('humanInterventions'); setShowModal(true); }} />
             <KPICard title="Context Switches" value={workflow.contextSwitches} compareValue={compareWorkflow?.contextSwitches ?? systemAverages.contextSwitches} compareLabel={compareLabel} invertColor={true} onClick={() => { setSelectedMetric('contextSwitches'); setShowModal(true); }} />
             <KPICard title="Exploration Depth" value={workflow.explorationDepth} compareValue={compareWorkflow?.explorationDepth ?? systemAverages.explorationDepth} compareLabel={compareLabel} format="decimal" onClick={() => { setSelectedMetric('explorationDepth'); setShowModal(true); }} />
@@ -508,7 +520,8 @@ export function WorkflowDetailsPage() {
       testsAdded: 'Tests Added',
       filesModifiedCount: 'Files Modified',
       // Agent Behavior
-      totalUserPrompts: 'User Prompts',
+      totalUserPrompts: 'Human Prompts',
+      humanPromptsPerLOC: 'Human Prompts / LOC',
       humanInterventions: 'Human Interventions',
       contextSwitches: 'Context Switches',
       explorationDepth: 'Exploration Depth',

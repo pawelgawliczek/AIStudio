@@ -62,7 +62,7 @@ export async function handler(prisma: PrismaClient, params: any) {
         select: {
           id: true,
           name: true,
-          decisionStrategy: true,
+          config: true,
         },
       },
       story: {

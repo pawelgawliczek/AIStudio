@@ -125,7 +125,8 @@ export class WorkflowStateService {
       throw new Error(`Workflow run with ID ${runId} not found`);
     }
 
-    const coordinatorComponentIds = workflowRun.coordinator?.componentIds || [];
+    const coordinatorConfig = (workflowRun.coordinator?.config as any) || {};
+    const coordinatorComponentIds = coordinatorConfig.componentIds || [];
     const componentsCompleted = workflowRun.componentRuns.filter(
       (cr) => cr.status === 'completed' || cr.status === 'failed'
     ).length;
@@ -335,7 +336,8 @@ export class WorkflowStateService {
       throw new Error(`Workflow run with ID ${runId} not found`);
     }
 
-    const coordinatorComponentIds = workflowRun.coordinator?.componentIds || [];
+    const coordConfig = (workflowRun.coordinator?.config as any) || {};
+    const coordinatorComponentIds = coordConfig.componentIds || [];
     const completedComponentIds = workflowRun.componentRuns.map((cr) => cr.componentId);
     const remainingComponentIds = coordinatorComponentIds.filter((id) => !completedComponentIds.includes(id));
 
@@ -355,7 +357,7 @@ export class WorkflowStateService {
       workflowId: workflowRun.workflowId,
       workflowName: workflowRun.workflow.name,
       status: workflowRun.status,
-      coordinatorStrategy: workflowRun.coordinator?.decisionStrategy || 'sequential',
+      coordinatorStrategy: coordConfig.decisionStrategy || 'sequential',
       completedComponents: workflowRun.componentRuns.map((cr) => ({
         componentRunId: cr.id,
         componentId: cr.componentId,

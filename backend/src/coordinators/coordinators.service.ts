@@ -30,17 +30,25 @@ export class CoordinatorsService {
       }
     }
 
-    const coordinator = await this.prisma.coordinatorAgent.create({
+    // Store coordinator-specific fields in config for backward compatibility
+    const config = {
+      ...dto.config,
+      domain: dto.domain,
+      decisionStrategy: dto.decisionStrategy,
+      componentIds: dto.componentIds || [],
+    };
+
+    const coordinator = await this.prisma.component.create({
       data: {
         projectId,
         name: dto.name,
         description: dto.description,
-        domain: dto.domain,
-        coordinatorInstructions: dto.coordinatorInstructions,
-        config: dto.config,
+        inputInstructions: 'Coordinator receives workflow context and story details.',
+        operationInstructions: dto.coordinatorInstructions,
+        outputInstructions: 'Coordinator spawns component agents and tracks execution state.',
+        config,
         tools: dto.tools,
-        decisionStrategy: dto.decisionStrategy,
-        componentIds: dto.componentIds,
+        tags: ['coordinator', 'orchestrator', dto.domain || 'software-development'],
         active: dto.active ?? true,
         version: dto.version ?? 'v1.0',
       },
@@ -57,14 +65,18 @@ export class CoordinatorsService {
       search?: string;
     },
   ): Promise<CoordinatorResponseDto[]> {
-    const where: any = { projectId };
+    const where: any = {
+      projectId,
+      tags: { has: 'coordinator' }, // Filter for coordinators only
+    };
 
     if (options?.active !== undefined) {
       where.active = options.active;
     }
 
     if (options?.domain) {
-      where.domain = options.domain;
+      // Domain is now in tags or config
+      where.tags = { has: options.domain };
     }
 
     if (options?.search) {
@@ -74,7 +86,7 @@ export class CoordinatorsService {
       ];
     }
 
-    const coordinators = await this.prisma.coordinatorAgent.findMany({
+    const coordinators = await this.prisma.component.findMany({
       where,
       orderBy: { createdAt: 'desc' },
     });
@@ -83,11 +95,11 @@ export class CoordinatorsService {
   }
 
   async findOne(id: string, includeStats = false): Promise<CoordinatorResponseDto> {
-    const coordinator = await this.prisma.coordinatorAgent.findUnique({
+    const coordinator = await this.prisma.component.findUnique({
       where: { id },
     });
 
-    if (!coordinator) {
+    if (!coordinator || !coordinator.tags.includes('coordinator')) {
       throw new NotFoundException(`Coordinator with ID ${id} not found`);
     }
 
@@ -101,11 +113,11 @@ export class CoordinatorsService {
   }
 
   async update(id: string, dto: UpdateCoordinatorDto): Promise<CoordinatorResponseDto> {
-    const existing = await this.prisma.coordinatorAgent.findUnique({
+    const existing = await this.prisma.component.findUnique({
       where: { id },
     });
 
-    if (!existing) {
+    if (!existing || !existing.tags.includes('coordinator')) {
       throw new NotFoundException(`Coordinator with ID ${id} not found`);
     }
 
@@ -123,17 +135,32 @@ export class CoordinatorsService {
       }
     }
 
-    const updated = await this.prisma.coordinatorAgent.update({
+    // Store coordinator-specific fields in config
+    const existingConfig = (existing.config as any) || {};
+    const config = {
+      ...existingConfig,
+      ...dto.config,
+      domain: dto.domain,
+      decisionStrategy: dto.decisionStrategy,
+      componentIds: dto.componentIds,
+    };
+
+    // Update tags if domain changed
+    const tags = existing.tags.filter(t => !['coordinator', 'orchestrator'].includes(t) && t !== (existing.config as any)?.domain);
+    tags.push('coordinator', 'orchestrator');
+    if (dto.domain) {
+      tags.push(dto.domain);
+    }
+
+    const updated = await this.prisma.component.update({
       where: { id },
       data: {
         name: dto.name,
         description: dto.description,
-        domain: dto.domain,
-        coordinatorInstructions: dto.coordinatorInstructions,
-        config: dto.config,
+        operationInstructions: dto.coordinatorInstructions,
+        config,
         tools: dto.tools,
-        decisionStrategy: dto.decisionStrategy,
-        componentIds: dto.componentIds,
+        tags,
         active: dto.active,
         version: dto.version,
       },
@@ -143,39 +170,39 @@ export class CoordinatorsService {
   }
 
   async remove(id: string): Promise<void> {
-    const coordinator = await this.prisma.coordinatorAgent.findUnique({
+    const coordinator = await this.prisma.component.findUnique({
       where: { id },
       include: {
-        workflowRuns: { take: 1 },
+        workflowRunsAsCoordinator: { take: 1 },
       },
     });
 
-    if (!coordinator) {
+    if (!coordinator || !coordinator.tags.includes('coordinator')) {
       throw new NotFoundException(`Coordinator with ID ${id} not found`);
     }
 
     // Check if coordinator has any execution history
-    if (coordinator.workflowRuns.length > 0) {
+    if (coordinator.workflowRunsAsCoordinator.length > 0) {
       throw new BadRequestException(
         'Cannot delete coordinator with execution history. Consider deactivating instead.',
       );
     }
 
-    await this.prisma.coordinatorAgent.delete({
+    await this.prisma.component.delete({
       where: { id },
     });
   }
 
   async deactivate(id: string): Promise<CoordinatorResponseDto> {
-    const coordinator = await this.prisma.coordinatorAgent.findUnique({
+    const coordinator = await this.prisma.component.findUnique({
       where: { id },
     });
 
-    if (!coordinator) {
+    if (!coordinator || !coordinator.tags.includes('coordinator')) {
       throw new NotFoundException(`Coordinator with ID ${id} not found`);
     }
 
-    const updated = await this.prisma.coordinatorAgent.update({
+    const updated = await this.prisma.component.update({
       where: { id },
       data: { active: false },
     });
@@ -184,15 +211,15 @@ export class CoordinatorsService {
   }
 
   async activate(id: string): Promise<CoordinatorResponseDto> {
-    const coordinator = await this.prisma.coordinatorAgent.findUnique({
+    const coordinator = await this.prisma.component.findUnique({
       where: { id },
     });
 
-    if (!coordinator) {
+    if (!coordinator || !coordinator.tags.includes('coordinator')) {
       throw new NotFoundException(`Coordinator with ID ${id} not found`);
     }
 
-    const updated = await this.prisma.coordinatorAgent.update({
+    const updated = await this.prisma.component.update({
       where: { id },
       data: { active: true },
     });
@@ -233,18 +260,25 @@ export class CoordinatorsService {
   }
 
   private mapToResponseDto(coordinator: any): CoordinatorResponseDto {
+    // Extract coordinator-specific fields from config
+    const config = coordinator.config || {};
+    const domain = config.domain || coordinator.tags.find(t => !['coordinator', 'orchestrator'].includes(t));
+    const decisionStrategy = config.decisionStrategy;
+    const componentIds = config.componentIds || [];
+    const flowDiagram = config.flowDiagram;
+
     return {
       id: coordinator.id,
       projectId: coordinator.projectId,
       name: coordinator.name,
       description: coordinator.description,
-      domain: coordinator.domain,
-      coordinatorInstructions: coordinator.coordinatorInstructions,
-      flowDiagram: coordinator.flowDiagram,
-      config: coordinator.config,
+      domain,
+      coordinatorInstructions: coordinator.operationInstructions,
+      flowDiagram,
+      config,
       tools: coordinator.tools,
-      decisionStrategy: coordinator.decisionStrategy,
-      componentIds: coordinator.componentIds,
+      decisionStrategy,
+      componentIds,
       active: coordinator.active,
       version: coordinator.version,
       createdAt: coordinator.createdAt,
