@@ -126,6 +126,45 @@ export interface UpdateStoryParams {
   architectAnalysis?: string;
 }
 
+export interface DeleteStoryParams {
+  storyId: string;
+  confirm: boolean;
+}
+
+export interface DeleteStoryResponse {
+  id: string;
+  key: string;
+  title: string;
+  cascadeDeleted: {
+    subtasks: number;
+    useCaseLinks: number;
+    storyFiles: number;
+    workflowRuns: number;
+    componentRuns: number;
+    testCases: number;
+  };
+}
+
+export interface DeleteEpicParams {
+  epicId: string;
+  confirm: boolean;
+  deleteStories?: boolean;
+}
+
+export interface DeleteEpicResponse {
+  id: string;
+  key: string;
+  title: string;
+  storiesDeleted: number;
+  cascadeDeleted: {
+    subtasks: number;
+    useCaseLinks: number;
+    workflowRuns: number;
+    componentRuns: number;
+    testCases: number;
+  };
+}
+
 // ============================================================================
 // LAYER MANAGEMENT TOOLS
 // ============================================================================
