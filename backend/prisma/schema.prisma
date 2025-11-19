@@ -752,6 +752,7 @@ model ComponentRun {
   systemIterations    Int?    @default(1) @map("system_iterations")
   humanInterventions  Int?    @default(0) @map("human_interventions")
   iterationLog        Json?   @map("iteration_log") // Array of iterations with timestamps
+  toolCalls           Int?    @default(0) @map("tool_calls") // ST-57: Tool calls count (for orchestrator and components)
 
   // ST-27 Comprehensive Metrics - Session Tracking
   sessionId           String?    @map("session_id") // Claude Code session ID for OTEL mapping

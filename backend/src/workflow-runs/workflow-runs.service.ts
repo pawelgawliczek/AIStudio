@@ -539,10 +539,15 @@ export class WorkflowRunsService {
         id: run.id,
         componentId: run.componentId,
         componentName: run.component?.name,
+        executionOrder: run.executionOrder, // ST-57: 0 for orchestrator, 1+ for components
         startedAt: run.startedAt?.toISOString() || new Date().toISOString(),
         finishedAt: run.finishedAt?.toISOString(),
         durationSeconds: run.durationSeconds,
+        tokensInput: run.tokensInput, // ST-57: Input tokens
+        tokensOutput: run.tokensOutput, // ST-57: Output tokens
         totalTokens: run.totalTokens,
+        cost: run.cost, // ST-57: Cost in USD
+        toolCalls: run.toolCalls, // ST-57: Number of tool calls
         locGenerated: run.locGenerated,
         status: run.status,
         success: run.success,

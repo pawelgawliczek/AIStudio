@@ -63,10 +63,15 @@ export interface ComponentRunSummary {
   id: string;
   componentId: string;
   componentName: string;
+  executionOrder?: number; // ST-57: 0 for orchestrator, 1+ for components
   startedAt: string;
   finishedAt?: string;
   durationSeconds?: number;
+  tokensInput?: number; // ST-57: Input tokens
+  tokensOutput?: number; // ST-57: Output tokens
   totalTokens?: number;
+  cost?: number; // ST-57: Cost in USD
+  toolCalls?: number; // ST-57: Number of tool calls
   locGenerated?: number;
   status: RunStatus;
   success: boolean;
@@ -99,6 +104,7 @@ export interface ComponentRunDetails {
   componentId: string;
   componentName: string;
   componentDescription?: string;
+  executionOrder?: number; // ST-57: 0 for orchestrator, 1+ for components
   startedAt: string;
   finishedAt?: string;
   durationSeconds?: number;
@@ -107,6 +113,8 @@ export interface ComponentRunDetails {
   tokensInput?: number;
   tokensOutput?: number;
   totalTokens?: number;
+  cost?: number; // ST-57: Cost in USD
+  toolCalls?: number; // ST-57: Number of tool calls
   locGenerated?: number;
   filesModified?: string[];
   commits?: string[];

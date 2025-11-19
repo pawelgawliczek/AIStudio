@@ -121,6 +121,26 @@ export async function handler(prisma: PrismaClient, params: any) {
     },
   });
 
+  // ST-57: Create orchestrator ComponentRun with executionOrder=0
+  // This enables unified tracking of orchestrator metrics in the same table as components
+  const orchestratorComponentRun = await prisma.componentRun.create({
+    data: {
+      workflowRunId: workflowRun.id,
+      componentId: workflow.coordinatorId, // Coordinator is treated as a component
+      executionOrder: 0, // Special order=0 for orchestrator (displays first, purple styling)
+      status: 'running',
+      success: false, // Will be updated on workflow completion
+      startedAt: new Date(),
+      metadata: {
+        role: 'orchestrator',
+        transcriptPath: orchestratorTranscript
+          ? path.join(transcriptDirectory, orchestratorTranscript)
+          : null,
+        dataSource: 'transcript',
+      },
+    },
+  });
+
   // Get component details with full instructions
   const components = await prisma.component.findMany({
     where: {
@@ -143,6 +163,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     runId: workflowRun.id,
     workflowId: workflowRun.workflowId,
     workflowName: workflow.name,
+    orchestratorComponentRunId: orchestratorComponentRun.id, // ST-57: Return orchestrator ComponentRun ID
     coordinator: {
       id: workflowRun.coordinatorId,
       name: workflow.coordinator.name,
@@ -166,6 +187,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     status: workflowRun.status,
     startedAt: workflowRun.startedAt.toISOString(),
     context: workflowRun.metadata,
-    message: `Workflow "${workflow.name}" started successfully. Run ID: ${workflowRun.id}. Use coordinator instructions to begin orchestration.`,
+    message: `Workflow "${workflow.name}" started successfully. Run ID: ${workflowRun.id}. Orchestrator ComponentRun created (executionOrder=0). Use coordinator instructions to begin orchestration.`,
   };
 }
