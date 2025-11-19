@@ -32,6 +32,8 @@ interface DashboardData {
     promptsPerStoryChange: number;
     timePerLOC: number;
     timePerLOCChange: number;
+    totalUserPrompts: number;
+    totalUserPromptsChange: number;
   };
   trends: {
     storiesImplemented: { date: string; allWorkflows: number; selectedWorkflows: number }[];
@@ -767,7 +769,7 @@ export function PerformanceDashboard() {
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
             Performance Overview
           </h3>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
             <KPICard
               title="Stories Implemented"
               value={kpis.storiesImplemented}
@@ -793,6 +795,13 @@ export function PerformanceDashboard() {
               change={kpis.timePerLOCChange}
               unit="m"
               infoText="Average time in minutes per line of code generated"
+              invertColor={true}
+            />
+            <KPICard
+              title="Human Prompts"
+              value={kpis.totalUserPrompts || 0}
+              change={kpis.totalUserPromptsChange || 0}
+              infoText="Total human prompts during workflow coordination. Includes orchestrator guidance and decision-making interactions. Lower numbers indicate higher automation efficiency."
               invertColor={true}
             />
           </div>

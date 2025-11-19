@@ -1349,6 +1349,8 @@ export class AgentMetricsService {
       promptsPerStoryChange: number;
       timePerLOC: number;
       timePerLOCChange: number;
+      totalUserPrompts: number;
+      totalUserPromptsChange: number;
     };
     trends: {
       storiesImplemented: { date: string; allWorkflows: number; selectedWorkflows: number }[];
@@ -1524,6 +1526,13 @@ export class AgentMetricsService {
       ? ((timePerLOC - previousTimePerLOC) / previousTimePerLOC) * 100
       : 0;
 
+    // Calculate total user prompts (ST-68: Add totalUserPrompts KPI)
+    const totalUserPrompts = currentMetrics.execution.totalPrompts;
+    const previousTotalUserPrompts = previousMetrics.execution.totalPrompts;
+    const totalUserPromptsChange = previousTotalUserPrompts > 0
+      ? ((totalUserPrompts - previousTotalUserPrompts) / previousTotalUserPrompts) * 100
+      : 0;
+
     // Get total counts (without filters)
     const [totalStoriesCount, totalBugsCount] = await Promise.all([
       this.prisma.story.count({
@@ -1596,6 +1605,8 @@ export class AgentMetricsService {
         promptsPerStoryChange: parseFloat(promptsPerStoryChange.toFixed(1)),
         timePerLOC: parseFloat(timePerLOC.toFixed(2)),
         timePerLOCChange: parseFloat(timePerLOCChange.toFixed(1)),
+        totalUserPrompts: totalUserPrompts,
+        totalUserPromptsChange: parseFloat(totalUserPromptsChange.toFixed(1)),
       },
       trends,
       workflows: allWorkflows,

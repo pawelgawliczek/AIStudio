@@ -95,14 +95,25 @@ export function CoordinatorMetrics({
           </div>
         </div>
 
-        {/* Iteration Metrics - BR-4 */}
+        {/* Iteration Metrics - BR-4 / ST-68 Enhanced */}
         <div className="bg-orange-50 rounded-lg p-4">
-          <div className="text-sm text-orange-600 font-medium">Iterations</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-orange-600 font-medium">Coordinator Prompts</div>
+            <div
+              className="text-orange-400 cursor-help"
+              title="Includes human guidance + automated tool calls (component spawning, status checks)"
+            >
+              <svg className="w-4 h-4" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M8 7V11M8 5.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
+          </div>
           <div className="text-2xl font-bold text-orange-900">
-            {metrics.iterations || 0}
+            {metrics.userPrompts || 0}
           </div>
           <div className="text-xs text-muted mt-1">
-            Prompts: {metrics.userPrompts || 0}
+            Iterations: {metrics.iterations || 0}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CurrencyDollarIcon, CpuChipIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, CpuChipIcon, ClockIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
 
 interface ComponentMetrics {
@@ -95,6 +95,28 @@ export function TokenMetricsPanel({ storyId }: TokenMetricsPanelProps) {
     return `${minutes}m ${seconds}s`;
   };
 
+  // ST-68: Calculate total user prompts across all workflow runs
+  const calculateTotalUserPrompts = (breakdown: WorkflowRunMetrics[]): number => {
+    if (!breakdown || breakdown.length === 0) return 0;
+    return breakdown.reduce((total, run) =>
+      total + run.components.reduce((sum, comp) => sum + (comp.userPrompts || 0), 0),
+      0
+    );
+  };
+
+  // ST-68: Calculate orchestrator-only user prompts
+  const calculateOrchestratorPrompts = (breakdown: WorkflowRunMetrics[]): number => {
+    if (!breakdown || breakdown.length === 0) return 0;
+    return breakdown.reduce((total, run) => {
+      const orchestrator = run.components.find(c =>
+        c.componentName.toLowerCase().includes('orchestrator') ||
+        c.componentName.toLowerCase().includes('coordinator') ||
+        c.componentName.toLowerCase().includes('orchestration')
+      );
+      return total + (orchestrator?.userPrompts || 0);
+    }, 0);
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -139,7 +161,7 @@ export function TokenMetricsPanel({ storyId }: TokenMetricsPanelProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-bg-secondary border-b border-border">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-bg-secondary border-b border-border">
         <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -167,6 +189,33 @@ export function TokenMetricsPanel({ storyId }: TokenMetricsPanelProps) {
               <p className="text-2xl font-bold text-fg mt-1">{metrics.breakdown.length}</p>
             </div>
             <ClockIcon className="w-8 h-8 text-purple-500" />
+          </div>
+        </div>
+
+        {/* ST-68: User Interactions Summary Card */}
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-muted">User Interactions</p>
+                <div
+                  className="text-gray-400 dark:text-gray-500 cursor-help"
+                  title="Total interactions during workflow execution. Orchestrator (purple) shows human guidance + coordination. Components show automated execution."
+                >
+                  <svg className="w-4 h-4" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M8 7V11M8 5.5V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-fg mt-1">
+                {calculateTotalUserPrompts(metrics.breakdown)}
+              </p>
+              <div className="text-xs text-muted mt-1">
+                Orchestrator: {calculateOrchestratorPrompts(metrics.breakdown)}
+              </div>
+            </div>
+            <ChatBubbleLeftIcon className="w-8 h-8 text-indigo-500" />
           </div>
         </div>
       </div>
@@ -219,21 +268,46 @@ export function TokenMetricsPanel({ storyId }: TokenMetricsPanelProps) {
                   <div>
                     <h5 className="text-xs font-semibold text-fg mb-2">Component Breakdown</h5>
                     <div className="space-y-2">
-                      {run.components.map((comp, idx) => (
-                        <div key={idx} className="flex items-center justify-between py-2 px-3 bg-bg-secondary rounded border border-border">
-                          <span className="text-sm font-medium text-fg">{comp.componentName}</span>
-                          <div className="flex items-center gap-4 text-xs text-muted">
-                            <span>{formatNumber(comp.tokens)} tokens</span>
-                            <span className="text-green-600 font-semibold">${comp.cost.toFixed(4)}</span>
-                            {comp.userPrompts > 0 && (
-                              <span className="text-blue-600">{comp.userPrompts} prompts</span>
-                            )}
-                            {comp.iterations > 0 && (
-                              <span className="text-purple-600">{comp.iterations} iterations</span>
-                            )}
+                      {run.components.map((comp, idx) => {
+                        const isOrchestrator = comp.componentName.toLowerCase().includes('orchestrator') ||
+                                               comp.componentName.toLowerCase().includes('coordinator');
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex items-center justify-between py-2 px-3 rounded border ${
+                              isOrchestrator
+                                ? 'bg-purple-50 border-purple-200'
+                                : 'bg-bg-secondary border-border'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isOrchestrator && <span className="text-lg">🤖</span>}
+                              <span className="text-sm font-medium text-fg">{comp.componentName}</span>
+                              {isOrchestrator && (
+                                <span className="text-xs text-purple-600 font-medium">(Orchestrator)</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted">
+                              <span>{formatNumber(comp.tokens)} tokens</span>
+                              <span className="text-green-600 font-semibold">${comp.cost.toFixed(4)}</span>
+                              {comp.userPrompts > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <ChatBubbleLeftIcon className={`w-3 h-3 ${isOrchestrator ? 'text-purple-600' : 'text-blue-600'}`} />
+                                  <span
+                                    className={isOrchestrator ? "text-purple-700 font-medium" : "text-blue-600"}
+                                    title="Human prompts during this component run"
+                                  >
+                                    {comp.userPrompts} prompt{comp.userPrompts !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              )}
+                              {comp.iterations > 0 && (
+                                <span className="text-orange-600">{comp.iterations} iterations</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
