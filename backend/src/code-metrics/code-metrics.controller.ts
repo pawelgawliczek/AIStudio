@@ -54,6 +54,7 @@ export class CodeMetricsController {
   async getTrendData(
     @Param('projectId') projectId: string,
     @Query('days') days?: number,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<TrendDataPointDto[]> {
     return this.codeMetricsService.getTrendData(projectId, days || 30);
   }
@@ -62,7 +63,10 @@ export class CodeMetricsController {
   @Roles('admin', 'pm', 'architect', 'dev')
   @ApiOperation({ summary: 'Get code quality issues summary' })
   @ApiResponse({ status: 200, type: [CodeIssueDto] })
-  async getCodeIssues(@Param('projectId') projectId: string): Promise<CodeIssueDto[]> {
+  async getCodeIssues(
+    @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
+  ): Promise<CodeIssueDto[]> {
     return this.codeMetricsService.getCodeIssues(projectId);
   }
 
@@ -108,6 +112,7 @@ export class CodeMetricsController {
   @ApiResponse({ status: 200, type: FolderNodeDto })
   async getFolderHierarchy(
     @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<FolderNodeDto> {
     return this.codeMetricsService.getFolderHierarchy(projectId);
   }
@@ -119,6 +124,7 @@ export class CodeMetricsController {
   async getCoverageGaps(
     @Param('projectId') projectId: string,
     @Query('limit') limit?: number,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<CoverageGapDto[]> {
     return this.codeMetricsService.getCoverageGaps(projectId, limit || 20);
   }
@@ -174,6 +180,7 @@ export class CodeMetricsController {
   })
   async getAnalysisComparison(
     @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<{
     healthScoreChange: number;
     newTests: number;
@@ -207,6 +214,7 @@ export class CodeMetricsController {
   })
   async getTestSummary(
     @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<{
     totalTests: number;
     passing: number;
@@ -242,7 +250,10 @@ export class CodeMetricsController {
     status: 200,
     description: 'File-level changes with metrics',
   })
-  async getFileChanges(@Param('projectId') projectId: string): Promise<any> {
+  async getFileChanges(
+    @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
+  ): Promise<any> {
     return this.codeMetricsService.getFileChanges(projectId);
   }
 }
