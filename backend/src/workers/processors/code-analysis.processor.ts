@@ -111,7 +111,7 @@ export class CodeAnalysisProcessor {
       this.logger.log(`Baseline: ${baseline.totalFiles} files, ${baseline.totalLOC} LOC, ${baseline.avgCoverage.toFixed(2)}% coverage`);
 
       // Load coverage data if available
-      const coverageMap = await this.loadCoverageData(project.localPath);
+      const { coverageMap, totalCoverage } = await this.loadCoverageData(project.localPath);
       if (coverageMap.size > 0) {
         this.logger.log(`Loaded coverage data for ${coverageMap.size} files`);
       }
@@ -160,7 +160,7 @@ export class CodeAnalysisProcessor {
       this.logger.log(`Delta analysis: ${deltas.filesChanged} files changed, ${deltas.locDelta} LOC delta, ${deltas.coverageDelta.toFixed(2)}% coverage delta`);
 
       // Update project-level metrics with delta information
-      await this.updateProjectHealth(projectId, deltas);
+      await this.updateProjectHealth(projectId, deltas, totalCoverage);
 
       this.logger.log(`Completed full project analysis for ${projectId}`);
       return {
@@ -596,7 +596,7 @@ export class CodeAnalysisProcessor {
   /**
    * Update project-level health score
    */
-  private async updateProjectHealth(projectId: string, deltas?: DeltaMetrics) {
+  private async updateProjectHealth(projectId: string, deltas?: DeltaMetrics, totalCoverage?: number) {
     const stats = await this.prisma.codeMetrics.aggregate({
       where: { projectId },
       _avg: {
@@ -627,7 +627,12 @@ export class CodeAnalysisProcessor {
     this.logger.log(`Project ${projectId} metrics:`);
     this.logger.log(`  - Files analyzed: ${stats._count.filePath}`);
     this.logger.log(`  - Total LOC: ${stats._sum.linesOfCode}`);
-    this.logger.log(`  - Average coverage: ${(stats._avg.testCoverage || 0).toFixed(2)}%`);
+    if (totalCoverage !== undefined && totalCoverage > 0) {
+      this.logger.log(`  - Total coverage (from coverage file): ${totalCoverage.toFixed(2)}%`);
+      this.logger.log(`  - File-level average coverage: ${(stats._avg.testCoverage || 0).toFixed(2)}%`);
+    } else {
+      this.logger.log(`  - Average coverage: ${(stats._avg.testCoverage || 0).toFixed(2)}%`);
+    }
     this.logger.log(`  - Health score: ${healthScore.toFixed(1)}`);
 
     if (deltas) {
@@ -638,7 +643,9 @@ export class CodeAnalysisProcessor {
     }
 
     // ST-18: Create historical snapshot after analysis
-    await this.createSnapshot(projectId, stats, healthScore);
+    // ST-37 Issue #1: Use total coverage from coverage file if available (more accurate than file-level average)
+    const coverageToStore = totalCoverage !== undefined && totalCoverage > 0 ? totalCoverage : (stats._avg.testCoverage || 0);
+    await this.createSnapshot(projectId, stats, healthScore, coverageToStore);
   }
 
   /**
@@ -649,10 +656,14 @@ export class CodeAnalysisProcessor {
     projectId: string,
     stats: any,
     healthScore: number,
+    avgCoverage?: number,
   ): Promise<void> {
     try {
       // Calculate tech debt ratio from maintainability index
       const techDebtRatio = 100 - (stats._avg.maintainabilityIndex || 0);
+
+      // ST-37 Issue #1: Use provided coverage (from total in coverage file) if available
+      const coverageValue = avgCoverage !== undefined ? avgCoverage : (stats._avg.testCoverage || 0);
 
       // Create snapshot with current date/time
       await this.prisma.codeMetricsSnapshot.create({
@@ -662,7 +673,7 @@ export class CodeAnalysisProcessor {
           totalFiles: stats._count.filePath || 0,
           totalLOC: stats._sum.linesOfCode || 0,
           avgComplexity: stats._avg.cyclomaticComplexity || 0,
-          avgCoverage: stats._avg.testCoverage || 0,
+          avgCoverage: coverageValue,
           healthScore,
           techDebtRatio,
         },
@@ -898,10 +909,11 @@ export class CodeAnalysisProcessor {
 
   /**
    * Load test coverage data from Jest coverage JSON
-   * Returns a map of file paths to coverage percentages
+   * Returns a map of file paths to coverage percentages and total project coverage
    */
-  private async loadCoverageData(repoPath: string): Promise<Map<string, number>> {
+  private async loadCoverageData(repoPath: string): Promise<{ coverageMap: Map<string, number>; totalCoverage: number }> {
     const coverageMap = new Map<string, number>();
+    let totalCoverage = 0;
 
     try {
       const fs = require('fs').promises;
@@ -922,6 +934,12 @@ export class CodeAnalysisProcessor {
           const content = await fs.readFile(coveragePath, 'utf8');
           const coverageData = JSON.parse(content);
           let filesLoaded = 0;
+
+          // Extract total project coverage first (from 'total' field)
+          if (coverageData.total && type === 'summary') {
+            totalCoverage = coverageData.total.lines?.pct || coverageData.total.statements?.pct || 0;
+            this.logger.log(`Extracted total project coverage: ${totalCoverage}%`);
+          }
 
           // Parse coverage based on file type
           for (const [filePath, data] of Object.entries(coverageData)) {
@@ -1009,6 +1027,8 @@ export class CodeAnalysisProcessor {
           // Log what was loaded from this file, but continue to load from other locations
           if (filesLoaded > 0) {
             this.logger.log(`Loaded coverage from ${coveragePath} (${type} format) - ${filesLoaded} files`);
+          } else {
+            this.logger.debug(`Coverage file ${coveragePath} is empty or has no valid entries, trying next location`);
           }
         } catch (err) {
           // File doesn't exist, try next location
@@ -1018,10 +1038,10 @@ export class CodeAnalysisProcessor {
 
       this.logger.log(`Total coverage data loaded for ${coverageMap.size} files`);
 
-      return coverageMap;
+      return { coverageMap, totalCoverage };
     } catch (error) {
       this.logger.debug(`No coverage data found: ${error.message}`);
-      return coverageMap;
+      return { coverageMap, totalCoverage };
     }
   }
 }
