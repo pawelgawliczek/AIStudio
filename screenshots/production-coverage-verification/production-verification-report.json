@@ -1,0 +1,44 @@
+{
+  "timestamp": "2025-11-19T07:41:35.010Z",
+  "deployment_info": {
+    "backend_container_id": "",
+    "backend_image_created": "",
+    "latest_commit": ""
+  },
+  "test_results": {
+    "api_project_metrics": {
+      "endpoint": "https://vibestudio.pawelgawliczek.cloud/api/code-metrics/project/345a29ee-d6ab-477d-8079-c5dda0844d77",
+      "status": 0,
+      "coverage_value": null,
+      "expected": 12,
+      "pass": false
+    },
+    "api_test_summary": {
+      "endpoint": "https://vibestudio.pawelgawliczek.cloud/api/code-metrics/project/345a29ee-d6ab-477d-8079-c5dda0844d77/test-summary",
+      "status": 0,
+      "coverage_value": null,
+      "expected": 12,
+      "pass": false
+    },
+    "ui_overview_tab": {
+      "endpoint": "https://vibestudio.pawelgawliczek.cloud/dashboard",
+      "status": 200,
+      "coverage_value": null,
+      "expected": 12,
+      "pass": false
+    },
+    "ui_test_coverage_tab": {
+      "endpoint": "https://vibestudio.pawelgawliczek.cloud/dashboard",
+      "status": 200,
+      "coverage_value": null,
+      "expected": 12,
+      "pass": false
+    }
+  },
+  "overall_result": {
+    "all_tests_passed": false,
+    "coverage_fixed": false,
+    "summary": "✗ VERIFICATION FAILED - Coverage fix not working in production",
+    "screenshots": []
+  }
+}
