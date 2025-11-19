@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RunStatus } from './create-workflow-run.dto';
+import { RunStatus } from '@prisma/client';
 
 // ST-57: Define CoordinatorMetricsDto FIRST to avoid circular dependency
 export class CoordinatorMetricsDto {

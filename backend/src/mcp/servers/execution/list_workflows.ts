@@ -82,8 +82,9 @@ export async function handler(prisma: PrismaClient, params: any) {
           id: true,
           name: true,
           description: true,
-          decisionStrategy: true,
-          componentIds: true,
+          config: true,
+          tools: true,
+          tags: true,
         },
       },
       _count: {
@@ -96,56 +97,33 @@ export async function handler(prisma: PrismaClient, params: any) {
     orderBy: { name: 'asc' },
   });
 
-  // Fetch component details for each workflow
-  const workflowsWithComponents = await Promise.all(
-    workflows.map(async (workflow) => {
-      const componentIds = workflow.coordinator.componentIds || [];
+  // Transform workflows with coordinator details
+  const workflowsWithComponents = workflows.map((workflow) => {
+    return {
+      id: workflow.id,
+      name: workflow.name,
+      description: workflow.description,
+      version: workflow.version,
+      active: workflow.active,
+      triggerConfig: workflow.triggerConfig,
+      createdAt: workflow.createdAt.toISOString(),
+      updatedAt: workflow.updatedAt.toISOString(),
 
-      let components = [];
-      if (componentIds.length > 0) {
-        components = await prisma.component.findMany({
-          where: {
-            id: { in: componentIds },
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        });
-      }
+      coordinator: {
+        id: workflow.coordinator.id,
+        name: workflow.coordinator.name,
+        description: workflow.coordinator.description,
+        config: workflow.coordinator.config,
+        tools: workflow.coordinator.tools,
+        tags: workflow.coordinator.tags,
+      },
 
-      return {
-        id: workflow.id,
-        name: workflow.name,
-        description: workflow.description,
-        version: workflow.version,
-        active: workflow.active,
-        triggerConfig: workflow.triggerConfig,
-        createdAt: workflow.createdAt.toISOString(),
-        updatedAt: workflow.updatedAt.toISOString(),
-
-        coordinator: {
-          id: workflow.coordinator.id,
-          name: workflow.coordinator.name,
-          description: workflow.coordinator.description,
-          strategy: workflow.coordinator.decisionStrategy,
-          componentCount: componentIds.length,
-          components: components.map((c, index) => ({
-            id: c.id,
-            name: c.name,
-            description: c.description,
-            order: index + 1,
-          })),
-        },
-
-        usageStats: {
-          totalRuns: workflow._count.workflowRuns,
-          storiesAssigned: workflow._count.stories,
-        },
-      };
-    }),
-  );
+      usageStats: {
+        totalRuns: workflow._count.workflowRuns,
+        storiesAssigned: workflow._count.stories,
+      },
+    };
+  });
 
   return {
     success: true,

@@ -65,7 +65,8 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
 
   // Get component IDs from coordinator
-  const componentIds = workflow.coordinator.componentIds || [];
+  const coordinatorConfig = (workflow.coordinator.config as any) || {};
+  const componentIds = coordinatorConfig.componentIds || [];
 
   // Determine transcript directory from cwd
   // IMPORTANT: cwd should be the HOST path (from PROJECT_HOST_PATH env or explicit param)
@@ -167,11 +168,11 @@ export async function handler(prisma: PrismaClient, params: any) {
     coordinator: {
       id: workflowRun.coordinatorId,
       name: workflow.coordinator.name,
-      instructions: workflow.coordinator.coordinatorInstructions,
-      strategy: workflow.coordinator.decisionStrategy,
+      instructions: workflow.coordinator.operationInstructions,
+      strategy: coordinatorConfig.decisionStrategy || "adaptive",
       config: workflow.coordinator.config,
       tools: workflow.coordinator.tools,
-      flowDiagram: workflow.coordinator.flowDiagram,
+      flowDiagram: coordinatorConfig.flowDiagram,
     },
     components: components.map((c, index) => ({
       componentId: c.id,

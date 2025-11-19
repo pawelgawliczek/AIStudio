@@ -87,9 +87,11 @@ export class ActivationService {
     }
 
     // 3. Fetch components for the coordinator
+    const coordinatorConfig = (workflow.coordinator.config as any) || {};
+    const componentIds = coordinatorConfig.componentIds || [];
     const components = await this.prisma.component.findMany({
       where: {
-        id: { in: workflow.coordinator.componentIds as string[] },
+        id: { in: componentIds as string[] },
       },
     });
 

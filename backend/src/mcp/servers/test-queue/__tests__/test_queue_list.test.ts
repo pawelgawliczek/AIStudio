@@ -31,15 +31,15 @@ describe('test_queue_list', () => {
     });
 
     it('should define status enum values', () => {
-      expect(tool.inputSchema.properties.status.enum).toEqual([
+      expect((tool.inputSchema.properties.status as any).enum).toEqual([
         'pending', 'running', 'passed', 'failed', 'cancelled', 'skipped'
       ]);
     });
 
     it('should define limit range as 1-100 with default 20', () => {
-      expect(tool.inputSchema.properties.limit.minimum).toBe(1);
-      expect(tool.inputSchema.properties.limit.maximum).toBe(100);
-      expect(tool.inputSchema.properties.limit.default).toBe(20);
+      expect((tool.inputSchema.properties.limit as any).minimum).toBe(1);
+      expect((tool.inputSchema.properties.limit as any).maximum).toBe(100);
+      expect((tool.inputSchema.properties.limit as any).default).toBe(20);
     });
   });
 

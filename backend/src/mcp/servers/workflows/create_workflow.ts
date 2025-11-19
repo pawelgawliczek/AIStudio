@@ -125,7 +125,7 @@ export async function handler(
     }
 
     // Verify coordinator exists and belongs to project
-    const coordinator = await prisma.coordinatorAgent.findUnique({
+    const coordinator = await prisma.component.findUnique({
       where: { id: params.coordinatorId },
     });
 

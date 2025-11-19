@@ -1,38 +1,50 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  GetFrameworkMetricsDto,
-  ComplexityBand,
-  DateRange,
-  FrameworkComparisonResponseDto,
-  FrameworkComparisonResultDto,
-  EfficiencyMetricsDto,
-  QualityMetricsDto,
-  CostMetricsDto,
-  TrendDataPointDto,
-  GetWeeklyMetricsDto,
-  WeeklyAnalysisResponseDto,
-  WeeklySummaryDto,
-  GetStoryExecutionDetailsDto,
-  StoryExecutionDetailsResponseDto,
-  AgentExecutionDto,
-  GetPerAgentMetricsDto,
-  PerAgentAnalyticsResponseDto,
-  FrameworkAgentBreakdownDto,
-  AgentRoleEfficiencyDto,
-  TotalStoryCostComparisonDto,
-  // ST-27 Workflow Metrics
-  GetWorkflowMetricsDto,
-  WorkflowMetricsResponseDto,
-  AggregationLevel,
-  ComprehensiveMetricsDto,
-  WorkflowMetricsSummaryDto,
-  StoryMetricsSummaryDto,
-  EpicMetricsSummaryDto,
-  AgentMetricsSummaryDto,
-  TrendAnalysisDto,
-  WorkflowComparisonResponseDto,
-} from './dto';
+
+// Stub DTOs for unused methods (removed in ST-10 but methods still exist)
+enum ComplexityBand {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  ALL = 'all',
+}
+enum DateRange {
+  LAST_7_DAYS = 'last_7_days',
+  LAST_30_DAYS = 'last_30_days',
+  LAST_90_DAYS = 'last_90_days',
+  LAST_6_MONTHS = 'last_6_months',
+  CUSTOM = 'custom',
+  ALL_TIME = 'all_time',
+}
+type EfficiencyMetricsDto = any;
+type QualityMetricsDto = any;
+type CostMetricsDto = any;
+type TrendDataPointDto = any;
+type ComprehensiveMetricsDto = any;
+type WorkflowMetricsSummaryDto = any;
+type StoryMetricsSummaryDto = any;
+type EpicMetricsSummaryDto = any;
+type AgentMetricsSummaryDto = any;
+type TrendAnalysisDto = any;
+type GetPerAgentMetricsDto = any;
+type PerAgentAnalyticsResponseDto = any;
+type GetWorkflowMetricsDto = any;
+type WorkflowMetricsResponseDto = any;
+type WorkflowComparisonResponseDto = any;
+type GetWeeklyMetricsDto = any;
+type WeeklyAnalysisResponseDto = any;
+type GetStoryExecutionDetailsDto = any;
+type StoryExecutionDetailsResponseDto = any;
+type AgentExecutionDto = any;
+type FrameworkComparisonResultDto = any;
+type GetFrameworkMetricsDto = any;
+type FrameworkComparisonResponseDto = any;
+enum AggregationLevel {
+  WORKFLOW = 'workflow',
+  STORY = 'story',
+  EPIC = 'epic',
+  AGENT = 'agent',
+}
 
 @Injectable()
 export class AgentMetricsService {
