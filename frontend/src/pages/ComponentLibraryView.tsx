@@ -51,11 +51,15 @@ export function ComponentLibraryView() {
     enabled: !!projectId,
   });
 
-  // Get unique tags for filtering
+  // Get unique tags for filtering (exclude 'coordinator' tag)
   const tags = useMemo(() => {
     const tagSet = new Set<string>();
     components.forEach(c => {
-      c.tags.forEach(tag => tagSet.add(tag));
+      c.tags.forEach(tag => {
+        if (tag !== 'coordinator' && tag !== 'orchestrator') {
+          tagSet.add(tag);
+        }
+      });
     });
     return Array.from(tagSet).sort();
   }, [components]);
@@ -63,6 +67,9 @@ export function ComponentLibraryView() {
   // Filter by tag and workflow on client side
   const filteredComponents = useMemo(() => {
     let filtered = components;
+
+    // EXCLUDE COORDINATORS - they should only appear on /coordinators page
+    filtered = filtered.filter(c => !c.tags.includes('coordinator'));
 
     // Tag filter
     if (selectedTagFilter !== 'all') {

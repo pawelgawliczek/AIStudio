@@ -47,12 +47,12 @@ export class QueueLockService {
         data: {
           reason,
           lockedBy: this.source,
-          durationMinutes: duration,
           expiresAt,
-          status: 'active',
+          active: true,
           metadata: {
             source: this.source,
             acquiredAt: new Date().toISOString(),
+            durationMinutes: duration,
           },
         },
       });
@@ -62,7 +62,7 @@ export class QueueLockService {
       return {
         id: lock.id,
         reason: lock.reason,
-        durationMinutes: lock.durationMinutes,
+        durationMinutes: duration,
         expiresAt: lock.expiresAt,
         metadata: lock.metadata,
       };
@@ -84,15 +84,17 @@ export class QueueLockService {
         await prisma.testQueueLock.update({
           where: { id: lockId },
           data: {
-            status: 'released',
-            releasedAt: new Date(),
+            active: false,
+            metadata: {
+              releasedAt: new Date().toISOString(),
+            },
           },
         });
       } else {
         // Release most recent active lock
         const activeLock = await prisma.testQueueLock.findFirst({
           where: {
-            status: 'active',
+            active: true,
             lockedBy: this.source,
           },
           orderBy: {
@@ -104,8 +106,11 @@ export class QueueLockService {
           await prisma.testQueueLock.update({
             where: { id: activeLock.id },
             data: {
-              status: 'released',
-              releasedAt: new Date(),
+              active: false,
+              metadata: {
+                ...(typeof activeLock.metadata === 'object' ? activeLock.metadata : {}),
+                releasedAt: new Date().toISOString(),
+              },
             },
           });
         }
@@ -126,7 +131,7 @@ export class QueueLockService {
       // Find most recent active lock
       const activeLock = await prisma.testQueueLock.findFirst({
         where: {
-          status: 'active',
+          active: true,
           expiresAt: {
             gt: new Date(),
           },
@@ -192,9 +197,14 @@ export class QueueLockService {
         throw new Error(`Lock ${lockId} not found`);
       }
 
-      if (lock.status !== 'active') {
-        throw new Error(`Lock ${lockId} is not active (status: ${lock.status})`);
+      if (!lock.active) {
+        throw new Error(`Lock ${lockId} is not active`);
       }
+
+      // Get current duration from metadata
+      const currentDuration = typeof lock.metadata === 'object' && lock.metadata !== null && 'durationMinutes' in lock.metadata
+        ? (lock.metadata as any).durationMinutes
+        : 60;
 
       // Calculate new expiry
       const currentExpiry = lock.expiresAt.getTime();
@@ -205,7 +215,10 @@ export class QueueLockService {
         where: { id: lockId },
         data: {
           expiresAt: newExpiry,
-          durationMinutes: lock.durationMinutes + additionalMinutes,
+          metadata: {
+            ...(typeof lock.metadata === 'object' ? lock.metadata : {}),
+            durationMinutes: currentDuration + additionalMinutes,
+          },
         },
       });
 
@@ -225,7 +238,7 @@ export class QueueLockService {
         where: { id: lockId },
       });
 
-      if (!lock || lock.status !== 'active') {
+      if (!lock || !lock.active) {
         return false;
       }
 

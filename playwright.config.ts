@@ -39,7 +39,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         NODE_ENV: 'test',
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/aistudio_test',
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@localhost:5433/vibestudio?schema=public',
       },
     },
     {

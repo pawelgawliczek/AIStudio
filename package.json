@@ -30,6 +30,8 @@
     "db:restore": "ts-node backend/scripts/restore-database.ts",
     "db:validate": "ts-node backend/scripts/validate-schema.ts",
     "db:cleanup": "ts-node backend/scripts/cleanup-backups.ts",
+    "db:setup-cron": "bash backend/scripts/setup-cron.sh",
+    "db:list-backups": "ls -lth backups/ | head -20",
     "db:seed": "npm run db:seed --workspace=backend",
     "db:reset": "npm run db:reset --workspace=backend",
     "db:studio": "npm run db:studio --workspace=backend",

@@ -13,7 +13,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const mcpServer = spawn('npx', ['tsx', join(__dirname, 'backend/src/mcp/server.ts')], {
   env: {
     ...process.env,
-    DATABASE_URL: 'postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5432/aistudio?schema=public',
+    DATABASE_URL: 'postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5433/vibestudio?schema=public',
     NODE_ENV: 'development'
   },
   stdio: ['pipe', 'pipe', 'inherit']
