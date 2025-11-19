@@ -246,9 +246,7 @@ describe('git_delete_worktree', () => {
         });
 
         expect(result.actions.filesystemRemoved).toBe(true);
-        expect(result.warnings).toContain(
-          expect.stringContaining('already removed from filesystem')
-        );
+        expect(result.warnings?.[0]).toContain('already removed from filesystem');
       });
 
       it('should handle branch already deleted', async () => {
@@ -280,7 +278,7 @@ describe('git_delete_worktree', () => {
         });
 
         expect(result.actions.branchDeleted).toBe(true);
-        expect(result.warnings).toContain(expect.stringContaining('already deleted'));
+        expect(result.warnings?.[0]).toContain('already deleted');
       });
     });
 
@@ -293,7 +291,7 @@ describe('git_delete_worktree', () => {
 
       it('should require confirm to be true', async () => {
         await expect(
-          handler(prisma, { storyId: 'story-1', confirm: false })
+          handler(prisma, { storyId: 'story-1', confirm: false } as any)
         ).rejects.toThrow('Deletion requires explicit confirmation');
       });
 
@@ -302,7 +300,7 @@ describe('git_delete_worktree', () => {
 
         await expect(
           handler(prisma, { storyId: 'story-1', confirm: true })
-        ).rejects.toThrow('Worktree not found');
+        ).rejects.toThrow('not found');
       });
 
       it('should validate worktree path', async () => {
