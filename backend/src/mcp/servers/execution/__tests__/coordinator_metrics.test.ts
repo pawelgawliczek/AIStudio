@@ -10,6 +10,7 @@ import * as os from 'os';
 import { handler as startWorkflowRun } from '../start_workflow_run';
 import { handler as updateWorkflowStatus } from '../update_workflow_status';
 import { handler as getWorkflowRunResults } from '../get_workflow_run_results';
+import { CoordinatorMetricsDto } from '../../../../workflow-runs/dto/workflow-run-response.dto';
 
 // Mock filesystem to simulate transcript files
 jest.mock('fs');
@@ -213,7 +214,7 @@ describe('ST-17: Coordinator Statistics Not Updated', () => {
       });
 
       expect(updatedRun?.coordinatorMetrics).toBeDefined();
-      const coordinatorMetrics = updatedRun?.coordinatorMetrics as any;
+      const coordinatorMetrics = updatedRun?.coordinatorMetrics as CoordinatorMetricsDto;
       expect(coordinatorMetrics.tokensInput).toBe(1800);
       expect(coordinatorMetrics.tokensOutput).toBe(800);
       expect(coordinatorMetrics.totalTokens).toBe(2900);
@@ -350,11 +351,12 @@ describe('ST-17: Coordinator Statistics Not Updated', () => {
 
       // Verify coordinator metrics are returned
       expect(result.run.coordinatorMetrics).toBeDefined();
-      expect(result.run.coordinatorMetrics.tokensInput).toBe(1000);
-      expect(result.run.coordinatorMetrics.tokensOutput).toBe(500);
-      expect(result.run.coordinatorMetrics.totalTokens).toBe(1500);
-      expect(result.run.coordinatorMetrics.costUsd).toBe(0.02);
-      expect(result.run.coordinatorMetrics.toolCalls).toBe(5);
+      const returnedCoordinatorMetrics = result.run.coordinatorMetrics as CoordinatorMetricsDto;
+      expect(returnedCoordinatorMetrics.tokensInput).toBe(1000);
+      expect(returnedCoordinatorMetrics.tokensOutput).toBe(500);
+      expect(returnedCoordinatorMetrics.totalTokens).toBe(1500);
+      expect(returnedCoordinatorMetrics.costUsd).toBe(0.02);
+      expect(returnedCoordinatorMetrics.toolCalls).toBe(5);
     });
 
     it('should not return zeros for valid workflow executions', async () => {
@@ -417,9 +419,10 @@ describe('ST-17: Coordinator Statistics Not Updated', () => {
       expect(result.run.metrics.totalTokensInput).toBeGreaterThan(0);
       expect(result.run.metrics.totalTokensOutput).toBeGreaterThan(0);
       expect(result.run.metrics.totalTokens).toBeGreaterThan(0);
-      expect(result.run.coordinatorMetrics.tokensInput).toBeGreaterThan(0);
-      expect(result.run.coordinatorMetrics.tokensOutput).toBeGreaterThan(0);
-      expect(result.run.coordinatorMetrics.totalTokens).toBeGreaterThan(0);
+      const finalCoordinatorMetrics = result.run.coordinatorMetrics as CoordinatorMetricsDto;
+      expect(finalCoordinatorMetrics.tokensInput).toBeGreaterThan(0);
+      expect(finalCoordinatorMetrics.tokensOutput).toBeGreaterThan(0);
+      expect(finalCoordinatorMetrics.totalTokens).toBeGreaterThan(0);
     });
   });
 });
