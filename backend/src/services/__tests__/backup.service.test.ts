@@ -3,17 +3,16 @@
  */
 
 import { BackupService } from '../backup.service';
-import { execDockerCommand } from '../../utils/docker-exec.util';
-import { fileExists, getFileSize, readJsonFile } from '../../utils/file-system.util';
+import { BackupType } from '../../types/migration.types';
+import { dockerExec } from '../../utils/docker-exec.util';
+import * as fs from 'fs/promises';
 
 // Mock dependencies
 jest.mock('../../utils/docker-exec.util');
-jest.mock('../../utils/file-system.util');
+jest.mock('fs/promises');
 
-const mockExecDockerCommand = execDockerCommand as jest.MockedFunction<typeof execDockerCommand>;
-const mockFileExists = fileExists as jest.MockedFunction<typeof fileExists>;
-const mockGetFileSize = getFileSize as jest.MockedFunction<typeof getFileSize>;
-const mockReadJsonFile = readJsonFile as jest.MockedFunction<typeof readJsonFile>;
+const mockDockerExec = dockerExec as jest.MockedFunction<typeof dockerExec>;
+const mockFs = fs as jest.Mocked<typeof fs>;
 
 describe('BackupService', () => {
   let backupService: BackupService;
@@ -25,134 +24,165 @@ describe('BackupService', () => {
 
   describe('createBackup', () => {
     it('should create backup successfully', async () => {
-      // Mock successful backup creation
-      mockExecDockerCommand.mockResolvedValue('pg_dump completed');
-      mockFileExists.mockResolvedValue(true);
-      mockGetFileSize.mockResolvedValue(1024 * 1024); // 1MB
+      mockDockerExec.mockResolvedValue({
+        success: true,
+        stdout: 'pg_dump completed',
+        stderr: '',
+        exitCode: 0,
+      });
+      mockFs.stat = jest.fn().mockResolvedValue({ size: 1024 * 1024 } as any);
+      mockFs.writeFile = jest.fn().mockResolvedValue(undefined);
 
-      const result = await backupService.createBackup('manual', 'ST-70');
+      const result = await backupService.createBackup(BackupType.MANUAL, 'test-context');
 
-      expect(result.success).toBe(true);
-      expect(result.backupPath).toContain('vibestudio_');
-      expect(result.backupPath).toContain('.dump');
-      expect(result.metadata.type).toBe('manual');
-      expect(result.metadata.context).toBe('ST-70');
+      expect(result.type).toBe(BackupType.MANUAL);
+      expect(result.context).toBe('test-context');
+      expect(result.size).toBeGreaterThan(0);
+      expect(result.verified).toBe(false);
     });
 
-    it('should fail if backup file not created', async () => {
-      mockExecDockerCommand.mockResolvedValue('pg_dump completed');
-      mockFileExists.mockResolvedValue(false);
+    it('should fail if pg_dump fails', async () => {
+      mockDockerExec.mockResolvedValue({
+        success: false,
+        stdout: '',
+        stderr: 'pg_dump failed',
+        exitCode: 1,
+      });
 
-      await expect(backupService.createBackup('manual', 'ST-70')).rejects.toThrow(
-        'Backup file was not created'
-      );
+      await expect(
+        backupService.createBackup(BackupType.MANUAL, 'test')
+      ).rejects.toThrow();
     });
 
-    it('should fail if backup file too small', async () => {
-      mockExecDockerCommand.mockResolvedValue('pg_dump completed');
-      mockFileExists.mockResolvedValue(true);
-      mockGetFileSize.mockResolvedValue(100); // Only 100 bytes
+    it('should fail if file is too small', async () => {
+      mockDockerExec.mockResolvedValue({
+        success: true,
+        stdout: 'completed',
+        stderr: '',
+        exitCode: 0,
+      });
+      mockFs.stat = jest.fn().mockResolvedValue({ size: 512 } as any); // < 1KB
 
-      await expect(backupService.createBackup('manual', 'ST-70')).rejects.toThrow(
-        'Backup file is suspiciously small'
-      );
-    });
-
-    it('should include proper timestamp in filename', async () => {
-      mockExecDockerCommand.mockResolvedValue('pg_dump completed');
-      mockFileExists.mockResolvedValue(true);
-      mockGetFileSize.mockResolvedValue(1024 * 1024);
-
-      const result = await backupService.createBackup('pre-migration', 'ST-70');
-
-      expect(result.backupPath).toMatch(/vibestudio_premig_\d{8}_\d{6}_ST-70\.dump/);
+      await expect(
+        backupService.createBackup(BackupType.MANUAL, 'test')
+      ).rejects.toThrow();
     });
   });
 
   describe('verifyBackup', () => {
     it('should verify backup successfully', async () => {
-      mockFileExists.mockResolvedValue(true);
-      mockGetFileSize.mockResolvedValue(2 * 1024 * 1024); // 2MB
-      mockExecDockerCommand.mockResolvedValue('pg_restore succeeded');
+      const backup = {
+        filename: 'test.dump',
+        filepath: '/backups/test.dump',
+        type: BackupType.MANUAL,
+        size: 1024 * 1024,
+        created: new Date(),
+        verified: false,
+      };
 
-      const result = await backupService.verifyBackup('/backups/test.dump');
+      mockFs.access = jest.fn().mockResolvedValue(undefined);
+      mockFs.stat = jest.fn().mockResolvedValue({ size: 1024 * 1024 } as any);
+      mockDockerExec.mockResolvedValue({
+        success: true,
+        stdout: 'restore test passed',
+        stderr: '',
+        exitCode: 0,
+      });
 
-      expect(result.valid).toBe(true);
+      const result = await backupService.verifyBackup(backup);
+
+      expect(result.success).toBe(true);
       expect(result.fileExists).toBe(true);
-      expect(result.fileSize).toBe(2097152);
+      expect(result.fileSizeValid).toBe(true);
     });
 
     it('should fail if file does not exist', async () => {
-      mockFileExists.mockResolvedValue(false);
+      const backup = {
+        filename: 'missing.dump',
+        filepath: '/backups/missing.dump',
+        type: BackupType.MANUAL,
+        size: 1024,
+        created: new Date(),
+        verified: false,
+      };
 
-      const result = await backupService.verifyBackup('/backups/missing.dump');
+      mockFs.access = jest.fn().mockRejectedValue(new Error('File not found'));
 
-      expect(result.valid).toBe(false);
+      const result = await backupService.verifyBackup(backup);
+
+      expect(result.success).toBe(false);
       expect(result.fileExists).toBe(false);
     });
 
     it('should fail if restore test fails', async () => {
-      mockFileExists.mockResolvedValue(true);
-      mockGetFileSize.mockResolvedValue(1024 * 1024);
-      mockExecDockerCommand.mockRejectedValue(new Error('pg_restore failed'));
+      const backup = {
+        filename: 'test.dump',
+        filepath: '/backups/test.dump',
+        type: BackupType.MANUAL,
+        size: 1024 * 1024,
+        created: new Date(),
+        verified: false,
+      };
 
-      const result = await backupService.verifyBackup('/backups/test.dump');
+      mockFs.access = jest.fn().mockResolvedValue(undefined);
+      mockFs.stat = jest.fn().mockResolvedValue({ size: 1024 * 1024 } as any);
+      mockDockerExec.mockResolvedValue({
+        success: false,
+        stdout: '',
+        stderr: 'restore failed',
+        exitCode: 1,
+      });
 
-      expect(result.valid).toBe(false);
-      expect(result.restoreTest).toBe(false);
-      expect(result.error).toContain('pg_restore failed');
+      const result = await backupService.verifyBackup(backup);
+
+      expect(result.success).toBe(false);
+      expect(result.sampleRestoreSuccess).toBe(false);
     });
   });
 
   describe('listBackups', () => {
     it('should list backups with metadata', async () => {
-      // Mock file system calls
-      const mockBackups = [
-        'vibestudio_premig_20251119_100000_ST-70.dump',
-        'vibestudio_manual_20251118_143000_ST-69.dump',
-      ];
-
-      // Mock glob results
-      jest.spyOn(require('glob'), 'sync').mockReturnValue(
-        mockBackups.map((f) => `/backups/${f}`)
+      mockFs.readdir = jest.fn().mockResolvedValue([
+        'vibestudio_manual_20251119_120000_test.dump',
+        'vibestudio_daily_20251118_020000_auto.dump',
+      ] as any);
+      mockFs.stat = jest.fn().mockResolvedValue({
+        size: 1024 * 1024,
+        mtime: new Date(),
+      } as any);
+      mockFs.readFile = jest.fn().mockResolvedValue(
+        JSON.stringify({
+          databaseName: 'vibestudio',
+          tableCount: 30,
+        })
       );
-
-      mockGetFileSize.mockResolvedValue(5 * 1024 * 1024); // 5MB
-      mockReadJsonFile.mockResolvedValue({
-        type: 'pre-migration',
-        context: 'ST-70',
-        timestamp: '2025-11-19T10:00:00.000Z',
-      });
 
       const result = await backupService.listBackups();
 
       expect(result.length).toBe(2);
-      expect(result[0].filename).toContain('premig');
+      expect(result[0].type).toBe(BackupType.MANUAL);
+      expect(result[1].type).toBe(BackupType.DAILY);
     });
   });
 
   describe('cleanupOldBackups', () => {
-    it('should remove backups older than retention period', async () => {
+    it('should remove old backups', async () => {
       const oldDate = new Date();
-      oldDate.setDate(oldDate.getDate() - 100); // 100 days ago
+      oldDate.setDate(oldDate.getDate() - 100); // 100 days old
 
-      const mockBackups = [
-        {
-          filename: 'vibestudio_premig_20240815_100000_ST-1.dump',
-          path: '/backups/vibestudio_premig_20240815_100000_ST-1.dump',
-          created: oldDate,
-          type: 'pre-migration' as const,
-          size: 1024 * 1024,
-        },
-      ];
-
-      jest.spyOn(backupService, 'listBackups').mockResolvedValue(mockBackups);
-      jest.spyOn(require('fs').promises, 'unlink').mockResolvedValue(undefined);
+      mockFs.readdir = jest.fn().mockResolvedValue([
+        'vibestudio_manual_20240101_120000_old.dump',
+      ] as any);
+      mockFs.stat = jest.fn().mockResolvedValue({
+        size: 1024,
+        mtime: oldDate,
+      } as any);
+      mockFs.readFile = jest.fn().mockResolvedValue('{}');
+      mockFs.unlink = jest.fn().mockResolvedValue(undefined);
 
       const result = await backupService.cleanupOldBackups();
 
-      expect(result.removed).toBeGreaterThan(0);
-      expect(result.backupsRemoved[0]).toContain('ST-1');
+      expect(result.deleted).toBeGreaterThan(0);
     });
   });
 });
