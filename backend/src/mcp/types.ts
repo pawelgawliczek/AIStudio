@@ -557,3 +557,151 @@ export interface TestQueueRemoveResponse {
   previousStatus: string;
   message: string;
 }
+
+// ============================================================================
+// TEST QUEUE LOCKING TOOLS (ST-43)
+// ============================================================================
+
+export interface LockTestQueueParams {
+  reason: string;                     // Required: reason for lock (min 10 chars)
+  durationMinutes?: number;           // Optional: default 60, range 1-480
+  lockedBy?: string;                  // Optional: default 'mcp-user'
+  metadata?: Record<string, any>;     // Optional: migration context
+}
+
+export interface LockTestQueueResponse {
+  id: string;                         // Lock UUID
+  reason: string;
+  lockedBy: string;
+  lockedAt: string;                   // ISO 8601
+  expiresAt: string;                  // ISO 8601
+  message: string;
+}
+
+export interface UnlockTestQueueParams {
+  lockId?: string;                    // Optional: unlock specific lock
+  force?: boolean;                    // Optional: force unlock (default: false)
+}
+
+export interface UnlockTestQueueResponse {
+  id: string;
+  reason: string;
+  duration: string;                   // Human readable (e.g., "45 minutes", "1h 23m")
+  message: string;
+}
+
+export interface QueueLockStatusResponse {
+  isLocked: boolean;
+  lock?: {
+    id: string;
+    reason: string;
+    lockedBy: string;
+    lockedAt: string;                 // ISO 8601
+    expiresAt: string;                // ISO 8601
+    expiresIn: string;                // Human readable (e.g., "15 minutes")
+    isExpired: boolean;
+  };
+}
+
+// ============================================================================
+// PULL REQUEST MANAGEMENT TOOLS (ST-46)
+// ============================================================================
+
+export interface CreatePullRequestParams {
+  storyId: string;
+  title?: string;
+  description?: string;
+  draft?: boolean;
+  baseBranch?: string;
+}
+
+export interface CreatePullRequestResponse {
+  success: true;
+  prId: string;
+  prNumber: number;
+  prUrl: string;
+  status: string;
+  message: string;
+}
+
+export interface GetPrStatusParams {
+  storyId?: string;
+  prNumber?: number;
+  prUrl?: string;
+  includeComments?: boolean;
+  includeReviews?: boolean;
+}
+
+export interface ReviewInfo {
+  reviewer: string;
+  status: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED';
+  submittedAt: string;
+}
+
+export interface CheckInfo {
+  name: string;
+  status: 'SUCCESS' | 'FAILURE' | 'PENDING' | 'SKIPPED';
+  conclusion: string;
+}
+
+export interface GetPrStatusResponse {
+  success: true;
+  prNumber: number;
+  prUrl: string;
+  status: string;
+  title: string;
+  state: string;
+  checksStatus: 'PASSING' | 'FAILING' | 'PENDING' | 'NONE';
+  approvals: ReviewInfo[];
+  ciChecks: CheckInfo[];
+  mergeable: boolean;
+  conflictStatus: 'NONE' | 'CONFLICTING' | 'UNKNOWN';
+  commentCount?: number;
+}
+
+export interface MergePullRequestParams {
+  storyId?: string;
+  prNumber?: number;
+  mergeMethod?: 'merge' | 'squash' | 'rebase';
+  deleteBranch?: boolean;
+  requireApproval?: boolean;
+  requireChecks?: boolean;
+}
+
+export interface MergePullRequestResponse {
+  success: true;
+  prNumber: number;
+  prUrl: string;
+  mergeCommitSha: string;
+  mergedAt: string;
+  branchDeleted: boolean;
+  message: string;
+}
+
+export interface ClosePullRequestParams {
+  storyId?: string;
+  prNumber?: number;
+  reason?: string;
+  comment?: string;
+  deleteBranch?: boolean;
+}
+
+export interface ClosePullRequestResponse {
+  success: true;
+  prNumber: number;
+  prUrl: string;
+  closedAt: string;
+  reason?: string;
+  branchDeleted: boolean;
+  message: string;
+}
+
+export interface PullRequestErrorResponse {
+  success: false;
+  error: 'ValidationError' | 'NotFoundError' | 'MCPError';
+  message: string;
+  details?: Record<string, any>;
+  suggestion: string;
+  retryable: boolean;
+  errorCode: string;
+}
