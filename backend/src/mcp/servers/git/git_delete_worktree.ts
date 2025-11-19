@@ -102,9 +102,12 @@ export async function handler(
   params: DeleteWorktreeParams,
 ): Promise<DeleteWorktreeResponse> {
   try {
-    validateRequired(params, ['storyId', 'confirm']);
+    validateRequired(params, ['storyId']);
 
-    // Require explicit confirmation
+    // Require explicit confirmation (check both presence and value)
+    if (params.confirm === undefined || params.confirm === null) {
+      throw new ValidationError('Missing required fields: confirm');
+    }
     if (params.confirm !== true) {
       throw new ValidationError(
         'Deletion requires explicit confirmation. Set confirm: true to proceed.'
