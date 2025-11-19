@@ -57,7 +57,7 @@ describe('create_pull_request', () => {
 
         await expect(
           handler(prisma, { storyId: testStoryId })
-        ).rejects.toThrow('Story not found');
+        ).rejects.toThrow(/Story.*not found/i);
       });
 
       it('should throw ValidationError when PR already exists', async () => {

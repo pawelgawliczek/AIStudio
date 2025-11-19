@@ -51,10 +51,14 @@ export class ToolLoader {
 
         if (!stat?.isDirectory()) continue;
 
-        // Get all .ts and .js files except index files
+        // Get all .ts and .js files except index and spec files
         const files = await fs.readdir(categoryPath);
         const toolFiles = files.filter(
-          (f) => (f.endsWith('.ts') || f.endsWith('.js')) && !f.startsWith('index')
+          (f) =>
+            (f.endsWith('.ts') || f.endsWith('.js')) &&
+            !f.startsWith('index') &&
+            !f.includes('.spec.') &&
+            !f.includes('.test.')
         );
 
         // Load each tool module
