@@ -173,7 +173,13 @@ export async function handler(
     execGit(`git branch ${branchName} origin/${baseBranch}`, repoPath);
 
     // 6. Create worktree
-    const worktreePath = `/opt/stack/AIStudio-${branchName}`;
+    // Use ../worktrees directory to avoid permission issues in /opt/stack
+    const worktreesDir = '/opt/stack/worktrees';
+    if (!fs.existsSync(worktreesDir)) {
+      fs.mkdirSync(worktreesDir, { recursive: true, mode: 0o755 });
+    }
+
+    const worktreePath = path.join(worktreesDir, branchName);
 
     // Check if worktree path already exists
     if (fs.existsSync(worktreePath)) {
