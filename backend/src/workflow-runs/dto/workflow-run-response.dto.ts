@@ -62,6 +62,9 @@ export class WorkflowRunResponseDto {
   @ApiProperty({ required: false })
   coordinatorDecisions?: any;
 
+  @ApiProperty({ required: false })
+  coordinatorMetrics?: CoordinatorMetricsDto;
+
   @ApiProperty()
   createdAt: string;
 
@@ -117,4 +120,33 @@ export class ComponentRunSummaryDto {
 
   @ApiProperty()
   success: boolean;
+}
+
+export class CoordinatorMetricsDto {
+  @ApiProperty({ required: false })
+  tokensInput?: number;
+
+  @ApiProperty({ required: false })
+  tokensOutput?: number;
+
+  @ApiProperty({ required: false })
+  totalTokens?: number;
+
+  @ApiProperty({ required: false })
+  costUsd?: number;
+
+  @ApiProperty({ required: false })
+  toolCalls?: number;
+
+  @ApiProperty({ required: false })
+  userPrompts?: number;
+
+  @ApiProperty({ required: false })
+  iterations?: number;
+
+  @ApiProperty({ required: false })
+  dataSource?: string;
+
+  @ApiProperty({ required: false })
+  transcriptPath?: string;
 }

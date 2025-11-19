@@ -10,6 +10,18 @@ export enum RunStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export interface CoordinatorMetrics {
+  tokensInput?: number;
+  tokensOutput?: number;
+  totalTokens?: number;
+  costUsd?: number;
+  toolCalls?: number;
+  userPrompts?: number;
+  iterations?: number;
+  dataSource?: 'transcript' | 'otel';
+  transcriptPath?: string;
+}
+
 export interface WorkflowRun {
   id: string;
   projectId: string;
@@ -31,6 +43,7 @@ export interface WorkflowRun {
   status: RunStatus;
   errorMessage?: string;
   coordinatorDecisions?: any;
+  coordinatorMetrics?: CoordinatorMetrics;
   createdAt: string;
   updatedAt: string;
   workflow?: {
