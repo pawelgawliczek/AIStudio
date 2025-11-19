@@ -37,7 +37,7 @@ All deployment infrastructure has been created and is ready to use:
    - Network isolation
    - Security hardened (localhost-only DB/Redis)
 
-4. **backend/Dockerfile.prod**
+4. **backend/Dockerfile**
    - Multi-stage build for optimal size
    - Production dependencies only
    - Auto-runs database migrations
@@ -45,7 +45,7 @@ All deployment infrastructure has been created and is ready to use:
    - Health checks included
    - dumb-init for signal handling
 
-5. **frontend/Dockerfile.prod**
+5. **frontend/Dockerfile**
    - Multi-stage build with nginx
    - Optimized static asset serving
    - SPA routing configured
@@ -197,9 +197,9 @@ AIStudio/
 ├── docker-compose.prod.yml      ✅ NEW - Production Docker
 ├── plan.md                      ✅ UPDATED - v2.0 with deployment phase
 ├── backend/
-│   └── Dockerfile.prod          ✅ NEW - Production backend image
+│   └── Dockerfile          ✅ NEW - Production backend image
 ├── frontend/
-│   └── Dockerfile.prod          ✅ NEW - Production frontend image
+│   └── Dockerfile          ✅ NEW - Production frontend image
 └── scripts/
     └── deploy.sh                ✅ NEW - Deployment automation
 ```

@@ -158,13 +158,13 @@ All deployment artifacts have been created:
    - Volume persistence
    - Network isolation
 
-5. **✅ backend/Dockerfile.prod** - Production backend image
+5. **✅ backend/Dockerfile** - Production backend image
    - Multi-stage build
    - Optimized for size
    - Security hardened
    - Auto-migrations
 
-6. **✅ frontend/Dockerfile.prod** - Production frontend image
+6. **✅ frontend/Dockerfile** - Production frontend image
    - Multi-stage build with nginx
    - SPA routing configured
    - Gzip compression

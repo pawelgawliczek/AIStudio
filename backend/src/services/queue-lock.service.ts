@@ -4,7 +4,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { Lock, LockStatus } from '../types/migration.types';
-import { migrationConfig } from '../../config/migration.config';
+import { migrationConfig } from '../config/migration.config';
 
 const prisma = new PrismaClient();
 

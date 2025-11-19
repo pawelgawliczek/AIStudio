@@ -9,7 +9,7 @@ import {
   ValidationResult,
   ValidationLevel,
 } from '../types/migration.types';
-import { migrationConfig } from '../../config/migration.config';
+import { migrationConfig } from '../config/migration.config';
 import {
   dockerExec,
   isContainerRunning,

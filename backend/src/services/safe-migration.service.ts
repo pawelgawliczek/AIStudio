@@ -15,7 +15,7 @@ import { BackupService } from './backup.service';
 import { RestoreService } from './restore.service';
 import { QueueLockService } from './queue-lock.service';
 import { ValidationService } from './validation.service';
-import { migrationConfig } from '../../config/migration.config';
+import { migrationConfig } from '../config/migration.config';
 
 const execAsync = promisify(exec);
 

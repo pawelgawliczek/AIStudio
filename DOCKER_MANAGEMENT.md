@@ -15,7 +15,7 @@ Keep this file handy when orchestrating containers on this host. Commands assume
 
 ## AIStudio Monorepo (`/opt/stack/AIStudio`)
 - Dev stack: `docker compose up -d` brings up Postgres (5433), Redis (6380), backend (3001), and frontend (5174). Same commands exposed as `npm run docker:up` / `npm run docker:down`.
-- Prod stack: `docker compose -f docker-compose.prod.yml up -d --build` using `backend/Dockerfile.prod` and `frontend/Dockerfile.prod`. Requires `.env` with `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, and proxy URLs.
+- Prod stack: `docker compose -f docker-compose.prod.yml up -d --build` using `backend/Dockerfile` and `frontend/Dockerfile`. Requires `.env` with `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, and proxy URLs.
 - Both stacks join `stack_appnet` so other services (for example, `mcp`) can talk to them directly.
 
 ## Live Translator Platform (`/opt/stack/livetranslator`)
