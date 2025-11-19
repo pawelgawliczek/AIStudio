@@ -88,15 +88,18 @@ async function createPreMigrationSnapshot(projectId?: string) {
             projectId: project.id,
             snapshotDate: new Date(),
             totalFiles: metrics._count.id,
+            totalLOC: 0, // Required field - will be updated by worker
             avgComplexity: metrics._avg.cyclomaticComplexity ?? 0,
-            avgMaintainability: metrics._avg.maintainabilityIndex ?? 0,
-            avgChurn: metrics._avg.churnRate ?? 0,
-            avgRiskScore: metrics._avg.riskScore ?? 0,
-            highRiskFiles: 0, // Will be updated by worker
+            avgCoverage: 0, // Required field - will be updated by worker
+            healthScore: 0, // Required field - will be updated by worker
+            techDebtRatio: 0, // Required field - will be updated by worker
             metadata: {
               reason: 'Pre-ST-28 migration baseline',
               formulaUsed: 'worker_formula_v1',
               migrationDate: new Date().toISOString(),
+              avgMaintainability: metrics._avg.maintainabilityIndex ?? 0,
+              avgChurn: metrics._avg.churnRate ?? 0,
+              avgRiskScore: metrics._avg.riskScore ?? 0,
             },
           },
         });
