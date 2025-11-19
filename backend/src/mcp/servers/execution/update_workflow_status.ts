@@ -254,13 +254,59 @@ export async function handler(prisma: PrismaClient, params: any) {
       transcriptPath: orchestratorTranscriptPath,
     };
 
-    // Get component metrics (already aggregated during record_component_complete)
-    const componentRuns = await prisma.componentRun.findMany({
+    // ST-57: Find and update orchestrator ComponentRun (executionOrder=0)
+    const orchestratorComponentRun = await prisma.componentRun.findFirst({
+      where: {
+        workflowRunId: params.runId,
+        executionOrder: 0,
+      },
+    });
+
+    if (orchestratorComponentRun) {
+      // Update orchestrator ComponentRun with parsed metrics
+      await prisma.componentRun.update({
+        where: { id: orchestratorComponentRun.id },
+        data: {
+          status: params.status === 'completed' ? 'completed' : 'failed',
+          success: params.status === 'completed',
+          finishedAt: new Date(),
+          durationSeconds: Math.round(
+            (new Date().getTime() - orchestratorComponentRun.startedAt.getTime()) / 1000
+          ),
+          // Token metrics
+          tokensInput: orchestratorMetrics.tokensInput,
+          tokensOutput: orchestratorMetrics.tokensOutput,
+          totalTokens: orchestratorMetrics.totalTokens,
+          // Cost (note: field is 'cost', not 'costUsd' per architect analysis)
+          cost: orchestratorMetrics.costUsd,
+          // Decision-making metrics
+          toolCalls: orchestratorMetrics.toolCalls, // ST-57: New field
+          userPrompts: orchestratorMetrics.userPrompts,
+          systemIterations: orchestratorMetrics.iterations,
+          // Metadata
+          metadata: {
+            ...(typeof orchestratorComponentRun.metadata === 'object' && orchestratorComponentRun.metadata !== null
+              ? orchestratorComponentRun.metadata
+              : {}),
+            parsedAt: new Date().toISOString(),
+            dataSource: orchestratorMetrics.dataSource,
+            transcriptPath: orchestratorMetrics.transcriptPath,
+          },
+        },
+      });
+    }
+
+    // ST-57: Get ALL component metrics (including orchestrator with executionOrder=0)
+    const allComponentRuns = await prisma.componentRun.findMany({
       where: {
         workflowRunId: params.runId,
         status: { in: ['completed', 'failed'] },
       },
     });
+
+    // Separate orchestrator from regular components for reporting
+    const orchestratorRun = allComponentRuns.find(cr => cr.executionOrder === 0);
+    const regularComponentRuns = allComponentRuns.filter(cr => cr.executionOrder !== 0);
 
     const durationMinutes = updatedWorkflowRun.finishedAt
       ? Math.round(
@@ -268,23 +314,27 @@ export async function handler(prisma: PrismaClient, params: any) {
         )
       : null;
 
-    // Calculate totals (orchestrator + all agents)
-    const agentTokens = componentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0);
-    const agentCost = componentRuns.reduce((sum, cr) => sum + Number(cr.cost || 0), 0);
+    // ST-57: Calculate totals from ALL ComponentRuns (unified approach)
+    const totalTokensFromComponents = allComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0);
+    const totalCostFromComponents = allComponentRuns.reduce((sum, cr) => sum + Number(cr.cost || 0), 0);
+
+    // For backward compatibility reporting, separate orchestrator from agents
+    const agentTokens = regularComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0);
+    const agentCost = regularComponentRuns.reduce((sum, cr) => sum + Number(cr.cost || 0), 0);
 
     finalMetrics = {
-      componentsCompleted: componentRuns.filter((cr) => cr.status === 'completed').length,
-      componentsFailed: componentRuns.filter((cr) => cr.status === 'failed').length,
-      totalComponents: componentRuns.length,
-      // Orchestrator metrics (SEPARATE from agents)
-      orchestratorTokens: orchestratorMetrics.totalTokens,
-      orchestratorCost: orchestratorMetrics.costUsd,
-      // Agent metrics (SEPARATE from orchestrator)
+      componentsCompleted: regularComponentRuns.filter((cr) => cr.status === 'completed').length,
+      componentsFailed: regularComponentRuns.filter((cr) => cr.status === 'failed').length,
+      totalComponents: regularComponentRuns.length,
+      // Orchestrator metrics (from ComponentRun now, not JSONB)
+      orchestratorTokens: orchestratorRun?.totalTokens || orchestratorMetrics.totalTokens,
+      orchestratorCost: orchestratorRun?.cost || orchestratorMetrics.costUsd,
+      // Agent metrics (regular components)
       agentTokens,
       agentCost,
-      // Total workflow metrics (orchestrator + agents)
-      totalTokens: orchestratorMetrics.totalTokens + agentTokens,
-      totalCost: orchestratorMetrics.costUsd + agentCost,
+      // Total workflow metrics (orchestrator + agents) - now unified
+      totalTokens: totalTokensFromComponents,
+      totalCost: totalCostFromComponents,
       totalDuration: updatedWorkflowRun.durationSeconds,
       durationMinutes,
       totalUserPrompts: updatedWorkflowRun.totalUserPrompts,
@@ -292,20 +342,21 @@ export async function handler(prisma: PrismaClient, params: any) {
       totalInterventions: updatedWorkflowRun.totalInterventions,
     };
 
-    // Update WorkflowRun with orchestrator-only metrics
-    // Clean metadata by removing internal tracking data, add orchestrator metrics
+    // ST-57: Update WorkflowRun with aggregated metrics from ALL ComponentRuns
+    // Clean metadata by removing internal tracking data
     const cleanMetadata = { ...workflowMetadata };
     delete cleanMetadata._transcriptTracking; // Remove internal tracking from display
 
     await prisma.workflowRun.update({
       where: { id: params.runId },
       data: {
-        // Store aggregated workflow metrics (orchestrator + agents) - fixes ST-17
-        totalTokensInput: componentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0), 0) + orchestratorMetrics.tokensInput,
-        totalTokensOutput: componentRuns.reduce((sum, cr) => sum + (cr.tokensOutput || 0), 0) + orchestratorMetrics.tokensOutput,
+        // ST-57: Aggregated workflow metrics from ALL ComponentRuns (unified tracking)
+        totalTokensInput: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0), 0),
+        totalTokensOutput: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensOutput || 0), 0),
         totalTokens: finalMetrics.totalTokens,
         estimatedCost: finalMetrics.totalCost,
-        // Store coordinator metrics in dedicated field (fixes ST-17)
+        // ST-17 BACKWARD COMPATIBILITY: Keep coordinatorMetrics JSONB for now
+        // (Will be removed in future migration after frontend is updated)
         coordinatorMetrics: {
           tokensInput: orchestratorMetrics.tokensInput,
           tokensOutput: orchestratorMetrics.tokensOutput,
@@ -317,7 +368,7 @@ export async function handler(prisma: PrismaClient, params: any) {
           dataSource: orchestratorMetrics.dataSource,
           transcriptPath: orchestratorMetrics.transcriptPath,
         },
-        // Store orchestrator metrics in metadata for UI display (backward compatibility)
+        // Metadata for debugging
         metadata: {
           ...cleanMetadata,
           orchestratorMetrics: {
