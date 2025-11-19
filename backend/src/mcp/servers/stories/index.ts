@@ -12,3 +12,4 @@ export * as getStory from './get_story.js';
 export * as getStoryAnalysis from './get_story_analysis.js';
 export * as updateStory from './update_story.js';
 export * as getStorySummary from './get_story_summary.js';
+export * as deleteStory from './delete_story.js';
