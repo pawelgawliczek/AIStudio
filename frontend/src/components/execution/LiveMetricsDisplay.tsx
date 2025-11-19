@@ -72,7 +72,7 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
     return num.toLocaleString();
   };
 
-  const MetricCard = ({ icon, label, value, color = 'primary' }: any) => (
+  const MetricCard = ({ icon, label, value, color = 'primary', tooltip }: any) => (
     <Paper
       elevation={0}
       sx={{
@@ -87,7 +87,12 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
     >
       <Box display="flex" alignItems="center" gap={1}>
         {React.cloneElement(icon, { fontSize: 'small', color })}
-        <Typography variant="caption" color="text.secondary">
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          title={tooltip}
+          sx={{ cursor: tooltip ? 'help' : 'default' }}
+        >
           {label}
         </Typography>
       </Box>
@@ -268,9 +273,10 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
         <div>
           <MetricCard
             icon={<ChatBubbleOutline />}
-            label="User Prompts"
+            label="Human Prompts"
             value={formatNumber(metrics.totalUserPrompts)}
             color="secondary"
+            tooltip="Live count of human interventions during workflow execution"
           />
         </div>
         <div>
