@@ -530,6 +530,7 @@ export class WorkflowRunsService {
       status: workflowRun.status,
       errorMessage: workflowRun.errorMessage,
       coordinatorDecisions: workflowRun.coordinatorDecisions,
+      coordinatorMetrics: workflowRun.coordinatorMetrics,
       createdAt: workflowRun.createdAt?.toISOString() || workflowRun.startedAt?.toISOString() || new Date().toISOString(),
       updatedAt: workflowRun.updatedAt?.toISOString() || workflowRun.finishedAt?.toISOString() || new Date().toISOString(),
       workflow: workflowRun.workflow,
