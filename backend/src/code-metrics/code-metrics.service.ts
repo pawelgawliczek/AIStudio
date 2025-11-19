@@ -69,11 +69,18 @@ export class CodeMetricsService {
     const totalLoc = metrics.reduce((sum, m) => sum + m.linesOfCode, 0);
     const weightedComplexity = metrics.reduce((sum, m) => sum + (m.cyclomaticComplexity * m.linesOfCode), 0);
     const weightedMaintainability = metrics.reduce((sum, m) => sum + (m.maintainabilityIndex * m.linesOfCode), 0);
-    const weightedCoverage = metrics.reduce((sum, m) => sum + ((m.testCoverage || 0) * m.linesOfCode), 0);
 
     const avgComplexity = totalLoc > 0 ? weightedComplexity / totalLoc : 0;
     const avgMaintainability = totalLoc > 0 ? weightedMaintainability / totalLoc : 0;
-    const avgCoverage = totalLoc > 0 ? weightedCoverage / totalLoc : 0;
+
+    // ST-37 Fix: Use snapshot coverage (correct total %) instead of file-level average
+    // The snapshot stores the accurate project-wide coverage from coverage-summary.json
+    const snapshot = await this.prisma.codeMetricsSnapshot.findFirst({
+      where: { projectId },
+      orderBy: { snapshotDate: 'desc' },
+      select: { avgCoverage: true },
+    });
+    const avgCoverage = snapshot?.avgCoverage || 0;
 
     // LOC by language
     const locByLanguage: Record<string, number> = {};
