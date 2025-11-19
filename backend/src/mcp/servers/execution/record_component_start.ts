@@ -80,7 +80,10 @@ export async function handler(prisma: PrismaClient, params: any) {
   // The orchestrator always has executionOrder=0, regular components start at 1 and increment from there
   // This ensures components appear in the correct order in the UI and user prompt counting works correctly
   const existingRuns = await prisma.componentRun.findMany({
-    where: { workflowRunId: params.runId },
+    where: {
+      workflowRunId: params.runId,
+      executionOrder: { not: null }, // Exclude NULL values (old runs without executionOrder)
+    },
     orderBy: { executionOrder: 'desc' },
     take: 1,
   });

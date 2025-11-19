@@ -285,7 +285,10 @@ describe('record_component_start - Unit Tests', () => {
       await handler(prismaMock, params);
 
       expect(prismaMock.componentRun.findMany).toHaveBeenCalledWith({
-        where: { workflowRunId: fixtures.workflowRun.id },
+        where: {
+          workflowRunId: fixtures.workflowRun.id,
+          executionOrder: { not: null }, // ST-69: Exclude NULL values
+        },
         orderBy: { executionOrder: 'desc' },
         take: 1,
       });
