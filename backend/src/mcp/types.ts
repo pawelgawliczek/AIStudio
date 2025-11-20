@@ -559,6 +559,59 @@ export interface TestQueueRemoveResponse {
 }
 
 // ============================================================================
+// RUN TESTS TOOL (ST-45)
+// ============================================================================
+
+export interface RunTestsParams {
+  storyId: string;                            // Required: Story UUID
+  testType?: 'unit' | 'integration' | 'e2e' | 'all'; // Optional, default: 'all'
+}
+
+export interface RunTestsResponse {
+  success: boolean;                           // Overall success/failure
+  storyId: string;
+  storyKey: string;                           // e.g., "ST-45"
+  testType: string;                           // Type executed
+  testResults: TestResults;                   // Detailed results
+  failureReasons?: string[];                  // Only if failed
+  warnings?: string[];                        // Migration rollback warnings, etc.
+  message: string;                            // Human-readable summary
+}
+
+export interface TestResults {
+  testType: 'unit' | 'integration' | 'e2e' | 'all';
+  success: boolean;                           // Final outcome
+  exitCode: number;                           // Last attempt's exit code
+  totalTests: number;                         // Total test count
+  passedTests: number;                        // Passed count
+  failedTests: number;                        // Failed count
+  skippedTests?: number;                      // Skipped count
+  duration: number;                           // Total duration in milliseconds
+  timestamp: string;                          // ISO 8601 completion time
+  attempts: TestAttempt[];                    // Array of 1-3 attempts
+  migrationInfo?: MigrationInfo;              // Only if breaking migration + failure
+  output?: string;                            // Captured stdout/stderr (last 1000 lines)
+}
+
+export interface TestAttempt {
+  attempt: number;                            // 1-3
+  result: 'passed' | 'failed' | 'timeout';
+  exitCode: number;
+  duration: number;                           // Milliseconds
+  timestamp: string;                          // ISO 8601
+  failedTests?: string[];                     // Names of failed tests
+  output?: string;                            // Stdout/stderr for this attempt
+  errorMessage?: string;                      // Error summary
+}
+
+export interface MigrationInfo {
+  isBreaking: boolean;
+  migrationCount: number;
+  schemaVersion?: string;
+  rollbackWarning: string;
+}
+
+// ============================================================================
 // TEST QUEUE LOCKING TOOLS (ST-43)
 // ============================================================================
 
