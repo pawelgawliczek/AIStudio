@@ -144,7 +144,34 @@ export async function handler(
       );
     }
 
-    // 3. Generate or validate branch name
+    // 3. Check disk space before creating worktree (ST-54)
+    const criticalThresholdGB = parseInt(process.env.DISK_ALERT_CRITICAL_GB || '2', 10);
+    const worktreeRoot = process.env.DISK_WORKTREE_ROOT_PATH || '/opt/stack/worktrees';
+
+    try {
+      const dfOutput = execSync(`df -BG ${worktreeRoot} | tail -1`, {
+        encoding: 'utf-8',
+        timeout: 10000,
+      });
+      const parts = dfOutput.trim().split(/\s+/);
+      const availableSpaceGB = parseInt(parts[3].replace('G', ''), 10);
+
+      if (availableSpaceGB < criticalThresholdGB) {
+        throw new ValidationError(
+          `Insufficient disk space: ${availableSpaceGB}GB available (minimum required: ${criticalThresholdGB}GB). ` +
+          `Please cleanup stale worktrees or contact administrator. Use get_disk_usage tool for details.`
+        );
+      }
+    } catch (error: any) {
+      // If it's our validation error, re-throw it
+      if (error.message.includes('Insufficient disk space')) {
+        throw error;
+      }
+      // Otherwise, log warning but allow worktree creation (df command failed)
+      console.warn(`Failed to check disk space: ${error.message}`);
+    }
+
+    // 4. Generate or validate branch name
     const branchName = params.branchName || generateBranchName(story.key, story.title);
 
     // Check if branch already exists

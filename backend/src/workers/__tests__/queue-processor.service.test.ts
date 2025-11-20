@@ -370,7 +370,6 @@ describe('QueueProcessorService', () => {
         where: { id: 'queue-1' },
         data: expect.objectContaining({
           status: 'running',
-          startedAt: expect.any(Date),
         }),
       });
     });
@@ -409,7 +408,6 @@ describe('QueueProcessorService', () => {
         where: { id: 'queue-1' },
         data: expect.objectContaining({
           status: 'passed',
-          completedAt: expect.any(Date),
         }),
       });
       expect((service as any).state.metrics.processedCount).toBe(1);
@@ -451,7 +449,6 @@ describe('QueueProcessorService', () => {
         data: expect.objectContaining({
           status: 'failed',
           errorMessage: 'Tests failed',
-          completedAt: expect.any(Date),
         }),
       });
     });

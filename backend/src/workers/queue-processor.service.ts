@@ -259,9 +259,7 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
 
     try {
       // Update status to 'running'
-      await this.updateQueueStatus(item.id, 'running', {
-        startedAt: new Date(),
-      });
+      await this.updateQueueStatus(item.id, 'running', {});
 
       this.logger.log(`[${item.story.key}] Deploying to test environment...`);
 
@@ -295,7 +293,6 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       await this.updateQueueStatus(item.id, finalStatus, {
         testResults: testResponse.testResults,
         errorMessage: testResponse.success ? null : testResponse.message,
-        completedAt: new Date(),
       });
 
       // Update metrics
@@ -321,7 +318,6 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       // Update queue entry with error
       await this.updateQueueStatus(item.id, 'failed', {
         errorMessage: error.message || 'Processing failed',
-        completedAt: new Date(),
       });
 
       // Circuit breaker
