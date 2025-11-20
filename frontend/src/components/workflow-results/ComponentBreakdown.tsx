@@ -97,6 +97,18 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
                   <div className="text-xs text-purple-600">
                     In: {formatNumber(orchestratorRun.tokensInput)} | Out: {formatNumber(orchestratorRun.tokensOutput)}
                   </div>
+                  {/* ST-73: Cache token breakdown */}
+                  {(orchestratorRun.tokensCacheRead > 0 || orchestratorRun.tokensCacheWrite > 0) && (
+                    <div className="text-xs text-green-600 mt-1 inline-flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span
+                        className="cursor-help underline decoration-dotted"
+                        title={`Cache Performance:\n• Read: ${formatNumber(orchestratorRun.tokensCacheRead || 0)} tokens (90% cost savings)\n• Write: ${formatNumber(orchestratorRun.tokensCacheWrite || 0)} tokens (cache creation)\n\nCache tokens are already included in input count.`}
+                      >
+                        {formatNumber((orchestratorRun.tokensCacheRead || 0) + (orchestratorRun.tokensCacheWrite || 0))} cached
+                      </span>
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="text-sm text-purple-900">

@@ -233,7 +233,9 @@ describe.skip('ST-17: Coordinator Statistics Not Updated', () => {
       expect(result.orchestratorMetrics).toBeDefined();
       expect(result.orchestratorMetrics.tokensInput).toBe(1800); // 1000 + 800
       expect(result.orchestratorMetrics.tokensOutput).toBe(800); // 500 + 300
-      expect(result.orchestratorMetrics.totalTokens).toBe(2900); // 1800 + 800 + 300 (cache read included)
+      // Total tokens = input + output only (cache tokens tracked separately)
+      expect(result.orchestratorMetrics.totalTokens).toBe(2600); // 1800 + 800 (NOT including 300 cache read)
+      expect(result.orchestratorMetrics.tokensCacheRead).toBe(300); // Tracked separately
       expect(result.orchestratorMetrics.toolCalls).toBe(2);
 
       // Verify metrics are stored in database coordinatorMetrics field (fixes ST-17)
@@ -245,7 +247,8 @@ describe.skip('ST-17: Coordinator Statistics Not Updated', () => {
       const coordinatorMetrics = updatedRun?.coordinatorMetrics as CoordinatorMetricsDto;
       expect(coordinatorMetrics.tokensInput).toBe(1800);
       expect(coordinatorMetrics.tokensOutput).toBe(800);
-      expect(coordinatorMetrics.totalTokens).toBe(2900);
+      expect(coordinatorMetrics.totalTokens).toBe(2600); // Fixed: input + output only
+      expect(coordinatorMetrics.tokensCacheRead).toBe(300); // Tracked separately
       expect(coordinatorMetrics.costUsd).toBeGreaterThan(0);
       expect(coordinatorMetrics.toolCalls).toBe(2);
       expect(coordinatorMetrics.dataSource).toBe('transcript');

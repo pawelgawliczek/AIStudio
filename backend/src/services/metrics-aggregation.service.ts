@@ -138,10 +138,11 @@ export class MetricsAggregationService {
         ? Math.floor((componentRun.finishedAt.getTime() - componentRun.startedAt.getTime()) / 1000)
         : 0);
 
-    const totalTokens = (componentRun.tokensInput || 0) +
-                       (componentRun.tokensOutput || 0) +
-                       (componentRun.tokensCacheRead || 0) +
-                       (componentRun.tokensCacheWrite || 0);
+    // Total tokens = input + output only (per Anthropic API semantics)
+    // Note: tokensInput already includes cache_read + cache_creation + uncached input
+    // Adding tokensCacheRead/Write separately would double-count cached tokens
+    // See: https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+    const totalTokens = (componentRun.tokensInput || 0) + (componentRun.tokensOutput || 0);
 
     const netLinesChanged = (componentRun.linesAdded || 0) - (componentRun.linesDeleted || 0);
 
@@ -197,8 +198,7 @@ export class MetricsAggregationService {
       componentId: cr.componentId,
       componentName: cr.component?.name,
       status: cr.status,
-      tokens: (cr.tokensInput || 0) + (cr.tokensOutput || 0) +
-              (cr.tokensCacheRead || 0) + (cr.tokensCacheWrite || 0),
+      tokens: (cr.tokensInput || 0) + (cr.tokensOutput || 0), // Cache tokens tracked separately, not added to total
       cost: cr.cost || 0,
       duration: cr.durationSeconds || 0
     }));
@@ -358,8 +358,8 @@ export class MetricsAggregationService {
 
       for (const run of story.workflowRuns) {
         for (const cr of run.componentRuns) {
-          const tokens = (cr.tokensInput || 0) + (cr.tokensOutput || 0) +
-                        (cr.tokensCacheRead || 0) + (cr.tokensCacheWrite || 0);
+          // Cache tokens tracked separately, not added to total
+          const tokens = (cr.tokensInput || 0) + (cr.tokensOutput || 0);
           const cost = cr.cost || 0;
 
           storyTokens += tokens;
@@ -539,8 +539,8 @@ export class MetricsAggregationService {
       }
 
       run.componentRuns.forEach((cr: ComponentRun) => {
-        groups[date].tokens += (cr.tokensInput || 0) + (cr.tokensOutput || 0) +
-                               (cr.tokensCacheRead || 0) + (cr.tokensCacheWrite || 0);
+        // Cache tokens tracked separately, not added to total
+        groups[date].tokens += (cr.tokensInput || 0) + (cr.tokensOutput || 0);
         groups[date].cost += cr.cost || 0;
       });
     });
