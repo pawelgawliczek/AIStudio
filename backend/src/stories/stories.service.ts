@@ -4,15 +4,15 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { StoryStatus, Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import {
   CreateStoryDto,
   UpdateStoryDto,
   FilterStoryDto,
   UpdateStoryStatusDto,
 } from './dto';
-import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 /**
  * Story Workflow State Machine
@@ -268,39 +268,55 @@ export class StoriesService {
    * Find one story by ID
    * @param id - Story ID
    * @param includeDetails - Whether to include related data
-   * @returns Story with optional related data
+   * @returns Story with optional related data including complete traceability
    */
   async findOne(id: string, includeDetails: boolean = true) {
     const include = includeDetails
       ? {
-          project: {
-            select: { id: true, name: true },
-          },
-          epic: {
-            select: { id: true, key: true, title: true },
-          },
-          assignedFramework: {
-            select: { id: true, name: true },
-          },
+          project: true,
+          epic: true,
+          assignedFramework: true,
           subtasks: {
             orderBy: { createdAt: 'asc' as const },
           },
           useCaseLinks: {
             include: {
               useCase: {
-                select: { id: true, key: true, title: true },
+                include: {
+                  testCases: {
+                    orderBy: { createdAt: 'asc' as const },
+                  },
+                },
               },
             },
+            orderBy: { createdAt: 'asc' as const },
           },
           commits: {
+            include: {
+              files: true,
+            },
             orderBy: { timestamp: 'desc' as const },
-            take: 10,
+            take: 20,
+          },
+          workflowRuns: {
+            include: {
+              workflow: true,
+              coordinator: true,
+              componentRuns: {
+                include: {
+                  component: true,
+                },
+                orderBy: { executionOrder: 'asc' as const },
+              },
+            },
+            orderBy: { startedAt: 'desc' as const },
           },
           _count: {
             select: {
               subtasks: true,
               commits: true,
               runs: true,
+              workflowRuns: true,
             },
           },
         }
@@ -316,6 +332,177 @@ export class StoriesService {
     }
 
     return story;
+  }
+
+  /**
+   * Find one story by ID or storyKey (e.g., ST-26)
+   * Supports both UUID and human-readable story keys for shareable URLs
+   * @param idOrKey - Story ID (UUID) or story key (e.g., ST-26)
+   * @returns Story with complete traceability
+   */
+  async findOneByIdOrKey(idOrKey: string) {
+    const include = {
+      project: true,
+      epic: true,
+      assignedFramework: true,
+      assignedWorkflow: true,
+      subtasks: {
+        orderBy: { createdAt: 'asc' as const },
+      },
+      useCaseLinks: {
+        include: {
+          useCase: {
+            include: {
+              testCases: {
+                orderBy: { createdAt: 'asc' as const },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' as const },
+      },
+      commits: {
+        include: {
+          files: true,
+        },
+        orderBy: { timestamp: 'desc' as const },
+        take: 20,
+      },
+      workflowRuns: {
+        include: {
+          workflow: true,
+          coordinator: true,
+          componentRuns: {
+            include: {
+              component: true,
+            },
+            orderBy: { executionOrder: 'asc' as const },
+          },
+        },
+        orderBy: { startedAt: 'desc' as const },
+      },
+      _count: {
+        select: {
+          subtasks: true,
+          commits: true,
+          runs: true,
+          workflowRuns: true,
+        },
+      },
+    };
+
+    // Check if idOrKey is a valid UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrKey);
+
+    let story = null;
+
+    // Try to find by ID if it's a UUID format
+    if (isUUID) {
+      story = await this.prisma.story.findUnique({
+        where: { id: idOrKey },
+        include,
+      });
+    }
+
+    // If not found by ID, try by key (e.g., ST-26)
+    if (!story) {
+      story = await this.prisma.story.findFirst({
+        where: { key: idOrKey },
+        include,
+      });
+    }
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID or key ${idOrKey} not found`);
+    }
+
+    return story;
+  }
+
+  /**
+   * Get aggregated token metrics for a story across all workflow runs
+   * @param storyId - Story ID (UUID)
+   * @returns Token metrics with breakdown by workflow run and component
+   */
+  async getTokenMetrics(storyId: string) {
+    // Verify story exists
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: { id: true, key: true, title: true },
+    });
+
+    if (!story) {
+      throw new NotFoundException(`Story with ID ${storyId} not found`);
+    }
+
+    // Fetch all workflow runs for this story
+    const workflowRuns = await this.prisma.workflowRun.findMany({
+      where: { storyId },
+      include: {
+        workflow: {
+          select: { id: true, name: true },
+        },
+        componentRuns: {
+          include: {
+            component: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { executionOrder: 'asc' },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    // Calculate totals and breakdown
+    let totalTokens = 0;
+    let totalCost = 0;
+
+    const breakdown = workflowRuns.map((run) => {
+      const runTokens = run.totalTokens || 0;
+      const runCost = run.estimatedCost ? Number(run.estimatedCost) : 0;
+
+      totalTokens += runTokens;
+      totalCost += runCost;
+
+      // Aggregate component metrics
+      const components = run.componentRuns.map((compRun) => {
+        const tokensInput = compRun.tokensInput || 0;
+        const tokensOutput = compRun.tokensOutput || 0;
+        // Use totalTokens as fallback if input/output breakdown not available
+        const tokens = (tokensInput + tokensOutput) || compRun.totalTokens || 0;
+
+        // Calculate cost for component (proportional to tokens)
+        const componentCost = runTokens > 0 ? (tokens / runTokens) * runCost : 0;
+
+        return {
+          componentName: compRun.component.name,
+          tokens,
+          cost: Number(componentCost.toFixed(4)),
+          userPrompts: (compRun as any).metrics?.['userPrompts'] || 0,
+          iterations: (compRun as any).metrics?.['systemIterations'] || 0,
+        };
+      });
+
+      return {
+        workflowRunId: run.id,
+        workflowName: run.workflow.name,
+        status: run.status,
+        startedAt: run.startedAt.toISOString(),
+        completedAt: run.finishedAt?.toISOString() || null,
+        tokens: runTokens,
+        cost: runCost,
+        components,
+      };
+    });
+
+    return {
+      storyId: story.id,
+      storyKey: story.key,
+      totalTokens,
+      totalCost: Number(totalCost.toFixed(2)),
+      breakdown,
+    };
   }
 
   /**

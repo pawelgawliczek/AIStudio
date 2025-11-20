@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiTags,
   ApiOperation,
@@ -17,17 +18,16 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { StoriesService } from './stories.service';
+import { UserRole } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   CreateStoryDto,
   UpdateStoryDto,
   FilterStoryDto,
   UpdateStoryStatusDto,
 } from './dto';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { StoriesService } from './stories.service';
 
 @ApiTags('stories')
 @Controller('stories')
@@ -48,11 +48,20 @@ export class StoriesController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get story by ID' })
-  @ApiResponse({ status: 200, description: 'Return story details' })
+  @ApiOperation({ summary: 'Get story by ID or story key (e.g., ST-26)' })
+  @ApiResponse({ status: 200, description: 'Return story details with full traceability' })
   @ApiResponse({ status: 404, description: 'Story not found' })
   findOne(@Param('id') id: string) {
-    return this.storiesService.findOne(id);
+    // Support both UUID and story key (e.g., ST-26) for shareable URLs
+    return this.storiesService.findOneByIdOrKey(id);
+  }
+
+  @Get(':id/token-metrics')
+  @ApiOperation({ summary: 'Get aggregated token metrics for a story' })
+  @ApiResponse({ status: 200, description: 'Return token usage and cost breakdown by workflow run and component' })
+  @ApiResponse({ status: 404, description: 'Story not found' })
+  getTokenMetrics(@Param('id') id: string) {
+    return this.storiesService.getTokenMetrics(id);
   }
 
   @Post()

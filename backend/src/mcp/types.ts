@@ -120,6 +120,49 @@ export interface UpdateStoryParams {
   businessComplexity?: number;
   technicalComplexity?: number;
   assignedFrameworkId?: string;
+  contextExploration?: string;
+  baAnalysis?: string;
+  designerAnalysis?: string;
+  architectAnalysis?: string;
+}
+
+export interface DeleteStoryParams {
+  storyId: string;
+  confirm: boolean;
+}
+
+export interface DeleteStoryResponse {
+  id: string;
+  key: string;
+  title: string;
+  cascadeDeleted: {
+    subtasks: number;
+    useCaseLinks: number;
+    storyFiles: number;
+    workflowRuns: number;
+    componentRuns: number;
+    testCases: number;
+  };
+}
+
+export interface DeleteEpicParams {
+  epicId: string;
+  confirm: boolean;
+  deleteStories?: boolean;
+}
+
+export interface DeleteEpicResponse {
+  id: string;
+  key: string;
+  title: string;
+  storiesDeleted: number;
+  cascadeDeleted: {
+    subtasks: number;
+    useCaseLinks: number;
+    workflowRuns: number;
+    componentRuns: number;
+    testCases: number;
+  };
 }
 
 // ============================================================================
@@ -354,34 +397,364 @@ export interface ComponentResponse {
 // ERROR TYPES
 // ============================================================================
 
+export interface ErrorContext {
+  resourceType?: string;
+  resourceId?: string;
+  currentState?: string;
+  expectedState?: string;
+  searchTool?: string;
+  createTool?: string;
+  [key: string]: any;
+}
+
 export class MCPError extends Error {
+  public context?: ErrorContext;
+  public suggestions?: string[];
+
   constructor(
     message: string,
     public code: string,
     public statusCode: number = 500,
+    context?: ErrorContext,
   ) {
     super(message);
     this.name = 'MCPError';
+    this.context = context;
   }
 }
 
 export class NotFoundError extends MCPError {
-  constructor(resource: string, id: string) {
-    super(`${resource} with ID ${id} not found`, 'NOT_FOUND', 404);
+  constructor(resource: string, id: string, context?: ErrorContext) {
+    const enhancedContext = {
+      ...context,
+      resourceType: resource,
+      resourceId: id,
+    };
+    super(`${resource} with ID ${id} not found`, 'NOT_FOUND', 404, enhancedContext);
     this.name = 'NotFoundError';
+
+    // Add suggestions based on context or resource type
+    this.suggestions = [];
+    if (context?.searchTool) {
+      this.suggestions.push(`Use ${context.searchTool} to search for existing ${resource}s`);
+    }
+    if (context?.createTool) {
+      this.suggestions.push(`Use ${context.createTool} to create a new ${resource}`);
+    }
   }
 }
 
 export class ValidationError extends MCPError {
-  constructor(message: string) {
-    super(message, 'VALIDATION_ERROR', 400);
+  constructor(message: string, context?: ErrorContext) {
+    super(message, 'VALIDATION_ERROR', 400, context);
     this.name = 'ValidationError';
   }
 }
 
 export class DatabaseError extends MCPError {
-  constructor(message: string) {
-    super(message, 'DATABASE_ERROR', 500);
+  constructor(message: string, context?: ErrorContext) {
+    super(message, 'DATABASE_ERROR', 500, context);
     this.name = 'DatabaseError';
   }
+}
+
+// ============================================================================
+// TEST QUEUE MANAGEMENT TOOLS
+// ============================================================================
+
+export interface TestQueueAddParams {
+  storyId: string;                // Story UUID (required)
+  priority?: number;              // 0-10 scale, default: 5
+  submittedBy?: string;           // User/agent ID, default: 'mcp-user'
+}
+
+export interface TestQueueAddResponse {
+  id: string;                     // Queue entry UUID
+  storyId: string;
+  storyKey: string;               // For human-readable output
+  position: number;               // Absolute position (100, 200, etc.)
+  priority: number;
+  queuePosition: number;          // Ordinal position (1st, 2nd, 3rd)
+  estimatedWaitMinutes: number;   // Based on entries ahead × 5 min
+  totalInQueue: number;           // Total pending entries
+  status: string;                 // Always 'pending' on add
+  message: string;                // Success message
+}
+
+export interface TestQueueListParams {
+  status?: 'pending' | 'running' | 'passed' | 'failed' | 'cancelled' | 'skipped';
+  limit?: number;                 // Max results, default: 20, max: 100
+  offset?: number;                // Pagination offset, default: 0
+}
+
+export interface TestQueueEntryResponse {
+  id: string;
+  storyId: string;
+  storyKey?: string;              // Included via join
+  storyTitle?: string;            // Included via join
+  position: number;
+  priority: number;
+  status: string;
+  submittedBy: string;
+  testResults?: any;              // JSONB, only if status = passed/failed
+  errorMessage?: string;          // Only if status = failed
+  createdAt: string;              // ISO 8601
+  updatedAt: string;              // ISO 8601
+}
+
+export interface TestQueueListResponse {
+  entries: TestQueueEntryResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface TestQueueGetPositionParams {
+  storyId: string;
+}
+
+export interface TestQueuePositionResponse {
+  id: string;
+  storyId: string;
+  storyKey: string;
+  position: number;               // Absolute position
+  queuePosition: number;          // Ordinal position in queue
+  priority: number;
+  estimatedWaitMinutes: number;
+  totalInQueue: number;
+  status: string;
+}
+
+export interface TestQueueGetStatusParams {
+  storyId: string;
+}
+
+export interface TestQueueStatusResponse {
+  id: string;
+  storyId: string;
+  storyKey: string;
+  storyTitle: string;
+  position: number;
+  priority: number;
+  status: string;
+  submittedBy: string;
+  testResults?: any;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+  queuePosition?: number;         // Only if status = pending
+  estimatedWaitMinutes?: number;  // Only if status = pending
+}
+
+export interface TestQueueRemoveParams {
+  storyId: string;
+}
+
+export interface TestQueueRemoveResponse {
+  id: string;
+  storyId: string;
+  storyKey: string;
+  previousStatus: string;
+  message: string;
+}
+
+// ============================================================================
+// RUN TESTS TOOL (ST-45)
+// ============================================================================
+
+export interface RunTestsParams {
+  storyId: string;                            // Required: Story UUID
+  testType?: 'unit' | 'integration' | 'e2e' | 'all'; // Optional, default: 'all'
+}
+
+export interface RunTestsResponse {
+  success: boolean;                           // Overall success/failure
+  storyId: string;
+  storyKey: string;                           // e.g., "ST-45"
+  testType: string;                           // Type executed
+  testResults: TestResults;                   // Detailed results
+  failureReasons?: string[];                  // Only if failed
+  warnings?: string[];                        // Migration rollback warnings, etc.
+  message: string;                            // Human-readable summary
+}
+
+export interface TestResults {
+  testType: 'unit' | 'integration' | 'e2e' | 'all';
+  success: boolean;                           // Final outcome
+  exitCode: number;                           // Last attempt's exit code
+  totalTests: number;                         // Total test count
+  passedTests: number;                        // Passed count
+  failedTests: number;                        // Failed count
+  skippedTests?: number;                      // Skipped count
+  duration: number;                           // Total duration in milliseconds
+  timestamp: string;                          // ISO 8601 completion time
+  attempts: TestAttempt[];                    // Array of 1-3 attempts
+  migrationInfo?: MigrationInfo;              // Only if breaking migration + failure
+  output?: string;                            // Captured stdout/stderr (last 1000 lines)
+}
+
+export interface TestAttempt {
+  attempt: number;                            // 1-3
+  result: 'passed' | 'failed' | 'timeout';
+  exitCode: number;
+  duration: number;                           // Milliseconds
+  timestamp: string;                          // ISO 8601
+  failedTests?: string[];                     // Names of failed tests
+  output?: string;                            // Stdout/stderr for this attempt
+  errorMessage?: string;                      // Error summary
+}
+
+export interface MigrationInfo {
+  isBreaking: boolean;
+  migrationCount: number;
+  schemaVersion?: string;
+  rollbackWarning: string;
+}
+
+// ============================================================================
+// TEST QUEUE LOCKING TOOLS (ST-43)
+// ============================================================================
+
+export interface LockTestQueueParams {
+  reason: string;                     // Required: reason for lock (min 10 chars)
+  durationMinutes?: number;           // Optional: default 60, range 1-480
+  lockedBy?: string;                  // Optional: default 'mcp-user'
+  metadata?: Record<string, any>;     // Optional: migration context
+}
+
+export interface LockTestQueueResponse {
+  id: string;                         // Lock UUID
+  reason: string;
+  lockedBy: string;
+  lockedAt: string;                   // ISO 8601
+  expiresAt: string;                  // ISO 8601
+  message: string;
+}
+
+export interface UnlockTestQueueParams {
+  lockId?: string;                    // Optional: unlock specific lock
+  force?: boolean;                    // Optional: force unlock (default: false)
+}
+
+export interface UnlockTestQueueResponse {
+  id: string;
+  reason: string;
+  duration: string;                   // Human readable (e.g., "45 minutes", "1h 23m")
+  message: string;
+}
+
+export interface QueueLockStatusResponse {
+  isLocked: boolean;
+  lock?: {
+    id: string;
+    reason: string;
+    lockedBy: string;
+    lockedAt: string;                 // ISO 8601
+    expiresAt: string;                // ISO 8601
+    expiresIn: string;                // Human readable (e.g., "15 minutes")
+    isExpired: boolean;
+  };
+}
+
+// ============================================================================
+// PULL REQUEST MANAGEMENT TOOLS (ST-46)
+// ============================================================================
+
+export interface CreatePullRequestParams {
+  storyId: string;
+  title?: string;
+  description?: string;
+  draft?: boolean;
+  baseBranch?: string;
+}
+
+export interface CreatePullRequestResponse {
+  success: true;
+  prId: string;
+  prNumber: number;
+  prUrl: string;
+  status: string;
+  message: string;
+}
+
+export interface GetPrStatusParams {
+  storyId?: string;
+  prNumber?: number;
+  prUrl?: string;
+  includeComments?: boolean;
+  includeReviews?: boolean;
+}
+
+export interface ReviewInfo {
+  reviewer: string;
+  status: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED';
+  submittedAt: string;
+}
+
+export interface CheckInfo {
+  name: string;
+  status: 'SUCCESS' | 'FAILURE' | 'PENDING' | 'SKIPPED';
+  conclusion: string;
+}
+
+export interface GetPrStatusResponse {
+  success: true;
+  prNumber: number;
+  prUrl: string;
+  status: string;
+  title: string;
+  state: string;
+  checksStatus: 'PASSING' | 'FAILING' | 'PENDING' | 'NONE';
+  approvals: ReviewInfo[];
+  ciChecks: CheckInfo[];
+  mergeable: boolean;
+  conflictStatus: 'NONE' | 'CONFLICTING' | 'UNKNOWN';
+  commentCount?: number;
+}
+
+export interface MergePullRequestParams {
+  storyId?: string;
+  prNumber?: number;
+  mergeMethod?: 'merge' | 'squash' | 'rebase';
+  deleteBranch?: boolean;
+  requireApproval?: boolean;
+  requireChecks?: boolean;
+}
+
+export interface MergePullRequestResponse {
+  success: true;
+  prNumber: number;
+  prUrl: string;
+  mergeCommitSha: string;
+  mergedAt: string;
+  branchDeleted: boolean;
+  message: string;
+}
+
+export interface ClosePullRequestParams {
+  storyId?: string;
+  prNumber?: number;
+  reason?: string;
+  comment?: string;
+  deleteBranch?: boolean;
+}
+
+export interface ClosePullRequestResponse {
+  success: true;
+  prNumber: number;
+  prUrl: string;
+  closedAt: string;
+  reason?: string;
+  branchDeleted: boolean;
+  message: string;
+}
+
+export interface PullRequestErrorResponse {
+  success: false;
+  error: 'ValidationError' | 'NotFoundError' | 'MCPError';
+  message: string;
+  details?: Record<string, any>;
+  suggestion: string;
+  retryable: boolean;
+  errorCode: string;
 }

@@ -1,5 +1,35 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RunStatus } from './create-workflow-run.dto';
+import { RunStatus } from '@prisma/client';
+
+// ST-57: Define CoordinatorMetricsDto FIRST to avoid circular dependency
+export class CoordinatorMetricsDto {
+  @ApiProperty({ required: false })
+  tokensInput?: number;
+
+  @ApiProperty({ required: false })
+  tokensOutput?: number;
+
+  @ApiProperty({ required: false })
+  totalTokens?: number;
+
+  @ApiProperty({ required: false })
+  costUsd?: number;
+
+  @ApiProperty({ required: false })
+  toolCalls?: number;
+
+  @ApiProperty({ required: false })
+  userPrompts?: number;
+
+  @ApiProperty({ required: false })
+  iterations?: number;
+
+  @ApiProperty({ required: false })
+  dataSource?: string;
+
+  @ApiProperty({ required: false })
+  transcriptPath?: string;
+}
 
 export class WorkflowRunResponseDto {
   @ApiProperty()
@@ -62,6 +92,9 @@ export class WorkflowRunResponseDto {
   @ApiProperty({ required: false })
   coordinatorDecisions?: any;
 
+  @ApiProperty({ required: false })
+  coordinatorMetrics?: CoordinatorMetricsDto;
+
   @ApiProperty()
   createdAt: string;
 
@@ -97,6 +130,9 @@ export class ComponentRunSummaryDto {
   @ApiProperty()
   componentName: string;
 
+  @ApiProperty({ required: false })
+  executionOrder?: number; // ST-57: 0 for orchestrator, 1+ for components
+
   @ApiProperty()
   startedAt: string;
 
@@ -107,7 +143,19 @@ export class ComponentRunSummaryDto {
   durationSeconds?: number;
 
   @ApiProperty({ required: false })
+  tokensInput?: number;
+
+  @ApiProperty({ required: false })
+  tokensOutput?: number;
+
+  @ApiProperty({ required: false })
   totalTokens?: number;
+
+  @ApiProperty({ required: false })
+  cost?: number; // ST-57: Cost in USD
+
+  @ApiProperty({ required: false })
+  toolCalls?: number; // ST-57: Number of tool calls
 
   @ApiProperty({ required: false })
   locGenerated?: number;

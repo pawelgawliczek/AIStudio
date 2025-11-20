@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AgentMetricsService } from './agent-metrics.service';
-import { AgentMetricsController } from './agent-metrics.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AgentMetricsController } from './agent-metrics.controller';
+import { AgentMetricsService } from './agent-metrics.service';
 
 @Module({
   imports: [PrismaModule],

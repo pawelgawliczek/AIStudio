@@ -1,4 +1,5 @@
 import { WorkflowRunResults, RunStatus } from '../../services/workflow-runs.service';
+import { CoordinatorMetrics } from './CoordinatorMetrics';
 
 interface ExecutionSummaryProps {
   results: WorkflowRunResults;
@@ -43,9 +44,18 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
   };
 
   return (
-    <div className="bg-card rounded-lg shadow p-6 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-fg">Execution Summary</h2>
+    <>
+      {/* Coordinator Metrics Section - Shows BEFORE ExecutionSummary */}
+      <CoordinatorMetrics
+        metrics={workflowRun.coordinatorMetrics}
+        totalWorkflowTokens={summary.totalTokens}
+        totalWorkflowCost={summary.estimatedCost}
+      />
+
+      {/* Existing ExecutionSummary */}
+      <div className="bg-card rounded-lg shadow p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-fg">Execution Summary</h2>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(workflowRun.status)}`}>
           {workflowRun.status === RunStatus.COMPLETED ? '✓ ' : ''}
           {workflowRun.status}
@@ -146,6 +156,7 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 
 export class QueryMetricsDto {
   @ApiProperty({ required: false, description: 'Time range in days', example: 30 })
@@ -25,6 +25,11 @@ export class QueryMetricsDto {
   @IsOptional()
   @IsString()
   storyId?: string;
+
+  @ApiProperty({ required: false, description: 'Cache-busting timestamp (ignored)' })
+  @IsOptional()
+  @IsString()
+  _t?: string;
 }
 
 export class GetHotspotsDto {
@@ -43,4 +48,9 @@ export class GetHotspotsDto {
   @Max(100)
   @Type(() => Number)
   minRiskScore?: number = 50;
+
+  @ApiProperty({ required: false, description: 'Cache-busting timestamp (ignored)' })
+  @IsOptional()
+  @IsString()
+  _t?: string;
 }

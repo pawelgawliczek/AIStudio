@@ -90,10 +90,20 @@ export class CreateStoryDto {
   @IsUUID('4', { each: true })
   componentIds?: string[];
 
+  @ApiPropertyOptional({ description: 'Context exploration from Explore component' })
+  @IsString()
+  @IsOptional()
+  contextExploration?: string;
+
   @ApiPropertyOptional({ description: 'BA agent analysis notes' })
   @IsString()
   @IsOptional()
   baAnalysis?: string;
+
+  @ApiPropertyOptional({ description: 'Designer agent analysis notes' })
+  @IsString()
+  @IsOptional()
+  designerAnalysis?: string;
 
   @ApiPropertyOptional({ description: 'Architect agent analysis notes' })
   @IsString()

@@ -17,8 +17,12 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
     return num.toLocaleString();
   };
 
-  // Group by component name and count runs
-  const componentGroups = componentRuns.reduce((acc, run) => {
+  // ST-57: Separate orchestrator (executionOrder=0) from regular components
+  const orchestratorRun = componentRuns.find(cr => cr.executionOrder === 0);
+  const regularComponentRuns = componentRuns.filter(cr => cr.executionOrder !== 0);
+
+  // Group by component name and count runs (for regular components only)
+  const componentGroups = regularComponentRuns.reduce((acc, run) => {
     if (!acc[run.componentName]) {
       acc[run.componentName] = {
         name: run.componentName,
@@ -69,6 +73,63 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-gray-200">
+            {/* ST-57: Orchestrator row (executionOrder=0) - Purple styling */}
+            {orchestratorRun && (
+              <tr
+                className="hover:bg-bg-secondary border-l-4 border-purple-500 bg-purple-50"
+                title="Orchestrator: Decision-making layer that coordinates component execution"
+              >
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🤖</span>
+                    <div className="text-sm font-medium text-purple-900">
+                      {orchestratorRun.componentName} (Orchestrator)
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="text-sm text-purple-900">1</div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="text-sm text-purple-900">
+                    {formatNumber(orchestratorRun.totalTokens)}
+                  </div>
+                  <div className="text-xs text-purple-600">
+                    In: {formatNumber(orchestratorRun.tokensInput)} | Out: {formatNumber(orchestratorRun.tokensOutput)}
+                  </div>
+                  {/* ST-73: Cache token breakdown */}
+                  {(orchestratorRun.tokensCacheRead > 0 || orchestratorRun.tokensCacheWrite > 0) && (
+                    <div className="text-xs text-green-600 mt-1 inline-flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span
+                        className="cursor-help underline decoration-dotted"
+                        title={`Cache Performance:\n• Read: ${formatNumber(orchestratorRun.tokensCacheRead || 0)} tokens (90% cost savings)\n• Write: ${formatNumber(orchestratorRun.tokensCacheWrite || 0)} tokens (cache creation)\n\nCache tokens are already included in input count.`}
+                      >
+                        {formatNumber((orchestratorRun.tokensCacheRead || 0) + (orchestratorRun.tokensCacheWrite || 0))} cached
+                      </span>
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="text-sm text-purple-900">
+                    {formatDuration(orchestratorRun.durationSeconds)}
+                  </div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="text-sm text-purple-900">N/A</div>
+                  <div className="text-xs text-purple-600">
+                    {orchestratorRun.toolCalls || 0} tool calls
+                  </div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-center">
+                  <span className="text-sm font-medium text-green-600">
+                    {orchestratorRun.success ? '✓' : '✗'}
+                  </span>
+                </td>
+              </tr>
+            )}
+
+            {/* Regular component rows */}
             {groupedData.map((group) => (
               <tr key={group.name} className="hover:bg-bg-secondary">
                 <td className="px-4 py-3 whitespace-nowrap">
@@ -114,16 +175,20 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
                 {componentRuns.length}
               </td>
               <td className="px-4 py-3 text-right text-sm text-fg">
-                {formatNumber(groupedData.reduce((sum, g) => sum + g.totalTokens, 0))}
+                {formatNumber(
+                  (orchestratorRun?.totalTokens || 0) + groupedData.reduce((sum, g) => sum + g.totalTokens, 0)
+                )}
               </td>
               <td className="px-4 py-3 text-right text-sm text-fg">
-                {formatDuration(groupedData.reduce((sum, g) => sum + g.totalDuration, 0))}
+                {formatDuration(
+                  (orchestratorRun?.durationSeconds || 0) + groupedData.reduce((sum, g) => sum + g.totalDuration, 0)
+                )}
               </td>
               <td className="px-4 py-3 text-right text-sm text-fg">
                 {formatNumber(groupedData.reduce((sum, g) => sum + g.totalLoc, 0))}
               </td>
               <td className="px-4 py-3 text-center text-sm text-fg">
-                {groupedData.reduce((sum, g) => sum + g.successCount, 0)}/
+                {(orchestratorRun?.success ? 1 : 0) + groupedData.reduce((sum, g) => sum + g.successCount, 0)}/
                 {componentRuns.length}
               </td>
             </tr>

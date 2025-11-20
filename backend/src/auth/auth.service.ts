@@ -1,9 +1,9 @@
 import { Injectable, UnauthorizedException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
@@ -105,7 +105,7 @@ export class AuthService {
         },
         {
           secret: this.configService.get<string>('JWT_SECRET'),
-          expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '15m'),
+          expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '24h'),
         },
       ),
       this.jwtService.signAsync(
@@ -116,7 +116,7 @@ export class AuthService {
         },
         {
           secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-          expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
+          expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d'),
         },
       ),
     ]);

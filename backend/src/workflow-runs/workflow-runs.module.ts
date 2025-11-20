@@ -1,8 +1,8 @@
 import { Module} from '@nestjs/common';
+import { WorkflowStateService } from '../execution/workflow-state.service';
+import { PrismaModule } from '../prisma/prisma.module';
 import { WorkflowRunsController } from './workflow-runs.controller';
 import { WorkflowRunsService } from './workflow-runs.service';
-import { PrismaModule } from '../prisma/prisma.module';
-import { WorkflowStateService } from '../execution/workflow-state.service';
 
 @Module({
   imports: [PrismaModule],

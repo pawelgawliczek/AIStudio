@@ -29,7 +29,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Roboto', 'system-ui', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
       },
       fontSize: {
         xs: '0.75rem',    // 12px
@@ -43,6 +43,20 @@ export default {
       },
       ringColor: {
         DEFAULT: 'var(--ring)',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+      },
+      animation: {
+        fadeIn: 'fadeIn 0.3s ease-out',
+        slideUp: 'slideUp 0.4s ease-out',
       },
     },
   },

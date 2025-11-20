@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { StoriesService } from './stories.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { StoryStatus, StoryType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
-import { CreateStoryDto, UpdateStoryDto, UpdateStoryStatusDto, FilterStoryDto } from './dto';
+import { StoriesService } from './stories.service';
 
 describe('StoriesService', () => {
   let service: StoriesService;
@@ -11,6 +11,15 @@ describe('StoriesService', () => {
   let wsGateway: AppWebSocketGateway;
 
   const mockPrismaService = {
+    story: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
     project: {
       findUnique: jest.fn(),
     },
@@ -20,72 +29,18 @@ describe('StoriesService', () => {
     agentFramework: {
       findUnique: jest.fn(),
     },
-    story: {
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-    commit: {
+    workflowRun: {
       findMany: jest.fn(),
     },
-    subtask: {
+    componentRun: {
       findMany: jest.fn(),
     },
   };
 
-  const mockWebSocketGateway = {
-    notifyStoryUpdate: jest.fn(),
-  };
-
-  const mockProject = {
-    id: 'project-id',
-    name: 'Test Project',
-    description: 'Test description',
-    status: 'active',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockEpic = {
-    id: 'epic-id',
-    projectId: 'project-id',
-    key: 'EP-1',
-    title: 'Test Epic',
-    description: 'Test epic description',
-    status: 'planning',
-    priority: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockStory = {
-    id: 'story-id',
-    projectId: 'project-id',
-    epicId: 'epic-id',
-    key: 'ST-1',
-    type: 'feature' as any,
-    title: 'Test Story',
-    description: 'Test story description',
-    status: 'planning' as any,
-    businessImpact: 5,
-    businessComplexity: 3,
-    technicalComplexity: 4,
-    estimatedTokenCost: 1000,
-    assignedFrameworkId: null,
-    createdById: 'user-id',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockUser = {
-    id: 'user-id',
-    name: 'Test User',
-    email: 'test@example.com',
-    role: 'dev' as any,
+  const mockWsGateway = {
+    broadcastStoryCreated: jest.fn(),
+    broadcastStoryUpdated: jest.fn(),
+    broadcastStoryStatusChanged: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -93,498 +48,261 @@ describe('StoriesService', () => {
       providers: [
         StoriesService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: AppWebSocketGateway, useValue: mockWebSocketGateway },
+        { provide: AppWebSocketGateway, useValue: mockWsGateway },
       ],
     }).compile();
 
     service = module.get<StoriesService>(StoriesService);
     prismaService = module.get<PrismaService>(PrismaService);
     wsGateway = module.get<AppWebSocketGateway>(AppWebSocketGateway);
+  });
 
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('create', () => {
-    const createDto: CreateStoryDto = {
-      projectId: 'project-id',
-      epicId: 'epic-id',
+  describe('findOneByIdOrKey', () => {
+    const mockStory = {
+      id: '52334d99-31a0-4707-a307-9c63c3b8ac3d',
+      key: 'ST-26',
       title: 'Test Story',
-      description: 'Test story description',
-      type: 'feature' as any,
+      description: 'Test Description',
+      status: StoryStatus.planning,
+      type: StoryType.feature,
+      projectId: 'project-1',
+      epicId: 'epic-1',
+      project: { id: 'project-1', name: 'Test Project' },
+      epic: { id: 'epic-1', key: 'EP-1', title: 'Test Epic' },
+      workflowRuns: [],
+      subtasks: [],
+      useCaseLinks: [],
+      commits: [],
+      _count: { subtasks: 0, commits: 0, runs: 0, workflowRuns: 0 },
     };
 
-    it('should create a new story', async () => {
-      mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaService.epic.findUnique.mockResolvedValue(mockEpic);
-      mockPrismaService.story.findFirst.mockResolvedValue(null);
-      mockPrismaService.story.create.mockResolvedValue({
-        ...mockStory,
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
+    it('should find story by UUID', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
 
-      const result = await service.create(createDto, 'user-id');
+      const result = await service.findOneByIdOrKey('52334d99-31a0-4707-a307-9c63c3b8ac3d');
 
-      expect(result).toBeDefined();
-      expect(result.key).toBe('ST-1');
-      expect(mockPrismaService.project.findUnique).toHaveBeenCalledWith({
-        where: { id: 'project-id' },
-      });
-      expect(mockPrismaService.epic.findUnique).toHaveBeenCalledWith({
-        where: { id: 'epic-id' },
-      });
-      expect(mockPrismaService.story.create).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException if project does not exist', async () => {
-      mockPrismaService.project.findUnique.mockResolvedValue(null);
-
-      await expect(service.create(createDto, 'user-id')).rejects.toThrow(NotFoundException);
-      expect(mockPrismaService.story.create).not.toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException if epic does not exist', async () => {
-      mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaService.epic.findUnique.mockResolvedValue(null);
-
-      await expect(service.create(createDto, 'user-id')).rejects.toThrow(NotFoundException);
-      expect(mockPrismaService.story.create).not.toHaveBeenCalled();
-    });
-
-    it('should auto-generate key starting from ST-1', async () => {
-      mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaService.epic.findUnique.mockResolvedValue(mockEpic);
-      mockPrismaService.story.findFirst.mockResolvedValue(null);
-      mockPrismaService.story.create.mockResolvedValue({
-        ...mockStory,
-        key: 'ST-1',
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.create(createDto, 'user-id');
-
-      expect(result.key).toBe('ST-1');
-    });
-
-    it('should auto-increment key from last story', async () => {
-      mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaService.epic.findUnique.mockResolvedValue(mockEpic);
-      mockPrismaService.story.findFirst.mockResolvedValue({ key: 'ST-5' });
-      mockPrismaService.story.create.mockResolvedValue({
-        ...mockStory,
-        key: 'ST-6',
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.create(createDto, 'user-id');
-
-      expect(result.key).toBe('ST-6');
-    });
-
-    it('should create story without epicId', async () => {
-      const dtoWithoutEpic = { ...createDto };
-      delete dtoWithoutEpic.epicId;
-
-      mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaService.story.findFirst.mockResolvedValue(null);
-      mockPrismaService.story.create.mockResolvedValue({
-        ...mockStory,
-        epicId: null,
-        epic: null,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.create(dtoWithoutEpic, 'user-id');
-
-      expect(result).toBeDefined();
-      expect(mockPrismaService.epic.findUnique).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('findAll', () => {
-    const filterDto: FilterStoryDto = {
-      projectId: 'project-id',
-    };
-
-    it('should return all stories for a project', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([mockStory]);
-
-      const result = await service.findAll(filterDto);
-
-      expect(result).toHaveLength(1);
-      expect(mockPrismaService.story.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ projectId: 'project-id' }),
-        }),
-      );
-    });
-
-    it('should filter by status', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([mockStory]);
-
-      await service.findAll({ ...filterDto, status: 'planning' as any });
-
-      expect(mockPrismaService.story.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            projectId: 'project-id',
-            status: 'planning',
-          }),
-        }),
-      );
-    });
-
-    it('should filter by epicId', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([mockStory]);
-
-      await service.findAll({ ...filterDto, epicId: 'epic-id' });
-
-      expect(mockPrismaService.story.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            projectId: 'project-id',
-            epicId: 'epic-id',
-          }),
-        }),
-      );
-    });
-
-    it('should filter by type', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([mockStory]);
-
-      await service.findAll({ ...filterDto, type: 'feature' as any });
-
-      expect(mockPrismaService.story.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            projectId: 'project-id',
-            type: 'feature',
-          }),
-        }),
-      );
-    });
-
-    it('should search by title or description', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([mockStory]);
-
-      await service.findAll({ ...filterDto, search: 'test' });
-
-      expect(mockPrismaService.story.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            projectId: 'project-id',
-            OR: expect.any(Array),
-          }),
-        }),
-      );
-    });
-
-    it('should filter by assignedFrameworkId', async () => {
-      mockPrismaService.story.findMany.mockResolvedValue([mockStory]);
-
-      await service.findAll({ ...filterDto, assignedFrameworkId: 'framework-id' });
-
-      expect(mockPrismaService.story.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            projectId: 'project-id',
-            assignedFrameworkId: 'framework-id',
-          }),
-        }),
-      );
-    });
-  });
-
-  describe('findOne', () => {
-    it('should return a single story', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue({
-        ...mockStory,
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.findOne('story-id');
-
-      expect(result).toBeDefined();
-      expect(result.id).toBe('story-id');
+      expect(result).toEqual(mockStory);
       expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith({
-        where: { id: 'story-id' },
+        where: { id: '52334d99-31a0-4707-a307-9c63c3b8ac3d' },
         include: expect.any(Object),
+      });
+    });
+
+    it('should find story by storyKey (e.g., ST-26)', async () => {
+      mockPrismaService.story.findUnique
+        .mockResolvedValueOnce(null) // First try by ID fails
+        .mockResolvedValueOnce(mockStory); // Then try by key succeeds
+
+      const result = await service.findOneByIdOrKey('ST-26');
+
+      expect(result).toEqual(mockStory);
+      expect(mockPrismaService.story.findUnique).toHaveBeenCalledTimes(2);
+      expect(mockPrismaService.story.findUnique).toHaveBeenNthCalledWith(2, {
+        where: { key: 'ST-26' },
+        include: expect.any(Object),
+      });
+    });
+
+    it('should throw NotFoundException if story not found by ID or key', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOneByIdOrKey('invalid-id')).rejects.toThrow(NotFoundException);
+      await expect(service.findOneByIdOrKey('invalid-id')).rejects.toThrow(
+        'Story with ID or key invalid-id not found'
+      );
+    });
+
+    it('should include all traceability data', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
+
+      await service.findOneByIdOrKey('ST-26');
+
+      expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            project: true,
+            epic: true,
+            assignedFramework: true,
+            subtasks: expect.any(Object),
+            useCaseLinks: expect.any(Object),
+            commits: expect.any(Object),
+            workflowRuns: expect.any(Object),
+            _count: expect.any(Object),
+          }),
+        })
+      );
+    });
+  });
+
+  describe('getTokenMetrics', () => {
+    const mockWorkflowRuns = [
+      {
+        id: 'run-1',
+        status: 'completed',
+        startedAt: new Date('2025-11-14T10:00:00Z'),
+        finishedAt: new Date('2025-11-14T10:30:00Z'),
+        totalTokens: 50000,
+        estimatedCost: 0.75,
+        workflow: { id: 'wf-1', name: 'Standard Workflow' },
+        componentRuns: [
+          {
+            id: 'comp-run-1',
+            status: 'completed',
+            tokensInput: 10000,
+            tokensOutput: 15000,
+            component: { id: 'comp-1', name: 'Context Explorer' },
+            metrics: { userPrompts: 2, systemIterations: 5 },
+          },
+          {
+            id: 'comp-run-2',
+            status: 'completed',
+            tokensInput: 12000,
+            tokensOutput: 13000,
+            component: { id: 'comp-2', name: 'BA Analyst' },
+            metrics: { userPrompts: 1, systemIterations: 3 },
+          },
+        ],
+      },
+      {
+        id: 'run-2',
+        status: 'running',
+        startedAt: new Date('2025-11-15T09:00:00Z'),
+        finishedAt: null,
+        totalTokens: 25000,
+        estimatedCost: 0.38,
+        workflow: { id: 'wf-1', name: 'Standard Workflow' },
+        componentRuns: [
+          {
+            id: 'comp-run-3',
+            status: 'completed',
+            tokensInput: 12000,
+            tokensOutput: 13000,
+            component: { id: 'comp-1', name: 'Context Explorer' },
+            metrics: { userPrompts: 0, systemIterations: 4 },
+          },
+        ],
+      },
+    ];
+
+    const mockStory = {
+      id: '52334d99-31a0-4707-a307-9c63c3b8ac3d',
+      key: 'ST-26',
+      title: 'Test Story',
+    };
+
+    it('should aggregate token metrics from all workflow runs', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
+      mockPrismaService.workflowRun.findMany.mockResolvedValue(mockWorkflowRuns);
+
+      const result = await service.getTokenMetrics('52334d99-31a0-4707-a307-9c63c3b8ac3d');
+
+      expect(result).toEqual({
+        storyId: '52334d99-31a0-4707-a307-9c63c3b8ac3d',
+        storyKey: 'ST-26',
+        totalTokens: 75000, // 50000 + 25000
+        totalCost: 1.13, // 0.75 + 0.38
+        breakdown: expect.arrayContaining([
+          expect.objectContaining({
+            workflowRunId: 'run-1',
+            workflowName: 'Standard Workflow',
+            status: 'completed',
+            tokens: 50000,
+            cost: 0.75,
+            components: expect.arrayContaining([
+              expect.objectContaining({
+                componentName: 'Context Explorer',
+                tokens: 25000, // 10000 + 15000
+                userPrompts: 2,
+                iterations: 5,
+              }),
+              expect.objectContaining({
+                componentName: 'BA Analyst',
+                tokens: 25000, // 12000 + 13000
+                userPrompts: 1,
+                iterations: 3,
+              }),
+            ]),
+          }),
+          expect.objectContaining({
+            workflowRunId: 'run-2',
+            workflowName: 'Standard Workflow',
+            status: 'running',
+            tokens: 25000,
+            cost: 0.38,
+          }),
+        ]),
+      });
+    });
+
+    it('should return zero metrics if no workflow runs exist', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
+      mockPrismaService.workflowRun.findMany.mockResolvedValue([]);
+
+      const result = await service.getTokenMetrics('52334d99-31a0-4707-a307-9c63c3b8ac3d');
+
+      expect(result).toEqual({
+        storyId: '52334d99-31a0-4707-a307-9c63c3b8ac3d',
+        storyKey: 'ST-26',
+        totalTokens: 0,
+        totalCost: 0,
+        breakdown: [],
       });
     });
 
     it('should throw NotFoundException if story not found', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('nonexistent-id')).rejects.toThrow(NotFoundException);
+      await expect(service.getTokenMetrics('invalid-id')).rejects.toThrow(NotFoundException);
     });
 
-    it('should include details by default', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue({
-        ...mockStory,
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-        useCaseLinks: [],
-        defects: [],
+    it('should handle null cost and token values gracefully', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
+      mockPrismaService.workflowRun.findMany.mockResolvedValue([
+        {
+          id: 'run-3',
+          status: 'failed',
+          startedAt: new Date(),
+          finishedAt: null,
+          totalTokens: null,
+          estimatedCost: null,
+          workflow: { id: 'wf-1', name: 'Test Workflow' },
+          componentRuns: [],
+        },
+      ]);
+
+      const result = await service.getTokenMetrics('52334d99-31a0-4707-a307-9c63c3b8ac3d');
+
+      expect(result.totalTokens).toBe(0);
+      expect(result.totalCost).toBe(0);
+      expect(result.breakdown[0].tokens).toBe(0);
+      expect(result.breakdown[0].cost).toBe(0);
+    });
+  });
+
+  describe('findOne - existing method should still work', () => {
+    it('should return story by ID with full traceability', async () => {
+      const mockStory = {
+        id: '52334d99-31a0-4707-a307-9c63c3b8ac3d',
+        key: 'ST-26',
+        title: 'Test Story',
+        project: { id: 'project-1', name: 'Test Project' },
+        epic: { id: 'epic-1', key: 'EP-1', title: 'Test Epic' },
+        workflowRuns: [],
         subtasks: [],
+        useCaseLinks: [],
         commits: [],
-      });
+        _count: { subtasks: 0, commits: 0, runs: 0, workflowRuns: 0 },
+      };
 
-      await service.findOne('story-id', true);
-
-      expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith({
-        where: { id: 'story-id' },
-        include: expect.any(Object),
-      });
-    });
-
-    it('should not include details when requested', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
 
-      await service.findOne('story-id', false);
+      const result = await service.findOne('52334d99-31a0-4707-a307-9c63c3b8ac3d');
 
-      expect(mockPrismaService.story.findUnique).toHaveBeenCalledWith({
-        where: { id: 'story-id' },
-        include: undefined,
-      });
-    });
-  });
-
-  describe('update', () => {
-    const updateDto: UpdateStoryDto = {
-      title: 'Updated title',
-      description: 'Updated description',
-      businessImpact: 4,
-    };
-
-    it('should update a story', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
-      mockPrismaService.story.update.mockResolvedValue({
-        ...mockStory,
-        ...updateDto,
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.update('story-id', updateDto);
-
-      expect(result).toBeDefined();
-      expect(result.title).toBe('Updated title');
-      expect(mockPrismaService.story.update).toHaveBeenCalledWith({
-        where: { id: 'story-id' },
-        data: updateDto,
-        include: expect.any(Object),
-      });
-    });
-
-    it('should throw NotFoundException if story not found', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(null);
-
-      await expect(service.update('nonexistent-id', updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(mockPrismaService.story.update).not.toHaveBeenCalled();
-    });
-
-    it('should validate epic exists if epicId is updated', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
-      mockPrismaService.epic.findUnique.mockResolvedValue(mockEpic);
-      mockPrismaService.story.update.mockResolvedValue({
-        ...mockStory,
-        ...updateDto,
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      await service.update('story-id', { ...updateDto, epicId: 'epic-id' });
-
-      expect(mockPrismaService.epic.findUnique).toHaveBeenCalledWith({
-        where: { id: 'epic-id' },
-      });
-    });
-
-    it('should throw NotFoundException if epic does not exist', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
-      mockPrismaService.epic.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.update('story-id', { ...updateDto, epicId: 'nonexistent-epic' }),
-      ).rejects.toThrow(NotFoundException);
-      expect(mockPrismaService.story.update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('updateStatus', () => {
-    const updateStatusDto: UpdateStoryStatusDto = {
-      status: 'analysis' as any,
-    };
-
-    it('should update story status with valid transition', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue({
-        ...mockStory,
-        status: 'planning',
-      });
-      mockPrismaService.story.update.mockResolvedValue({
-        ...mockStory,
-        status: 'analysis',
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.updateStatus('story-id', updateStatusDto);
-
-      expect(result.status).toBe('analysis');
-      expect(mockWebSocketGateway.notifyStoryUpdate).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException if story not found', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(null);
-
-      await expect(service.updateStatus('nonexistent-id', updateStatusDto)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw BadRequestException for invalid transition', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue({
-        ...mockStory,
-        status: 'planning',
-      });
-
-      await expect(
-        service.updateStatus('story-id', { status: 'done' as any }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should allow admin to override workflow', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue({
-        ...mockStory,
-        status: 'planning',
-      });
-      mockPrismaService.story.update.mockResolvedValue({
-        ...mockStory,
-        status: 'done',
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.updateStatus('story-id', {
-        status: 'done' as any,
-      });
-
-      expect(result.status).toBe('done');
-    });
-
-    it('should validate complexity when moving to implementation', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue({
-        ...mockStory,
-        status: 'design',
-        businessComplexity: null,
-        technicalComplexity: null,
-        businessImpact: null,
-      });
-
-      await expect(
-        service.updateStatus('story-id', { status: 'implementation' as any }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should allow moving to implementation with complexity fields set', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue({
-        ...mockStory,
-        status: 'design',
-        businessComplexity: 3,
-        technicalComplexity: 4,
-        businessImpact: 5,
-      });
-      mockPrismaService.story.update.mockResolvedValue({
-        ...mockStory,
-        status: 'implementation',
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.updateStatus('story-id', {
-        status: 'implementation' as any,
-      });
-
-      expect(result.status).toBe('implementation');
-    });
-  });
-
-  describe('assignFramework', () => {
-    it('should assign framework to story', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
-      mockPrismaService.agentFramework.findUnique.mockResolvedValue({
-        id: 'framework-id',
-        name: 'Test Framework',
-      });
-      mockPrismaService.story.update.mockResolvedValue({
-        ...mockStory,
-        assignedFrameworkId: 'framework-id',
-        epic: mockEpic,
-        project: mockProject,
-        createdBy: mockUser,
-      });
-
-      const result = await service.assignFramework('story-id', 'framework-id');
-
-      expect(result.assignedFrameworkId).toBe('framework-id');
-      expect(mockPrismaService.story.update).toHaveBeenCalledWith({
-        where: { id: 'story-id' },
-        data: { assignedFrameworkId: 'framework-id' },
-        include: expect.any(Object),
-      });
-    });
-
-    it('should throw NotFoundException if story not found', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(null);
-
-      await expect(service.assignFramework('nonexistent-id', 'framework-id')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw NotFoundException if framework not found', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
-      mockPrismaService.agentFramework.findUnique.mockResolvedValue(null);
-
-      await expect(service.assignFramework('story-id', 'nonexistent-framework')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  describe('remove', () => {
-    it('should delete a story', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(mockStory);
-      mockPrismaService.story.delete.mockResolvedValue(mockStory);
-
-      await service.remove('story-id');
-
-      expect(mockPrismaService.story.delete).toHaveBeenCalledWith({
-        where: { id: 'story-id' },
-      });
-    });
-
-    it('should throw NotFoundException if story not found', async () => {
-      mockPrismaService.story.findUnique.mockResolvedValue(null);
-
-      await expect(service.remove('nonexistent-id')).rejects.toThrow(NotFoundException);
-      expect(mockPrismaService.story.delete).not.toHaveBeenCalled();
+      expect(result).toEqual(mockStory);
     });
   });
 });

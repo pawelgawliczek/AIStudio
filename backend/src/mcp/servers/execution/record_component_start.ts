@@ -1,5 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'record_component_start',
@@ -63,13 +65,48 @@ export async function handler(prisma: PrismaClient, params: any) {
     throw new Error(`Component with ID ${params.componentId} not found`);
   }
 
-  // Create ComponentRun record
+  // Get transcript tracking info from workflow run
+  const workflowMetadata = (workflowRun.metadata as Record<string, any>) || {};
+  const transcriptTracking = workflowMetadata._transcriptTracking || {};
+
+  // Record all existing transcripts before agent starts (for detecting new agent transcripts)
+  let existingTranscriptsBeforeAgent: string[] = [];
+  if (transcriptTracking.transcriptDirectory && fs.existsSync(transcriptTracking.transcriptDirectory)) {
+    existingTranscriptsBeforeAgent = fs.readdirSync(transcriptTracking.transcriptDirectory)
+      .filter((f: string) => f.endsWith('.jsonl'));
+  }
+
+  // ST-69 FIX: Auto-increment executionOrder for component runs
+  // The orchestrator always has executionOrder=0, regular components start at 1 and increment from there
+  // This ensures components appear in the correct order in the UI and user prompt counting works correctly
+  const existingRuns = await prisma.componentRun.findMany({
+    where: {
+      workflowRunId: params.runId,
+      executionOrder: { not: null }, // Exclude NULL values (old runs without executionOrder)
+    },
+    orderBy: { executionOrder: 'desc' },
+    take: 1,
+  });
+
+  const nextExecutionOrder = existingRuns.length > 0
+    ? (existingRuns[0].executionOrder || 0) + 1
+    : 1; // Start at 1 (orchestrator is always 0)
+
+  // Create ComponentRun record with transcript tracking stored in metadata (internal, not displayed)
   const componentRun = await prisma.componentRun.create({
     data: {
       workflowRunId: params.runId,
       componentId: params.componentId,
+      executionOrder: nextExecutionOrder, // ST-69: Set execution order for proper UI display
       status: 'running',
-      inputData: params.input || {},
+      inputData: params.input || {}, // User-visible input data only
+      metadata: {
+        // Internal tracking data (not displayed in UI)
+        _transcriptTracking: {
+          existingTranscriptsBeforeAgent,
+          transcriptDirectory: transcriptTracking.transcriptDirectory,
+        },
+      },
       startedAt: new Date(),
       userPrompts: 0,
       systemIterations: 1,
@@ -86,6 +123,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     componentName: component.name,
     status: componentRun.status,
     startedAt: componentRun.startedAt.toISOString(),
-    message: `Component "${component.name}" execution started. Component run ID: ${componentRun.id}`,
+    transcriptDirectory: transcriptTracking.transcriptDirectory || null,
+    existingTranscripts: existingTranscriptsBeforeAgent.length,
+    message: `Component "${component.name}" execution started. Component run ID: ${componentRun.id}. Tracking ${existingTranscriptsBeforeAgent.length} existing transcripts.`,
   };
 }

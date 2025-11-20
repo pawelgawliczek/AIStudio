@@ -8,13 +8,13 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { ProjectsService } from './projects.service';
-import { CreateProjectDto, UpdateProjectDto } from './dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { CreateProjectDto, UpdateProjectDto } from './dto';
+import { ProjectsService } from './projects.service';
 
 @ApiTags('projects')
 @Controller('projects')

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { MappingSource } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface FileToUseCasesQuery {
   projectId: string;
@@ -517,7 +517,7 @@ export class ImpactAnalysisService {
     useCaseId: string;
     source: MappingSource;
     confidence?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const { projectId, filePath, useCaseId, source, confidence = 1.0 } = data;
 
     // Check if mapping already exists
@@ -544,6 +544,7 @@ export class ImpactAnalysisService {
           lastSeenAt: new Date(),
         },
       });
+      return false; // Existing mapping updated, not created
     } else {
       // Create new mapping
       await this.prisma.fileUseCaseLink.create({
@@ -555,6 +556,7 @@ export class ImpactAnalysisService {
           confidence,
         },
       });
+      return true; // New mapping created
     }
   }
 
@@ -585,14 +587,16 @@ export class ImpactAnalysisService {
     // For each file in the commit, create mappings to all linked use cases
     for (const file of commit.files) {
       for (const useCaseLink of commit.story.useCaseLinks) {
-        await this.createOrUpdateMapping({
+        const created = await this.createOrUpdateMapping({
           projectId: commit.projectId,
           filePath: file.filePath,
           useCaseId: useCaseLink.useCaseId,
           source: MappingSource.COMMIT_DERIVED,
           confidence: 0.8,
         });
-        mappingsCreated++;
+        if (created) {
+          mappingsCreated++;
+        }
       }
     }
 

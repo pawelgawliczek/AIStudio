@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import OpenAI from 'openai';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateUseCaseDto,
@@ -7,8 +9,6 @@ import {
   LinkUseCaseToStoryDto,
   UseCaseResponse,
 } from './dto';
-import { Prisma } from '@prisma/client';
-import OpenAI from 'openai';
 
 @Injectable()
 export class UseCasesService {

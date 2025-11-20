@@ -12,9 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CoordinatorsService } from './coordinators.service';
 import { CreateCoordinatorDto, UpdateCoordinatorDto, CoordinatorResponseDto } from './dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('coordinators')
 @Controller('api/projects/:projectId/coordinators')

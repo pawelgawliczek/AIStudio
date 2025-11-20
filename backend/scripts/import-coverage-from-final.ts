@@ -44,17 +44,42 @@ async function importCoverage(projectId: string) {
       const coverage = fileCoverage as any;
 
       // Convert absolute path to relative path
+      // Handle multiple path formats:
+      // 1. Container paths: /app/backend/...
+      // 2. Host paths: /opt/stack/AIStudio/backend/...
+      // 3. Already relative: backend/...
       let relativePath = absolutePath;
 
-      if (absolutePath.startsWith(project.localPath)) {
-        relativePath = absolutePath.substring(project.localPath.length + 1);
-      } else {
-        const match = absolutePath.match(/\/(?:backend|frontend|shared)\/(.+)$/);
-        if (match) {
-          relativePath = match[0].substring(1);
-        } else {
-          continue;
+      // Remove known absolute path prefixes
+      const pathPrefixes = [
+        project.localPath + '/',           // Project local path
+        '/opt/stack/AIStudio/',            // Host path
+        '/app/',                           // Container path
+      ];
+
+      for (const prefix of pathPrefixes) {
+        if (prefix && relativePath.startsWith(prefix)) {
+          relativePath = relativePath.substring(prefix.length);
+          break;
         }
+      }
+
+      // If still absolute, try to extract relative path from common patterns
+      if (relativePath.startsWith('/')) {
+        const parts = relativePath.split('/');
+        const markers = ['backend', 'frontend', 'shared'];
+        for (const marker of markers) {
+          const index = parts.indexOf(marker);
+          if (index >= 0) {
+            relativePath = parts.slice(index).join('/');
+            break;
+          }
+        }
+      }
+
+      // Skip if we couldn't normalize the path
+      if (relativePath.startsWith('/') || !relativePath.includes('/')) {
+        continue;
       }
 
       // Calculate coverage percentages

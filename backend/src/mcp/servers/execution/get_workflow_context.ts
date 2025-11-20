@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'get_workflow_context',
-  description: 'Retrieve workflow state and previous component outputs for coordinator decision-making. Use this to get context before deciding the next component.',
+  description: 'Retrieve workflow state, coordinator instructions, component instructions, and previous component outputs for coordinator decision-making. Returns all information needed to orchestrate the workflow and spawn component agents using the Task tool.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -58,11 +58,12 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   // Get coordinator's component IDs to determine remaining components
-  const coordinatorComponentIds = workflowRun.coordinator.componentIds || [];
+  const coordinatorConfig = (workflowRun.coordinator.config as any) || {};
+  const coordinatorComponentIds = coordinatorConfig.componentIds || [];
   const completedComponentIds = completedComponentRuns.map((cr) => cr.componentId);
   const remainingComponentIds = coordinatorComponentIds.filter((id) => !completedComponentIds.includes(id));
 
-  // Get remaining component details
+  // Get remaining component details with full instructions
   const remainingComponents = await prisma.component.findMany({
     where: {
       id: { in: remainingComponentIds },
@@ -71,6 +72,11 @@ export async function handler(prisma: PrismaClient, params: any) {
       id: true,
       name: true,
       description: true,
+      inputInstructions: true,
+      operationInstructions: true,
+      outputInstructions: true,
+      config: true,
+      tools: true,
     },
   });
 
@@ -81,7 +87,15 @@ export async function handler(prisma: PrismaClient, params: any) {
     workflowName: workflowRun.workflow.name,
     status: workflowRun.status,
     context: workflowRun.metadata,
-    coordinatorStrategy: workflowRun.coordinator.decisionStrategy,
+    coordinator: {
+      id: workflowRun.coordinator.id,
+      name: workflowRun.coordinator.name,
+      instructions: workflowRun.coordinator.operationInstructions,
+      strategy: coordinatorConfig.decisionStrategy || 'adaptive',
+      config: workflowRun.coordinator.config,
+      tools: workflowRun.coordinator.tools,
+      flowDiagram: coordinatorConfig.flowDiagram,
+    },
     completedComponents: completedComponentRuns.map((cr) => ({
       componentRunId: cr.id,
       componentId: cr.componentId,
@@ -106,6 +120,11 @@ export async function handler(prisma: PrismaClient, params: any) {
       componentId: c.id,
       componentName: c.name,
       description: c.description,
+      inputInstructions: c.inputInstructions,
+      operationInstructions: c.operationInstructions,
+      outputInstructions: c.outputInstructions,
+      config: c.config,
+      tools: c.tools,
       order: completedComponentRuns.length + index + 1,
     })),
     aggregatedMetrics: {

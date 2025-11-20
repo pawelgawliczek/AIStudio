@@ -24,8 +24,16 @@ interface ComponentRun {
   completedAt?: string;
   durationSeconds?: number;
   tokensUsed?: number;
+  // ST-27 Enhanced Metrics
+  tokensInput?: number;
+  tokensOutput?: number;
+  tokensCacheRead?: number;
+  cacheHitRate?: number;
   userPrompts: number;
-  artifacts: string[];
+  linesAdded?: number;
+  linesModified?: number;
+  cost?: number;
+  artifacts: any[];
 }
 
 interface ExecutionTimelineProps {
@@ -142,22 +150,42 @@ const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({
                 <Box display="flex" gap={2} flexWrap="wrap" mb={1}>
                   {run.durationSeconds && (
                     <Typography variant="caption" color="text.secondary">
-                      ⏱️ {run.durationSeconds}s
+                      {run.durationSeconds}s
                     </Typography>
                   )}
-                  {run.tokensUsed && (
-                    <Typography variant="caption" color="text.secondary">
-                      🎯 {run.tokensUsed.toLocaleString()} tokens
+                  {run.tokensInput !== undefined && (
+                    <Typography variant="caption" color="primary.main">
+                      In: {run.tokensInput.toLocaleString()}
+                    </Typography>
+                  )}
+                  {run.tokensOutput !== undefined && (
+                    <Typography variant="caption" color="secondary.main">
+                      Out: {run.tokensOutput.toLocaleString()}
+                    </Typography>
+                  )}
+                  {run.tokensCacheRead !== undefined && run.tokensCacheRead > 0 && (
+                    <Typography variant="caption" color="success.main">
+                      Cached: {run.tokensCacheRead.toLocaleString()}
+                    </Typography>
+                  )}
+                  {run.linesAdded !== undefined && run.linesAdded > 0 && (
+                    <Typography variant="caption" color="success.main">
+                      +{run.linesAdded} lines
+                    </Typography>
+                  )}
+                  {run.cost !== undefined && (
+                    <Typography variant="caption" color="warning.main">
+                      ${run.cost.toFixed(4)}
                     </Typography>
                   )}
                   {run.userPrompts > 0 && (
                     <Typography variant="caption" color="text.secondary">
-                      💬 {run.userPrompts} prompts
+                      {run.userPrompts} prompts
                     </Typography>
                   )}
                   {run.artifacts.length > 0 && (
                     <Typography variant="caption" color="text.secondary">
-                      📎 {run.artifacts.length} artifacts
+                      {run.artifacts.length} artifacts
                     </Typography>
                   )}
                 </Box>
@@ -184,7 +212,7 @@ const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({
               </TimelineDot>
             </TimelineSeparator>
             <TimelineContent>
-              <Paper elevation={0} sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'success.50' }}>
+              <Paper elevation={0} sx={{ p: 2, border: 1, borderColor: 'success.main', bgcolor: 'action.hover' }}>
                 <Typography variant="subtitle2" fontWeight="bold" color="success.main">
                   Workflow Completed
                 </Typography>
@@ -198,7 +226,7 @@ const ExecutionTimeline: React.FC<ExecutionTimelineProps> = ({
       </Timeline>
 
       {!completedAt && componentRuns.length > 0 && (
-        <Box mt={2} p={2} bgcolor="info.50" borderRadius={1}>
+        <Box mt={2} p={2} bgcolor="action.hover" borderRadius={1}>
           <Typography variant="body2" color="info.main">
             ⏳ Workflow is still running...
           </Typography>

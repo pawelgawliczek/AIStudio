@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { NoCacheInterceptor } from '../common/interceptors/no-cache.interceptor';
 import { CodeMetricsService } from './code-metrics.service';
 import {
   ProjectMetricsDto,
@@ -14,10 +15,12 @@ import {
   CoverageGapDto,
 } from './dto';
 import { QueryMetricsDto, GetHotspotsDto } from './dto/query-metrics.dto';
+import { RecentAnalysesResponseDto } from './dto/recent-analysis.dto';
 
 @ApiTags('code-metrics')
 @Controller('code-metrics')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(NoCacheInterceptor) // Prevents caching - ensures fresh data after analysis (ST-16 Issue #1 fix)
 @ApiBearerAuth()
 export class CodeMetricsController {
   constructor(private readonly codeMetricsService: CodeMetricsService) {}
@@ -51,6 +54,7 @@ export class CodeMetricsController {
   async getTrendData(
     @Param('projectId') projectId: string,
     @Query('days') days?: number,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<TrendDataPointDto[]> {
     return this.codeMetricsService.getTrendData(projectId, days || 30);
   }
@@ -59,7 +63,10 @@ export class CodeMetricsController {
   @Roles('admin', 'pm', 'architect', 'dev')
   @ApiOperation({ summary: 'Get code quality issues summary' })
   @ApiResponse({ status: 200, type: [CodeIssueDto] })
-  async getCodeIssues(@Param('projectId') projectId: string): Promise<CodeIssueDto[]> {
+  async getCodeIssues(
+    @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
+  ): Promise<CodeIssueDto[]> {
     return this.codeMetricsService.getCodeIssues(projectId);
   }
 
@@ -105,6 +112,7 @@ export class CodeMetricsController {
   @ApiResponse({ status: 200, type: FolderNodeDto })
   async getFolderHierarchy(
     @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<FolderNodeDto> {
     return this.codeMetricsService.getFolderHierarchy(projectId);
   }
@@ -116,7 +124,136 @@ export class CodeMetricsController {
   async getCoverageGaps(
     @Param('projectId') projectId: string,
     @Query('limit') limit?: number,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
   ): Promise<CoverageGapDto[]> {
     return this.codeMetricsService.getCoverageGaps(projectId, limit || 20);
+  }
+
+  @Get('project/:projectId/analysis-status')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get status of ongoing or recent code analysis job' })
+  @ApiResponse({
+    status: 200,
+    description: 'Analysis job status',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['queued', 'running', 'completed', 'failed', 'not_found'] },
+        progress: { type: 'number' },
+        message: { type: 'string' },
+        startedAt: { type: 'string', format: 'date-time' },
+        completedAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async getAnalysisStatus(
+    @Param('projectId') projectId: string,
+  ): Promise<{
+    status: 'queued' | 'running' | 'completed' | 'failed' | 'not_found';
+    progress?: number;
+    message?: string;
+    startedAt?: Date;
+    completedAt?: Date;
+  }> {
+    return this.codeMetricsService.getAnalysisStatus(projectId);
+  }
+
+  @Get('project/:projectId/comparison')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get comparison between current and previous analysis' })
+  @ApiResponse({
+    status: 200,
+    description: 'Analysis comparison data',
+    schema: {
+      type: 'object',
+      properties: {
+        healthScoreChange: { type: 'number' },
+        newTests: { type: 'number' },
+        coverageChange: { type: 'number' },
+        complexityChange: { type: 'number' },
+        newFiles: { type: 'number' },
+        deletedFiles: { type: 'number' },
+        qualityImprovement: { type: 'boolean' },
+        lastAnalysis: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async getAnalysisComparison(
+    @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
+  ): Promise<{
+    healthScoreChange: number;
+    newTests: number;
+    coverageChange: number;
+    complexityChange: number;
+    newFiles: number;
+    deletedFiles: number;
+    qualityImprovement: boolean;
+    lastAnalysis?: Date;
+  }> {
+    return this.codeMetricsService.getAnalysisComparison(projectId);
+  }
+
+  @Get('project/:projectId/test-summary')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get test execution summary (ST-37: Now from coverage file)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Test execution summary from coverage report',
+    schema: {
+      type: 'object',
+      properties: {
+        totalTests: { type: 'number' },
+        passing: { type: 'number' },
+        failing: { type: 'number' },
+        skipped: { type: 'number' },
+        lastExecution: { type: 'string', format: 'date-time' },
+        coveragePercentage: { type: 'number' },
+      },
+    },
+  })
+  async getTestSummary(
+    @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
+  ): Promise<{
+    totalTests: number;
+    passing: number;
+    failing: number;
+    skipped: number;
+    lastExecution?: Date;
+    coveragePercentage?: number;
+  }> {
+    return this.codeMetricsService.getTestSummary(projectId);
+  }
+
+  @Get('project/:projectId/recent-analyses')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get recent code analysis runs with commit links (ST-37 Issue #2)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recent analysis history',
+    type: RecentAnalysesResponseDto,
+  })
+  async getRecentAnalyses(
+    @Param('projectId') projectId: string,
+    @Query('limit') limit?: number,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
+  ): Promise<RecentAnalysesResponseDto> {
+    const parsedLimit = Math.min(parseInt(limit?.toString() || '7'), 20);
+    return this.codeMetricsService.getRecentAnalyses(projectId, parsedLimit);
+  }
+
+  @Get('project/:projectId/file-changes')
+  @Roles('admin', 'pm', 'architect', 'dev', 'qa')
+  @ApiOperation({ summary: 'Get detailed file-level changes between current and previous analysis' })
+  @ApiResponse({
+    status: 200,
+    description: 'File-level changes with metrics',
+  })
+  async getFileChanges(
+    @Param('projectId') projectId: string,
+    @Query('_t') _t?: string, // Cache-busting parameter (ignored)
+  ): Promise<any> {
+    return this.codeMetricsService.getFileChanges(projectId);
   }
 }

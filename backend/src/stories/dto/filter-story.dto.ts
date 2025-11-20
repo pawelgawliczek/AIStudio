@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { StoryStatus, StoryType } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, IsUUID, IsInt, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { IsEnum, IsOptional, IsString, IsUUID, IsInt, Min } from 'class-validator';
 
 export class FilterStoryDto {
   @ApiPropertyOptional({ description: 'Filter by project ID' })

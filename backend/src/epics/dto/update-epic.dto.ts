@@ -1,8 +1,7 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateEpicDto } from './create-epic.dto';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { PartialType , ApiPropertyOptional } from '@nestjs/swagger';
 import { EpicStatus } from '@prisma/client';
 import { IsEnum, IsOptional } from 'class-validator';
+import { CreateEpicDto } from './create-epic.dto';
 
 export class UpdateEpicDto extends PartialType(CreateEpicDto) {
   @ApiPropertyOptional({ enum: EpicStatus, description: 'Epic status' })

@@ -6,6 +6,7 @@
  * Implements progressive disclosure pattern with file-based tool discovery.
  */
 
+import path from 'path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -13,7 +14,6 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import path from 'path';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
 
@@ -21,9 +21,21 @@ import { formatError } from './utils.js';
 // If running as ES module, this will be undefined but servers path will still work
 const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.resolve();
 
+// WORKAROUND: Claude Code doesn't pass env vars from mcp-config.json correctly
+// Force the correct DATABASE_URL for MCP server (port 5433)
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes(':5432/')) {
+  process.env.DATABASE_URL = 'postgresql://postgres:361a30c6d68396be29c7eddc3f9ff1b1cfe07675c707232a370bda33f7c8b518@127.0.0.1:5433/vibestudio?schema=public';
+  console.error('⚠️  Overriding DATABASE_URL to port 5433 (Claude Code env vars not working)');
+}
+
 // Initialize Prisma client
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
 });
 
 // Initialize Tool Registry
@@ -135,10 +147,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // ============================================================================
 
 async function main() {
-  // Debug: Log DATABASE_URL and config test
-  console.error(`🔍 DATABASE_URL: ${process.env.DATABASE_URL || 'NOT SET'}`);
-  console.error(`🔍 MCP_CONFIG_TEST: ${process.env.MCP_CONFIG_TEST || 'NOT SET'}`);
-
   // Connect to database
   await prisma.$connect();
   console.error('✅ Connected to database');

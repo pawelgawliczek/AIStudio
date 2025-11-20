@@ -1,6 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { UseCasesService } from './use-cases.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateUseCaseDto,
@@ -8,6 +7,7 @@ import {
   SearchUseCasesDto,
   LinkUseCaseToStoryDto,
 } from './dto';
+import { UseCasesService } from './use-cases.service';
 
 // Mock OpenAI module
 jest.mock('openai', () => {

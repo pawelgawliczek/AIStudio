@@ -181,6 +181,11 @@ export function validateRequired(params: any, required: string[]): void {
 export function handlePrismaError(error: any, operation: string): never {
   console.error(`Prisma error during ${operation}:`, error);
 
+  // Check if error is already an MCPError before wrapping
+  if (error.name === 'MCPError' || error instanceof MCPError) {
+    throw error;  // Already wrapped, re-throw as-is
+  }
+
   if (error.code === 'P2002') {
     throw new ValidationError(
       `A record with this ${error.meta?.target || 'field'} already exists`,
@@ -235,24 +240,190 @@ export function safeJsonParse<T>(json: string, defaultValue: T): T {
 }
 
 /**
- * Format error for MCP response
+ * Enhanced error response interface
  */
-export function formatError(error: any): {
+export interface EnhancedErrorResponse {
   error: string;
   code: string;
   statusCode: number;
-} {
-  if (error instanceof MCPError) {
-    return {
-      error: error.message,
-      code: error.code,
-      statusCode: error.statusCode,
-    };
+  context?: {
+    resourceType?: string;
+    resourceId?: string;
+    currentState?: string;
+    expectedState?: string;
+    [key: string]: any;
+  };
+  suggestions?: string[];
+  nextSteps?: string[];
+  hints?: string[];
+  currentState?: string;
+}
+
+/**
+ * Extract context information from error message
+ */
+function extractErrorContext(message: string): Partial<EnhancedErrorResponse['context']> {
+  const context: Partial<EnhancedErrorResponse['context']> = {};
+
+  // Extract current state from patterns like "Current status: completed"
+  const stateMatch = message.match(/Current status: (\w+)/i);
+  if (stateMatch) {
+    context.currentState = stateMatch[1];
   }
 
-  return {
-    error: error.message || 'Internal server error',
+  return context;
+}
+
+/**
+ * Generate helpful suggestions based on error type and message
+ */
+function generateSuggestions(error: any): string[] {
+  const suggestions: string[] = [];
+  const message = error.message?.toLowerCase() || '';
+
+  // Workflow-related errors
+  if (message.includes('workflow')) {
+    if (message.includes('not found')) {
+      suggestions.push('Use list_workflows to see all available workflows');
+      suggestions.push('Check that the workflow ID is correct');
+    } else if (message.includes('completed') || message.includes('not in running state')) {
+      suggestions.push('Use get_workflow_run_results to check the workflow status');
+      suggestions.push('Use start_workflow_run to start a new workflow execution');
+    } else if (message.includes('already')) {
+      suggestions.push('Check the current workflow state with get_workflow_run_results');
+    }
+  }
+
+  // Story-related errors
+  if (message.includes('story') && message.includes('not found')) {
+    suggestions.push('Use search_stories to find the story');
+    suggestions.push('Use list_stories to see all stories in the project');
+    suggestions.push('Use create_story to create a new story');
+  }
+
+  // Project-related errors
+  if (message.includes('project') && message.includes('not found')) {
+    suggestions.push('Use list_projects to see all available projects');
+    suggestions.push('Use create_project to create a new project');
+  }
+
+  // Validation errors - missing parameters
+  if (message.includes('missing') || message.includes('required')) {
+    suggestions.push('Check the tool documentation for required parameters');
+    suggestions.push('Ensure all required fields are provided in the correct format');
+  }
+
+  // State-related errors
+  if (message.includes('state') || message.includes('status')) {
+    suggestions.push('Verify the resource exists and is in the correct state');
+    suggestions.push('Check the tool documentation for valid state transitions');
+  }
+
+  return suggestions;
+}
+
+/**
+ * Generate next steps based on error type
+ */
+function generateNextSteps(error: any): string[] {
+  const nextSteps: string[] = [];
+  const message = error.message?.toLowerCase() || '';
+
+  if (message.includes('not found')) {
+    nextSteps.push('Verify the resource ID is correct');
+    nextSteps.push('Check if the resource was created successfully');
+    nextSteps.push('Search for the resource using the appropriate search tool');
+  }
+
+  if (message.includes('missing') || message.includes('required')) {
+    nextSteps.push('Review the tool documentation for required parameters');
+    nextSteps.push('Check that all required fields are included in your request');
+  }
+
+  if (message.includes('state') || message.includes('status') || message.includes('completed')) {
+    nextSteps.push('Check the current state of the resource');
+    nextSteps.push('Ensure the resource is in the correct state for this operation');
+  }
+
+  return nextSteps;
+}
+
+/**
+ * Generate helpful hints
+ */
+function generateHints(error: any): string[] {
+  const hints: string[] = [];
+  const message = error.message?.toLowerCase() || '';
+
+  if (message.includes('validation')) {
+    hints.push('Validation errors indicate that the request parameters are incorrect or incomplete');
+  }
+
+  if (message.includes('status') && message.includes('must be one of')) {
+    hints.push('Check the allowed values in the tool schema');
+  }
+
+  if (message.includes('database')) {
+    hints.push('Database errors may indicate data inconsistency or connection issues');
+  }
+
+  return hints;
+}
+
+/**
+ * Format error for MCP response with enhanced error reporting
+ */
+export function formatError(error: any): EnhancedErrorResponse {
+  const response: EnhancedErrorResponse = {
+    error: error.message || 'An unexpected error occurred',
     code: 'INTERNAL_ERROR',
     statusCode: 500,
   };
+
+  // Handle MCPError and its subclasses
+  if (error instanceof MCPError) {
+    response.error = error.message;
+    response.code = error.code;
+    response.statusCode = error.statusCode;
+
+    // Include context if available
+    if (error.context) {
+      response.context = error.context;
+    }
+
+    // Include suggestions from error if available
+    if (error.suggestions && error.suggestions.length > 0) {
+      response.suggestions = error.suggestions;
+    }
+  }
+
+  // Extract context from error message
+  const extractedContext = extractErrorContext(response.error);
+  if (Object.keys(extractedContext).length > 0) {
+    response.context = { ...response.context, ...extractedContext };
+
+    // Also set currentState at top level for backward compatibility
+    if (extractedContext.currentState) {
+      response.currentState = extractedContext.currentState;
+    }
+  }
+
+  // Generate suggestions if not already provided
+  if (!response.suggestions || response.suggestions.length === 0) {
+    response.suggestions = generateSuggestions(error);
+  }
+
+  // Add next steps
+  const nextSteps = generateNextSteps(error);
+  if (nextSteps.length > 0) {
+    response.nextSteps = nextSteps;
+  }
+
+  // Add hints
+  const hints = generateHints(error);
+  if (hints.length > 0) {
+    response.hints = hints;
+  }
+
+  return response;
 }

@@ -1,13 +1,15 @@
 {
   "mcpServers": {
-    "aistudio": {
-      "command": "node",
+    "vibestudio": {
+      "command": "npx",
       "args": [
-        "/home/user/AIStudio/backend/dist/mcp/server.js"
+        "tsx",
+        "backend/src/mcp/server.ts"
       ],
+      "cwd": "/opt/stack/AIStudio",
       "env": {
-        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/aistudio?schema=public",
-        "NODE_ENV": "production"
+        "DATABASE_URL": "postgresql://postgres:361a30c6d68396be29c7eddc3f9ff1b1cfe07675c707232a370bda33f7c8b518@127.0.0.1:5433/vibestudio?schema=public",
+        "NODE_ENV": "development"
       },
       "description": "Vibe Studio MCP Server for project and story management"
     }

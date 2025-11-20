@@ -1,23 +1,33 @@
 import { useEffect } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { ProjectSelector } from './ProjectSelector';
 import { ConnectionStatus } from './ConnectionStatus';
 import { NavDropdown } from './NavDropdown';
 import { ThemeToggle } from './ThemeToggle';
+import { GlobalWorkflowTrackingBar } from './workflow/GlobalWorkflowTrackingBar';
+import { SessionExpiredModal } from './SessionExpiredModal';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
 
 export function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedProject } = useProject();
-  const { isAuthenticated, loading, logout } = useAuth();
+  const { isAuthenticated, loading, logout, setRedirectPath } = useAuth();
 
+  // Capture redirect path when user is not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
+      const currentPath = location.pathname + location.search;
+      // Save redirect path if accessing a protected route
+      if (currentPath !== '/login' && currentPath !== '/register' && currentPath !== '/') {
+        setRedirectPath(currentPath);
+        sessionStorage.setItem('redirectAfterLogin', currentPath);
+      }
       navigate('/login');
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, navigate, location, setRedirectPath]);
 
   const handleLogout = async () => {
     await logout();
@@ -38,6 +48,9 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
+      {/* Session Expired Modal */}
+      <SessionExpiredModal />
+
       {/* Navigation */}
       <nav className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -83,7 +96,6 @@ export function Layout() {
                       items={[
                         { label: 'Use Cases', icon: '📖', path: '/use-cases' },
                         { label: 'Code Quality', icon: '🔍', path: `/code-quality/${selectedProject.id}` },
-                        { label: 'Agent Performance', icon: '📈', path: `/agent-performance/${selectedProject.id}` },
                         { label: 'Test Coverage', icon: '🧪', path: `/test-coverage/project/${selectedProject.id}` },
                       ]}
                     />
@@ -107,6 +119,9 @@ export function Layout() {
           </div>
         </div>
       </nav>
+
+      {/* Global Workflow Tracking Bar */}
+      <GlobalWorkflowTrackingBar />
 
       {/* Main content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
