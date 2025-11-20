@@ -270,33 +270,39 @@ export async function handler(
       actionsExecuted.dockerRebuild = true;
     }
 
-    // Phase 8: Set Volume Mount Path (EP-7 Worktree Support)
-    // Instead of checking out the branch in main worktree (which fails when branch
-    // is already checked out in dev worktree), we set the CODE_PATH environment
-    // variable to point Docker volume mounts to the dev worktree.
-    console.log(`Using dev worktree for deployment: ${worktree.worktreePath}`);
-    process.env.CODE_PATH = worktree.worktreePath;
+    // Phase 8: Checkout branch in main worktree (TEMPORARY WORKAROUND)
+    // LIMITATION: This temporarily detaches the branch from dev worktree during testing.
+    // TODO (ST-44 enhancement): Implement proper CODE_PATH support in docker-compose.yml
+    // to enable true parallel worktree testing without git conflicts.
+    console.log(`Checking out ${worktree.branchName} in main worktree for testing...`);
+    try {
+      // Remove worktree's git lock on the branch temporarily
+      execGit(['checkout', '--detach'], worktree.worktreePath);
 
-    // Phase 8a: Clean build artifacts from worktree
-    // Docker COPY doesn't respect .gitignore, so we must remove build artifacts
-    // before Docker build to prevent "cannot replace directory with file" errors
-    console.log('Cleaning build artifacts from worktree...');
-    await cleanWorktreeBuildArtifacts(worktree.worktreePath);
+      // Now checkout in main worktree
+      execGit(['checkout', worktree.branchName], mainWorktreePath);
+      console.log(`✓ Checked out ${worktree.branchName} in main worktree`);
+      actionsExecuted.gitCheckout = true;
+    } catch (error: any) {
+      throw new DeploymentError(
+        `Failed to checkout branch ${worktree.branchName}: ${error.message}`,
+        DeploymentPhase.GIT_CHECKOUT,
+        true, // Recoverable
+        'Resolve git conflicts or ensure worktree branch can be detached'
+      );
+    }
 
-    // Phase 8b: Rebuild containers from MAIN worktree with CODE_PATH pointing to dev worktree
-    // IMPORTANT: All docker-compose commands must run from main worktree to avoid
-    // container name conflicts. The CODE_PATH env var (set above) controls volume mounts.
-    console.log('Rebuilding containers from main worktree (CODE_PATH points to dev worktree)...');
+    // Phase 9: Rebuild containers from main worktree
+    console.log('Rebuilding containers with checked-out branch...');
     await buildContainers(mainWorktreePath, true, true);
     actionsExecuted.dockerRebuild = true;
-    actionsExecuted.gitCheckout = true; // Logically equivalent - we're "using" the branch
 
-    // Phase 9: Container Restart from main worktree
-    console.log('Restarting services from main worktree (using dev worktree code via CODE_PATH)...');
+    // Phase 10: Container Restart
+    console.log('Restarting services...');
     await restartServices(mainWorktreePath);
     actionsExecuted.containerRestart = true;
 
-    // Phase 10: Health Checks
+    // Phase 11: Health Checks
     console.log('Waiting for health checks (max 2 minutes)...');
     const healthCheckConfigs = createDefaultHealthChecks();
     const healthCheckResult = await waitForHealthy(healthCheckConfigs, 120000);
