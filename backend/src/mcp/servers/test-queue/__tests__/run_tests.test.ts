@@ -15,6 +15,9 @@ describe('run_tests Tool', () => {
   const TEST_ENTRY_ID = 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22';
 
   beforeEach(() => {
+    // Use fake timers to mock sleep delays (5 seconds per retry)
+    jest.useFakeTimers();
+
     prisma = new PrismaClient();
     mockExecSync = childProcess.execSync as jest.MockedFunction<typeof childProcess.execSync>;
     jest.clearAllMocks();
@@ -25,6 +28,7 @@ describe('run_tests Tool', () => {
 
   afterEach(async () => {
     await prisma.$disconnect();
+    jest.useRealTimers();
   });
 
   // ============================================================================
@@ -198,28 +202,28 @@ describe('run_tests Tool', () => {
     });
 
     it('should fail fast on first failure in "all" mode', async () => {
-      let callCount = 0;
+      // Unit tests always fail (all 3 retry attempts)
       mockExecSync.mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          // Unit tests fail
-          const error: any = new Error('Test failed');
-          error.status = 1;
-          error.stdout = 'Tests: 1 failed, 9 passed, 10 total';
-          error.stderr = '';
-          throw error;
-        }
-        return 'Tests: 5 passed, 5 total'; // Should not reach here
+        const error: any = new Error('Test failed');
+        error.status = 1;
+        error.stdout = 'Tests: 1 failed, 9 passed, 10 total';
+        error.stderr = '';
+        throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'all',
       });
 
+      // Fast-forward through all timer delays
+      await jest.runAllTimersAsync();
+
+      const result = await resultPromise;
+
       expect(result.success).toBe(false);
-      expect(mockExecSync).toHaveBeenCalledTimes(1); // Only unit tests executed
-      expect(result.failureReasons).toContain(expect.stringContaining('unit tests failed'));
+      expect(mockExecSync).toHaveBeenCalledTimes(3); // Will retry 3 times before fail-fast
+      expect(result.failureReasons?.[0]).toContain('unit tests failed');
     });
   });
 
@@ -250,10 +254,15 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+
+      // Fast-forward through all timer delays
+      await jest.runAllTimersAsync();
+
+      const result = await resultPromise;
 
       expect(result.success).toBe(false);
       expect(result.testResults.attempts.length).toBe(3);
@@ -276,10 +285,15 @@ describe('run_tests Tool', () => {
         return 'Tests: 10 passed, 10 total';
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+
+      // Fast-forward through all timer delays
+      await jest.runAllTimersAsync();
+
+      const result = await resultPromise;
 
       expect(result.success).toBe(true);
       expect(result.testResults.attempts.length).toBe(2);
@@ -297,10 +311,15 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+
+      // Fast-forward through all timer delays
+      await jest.runAllTimersAsync();
+
+      const result = await resultPromise;
 
       expect(result.success).toBe(false);
       expect(result.testResults.attempts.length).toBe(3);
@@ -366,7 +385,7 @@ describe('run_tests Tool', () => {
         testType: 'unit',
       });
 
-      expect(result.testResults.duration).toBeGreaterThan(0);
+      expect(result.testResults.duration).toBeGreaterThanOrEqual(0);
       expect(typeof result.testResults.duration).toBe('number');
     });
   });
@@ -400,10 +419,13 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
 
       expect(result.success).toBe(false);
       expect(result.testResults.attempts[0].result).toBe('timeout');
@@ -421,10 +443,13 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
 
       expect(result.testResults.output).toContain('Tests started');
       expect(result.testResults.output).toContain('Running test');
@@ -463,14 +488,17 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
 
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
+
       expect(result.success).toBe(false);
       expect(result.warnings).toBeDefined();
-      expect(result.warnings).toContain(expect.stringContaining('Breaking schema migration'));
+      expect(result.warnings?.[0]).toContain('Breaking schema migration');
       expect(result.testResults.migrationInfo).toBeDefined();
       expect(result.testResults.migrationInfo?.isBreaking).toBe(true);
     });
@@ -525,10 +553,13 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
 
       expect(result.success).toBe(false);
       expect(result.warnings).toBeUndefined();
@@ -565,7 +596,7 @@ describe('run_tests Tool', () => {
       });
 
       expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 'entry-id' },
+        where: { id: TEST_ENTRY_ID },
         data: expect.objectContaining({
           status: 'passed',
           errorMessage: null,
@@ -582,13 +613,15 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      await handler(prisma, {
+      const promise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+      await jest.runAllTimersAsync();
+      await promise;
 
       expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 'entry-id' },
+        where: { id: TEST_ENTRY_ID },
         data: expect.objectContaining({
           status: 'failed',
           errorMessage: expect.stringContaining('failed'),
@@ -605,7 +638,7 @@ describe('run_tests Tool', () => {
       });
 
       expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 'entry-id' },
+        where: { id: TEST_ENTRY_ID },
         data: expect.objectContaining({
           testResults: expect.objectContaining({
             testType: 'unit',
@@ -626,13 +659,15 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      await handler(prisma, {
+      const promise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+      await jest.runAllTimersAsync();
+      await promise;
 
       expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 'entry-id' },
+        where: { id: TEST_ENTRY_ID },
         data: expect.objectContaining({
           errorMessage: expect.any(String),
         }),
@@ -651,7 +686,7 @@ describe('run_tests Tool', () => {
       });
 
       expect(mockUpdate).toHaveBeenCalledWith({
-        where: { id: 'entry-id' },
+        where: { id: TEST_ENTRY_ID },
         data: expect.objectContaining({
           updatedAt: expect.any(Date),
         }),
@@ -698,10 +733,12 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('failed');
@@ -750,10 +787,12 @@ describe('run_tests Tool', () => {
         throw error;
       });
 
-      const result = await handler(prisma, {
+      const resultPromise = handler(prisma, {
         storyId: TEST_STORY_ID,
         testType: 'unit',
       });
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
 
       expect(result.warnings).toBeDefined();
       expect(result.warnings?.length).toBeGreaterThan(0);

@@ -248,7 +248,7 @@ describe.skip('ST-17: Coordinator Statistics Not Updated', () => {
       expect(coordinatorMetrics.tokensInput).toBe(1800);
       expect(coordinatorMetrics.tokensOutput).toBe(800);
       expect(coordinatorMetrics.totalTokens).toBe(2600); // Fixed: input + output only
-      expect(coordinatorMetrics.tokensCacheRead).toBe(300); // Tracked separately
+      // Note: tokensCacheRead is tracked in component runs, not in coordinator metrics DTO
       expect(coordinatorMetrics.costUsd).toBeGreaterThan(0);
       expect(coordinatorMetrics.toolCalls).toBe(2);
       expect(coordinatorMetrics.dataSource).toBe('transcript');

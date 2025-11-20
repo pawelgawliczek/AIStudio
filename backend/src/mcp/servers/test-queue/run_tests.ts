@@ -33,21 +33,21 @@ const TEST_CONFIGS: Record<string, TestConfig> = {
   unit: {
     type: 'unit',
     command: 'npm',
-    args: ['test', '--', '--testPathPattern=.*\\.test\\.ts$', '--testPathIgnorePatterns=e2e'],
+    args: ['test', '--', '--testPathPattern=.*\\.test\\.ts$', '--testPathIgnorePatterns=e2e', '--json'],
     cwd: '/opt/stack/AIStudio/backend',
     timeout: 600000, // 10 minutes
   },
   integration: {
     type: 'integration',
     command: 'npm',
-    args: ['test', '--', '--testPathPattern=.*\\.integration\\.test\\.ts$'],
+    args: ['test', '--', '--testPathPattern=.*\\.integration\\.test\\.ts$', '--json'],
     cwd: '/opt/stack/AIStudio/backend',
     timeout: 900000, // 15 minutes
   },
   e2e: {
     type: 'e2e',
     command: 'npx',
-    args: ['playwright', 'test'],
+    args: ['playwright', 'test', '--reporter=json'],
     cwd: '/opt/stack/AIStudio',
     timeout: 1200000, // 20 minutes
   },
@@ -120,6 +120,7 @@ function truncateOutput(output: string, maxLines: number = MAX_OUTPUT_LINES): st
 
 /**
  * Parse Jest output to extract test counts and failed test names
+ * Tries JSON format first, falls back to text parsing
  */
 function parseJestOutput(stdout: string, stderr: string): {
   totalTests: number;
@@ -128,6 +129,40 @@ function parseJestOutput(stdout: string, stderr: string): {
   skippedTests: number;
   failedTestNames: string[];
 } {
+  // Try to parse JSON output first
+  try {
+    const jsonMatch = stdout.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      const failedTestNames: string[] = [];
+
+      // Extract failed test names from test results
+      if (result.testResults) {
+        for (const testFile of result.testResults) {
+          if (testFile.assertionResults) {
+            for (const test of testFile.assertionResults) {
+              if (test.status === 'failed') {
+                failedTestNames.push(test.fullName || test.title);
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        totalTests: result.numTotalTests || 0,
+        passedTests: result.numPassedTests || 0,
+        failedTests: result.numFailedTests || 0,
+        skippedTests: result.numPendingTests || 0,
+        failedTestNames,
+      };
+    }
+  } catch (error) {
+    // JSON parsing failed, fall through to text parsing
+    console.log('[run_tests] JSON parsing failed, using text parsing:', error);
+  }
+
+  // Fallback to text parsing
   const output = stdout + stderr;
 
   // Jest summary patterns:
@@ -167,6 +202,7 @@ function parseJestOutput(stdout: string, stderr: string): {
 
 /**
  * Parse Playwright output to extract test counts and failed test names
+ * Tries JSON format first, falls back to text parsing
  */
 function parsePlaywrightOutput(stdout: string, stderr: string): {
   totalTests: number;
@@ -175,6 +211,62 @@ function parsePlaywrightOutput(stdout: string, stderr: string): {
   skippedTests: number;
   failedTestNames: string[];
 } {
+  // Try to parse JSON output first
+  try {
+    const jsonMatch = stdout.match(/\{[\s\S]*"suites"[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      const failedTestNames: string[] = [];
+
+      let totalTests = 0;
+      let passedTests = 0;
+      let failedTests = 0;
+      let skippedTests = 0;
+
+      // Traverse suites to count tests
+      function traverseSuite(suite: any) {
+        if (suite.specs) {
+          for (const spec of suite.specs) {
+            totalTests++;
+            if (spec.ok) {
+              passedTests++;
+            } else {
+              failedTests++;
+              failedTestNames.push(spec.title || 'Unknown test');
+            }
+            // Check for skipped tests
+            if (spec.tests && spec.tests.some((t: any) => t.status === 'skipped')) {
+              skippedTests++;
+            }
+          }
+        }
+        if (suite.suites) {
+          for (const childSuite of suite.suites) {
+            traverseSuite(childSuite);
+          }
+        }
+      }
+
+      if (result.suites) {
+        for (const suite of result.suites) {
+          traverseSuite(suite);
+        }
+      }
+
+      return {
+        totalTests,
+        passedTests,
+        failedTests,
+        skippedTests,
+        failedTestNames,
+      };
+    }
+  } catch (error) {
+    // JSON parsing failed, fall through to text parsing
+    console.log('[run_tests] Playwright JSON parsing failed, using text parsing:', error);
+  }
+
+  // Fallback to text parsing
   const output = stdout + stderr;
 
   // Playwright patterns:
