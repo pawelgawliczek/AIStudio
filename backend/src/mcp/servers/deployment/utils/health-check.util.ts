@@ -191,7 +191,7 @@ export function createDefaultHealthChecks(): HealthCheckConfig[] {
       }
     },
     {
-      url: 'http://localhost:5173',
+      url: 'http://localhost:5174',
       timeout: 5000,
       expectedStatus: 200
       // Frontend may not have health endpoint, just check if accessible
