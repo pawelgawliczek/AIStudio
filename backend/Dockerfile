@@ -23,9 +23,9 @@ COPY tsconfig.json ./
 WORKDIR /app/backend
 RUN npx prisma generate
 
-# Build TypeScript code (compile despite errors)
+# Build TypeScript code (fail build if compilation errors)
 WORKDIR /app/backend
-RUN npx tsc -p tsconfig.build.json || true
+RUN npx tsc -p tsconfig.build.json
 RUN test -d dist || mkdir dist
 WORKDIR /app
 RUN npm run build --workspace=shared
