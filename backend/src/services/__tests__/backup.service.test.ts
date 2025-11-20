@@ -5,8 +5,8 @@
 import * as fs from 'fs/promises';
 import { BackupType } from '../../types/migration.types';
 import { dockerExec, isContainerRunning } from '../../utils/docker-exec.util';
-import { BackupService } from '../backup.service';
 import * as fileSystemUtil from '../../utils/file-system.util';
+import { BackupService } from '../backup.service';
 
 // Mock dependencies
 jest.mock('../../utils/docker-exec.util');

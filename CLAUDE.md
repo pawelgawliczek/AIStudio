@@ -1,6 +1,26 @@
-- for builds and deployments: build frontend without cache always. For any build use prod docker file.
-- use docker compose (without hyphen)
-- use cache for building only for frontend. Backend only when needed.
+## Build and Deployment (CRITICAL)
+
+**NEVER use npm/node commands for building. ALWAYS use Docker:**
+
+### Required Commands
+
+- ✅ **CORRECT**: `docker compose build backend --no-cache` - Rebuild backend
+- ✅ **CORRECT**: `docker compose build frontend --no-cache` - Rebuild frontend
+- ✅ **CORRECT**: `docker compose up -d <service>` - Start/restart service after build
+- ✅ **CORRECT**: Use prod Dockerfile for all builds
+
+### Forbidden Commands
+
+- ❌ **NEVER USE**: `npm run build` - Won't be picked up by containers
+- ❌ **NEVER USE**: `npm install` - Dependencies managed by Docker
+- ❌ **NEVER USE**: Direct TypeScript compilation - Use Docker build
+
+### Build Rules
+
+- Backend: Always use `--no-cache` when rebuilding
+- Frontend: Always use `--no-cache` when rebuilding
+- Use `docker compose` (without hyphen)
+- TypeScript changes require Docker rebuild, not just container restart
 
 ## Database Migration Safety (CRITICAL)
 
