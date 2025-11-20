@@ -3,9 +3,9 @@
  * ST-69: Fix missing executionOrder field causing component work logs to not display
  */
 
+import * as fs from 'fs';
 import { handler } from '../record_component_start';
 import { prismaMock, fixtures } from './test-setup';
-import * as fs from 'fs';
 
 // Mock fs module
 jest.mock('fs');

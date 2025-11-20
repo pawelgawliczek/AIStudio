@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler, tool } from '../test_queue_add';
 import { NotFoundError, ValidationError } from '../../../types';
+import { handler, tool } from '../test_queue_add';
 
 describe('test_queue_add', () => {
   let prisma: PrismaClient;

@@ -4,6 +4,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { migrationConfig } from '../config/migration.config';
 import {
   MigrationOptions,
   MigrationResult,
@@ -12,10 +13,9 @@ import {
   Lock,
 } from '../types/migration.types';
 import { BackupService } from './backup.service';
-import { RestoreService } from './restore.service';
 import { QueueLockService } from './queue-lock.service';
+import { RestoreService } from './restore.service';
 import { ValidationService } from './validation.service';
-import { migrationConfig } from '../config/migration.config';
 
 const execAsync = promisify(exec);
 

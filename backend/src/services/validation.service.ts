@@ -3,13 +3,13 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { migrationConfig } from '../config/migration.config';
 import {
   ValidationResult,
   ValidationLevel,
   ValidationCheck,
   ValidationResults,
 } from '../types/migration.types';
-import { migrationConfig } from '../config/migration.config';
 import { dockerExec } from '../utils/docker-exec.util';
 
 const prisma = new PrismaClient();

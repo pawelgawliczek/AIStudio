@@ -3,11 +3,11 @@
  * Creates a git worktree for a story with automatic branch naming and database tracking
  */
 
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import {
   NotFoundError,
   ValidationError,

@@ -19,9 +19,9 @@
  * 6. __tests__/Foo.integration.test.tsx → Foo.tsx (nested __tests__)
  */
 
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { ConfigService } from '@nestjs/config';
 import { CodeAnalysisProcessor } from '../code-analysis.processor';
 
 describe('CodeAnalysisProcessor - Test Correlation (ST-16 Unit Tests)', () => {

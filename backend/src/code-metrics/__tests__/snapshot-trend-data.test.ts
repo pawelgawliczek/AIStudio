@@ -9,9 +9,9 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { CodeMetricsService } from '../code-metrics.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WorkersService } from '../../workers/workers.service';
+import { CodeMetricsService } from '../code-metrics.service';
 
 describe('CodeMetricsService - getTrendData (ST-18)', () => {
   let service: CodeMetricsService;

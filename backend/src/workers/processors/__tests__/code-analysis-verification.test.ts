@@ -4,8 +4,8 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { CodeAnalysisProcessor } from '../code-analysis.processor';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CodeAnalysisProcessor } from '../code-analysis.processor';
 
 describe('ST-8 Acceptance Criteria Verification', () => {
   let processor: CodeAnalysisProcessor;

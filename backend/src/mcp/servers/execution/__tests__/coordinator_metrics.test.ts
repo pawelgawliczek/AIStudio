@@ -8,14 +8,14 @@
 // CRITICAL: Set flag BEFORE any imports to prevent mock loading
 process.env.SKIP_PRISMA_MOCK = 'true';
 
-import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+import { CoordinatorMetricsDto } from '../../../../workflow-runs/dto/workflow-run-response.dto';
+import { handler as getWorkflowRunResults } from '../get_workflow_run_results';
 import { handler as startWorkflowRun } from '../start_workflow_run';
 import { handler as updateWorkflowStatus } from '../update_workflow_status';
-import { handler as getWorkflowRunResults } from '../get_workflow_run_results';
-import { CoordinatorMetricsDto } from '../../../../workflow-runs/dto/workflow-run-response.dto';
 
 // Mock filesystem to simulate transcript files
 jest.mock('fs');

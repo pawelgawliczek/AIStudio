@@ -6,6 +6,10 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, ValidationError } from '../../types';
+import type {
+  ClosePullRequestParams,
+  ClosePullRequestResponse,
+} from '../../types';
 import { handlePrismaError } from '../../utils';
 import {
   execGitHub,
@@ -13,10 +17,6 @@ import {
   validateGitHubCLI,
   sanitizeInput,
 } from './pr_utils';
-import type {
-  ClosePullRequestParams,
-  ClosePullRequestResponse,
-} from '../../types';
 
 export const tool: Tool = {
   name: 'close_pull_request',

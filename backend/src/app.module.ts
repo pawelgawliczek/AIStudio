@@ -8,24 +8,24 @@ import { ComponentsModule } from './components/components.module'; // New Generi
 import { CoordinatorsModule } from './coordinators/coordinators.module';
 import { DocsModule } from './docs/docs.module';
 import { EpicsModule } from './epics/epics.module';
+import { HealthController } from './health.controller';
 import { ImpactAnalysisModule } from './impact-analysis/impact-analysis.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
-import { StoriesModule } from './stories/stories.module';
-import { UsersModule } from './users/users.module';
-import { SubtasksModule } from './subtasks/subtasks.module';
-import { WebSocketModule } from './websocket/websocket.module';
-import { UseCasesModule } from './use-cases/use-cases.module';
 import { RunsModule } from './runs/runs.module';
+import { StoriesModule } from './stories/stories.module';
+import { SubtasksModule } from './subtasks/subtasks.module';
 import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
+import { UseCasesModule } from './use-cases/use-cases.module';
+import { UsersModule } from './users/users.module';
+import { WebSocketModule } from './websocket/websocket.module';
 import { WorkersModule } from './workers/workers.module';
 // import { LayersModule } from './layers/layers.module'; // Removed - layers deprecated
 // import { ComponentsModule } from './components/components.module'; // Removed - old components deprecated
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 import { WorkflowsModule } from './workflows/workflows.module';
-import { HealthController } from './health.controller';
 
 @Module({
   imports: [

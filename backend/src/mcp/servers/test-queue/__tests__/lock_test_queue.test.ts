@@ -13,8 +13,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { PrismaClient } from '@prisma/client';
-import { tool, handler, metadata } from '../lock_test_queue';
 import { ValidationError } from '../../../types';
+import { tool, handler, metadata } from '../lock_test_queue';
 
 // Mock Prisma
 jest.mock('@prisma/client');

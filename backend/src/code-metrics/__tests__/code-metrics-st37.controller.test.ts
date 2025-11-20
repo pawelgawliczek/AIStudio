@@ -8,10 +8,10 @@
  * Validates HTTP layer, parameter handling, and error responses
  */
 
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CodeMetricsController } from '../code-metrics.controller';
 import { CodeMetricsService } from '../code-metrics.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('CodeMetricsController - ST-37 Endpoints', () => {
   let controller: CodeMetricsController;

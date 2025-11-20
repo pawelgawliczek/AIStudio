@@ -3,6 +3,7 @@
  */
 
 import * as path from 'path';
+import { migrationConfig } from '../config/migration.config';
 import {
   Backup,
   BackupType,
@@ -10,7 +11,6 @@ import {
   VerificationResult,
   BackupFilter,
 } from '../types/migration.types';
-import { migrationConfig } from '../config/migration.config';
 import { dockerExec, isContainerRunning } from '../utils/docker-exec.util';
 import {
   ensureDirectory,

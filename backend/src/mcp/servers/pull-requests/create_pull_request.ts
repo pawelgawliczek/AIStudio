@@ -3,10 +3,14 @@
  * Creates a GitHub Pull Request and tracks it in the database
  */
 
+import { execSync } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { execSync } from 'child_process';
 import { NotFoundError, ValidationError } from '../../types';
+import type {
+  CreatePullRequestParams,
+  CreatePullRequestResponse,
+} from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
 import {
   execGitHub,
@@ -17,10 +21,6 @@ import {
   validateGitHubCLI,
   sanitizeInput,
 } from './pr_utils';
-import type {
-  CreatePullRequestParams,
-  CreatePullRequestResponse,
-} from '../../types';
 
 export const tool: Tool = {
   name: 'create_pull_request',

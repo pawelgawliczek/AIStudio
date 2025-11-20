@@ -4,9 +4,9 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AgentMetricsService } from '../agent-metrics.service';
-import { v4 as uuidv4 } from 'uuid';
 
 describe('AgentMetricsService - Total User Prompts (ST-68)', () => {
   let service: AgentMetricsService;

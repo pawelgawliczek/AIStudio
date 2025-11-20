@@ -3,10 +3,10 @@
  * CRITICAL: Tests for all 12 endpoints
  */
 
+import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CodeMetricsController } from '../code-metrics.controller';
 import { CodeMetricsService } from '../code-metrics.service';
-import { HttpStatus } from '@nestjs/common';
 
 describe('CodeMetricsController', () => {
   let controller: CodeMetricsController;

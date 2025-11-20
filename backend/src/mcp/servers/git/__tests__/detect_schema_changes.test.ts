@@ -2,11 +2,11 @@
  * Tests for detect_schema_changes tool
  */
 
-import { PrismaClient } from '@prisma/client';
-import { handler, tool } from '../detect_schema_changes';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+import { handler, tool } from '../detect_schema_changes';
 
 // Mock dependencies
 jest.mock('child_process');

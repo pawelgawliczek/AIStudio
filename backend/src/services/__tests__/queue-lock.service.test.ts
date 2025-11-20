@@ -2,8 +2,8 @@
  * Unit tests for QueueLockService
  */
 
-import { QueueLockService } from '../queue-lock.service';
 import { PrismaClient } from '@prisma/client';
+import { QueueLockService } from '../queue-lock.service';
 
 // Mock Prisma
 jest.mock('@prisma/client', () => ({
