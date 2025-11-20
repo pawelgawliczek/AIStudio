@@ -283,6 +283,18 @@ export async function handler(
     console.log('Cleaning build artifacts from worktree...');
     await cleanWorktreeBuildArtifacts(worktree.worktreePath);
 
+    // Phase 8b: Copy .env file to worktree (required for docker-compose)
+    // Docker compose reads .env from cwd, worktrees don't have this file
+    console.log('Copying .env file from main worktree to dev worktree...');
+    const mainEnvPath = join(mainWorktreePath, '.env');
+    const worktreeEnvPath = join(worktree.worktreePath, '.env');
+    if (existsSync(mainEnvPath)) {
+      execSync(`cp ${mainEnvPath} ${worktreeEnvPath}`, { cwd: mainWorktreePath });
+      console.log('✓ .env file copied successfully');
+    } else {
+      warnings.push('Main worktree .env file not found, containers may fail to start');
+    }
+
     // Rebuild containers with new volume mount pointing to dev worktree
     console.log('Rebuilding containers with dev worktree volume mount...');
     await buildContainers(worktree.worktreePath, true, true);
