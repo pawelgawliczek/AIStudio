@@ -5,8 +5,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler } from '../deploy_to_test_env';
 import { ValidationError, NotFoundError } from '../../../types';
+import { handler } from '../deploy_to_test_env';
 import * as changeDetectionUtil from '../utils/change-detection.util';
 import * as dockerUtil from '../utils/docker.util';
 import * as healthCheckUtil from '../utils/health-check.util';
