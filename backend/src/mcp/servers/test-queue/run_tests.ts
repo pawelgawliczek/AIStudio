@@ -33,14 +33,14 @@ const TEST_CONFIGS: Record<string, TestConfig> = {
   unit: {
     type: 'unit',
     command: 'npm',
-    args: ['test', '--', '--testPathPattern=.*\\.test\\.ts$', '--testPathIgnorePatterns=e2e', '--json'],
+    args: ['test', '--', '--testPathPattern=.*\\.test\\.ts$', '--testPathIgnorePatterns=e2e', '--testPathIgnorePatterns=integration', '--json'],
     cwd: '/opt/stack/AIStudio/backend',
     timeout: 600000, // 10 minutes
   },
   integration: {
     type: 'integration',
     command: 'npm',
-    args: ['test', '--', '--testPathPattern=.*\\.integration\\.test\\.ts$', '--json'],
+    args: ['test', '--', '--testPathPattern=.*\\.integration\\.test\\.ts$', '--testPathIgnorePatterns=run_tests.integration', '--json'],
     cwd: '/opt/stack/AIStudio/backend',
     timeout: 900000, // 15 minutes
   },
