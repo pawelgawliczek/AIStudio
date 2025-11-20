@@ -21,6 +21,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
+import { handler as checkForConflicts } from '../git/check_for_conflicts.js';
 import { execGit } from '../git/git_utils.js';
 import {
   detectAllChanges,
@@ -62,6 +63,7 @@ export interface DeployToTestEnvResponse {
 }
 
 interface ActionsExecuted {
+  conflictCheck: boolean;
   gitCheckout: boolean;
   schemaMigration: boolean;
   npmInstall: boolean;
@@ -88,6 +90,7 @@ enum DeploymentPhase {
   VALIDATION = 'validation',
   GIT_FETCH = 'git_fetch',
   CHANGE_DETECTION = 'change_detection',
+  CONFLICT_CHECK = 'conflict_check',
   SCHEMA_MIGRATION = 'schema_migration',
   NPM_INSTALL = 'npm_install',
   DOCKER_REBUILD = 'docker_rebuild',
@@ -118,13 +121,14 @@ export const tool: Tool = {
 This tool orchestrates the complete deployment process:
 1. Fetches latest from origin
 2. Detects schema, dependency, environment, and Docker changes
-3. Executes safe migrations if schema changes detected (with queue locking)
-4. Installs dependencies if package.json/package-lock.json changed
-5. Rebuilds containers if Dockerfile or docker-compose.yml changed
-6. Checks out story branch in main worktree
-7. Restarts backend and frontend services
-8. Waits for health checks to pass (max 2 minutes)
-9. Updates test queue status to 'running'
+3. Checks for merge conflicts with main branch (fails fast if conflicts detected)
+4. Executes safe migrations if schema changes detected (with queue locking)
+5. Installs dependencies if package.json/package-lock.json changed
+6. Rebuilds containers if Dockerfile or docker-compose.yml changed
+7. Checks out story branch in main worktree
+8. Restarts backend and frontend services
+9. Waits for health checks to pass (max 2 minutes)
+10. Updates test queue status to 'running'
 
 The tool ensures safe deployments with automatic rollback on migration failures.`,
   inputSchema: {
@@ -155,6 +159,7 @@ export async function handler(
   const startTime = Date.now();
   const warnings: string[] = [];
   const actionsExecuted: ActionsExecuted = {
+    conflictCheck: false,
     gitCheckout: false,
     schemaMigration: false,
     npmInstall: false,
@@ -202,7 +207,40 @@ export async function handler(
       handleEnvChanges(changes.envDetails, warnings);
     }
 
-    // Phase 4: Schema Migration (if needed)
+    // Phase 4: Conflict Check (NEW - prevent deployment if conflicts exist)
+    console.log('Checking for merge conflicts with main...');
+    try {
+      const conflictCheck = await checkForConflicts(prisma, { storyId: params.storyId });
+
+      if (conflictCheck.hasConflicts) {
+        const conflictList = conflictCheck.conflictingFiles
+          .map(f => `  - ${f.path} (${f.conflictType})`)
+          .join('\n');
+
+        throw new DeploymentError(
+          `Deployment blocked: ${conflictCheck.conflictCount} merge conflict(s) detected with main branch.\n\n` +
+          `Conflicting files:\n${conflictList}\n\n` +
+          `Recommended action: Run mcp__vibestudio__rebase_on_main tool or resolve conflicts manually in worktree.`,
+          DeploymentPhase.CONFLICT_CHECK,
+          false, // Not recoverable without conflict resolution
+          'Run mcp__vibestudio__rebase_on_main tool or manually resolve conflicts in worktree, then retry deployment'
+        );
+      }
+
+      console.log('✓ No conflicts detected, proceeding with deployment');
+      actionsExecuted.conflictCheck = true;
+    } catch (error: any) {
+      // If conflict check itself fails (not detects conflicts), warn but continue
+      if (error instanceof DeploymentError) {
+        throw error; // Re-throw deployment errors (conflicts detected)
+      }
+
+      // Log other errors as warnings and continue (graceful degradation)
+      console.warn('Conflict check failed:', error.message);
+      warnings.push(`Conflict check failed: ${error.message}. Proceeding with caution.`);
+    }
+
+    // Phase 5: Schema Migration (if needed)
     if (changes.schema && changes.schemaDetails?.hasChanges) {
       console.log('Schema changes detected, executing safe migration...');
       migrationDetails = await executeSafeMigration(
@@ -213,31 +251,31 @@ export async function handler(
       actionsExecuted.schemaMigration = true;
     }
 
-    // Phase 5: NPM Install (if needed)
+    // Phase 6: NPM Install (if needed)
     if (changes.dependencies) {
       console.log('Dependency changes detected, running npm install...');
       await installDependencies(mainWorktreePath);
       actionsExecuted.npmInstall = true;
     }
 
-    // Phase 6: Docker Rebuild (if needed)
+    // Phase 7: Docker Rebuild (if needed)
     if (changes.docker) {
       console.log('Docker changes detected, rebuilding containers...');
       await buildContainers(mainWorktreePath, true, true);
       actionsExecuted.dockerRebuild = true;
     }
 
-    // Phase 7: Git Checkout
+    // Phase 8: Git Checkout
     console.log(`Checking out branch ${worktree.branchName}...`);
     await checkoutStoryBranch(mainWorktreePath, worktree.branchName);
     actionsExecuted.gitCheckout = true;
 
-    // Phase 8: Container Restart
+    // Phase 9: Container Restart
     console.log('Restarting services...');
     await restartServices(mainWorktreePath);
     actionsExecuted.containerRestart = true;
 
-    // Phase 9: Health Checks
+    // Phase 10: Health Checks
     console.log('Waiting for health checks (max 2 minutes)...');
     const healthCheckConfigs = createDefaultHealthChecks();
     const healthCheckResult = await waitForHealthy(healthCheckConfigs, 120000);
@@ -258,7 +296,7 @@ export async function handler(
       );
     }
 
-    // Phase 10: Update Test Queue Status
+    // Phase 11: Update Test Queue Status
     let testQueueUpdate: TestQueueUpdate | undefined;
     try {
       testQueueUpdate = await updateTestQueueStatus(prisma, params.storyId);
