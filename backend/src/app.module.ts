@@ -23,6 +23,7 @@ import { UsersModule } from './users/users.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { WorkersModule } from './workers/workers.module';
 import { QueueProcessorModule } from './workers/queue-processor.module';
+import { DiskMonitorModule } from './workers/disk-monitor.module';
 // import { LayersModule } from './layers/layers.module'; // Removed - layers deprecated
 // import { ComponentsModule } from './components/components.module'; // Removed - old components deprecated
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
@@ -51,6 +52,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     TestExecutionsModule,
     WorkersModule,
     QueueProcessorModule, // Queue processor background worker
+    DiskMonitorModule, // Disk space monitoring and alerting (ST-54)
     // LayersModule, // Removed - layers deprecated
     // ComponentsModule, // Removed - old components deprecated
     ComponentsModule, // New Generic Component pattern

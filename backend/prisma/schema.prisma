@@ -921,6 +921,7 @@ model Worktree {
   @@index([storyId, status])
   @@index([status])
   @@index([branchName])
+  @@index([status, updatedAt]) // For stale worktree detection (ST-54)
   @@map("worktrees")
 }
 
@@ -1243,4 +1244,73 @@ enum StoryPhase {
   testing         // Testing phase (TestQueue)
   review          // Code review (PullRequest)
   done            // Complete
+}
+
+// ============================================================================
+// DISK SPACE MONITORING (Epic EP-7 - ST-54)
+// ============================================================================
+
+enum AlertType {
+  warning   // Disk space below warning threshold (e.g., < 5GB)
+  critical  // Disk space critically low (e.g., < 2GB)
+}
+
+// DiskUsageAlert - Track disk space threshold breach events
+model DiskUsageAlert {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  alertType        AlertType @map("alert_type")
+  thresholdGB      Int       @map("threshold_gb")
+  availableSpaceGB Decimal   @map("available_space_gb") @db.Decimal(10, 2)
+  usedSpaceGB      Decimal   @map("used_space_gb") @db.Decimal(10, 2)
+  totalSpaceGB     Decimal   @map("total_space_gb") @db.Decimal(10, 2)
+  percentUsed      Decimal   @map("percent_used") @db.Decimal(5, 2)
+  worktreeCount    Int       @map("worktree_count")
+  stalledCount     Int       @map("stalled_count")
+  message          String    @db.Text
+  notificationSent Boolean   @default(false) @map("notification_sent")
+  notifiedAt       DateTime? @map("notified_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([alertType, createdAt])
+  @@map("disk_usage_alerts")
+}
+
+// DiskUsageReport - Weekly disk usage summary reports
+model DiskUsageReport {
+  id                         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  reportDate                 DateTime  @map("report_date") // Monday of the week
+  reportPeriodStart          DateTime  @map("report_period_start")
+  reportPeriodEnd            DateTime  @map("report_period_end")
+
+  // Disk metrics
+  totalSpaceGB               Decimal   @map("total_space_gb") @db.Decimal(10, 2)
+  usedSpaceGB                Decimal   @map("used_space_gb") @db.Decimal(10, 2)
+  availableSpaceGB           Decimal   @map("available_space_gb") @db.Decimal(10, 2)
+  percentUsed                Decimal   @map("percent_used") @db.Decimal(5, 2)
+
+  // Worktree metrics
+  totalWorktrees             Int       @map("total_worktrees")
+  activeWorktrees            Int       @map("active_worktrees")
+  stalledWorktrees           Int       @map("stalled_worktrees")
+  totalWorktreeUsageMB       Int       @map("total_worktree_usage_mb")
+  avgWorktreeUsageMB         Decimal   @map("avg_worktree_usage_mb") @db.Decimal(10, 2)
+
+  // Breakdown (JSON)
+  largestWorktrees           Json?     @map("largest_worktrees") // Top 10: [{storyKey, size, age}, ...]
+  stalledWorktreesList       Json?     @map("stalled_worktrees_list") // [{storyKey, branch, size, lastUpdated}, ...]
+
+  // Trends
+  weekOverWeekChangeGB       Decimal?  @map("week_over_week_change_gb") @db.Decimal(10, 2)
+  weekOverWeekChangePercent  Decimal?  @map("week_over_week_change_percent") @db.Decimal(5, 2)
+
+  // Report metadata
+  reportHtml                 String?   @db.Text // Rendered HTML report
+  emailSent                  Boolean   @default(false) @map("email_sent")
+  emailSentAt                DateTime? @map("email_sent_at")
+
+  @@index([reportDate(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("disk_usage_reports")
 }

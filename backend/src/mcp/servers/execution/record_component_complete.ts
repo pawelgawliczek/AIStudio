@@ -400,35 +400,37 @@ export async function handler(prisma: PrismaClient, params: any) {
       const transcriptDir = componentTranscriptTracking.transcriptDirectory;
       const existingBefore = componentTranscriptTracking.existingTranscriptsBeforeAgent || [];
 
-      // Find NEW transcripts (created after component start, not in existingBefore list)
+      // Parse ONLY MODIFIED transcripts + timestamp filtering
+      // Rationale:
+      // 1. Component agents write to parent session transcript (existing file)
+      // 2. Parsing ALL files is inefficient and causes cross-contamination with parallel workflows
+      // 3. Solution: Parse only files modified during component execution window
       if (fs.existsSync(transcriptDir)) {
         // Wait 10 seconds before parsing to let files finish being written
         // This handles the case where transcript files are still being flushed
         await new Promise(resolve => setTimeout(resolve, 10000));
 
-        const currentTranscripts = fs.readdirSync(transcriptDir)
+        const componentStartTime = componentRun.startedAt.getTime();
+        const allTranscripts = fs.readdirSync(transcriptDir)
           .filter((f: string) => f.endsWith('.jsonl'));
 
-        const newTranscripts = currentTranscripts.filter(
-          (f: string) => !existingBefore.includes(f)
-        );
-
-        if (newTranscripts.length > 0) {
-          // MULTI-TRANSCRIPT AGGREGATION: Parse ALL new transcripts, not just one
-          multiTranscriptPaths = newTranscripts.map(f => path.join(transcriptDir, f));
-          autoDetectedTranscript = true;
-        } else {
-          // No new transcripts - agent might have shared orchestrator's session
-          // Fall back to most recently modified transcript
-          const detectedPath = findMostRecentTranscript(
-            transcriptDir,
-            componentRun.startedAt
-          );
-
-          if (detectedPath) {
-            transcriptPath = detectedPath;
-            autoDetectedTranscript = true;
+        // Find files modified during or after component execution
+        const modifiedTranscripts = allTranscripts.filter((f: string) => {
+          const filePath = path.join(transcriptDir, f);
+          try {
+            const stats = fs.statSync(filePath);
+            // File modified after component started (with 1min margin for clock skew)
+            return stats.mtimeMs >= (componentStartTime - 60000);
+          } catch (err) {
+            return false;
           }
+        });
+
+        if (modifiedTranscripts.length > 0) {
+          // MULTI-TRANSCRIPT AGGREGATION: Parse modified transcripts with timestamp filtering
+          // This captures component entries while avoiding cross-contamination from parallel workflows
+          multiTranscriptPaths = modifiedTranscripts.map(f => path.join(transcriptDir, f));
+          autoDetectedTranscript = true;
         }
       }
     }
