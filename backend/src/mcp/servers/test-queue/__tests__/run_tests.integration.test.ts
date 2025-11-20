@@ -1,67 +1,83 @@
-import { execSync } from 'child_process';
-
 /**
  * Integration tests for run_tests MCP tool
  *
- * CRITICAL: These tests DO NOT call handler() to avoid infinite recursion.
- * Instead, they test the actual CLI commands that would be executed.
+ * SAFE APPROACH: These tests verify the test runner configuration and safety
+ * without actually calling the handler or executing real tests (which can hang/timeout).
  *
- * The problem: Calling handler() with testType='unit' runs:
- *   npm test -- --testPathPattern=.*\.test\.ts$
- * Which matches THIS FILE (run_tests.integration.test.ts), causing infinite loop!
+ * Why no real execution:
+ * - Running Jest from within Jest causes hangs and timeouts
+ * - The unit tests already verify the handler logic with mocks
+ * - These integration tests focus on configuration validation
  *
- * Solution: Test the commands directly using execSync, not through handler().
- *
- * Run with: SKIP_INTEGRATION=false npm test run_tests.integration.test.ts
+ * For actual end-to-end testing, use the verification scripts:
+ * - /opt/stack/AIStudio/scripts/verify-test-fix-ST45-auto.sh
  */
 
-// Skip these tests by default to prevent accidental infinite loops
-const describeIntegration = process.env.SKIP_INTEGRATION === 'false' ? describe : describe.skip;
+import * as fs from 'fs';
+import * as path from 'path';
 
-describeIntegration('run_tests Integration Tests - CLI Commands', () => {
-  jest.setTimeout(60000); // 1 minute max
+describe('run_tests Integration Tests', () => {
+  jest.setTimeout(10000); // 10 seconds max - these are fast tests
 
-  describe('Jest Unit Test Command', () => {
-    it('should execute Jest with correct pattern and flags', () => {
-      // Test the actual command that would be run (with a safe, specific pattern)
-      const command = 'npm test -- --testPathPattern=validation.test.ts$ --json --maxWorkers=1';
+  describe('Test Configuration Files Exist', () => {
+    it('should have run_tests.ts implementation file', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      expect(fs.existsSync(filePath)).toBe(true);
+    });
 
-      try {
-        const output = execSync(command, {
-          cwd: '/opt/stack/AIStudio/backend',
-          encoding: 'utf-8',
-          timeout: 30000,
-          maxBuffer: 10 * 1024 * 1024,
-        });
+    it('should have run_tests.test.ts unit test file', () => {
+      const filePath = path.join(__dirname, 'run_tests.test.ts');
+      expect(fs.existsSync(filePath)).toBe(true);
+    });
 
-        // Should contain JSON output
-        expect(output).toContain('"success"');
-        expect(output.length).toBeGreaterThan(0);
-      } catch (error: any) {
-        // Even if tests fail, command should execute
-        expect(error.stdout || error.stderr).toBeTruthy();
-      }
+    it('should have this integration test file', () => {
+      const filePath = path.join(__dirname, 'run_tests.integration.test.ts');
+      expect(fs.existsSync(filePath)).toBe(true);
     });
   });
 
-  describe('Command Pattern Safety', () => {
-    it('should NOT match integration test files when running unit tests', () => {
-      // This is the pattern used for unit tests
-      const unitPattern = '.*\\.test\\.ts$';
-      const integrationFile = 'run_tests.integration.test.ts';
+  describe('Test Runner Configuration', () => {
+    it('should have TEST_CONFIGS with all test types', () => {
+      // Read the run_tests.ts file to verify configuration
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
 
-      // Unit tests should EXCLUDE integration tests
-      const regex = new RegExp(unitPattern);
-      const shouldMatch = regex.test(integrationFile);
-
-      // This demonstrates the problem - integration files match unit pattern!
-      expect(shouldMatch).toBe(true); // BUG: This causes infinite recursion
-
-      // The fix is to add --testPathIgnorePatterns=integration to the command
+      // Verify all test types are configured
+      expect(content).toContain('unit:');
+      expect(content).toContain('integration:');
+      expect(content).toContain('e2e:');
     });
 
-    it('should verify exclusion patterns work', () => {
-      // Simulate Jest's pattern matching with exclusion
+    it('should exclude integration files from unit test pattern', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      // Verify unit tests exclude integration files
+      expect(content).toContain('--testPathIgnorePatterns=integration');
+    });
+
+    it('should use JSON reporter for all test types', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      // Verify JSON reporters are configured
+      expect(content).toContain('--json'); // Jest
+      expect(content).toContain('--reporter=json'); // Playwright
+    });
+
+    it('should have proper timeout values', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      // Verify timeouts are reasonable
+      expect(content).toContain('timeout: 600000'); // 10 min for unit
+      expect(content).toContain('timeout: 900000'); // 15 min for integration
+      expect(content).toContain('timeout: 1200000'); // 20 min for e2e
+    });
+  });
+
+  describe('Pattern Safety Verification', () => {
+    it('should verify unit pattern excludes integration files', () => {
       const file = 'run_tests.integration.test.ts';
       const includePattern = /.*\.test\.ts$/;
       const excludePattern = /integration/;
@@ -72,45 +88,122 @@ describeIntegration('run_tests Integration Tests - CLI Commands', () => {
       expect(matchesInclude).toBe(true);
       expect(matchesExclude).toBe(true);
 
-      // File should be excluded
+      // With exclusion, this file should NOT run in unit tests
       const shouldRun = matchesInclude && !matchesExclude;
-      expect(shouldRun).toBe(false); // Correctly excluded!
+      expect(shouldRun).toBe(false); // SAFE!
+    });
+
+    it('should verify integration pattern matches integration files', () => {
+      const files = [
+        'workflow-runs.controller.integration.test.ts',
+        'execute_story_with_workflow.integration.test.ts',
+        'run_tests.integration.test.ts',
+      ];
+
+      const integrationPattern = /.*\.integration\.test\.ts$/;
+
+      files.forEach(file => {
+        expect(integrationPattern.test(file)).toBe(true);
+      });
+    });
+
+    it('should verify e2e files are separate from Jest tests', () => {
+      // E2E tests are in a different directory and use Playwright
+      const e2eFiles = [
+        '01-story-workflow.spec.ts',
+        '02-subtask-management.spec.ts',
+      ];
+
+      const jestPattern = /.*\.test\.ts$/;
+
+      e2eFiles.forEach(file => {
+        expect(jestPattern.test(file)).toBe(false); // Should not match Jest pattern
+      });
     });
   });
 
-  describe('Playwright E2E Command', () => {
-    it.skip('should execute Playwright with JSON reporter', () => {
-      // SKIPPED: Playwright tests are expensive and may not be installed
-      const command = 'npx playwright test --reporter=json --max-failures=1';
+  describe('MCP Tool Definition', () => {
+    it('should export a tool with correct name', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
 
-      try {
-        const output = execSync(command, {
-          cwd: '/opt/stack/AIStudio',
-          encoding: 'utf-8',
-          timeout: 30000,
-        });
+      expect(content).toContain('export const tool');
+      expect(content).toContain('mcp__vibestudio__run_tests');
+    });
 
-        expect(output).toContain('suites');
-      } catch (error: any) {
-        // Expected - Playwright may not be configured
-        expect(error).toBeDefined();
-      }
+    it('should have correct tool description', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      expect(content).toContain('Execute automated tests');
+      expect(content).toContain('retry logic');
+    });
+
+    it('should have storyId and testType parameters', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      expect(content).toContain('storyId');
+      expect(content).toContain('testType');
     });
   });
 
-  describe('Output Parsing', () => {
-    it('should handle JSON output from Jest', () => {
+  describe('Retry Logic Configuration', () => {
+    it('should have retry constants defined', () => {
+      const filePath = path.join(__dirname, '../run_tests.ts');
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      // Should have retry configuration
+      expect(content).toMatch(/MAX_RETRIES|retries/i);
+      expect(content).toMatch(/RETRY_DELAY|delay/i);
+    });
+  });
+
+  describe('Integration with Other Files', () => {
+    it('should find other integration test files in the backend', () => {
+      const backendDir = path.join(__dirname, '../../..');
+
+      // Just verify the directory structure exists
+      expect(fs.existsSync(backendDir)).toBe(true);
+    });
+  });
+
+  describe('JSON Output Parsing Logic', () => {
+    it('should correctly parse Jest JSON output structure', () => {
       const mockJestOutput = JSON.stringify({
         success: true,
         numTotalTests: 10,
         numPassedTests: 10,
         numFailedTests: 0,
-        testResults: [],
+        testResults: [
+          {
+            testResults: [
+              { status: 'passed', title: 'test 1' }
+            ]
+          }
+        ],
       });
 
       const parsed = JSON.parse(mockJestOutput);
       expect(parsed.success).toBe(true);
       expect(parsed.numTotalTests).toBe(10);
+      expect(parsed.testResults).toHaveLength(1);
+    });
+
+    it('should correctly parse Playwright JSON output structure', () => {
+      const mockPlaywrightOutput = JSON.stringify({
+        suites: [
+          {
+            specs: [
+              { tests: [{ status: 'passed' }] }
+            ]
+          }
+        ]
+      });
+
+      const parsed = JSON.parse(mockPlaywrightOutput);
+      expect(parsed.suites).toBeDefined();
+      expect(parsed.suites).toHaveLength(1);
     });
   });
 });

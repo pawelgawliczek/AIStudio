@@ -40,7 +40,7 @@ const TEST_CONFIGS: Record<string, TestConfig> = {
   integration: {
     type: 'integration',
     command: 'npm',
-    args: ['test', '--', '--testPathPattern=.*\\.integration\\.test\\.ts$', '--testPathIgnorePatterns=run_tests.integration', '--json'],
+    args: ['test', '--', '--testPathPattern=.*\\.integration\\.test\\.ts$', '--json'],
     cwd: '/opt/stack/AIStudio/backend',
     timeout: 900000, // 15 minutes
   },
