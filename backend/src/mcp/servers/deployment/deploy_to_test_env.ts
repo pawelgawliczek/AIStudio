@@ -277,6 +277,12 @@ export async function handler(
     console.log(`Using dev worktree for deployment: ${worktree.worktreePath}`);
     process.env.CODE_PATH = worktree.worktreePath;
 
+    // Phase 8a: Clean build artifacts from worktree
+    // Docker COPY doesn't respect .gitignore, so we must remove build artifacts
+    // before Docker build to prevent "cannot replace directory with file" errors
+    console.log('Cleaning build artifacts from worktree...');
+    await cleanWorktreeBuildArtifacts(worktree.worktreePath);
+
     // Rebuild containers with new volume mount pointing to dev worktree
     console.log('Rebuilding containers with dev worktree volume mount...');
     await buildContainers(worktree.worktreePath, true, true);
@@ -493,6 +499,69 @@ async function installDependencies(mainWorktreePath: string): Promise<void> {
       true,
       'Check npm logs and retry'
     );
+  }
+}
+
+/**
+ * Clean build artifacts from worktree before Docker build
+ *
+ * Docker COPY doesn't respect .gitignore, so build artifacts (node_modules/, dist/)
+ * must be removed before Docker build to prevent "cannot replace directory with file" errors.
+ *
+ * This function safely removes:
+ * - node_modules/ (backend, frontend, shared)
+ * - dist/ (backend, frontend, shared)
+ * - .next/ (frontend - Next.js build cache)
+ * - build/ (generic build output)
+ */
+async function cleanWorktreeBuildArtifacts(worktreePath: string): Promise<void> {
+  try {
+    // Build artifacts to remove (paths relative to worktree root)
+    const artifactPaths = [
+      'backend/node_modules',
+      'backend/dist',
+      'frontend/node_modules',
+      'frontend/dist',
+      'frontend/.next',
+      'frontend/build',
+      'shared/node_modules',
+      'shared/dist',
+      'node_modules', // Root level
+      'dist' // Root level
+    ];
+
+    let removedCount = 0;
+
+    for (const relativePath of artifactPaths) {
+      const fullPath = join(worktreePath, relativePath);
+
+      // Check if path exists before attempting removal
+      if (existsSync(fullPath)) {
+        console.log(`  Removing: ${relativePath}`);
+
+        try {
+          // Use rm -rf for reliable removal of directories
+          execSync(`rm -rf "${fullPath}"`, {
+            cwd: worktreePath,
+            encoding: 'utf-8',
+            timeout: 30000 // 30 seconds per directory
+          });
+          removedCount++;
+        } catch (rmError: any) {
+          // Log error but continue cleanup
+          console.warn(`  Warning: Failed to remove ${relativePath}: ${rmError.message}`);
+        }
+      }
+    }
+
+    if (removedCount === 0) {
+      console.log('  No build artifacts found to clean');
+    } else {
+      console.log(`  Cleaned ${removedCount} build artifact(s)`);
+    }
+  } catch (error: any) {
+    // Non-fatal: Log warning and continue
+    console.warn(`Build artifact cleanup failed: ${error.message}. Continuing with deployment...`);
   }
 }
 
