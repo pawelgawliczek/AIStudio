@@ -2,11 +2,11 @@
  * Tests for git_create_worktree tool
  */
 
-import { PrismaClient } from '@prisma/client';
-import { handler, tool } from '../git_create_worktree';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+import { handler, tool } from '../git_create_worktree';
 
 // Mock child_process
 jest.mock('child_process');

@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { UserRole } from '@prisma/client';
-import { AuthService } from '../auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuthService } from '../auth.service';
 
 // Mock bcrypt module
 jest.mock('bcrypt', () => ({

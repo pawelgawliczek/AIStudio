@@ -6,6 +6,12 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, ValidationError } from '../../types';
+import type {
+  GetPrStatusParams,
+  GetPrStatusResponse,
+  ReviewInfo,
+  CheckInfo,
+} from '../../types';
 import { handlePrismaError } from '../../utils';
 import {
   execGitHub,
@@ -14,12 +20,6 @@ import {
   syncPrStatus,
   validateGitHubCLI,
 } from './pr_utils';
-import type {
-  GetPrStatusParams,
-  GetPrStatusResponse,
-  ReviewInfo,
-  CheckInfo,
-} from '../../types';
 
 export const tool: Tool = {
   name: 'get_pr_status',

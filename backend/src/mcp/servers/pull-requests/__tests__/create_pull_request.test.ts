@@ -2,9 +2,9 @@
  * Tests for create_pull_request tool
  */
 
+import { execSync } from 'child_process';
 import { PrismaClient } from '@prisma/client';
 import { handler, tool } from '../create_pull_request';
-import { execSync } from 'child_process';
 
 // Mock child_process
 jest.mock('child_process');

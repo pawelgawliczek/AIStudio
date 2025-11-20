@@ -2,12 +2,12 @@
  * Integration tests for all PR tools
  */
 
+import { execSync } from 'child_process';
 import { PrismaClient } from '@prisma/client';
+import { handler as closeHandler, tool as closeTool } from '../close_pull_request';
 import { handler as createPrHandler, tool as createPrTool } from '../create_pull_request';
 import { handler as getStatusHandler, tool as getStatusTool } from '../get_pr_status';
 import { handler as mergeHandler, tool as mergeTool } from '../merge_pull_request';
-import { handler as closeHandler, tool as closeTool } from '../close_pull_request';
-import { execSync } from 'child_process';
 
 // Mock child_process
 jest.mock('child_process');

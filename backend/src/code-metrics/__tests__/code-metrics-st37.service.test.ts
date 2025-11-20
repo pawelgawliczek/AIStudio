@@ -8,14 +8,14 @@
  * Validates all acceptance criteria from BA analysis
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
+import * as fs from 'fs';
+import * as path from 'path';
 import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { glob } from 'glob';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WorkersService } from '../../workers/workers.service';
 import { CodeMetricsService } from '../code-metrics.service';
-import * as fs from 'fs';
-import * as path from 'path';
-import { glob } from 'glob';
 
 // Mock fs and glob modules
 jest.mock('fs');

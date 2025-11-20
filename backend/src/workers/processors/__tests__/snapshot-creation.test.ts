@@ -7,10 +7,10 @@
  * 3. Handles errors gracefully without failing analysis
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { CodeAnalysisProcessor } from '../code-analysis.processor';
-import { PrismaService } from '../../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { CodeAnalysisProcessor } from '../code-analysis.processor';
 
 describe('CodeAnalysisProcessor - Snapshot Creation (ST-18)', () => {
   let processor: CodeAnalysisProcessor;

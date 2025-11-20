@@ -2,6 +2,9 @@
  * Restore Service - Database restoration from backups
  */
 
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { migrationConfig } from '../config/migration.config';
 import {
   Backup,
   RestoreResult,
@@ -9,7 +12,6 @@ import {
   ValidationResult,
   ValidationLevel,
 } from '../types/migration.types';
-import { migrationConfig } from '../config/migration.config';
 import {
   dockerExec,
   isContainerRunning,
@@ -17,8 +19,6 @@ import {
 } from '../utils/docker-exec.util';
 import { fileExists, formatBytes } from '../utils/file-system.util';
 import { BackupService } from './backup.service';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 

@@ -3,8 +3,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { Lock, LockStatus } from '../types/migration.types';
 import { migrationConfig } from '../config/migration.config';
+import { Lock, LockStatus } from '../types/migration.types';
 
 const prisma = new PrismaClient();
 

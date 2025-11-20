@@ -13,10 +13,10 @@
  * 5. Identifies formula mismatches (e.g., risk score calculation differences)
  */
 
-import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 // ============================================================================
 // Configuration & Constants

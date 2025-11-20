@@ -3,10 +3,10 @@
  * Detects and analyzes database schema changes in worktrees
  */
 
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import {
   NotFoundError,
   ValidationError,

@@ -2,10 +2,10 @@
  * Unit tests for ValidationService
  */
 
-import { ValidationService } from '../validation.service';
 import { PrismaClient } from '@prisma/client';
-import { dockerExec } from '../../utils/docker-exec.util';
 import { ValidationLevel } from '../../types/migration.types';
+import { dockerExec } from '../../utils/docker-exec.util';
+import { ValidationService } from '../validation.service';
 
 // Mock dependencies
 jest.mock('@prisma/client');

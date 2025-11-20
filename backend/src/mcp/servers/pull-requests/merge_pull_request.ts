@@ -6,6 +6,10 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, ValidationError } from '../../types';
+import type {
+  MergePullRequestParams,
+  MergePullRequestResponse,
+} from '../../types';
 import { handlePrismaError } from '../../utils';
 import {
   execGitHub,
@@ -13,10 +17,6 @@ import {
   checkPreMergeConditions,
   validateGitHubCLI,
 } from './pr_utils';
-import type {
-  MergePullRequestParams,
-  MergePullRequestResponse,
-} from '../../types';
 
 export const tool: Tool = {
   name: 'merge_pull_request',

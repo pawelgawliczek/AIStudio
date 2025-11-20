@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CodeAnalysisProcessor } from '../code-analysis.processor';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CodeAnalysisProcessor } from '../code-analysis.processor';
 
 describe('CodeAnalysisProcessor', () => {
   let processor: CodeAnalysisProcessor;
