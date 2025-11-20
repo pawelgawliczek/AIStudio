@@ -283,27 +283,17 @@ export async function handler(
     console.log('Cleaning build artifacts from worktree...');
     await cleanWorktreeBuildArtifacts(worktree.worktreePath);
 
-    // Phase 8b: Copy .env file to worktree (required for docker-compose)
-    // Docker compose reads .env from cwd, worktrees don't have this file
-    console.log('Copying .env file from main worktree to dev worktree...');
-    const mainEnvPath = join(mainWorktreePath, '.env');
-    const worktreeEnvPath = join(worktree.worktreePath, '.env');
-    if (existsSync(mainEnvPath)) {
-      execSync(`cp ${mainEnvPath} ${worktreeEnvPath}`, { cwd: mainWorktreePath });
-      console.log('✓ .env file copied successfully');
-    } else {
-      warnings.push('Main worktree .env file not found, containers may fail to start');
-    }
-
-    // Rebuild containers with new volume mount pointing to dev worktree
-    console.log('Rebuilding containers with dev worktree volume mount...');
-    await buildContainers(worktree.worktreePath, true, true);
+    // Phase 8b: Rebuild containers from MAIN worktree with CODE_PATH pointing to dev worktree
+    // IMPORTANT: All docker-compose commands must run from main worktree to avoid
+    // container name conflicts. The CODE_PATH env var (set above) controls volume mounts.
+    console.log('Rebuilding containers from main worktree (CODE_PATH points to dev worktree)...');
+    await buildContainers(mainWorktreePath, true, true);
     actionsExecuted.dockerRebuild = true;
     actionsExecuted.gitCheckout = true; // Logically equivalent - we're "using" the branch
 
-    // Phase 9: Container Restart
-    console.log('Restarting services with dev worktree code...');
-    await restartServices(worktree.worktreePath);
+    // Phase 9: Container Restart from main worktree
+    console.log('Restarting services from main worktree (using dev worktree code via CODE_PATH)...');
+    await restartServices(mainWorktreePath);
     actionsExecuted.containerRestart = true;
 
     // Phase 10: Health Checks
