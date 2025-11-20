@@ -33,17 +33,29 @@ export interface GitStatusInfo {
  *
  * @param command - Git command to execute
  * @param cwd - Working directory (defaults to /opt/stack/AIStudio)
+ * @param timeout - Timeout in milliseconds (optional, defaults to no timeout)
  * @returns Command output as string
- * @throws Error if git command fails
+ * @throws Error if git command fails or times out
  */
-export function execGit(command: string, cwd?: string): string {
+export function execGit(command: string, cwd?: string, timeout?: number): string {
   try {
-    return execSync(command, {
+    const options: any = {
       cwd: cwd || '/opt/stack/AIStudio',
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    };
+
+    if (timeout) {
+      options.timeout = timeout;
+    }
+
+    return execSync(command, options);
   } catch (error: any) {
+    // Check if this is a timeout error
+    if (error.killed && error.signal === 'SIGTERM') {
+      throw new Error(`Git command timed out after ${timeout}ms: ${command}`);
+    }
+
     const stderr = error.stderr?.toString() || error.message;
     throw new Error(`Git command failed: ${stderr}\nCommand: ${command}`);
   }

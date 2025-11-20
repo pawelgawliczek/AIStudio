@@ -181,6 +181,11 @@ export function validateRequired(params: any, required: string[]): void {
 export function handlePrismaError(error: any, operation: string): never {
   console.error(`Prisma error during ${operation}:`, error);
 
+  // Check if error is already an MCPError before wrapping
+  if (error.name === 'MCPError' || error instanceof MCPError) {
+    throw error;  // Already wrapped, re-throw as-is
+  }
+
   if (error.code === 'P2002') {
     throw new ValidationError(
       `A record with this ${error.meta?.target || 'field'} already exists`,
