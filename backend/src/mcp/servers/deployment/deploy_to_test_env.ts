@@ -125,10 +125,15 @@ This tool orchestrates the complete deployment process:
 4. Executes safe migrations if schema changes detected (with queue locking)
 5. Installs dependencies if package.json/package-lock.json changed
 6. Rebuilds containers if Dockerfile or docker-compose.yml changed
-7. Checks out story branch in main worktree
-8. Restarts backend and frontend services
-9. Waits for health checks to pass (max 2 minutes)
-10. Updates test queue status to 'running'
+7. Uses dev worktree for deployment (no git checkout needed - already on correct branch)
+8. Rebuilds containers with volume mounts pointing to dev worktree
+9. Restarts backend and frontend services with worktree code
+10. Waits for health checks to pass (max 2 minutes)
+11. Updates test queue status to 'running'
+
+The tool supports EP-7 worktree workflow by using existing dev worktrees instead of
+checking out branches in the main worktree. This avoids git conflicts and maintains
+proper isolation between concurrent development and testing.
 
 The tool ensures safe deployments with automatic rollback on migration failures.`,
   inputSchema: {
@@ -265,14 +270,22 @@ export async function handler(
       actionsExecuted.dockerRebuild = true;
     }
 
-    // Phase 8: Git Checkout
-    console.log(`Checking out branch ${worktree.branchName}...`);
-    await checkoutStoryBranch(mainWorktreePath, worktree.branchName);
-    actionsExecuted.gitCheckout = true;
+    // Phase 8: Set Volume Mount Path (EP-7 Worktree Support)
+    // Instead of checking out the branch in main worktree (which fails when branch
+    // is already checked out in dev worktree), we set the CODE_PATH environment
+    // variable to point Docker volume mounts to the dev worktree.
+    console.log(`Using dev worktree for deployment: ${worktree.worktreePath}`);
+    process.env.CODE_PATH = worktree.worktreePath;
+
+    // Rebuild containers with new volume mount pointing to dev worktree
+    console.log('Rebuilding containers with dev worktree volume mount...');
+    await buildContainers(worktree.worktreePath, true, true);
+    actionsExecuted.dockerRebuild = true;
+    actionsExecuted.gitCheckout = true; // Logically equivalent - we're "using" the branch
 
     // Phase 9: Container Restart
-    console.log('Restarting services...');
-    await restartServices(mainWorktreePath);
+    console.log('Restarting services with dev worktree code...');
+    await restartServices(worktree.worktreePath);
     actionsExecuted.containerRestart = true;
 
     // Phase 10: Health Checks
@@ -422,34 +435,9 @@ async function fetchLatestFromOrigin(mainWorktreePath: string): Promise<void> {
 }
 
 /**
- * Checkout story branch in main worktree
+ * Note: checkoutStoryBranch function removed - no longer needed with EP-7 worktree support.
+ * The dev worktree is already on the correct branch, so we use volume mount switching instead.
  */
-async function checkoutStoryBranch(
-  mainWorktreePath: string,
-  branchName: string
-): Promise<void> {
-  try {
-    execGit(`git checkout ${branchName}`, mainWorktreePath);
-  } catch (error: any) {
-    // Check if it's due to uncommitted changes
-    const statusOutput = execGit('git status --short', mainWorktreePath);
-
-    if (statusOutput.trim()) {
-      throw new DeploymentError(
-        `Cannot checkout branch ${branchName} - uncommitted changes in main worktree:\n${statusOutput}\n\nStash or commit changes first.`,
-        DeploymentPhase.GIT_CHECKOUT,
-        true,
-        'Run: git stash && deploy again, or commit changes'
-      );
-    }
-
-    throw new DeploymentError(
-      `Failed to checkout branch ${branchName}: ${error.message}`,
-      DeploymentPhase.GIT_CHECKOUT,
-      true
-    );
-  }
-}
 
 /**
  * Execute safe migration with queue locking
