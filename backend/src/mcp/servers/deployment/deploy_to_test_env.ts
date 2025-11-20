@@ -14,11 +14,11 @@
  * 10. Updates test queue status
  */
 
-import { PrismaClient } from '@prisma/client';
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
 import { execGit } from '../git/git_utils.js';
