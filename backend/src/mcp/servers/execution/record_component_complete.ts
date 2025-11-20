@@ -456,8 +456,11 @@ export async function handler(prisma: PrismaClient, params: any) {
   const cacheHitRate = (cacheHits + cacheMisses) > 0 ? cacheHits / (cacheHits + cacheMisses) : 0;
   const errorRate = toolCalls > 0 ? toolErrors / toolCalls : 0;
   const successRate = 1 - errorRate;
-  // Include cache_read_input_tokens in total - these are actual input tokens used by the model
-  const totalTokens = tokensInput + tokensCacheRead + tokensOutput;
+  // Total tokens used by the model (input + output only)
+  // Note: tokensCacheRead is a subset of tokensInput (cached portion), not additive
+  // Note: tokensCacheWrite is also a subset of tokensInput (cache creation overhead)
+  // These are tracked separately for cache performance metrics, not billing totals
+  const totalTokens = tokensInput + tokensOutput;
   const tokensPerSecond = durationSeconds > 0 ? totalTokens / durationSeconds : 0;
 
   // Format tool breakdown with averages
