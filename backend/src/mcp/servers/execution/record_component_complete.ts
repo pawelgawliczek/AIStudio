@@ -113,7 +113,17 @@ interface TranscriptMetrics {
 }
 
 // Parse Claude Code transcript.jsonl file to extract metrics
-async function parseTranscript(transcriptPath: string): Promise<TranscriptMetrics> {
+/**
+ * Parse transcript with optional time filtering
+ * @param transcriptPath Path to transcript file
+ * @param startTime Optional start time filter (only count entries after this)
+ * @param endTime Optional end time filter (only count entries before this)
+ */
+async function parseTranscript(
+  transcriptPath: string,
+  startTime?: Date,
+  endTime?: Date
+): Promise<TranscriptMetrics> {
   const metrics: TranscriptMetrics = {
     tokensInput: 0,
     tokensOutput: 0,
@@ -150,6 +160,16 @@ async function parseTranscript(transcriptPath: string): Promise<TranscriptMetric
 
     try {
       const entry = JSON.parse(line);
+
+      // Time filtering: skip entries outside the component execution window
+      if (startTime || endTime) {
+        const entryTimestamp = entry.timestamp || entry.message?.timestamp;
+        if (entryTimestamp) {
+          const entryTime = new Date(entryTimestamp);
+          if (startTime && entryTime < startTime) continue;
+          if (endTime && entryTime > endTime) continue;
+        }
+      }
 
       // Track user messages (prompts)
       if (entry.type === 'human' || entry.type === 'user' || entry.role === 'user') {
@@ -369,6 +389,8 @@ export async function handler(prisma: PrismaClient, params: any) {
 
   // Auto-detect transcript if not provided
   let transcriptPath = params.transcriptPath;
+  let multiTranscriptPaths: string[] = [];
+
   if (!transcriptPath) {
     // Get transcript tracking from ComponentRun metadata (internal tracking data)
     const componentMetadata = (componentRun.metadata as Record<string, any>) || {};
@@ -380,6 +402,10 @@ export async function handler(prisma: PrismaClient, params: any) {
 
       // Find NEW transcripts (created after component start, not in existingBefore list)
       if (fs.existsSync(transcriptDir)) {
+        // Wait 10 seconds before parsing to let files finish being written
+        // This handles the case where transcript files are still being flushed
+        await new Promise(resolve => setTimeout(resolve, 10000));
+
         const currentTranscripts = fs.readdirSync(transcriptDir)
           .filter((f: string) => f.endsWith('.jsonl'));
 
@@ -388,15 +414,8 @@ export async function handler(prisma: PrismaClient, params: any) {
         );
 
         if (newTranscripts.length > 0) {
-          // If multiple new transcripts, pick the most recently modified one
-          const mostRecent = newTranscripts
-            .map((f: string) => ({
-              name: f,
-              mtime: fs.statSync(path.join(transcriptDir, f)).mtime,
-            }))
-            .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())[0];
-
-          transcriptPath = path.join(transcriptDir, mostRecent.name);
+          // MULTI-TRANSCRIPT AGGREGATION: Parse ALL new transcripts, not just one
+          multiTranscriptPaths = newTranscripts.map(f => path.join(transcriptDir, f));
           autoDetectedTranscript = true;
         } else {
           // No new transcripts - agent might have shared orchestrator's session
@@ -413,18 +432,108 @@ export async function handler(prisma: PrismaClient, params: any) {
         }
       }
     }
+  } else {
+    // Single transcript path provided explicitly
+    multiTranscriptPaths = [transcriptPath];
   }
 
-  if (transcriptPath) {
-    // Parse transcript file instead of OTEL events
+  // Parse transcripts with time filtering
+  if (multiTranscriptPaths.length > 0 || transcriptPath) {
     dataSource = 'transcript';
-    transcriptMetrics = await parseTranscript(transcriptPath);
+
+    // Calculate time window for filtering (component start to finish + 10s buffer)
+    const componentStart = componentRun.startedAt;
+    const componentEnd = componentRun.finishedAt || new Date();
+    const bufferMs = 10000; // 10 second buffer to catch late entries
+    const filterEndTime = new Date(componentEnd.getTime() + bufferMs);
+
+    // Initialize aggregated metrics
+    const aggregatedMetrics: TranscriptMetrics = {
+      tokensInput: 0,
+      tokensOutput: 0,
+      tokensCacheRead: 0,
+      tokensCacheWrite: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      toolCalls: 0,
+      toolErrors: 0,
+      linesAdded: 0,
+      linesDeleted: 0,
+      linesModified: 0,
+      filesModified: [],
+      testsGenerated: 0,
+      toolBreakdown: {},
+      userPrompts: 0,
+      systemIterations: 0,
+    };
+
+    const allFilesAffected = new Set<string>();
+    const transcriptsToProcess = multiTranscriptPaths.length > 0 ? multiTranscriptPaths : [transcriptPath];
+    let parsedCount = 0;
+    let skippedCount = 0;
+
+    // Parse all transcript files with time filtering
+    for (const tPath of transcriptsToProcess) {
+      try {
+        const fileMetrics = await parseTranscript(tPath, componentStart, filterEndTime);
+
+        // Aggregate metrics
+        aggregatedMetrics.tokensInput += fileMetrics.tokensInput;
+        aggregatedMetrics.tokensOutput += fileMetrics.tokensOutput;
+        aggregatedMetrics.tokensCacheRead += fileMetrics.tokensCacheRead;
+        aggregatedMetrics.tokensCacheWrite += fileMetrics.tokensCacheWrite;
+        aggregatedMetrics.cacheHits += fileMetrics.cacheHits;
+        aggregatedMetrics.cacheMisses += fileMetrics.cacheMisses;
+        aggregatedMetrics.toolCalls += fileMetrics.toolCalls;
+        aggregatedMetrics.toolErrors += fileMetrics.toolErrors;
+        aggregatedMetrics.linesAdded += fileMetrics.linesAdded;
+        aggregatedMetrics.linesDeleted += fileMetrics.linesDeleted;
+        aggregatedMetrics.linesModified += fileMetrics.linesModified;
+        aggregatedMetrics.testsGenerated += fileMetrics.testsGenerated;
+        aggregatedMetrics.userPrompts += fileMetrics.userPrompts;
+        aggregatedMetrics.systemIterations += fileMetrics.systemIterations;
+
+        // Merge files affected
+        fileMetrics.filesModified.forEach(f => allFilesAffected.add(f));
+
+        // Merge tool breakdown
+        for (const [toolName, toolStats] of Object.entries(fileMetrics.toolBreakdown)) {
+          if (!aggregatedMetrics.toolBreakdown[toolName]) {
+            aggregatedMetrics.toolBreakdown[toolName] = { calls: 0, errors: 0, totalDuration: 0 };
+          }
+          aggregatedMetrics.toolBreakdown[toolName].calls += toolStats.calls;
+          aggregatedMetrics.toolBreakdown[toolName].errors += toolStats.errors;
+          aggregatedMetrics.toolBreakdown[toolName].totalDuration += toolStats.totalDuration;
+        }
+
+        parsedCount++;
+      } catch (err) {
+        console.warn(`Failed to parse transcript ${tPath}:`, err);
+        skippedCount++;
+      }
+    }
+
+    aggregatedMetrics.filesModified = Array.from(allFilesAffected);
+    transcriptMetrics = aggregatedMetrics;
 
     // Apply cleanup policy after parsing
-    const cleanupPolicy = params.cleanupPolicy || 'truncate';
-    cleanupMessage = await cleanupTranscript(transcriptPath, cleanupPolicy, componentRun.id);
+    // CHANGED: Default to 'keep' instead of 'truncate' to prevent data loss
+    // when multiple components share transcripts or run in parallel
+    const cleanupPolicy = params.cleanupPolicy || 'keep';
+
     if (autoDetectedTranscript) {
-      cleanupMessage = `Auto-detected transcript: ${path.basename(transcriptPath)}. ${cleanupMessage}`;
+      cleanupMessage = `Auto-detected ${parsedCount} transcript(s) (skipped ${skippedCount}). Time-filtered to component execution window. Cleanup: ${cleanupPolicy}`;
+    } else {
+      cleanupMessage = `Parsed ${parsedCount} transcript(s). Cleanup: ${cleanupPolicy}`;
+    }
+
+    // Apply cleanup to all parsed transcripts
+    for (const tPath of transcriptsToProcess) {
+      try {
+        await cleanupTranscript(tPath, cleanupPolicy, componentRun.id);
+      } catch (err) {
+        console.warn(`Failed to cleanup transcript ${tPath}:`, err);
+      }
     }
   }
 

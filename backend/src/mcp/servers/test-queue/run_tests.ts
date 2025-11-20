@@ -1,6 +1,6 @@
+import { execSync } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { execSync } from 'child_process';
 import {
   RunTestsParams,
   RunTestsResponse,

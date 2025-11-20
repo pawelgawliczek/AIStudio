@@ -22,6 +22,7 @@ import { UseCasesModule } from './use-cases/use-cases.module';
 import { UsersModule } from './users/users.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { WorkersModule } from './workers/workers.module';
+import { QueueProcessorModule } from './workers/queue-processor.module';
 // import { LayersModule } from './layers/layers.module'; // Removed - layers deprecated
 // import { ComponentsModule } from './components/components.module'; // Removed - old components deprecated
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
@@ -49,6 +50,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     TestCasesModule,
     TestExecutionsModule,
     WorkersModule,
+    QueueProcessorModule, // Queue processor background worker
     // LayersModule, // Removed - layers deprecated
     // ComponentsModule, // Removed - old components deprecated
     ComponentsModule, // New Generic Component pattern
