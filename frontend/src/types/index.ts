@@ -114,6 +114,7 @@ export interface Story {
     subtasks: number;
     commits: number;
     runs: number;
+    workflowRuns: number;
   };
   layers?: Array<{
     layer: Layer;
@@ -123,6 +124,16 @@ export interface Story {
   }>;
   baAnalysis?: string;
   architectAnalysis?: string;
+  contextExploration?: string;
+  designerAnalysis?: string;
+  contextExploredAt?: string;
+  baAnalyzedAt?: string;
+  designerAnalyzedAt?: string;
+  architectAnalyzedAt?: string;
+  // Traceability properties
+  workflowRuns?: any[];
+  useCaseLinks?: any[];
+  commits?: any[];
 }
 
 // Layer types
@@ -773,10 +784,12 @@ export interface CoordinatorAgent {
   description: string;
   domain: string;
   coordinatorInstructions: string;
+  flowDiagram?: string;
   config: ExecutionConfig;
   tools: string[];
   decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
   componentIds: string[];
+  components?: Component[];
   active: boolean;
   version: string;
   createdAt: string;
@@ -840,7 +853,10 @@ export interface Workflow {
     id: string;
     name: string;
     domain: string;
-  };
+    flowDiagram?: string;
+    componentIds?: string[];
+    components?: Component[];
+  } | CoordinatorAgent;
   usageStats?: {
     totalRuns: number;
     avgRuntime: number;

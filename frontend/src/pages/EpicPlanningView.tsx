@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -27,6 +27,7 @@ type SortOption = 'priority-high' | 'priority-low' | 'created-new' | 'created-ol
 
 export function EpicPlanningView() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { selectedProject } = useProject();
   const projectId = selectedProject?.id || '';
 
@@ -39,6 +40,7 @@ export function EpicPlanningView() {
   const typeFilter = searchParams.get('type')?.split(',') || [];
   const epicFilter = searchParams.get('epic')?.split(',') || [];
   const searchQuery = searchParams.get('search') || '';
+  const editStoryKey = searchParams.get('editStory') || null;
 
   // Modal/drawer state
   const [selectedItem, setSelectedItem] = useState<Story | Epic | null>(null);
@@ -53,6 +55,12 @@ export function EpicPlanningView() {
 
   // Epic collapse state (track which epics are collapsed, all others are expanded by default)
   const [collapsedEpics, setCollapsedEpics] = useState<Set<string>>(new Set());
+
+  // Hide completed items state (with sessionStorage persistence)
+  const [hideCompletedItems, setHideCompletedItems] = useState<boolean>(() => {
+    const stored = sessionStorage.getItem('hideCompletedItems');
+    return stored === null ? true : stored === 'true';
+  });
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -144,6 +152,29 @@ export function EpicPlanningView() {
     },
   });
 
+  // Handle editStory query parameter - open directly in edit modal
+  useEffect(() => {
+    if (editStoryKey && planningData && !showEditModal) {
+      // Find the story in all epics and unassigned stories
+      const allStories = [
+        ...planningData.epics.flatMap(epic => epic.stories || []),
+        ...planningData.unassignedStories,
+      ];
+
+      const storyToEdit = allStories.find(story => story.key === editStoryKey);
+
+      if (storyToEdit) {
+        // Open directly in edit modal, skip the read-only drawer
+        setEditingStory(storyToEdit);
+        setShowEditModal(true);
+        // Clear the query parameter after opening
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('editStory');
+        setSearchParams(newParams, { replace: true });
+      }
+    }
+  }, [editStoryKey, planningData, showEditModal, searchParams, setSearchParams]);
+
   // Filter and sort logic
   const filteredAndSortedData = useMemo(() => {
     if (!planningData) return { epics: [], unassignedStories: [] };
@@ -154,6 +185,11 @@ export function EpicPlanningView() {
     // Apply filters
     const filterStories = (stories: Story[]) => {
       return stories.filter(story => {
+        // Hide completed items filter
+        if (hideCompletedItems && story.status === 'done') {
+          return false;
+        }
+
         // Status filter
         if (statusFilter.length > 0 && !statusFilter.includes(story.status)) {
           return false;
@@ -224,7 +260,7 @@ export function EpicPlanningView() {
     unassignedStories = sortStories(unassignedStories);
 
     return { epics, unassignedStories };
-  }, [planningData, statusFilter, typeFilter, epicFilter, searchQuery, sortOption]);
+  }, [planningData, statusFilter, typeFilter, epicFilter, searchQuery, sortOption, hideCompletedItems]);
 
   // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -304,8 +340,15 @@ export function EpicPlanningView() {
   };
 
   const handleItemClick = (item: Story | Epic) => {
-    setSelectedItem(item);
-    setDrawerOpen(true);
+    // Navigate to dedicated story page for stories
+    if ('status' in item) {
+      // It's a Story
+      navigate(`/story/${item.key}`);
+    } else {
+      // It's an Epic - open drawer
+      setSelectedItem(item);
+      setDrawerOpen(true);
+    }
   };
 
   const handleDrawerClose = () => {
@@ -390,6 +433,14 @@ export function EpicPlanningView() {
     });
   };
 
+  const toggleHideCompletedItems = () => {
+    setHideCompletedItems(prev => {
+      const newValue = !prev;
+      sessionStorage.setItem('hideCompletedItems', String(newValue));
+      return newValue;
+    });
+  };
+
   const updateFilter = (key: string, value: string[]) => {
     const newParams = new URLSearchParams(searchParams);
     if (value.length > 0) {
@@ -442,13 +493,13 @@ export function EpicPlanningView() {
             <h1 className="text-2xl font-bold text-fg">Epic Planning</h1>
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
-              <div className="flex items-center bg-muted rounded-lg p-1">
+              <div className="flex items-center bg-bg-secondary rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grouped')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'grouped'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-fg'
+                      ? 'bg-primary-600 dark:bg-primary-700 text-white'
+                      : 'text-muted hover:text-fg hover:bg-card'
                   }`}
                 >
                   Grouped by Epics
@@ -457,8 +508,8 @@ export function EpicPlanningView() {
                   onClick={() => setViewMode('flat')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'flat'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-fg'
+                      ? 'bg-primary-600 dark:bg-primary-700 text-white'
+                      : 'text-muted hover:text-fg hover:bg-card'
                   }`}
                 >
                   Flat View
@@ -469,7 +520,7 @@ export function EpicPlanningView() {
               <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="px-4 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="px-4 py-2 bg-card border border-border rounded-lg text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="priority-high">Priority: High to Low</option>
                 <option value="priority-low">Priority: Low to High</option>
@@ -479,6 +530,14 @@ export function EpicPlanningView() {
                 <option value="title-az">Title: A-Z</option>
                 <option value="title-za">Title: Z-A</option>
               </select>
+
+              {/* Show/Hide Completed Toggle */}
+              <button
+                onClick={toggleHideCompletedItems}
+                className="px-4 py-2 bg-card border border-border rounded-lg text-sm text-fg font-medium hover:bg-bg-secondary transition-colors"
+              >
+                {hideCompletedItems ? 'Show Completed' : 'Hide Completed'}
+              </button>
 
               {/* Filters */}
               <PlanningFilters
@@ -498,30 +557,30 @@ export function EpicPlanningView() {
           {/* Active Filters Display */}
           {hasActiveFilters && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Filters:</span>
+              <span className="text-muted">Filters:</span>
               {statusFilter.length > 0 && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded">
                   Status: {statusFilter.join(', ')}
                 </span>
               )}
               {typeFilter.length > 0 && (
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded">
                   Type: {typeFilter.join(', ')}
                 </span>
               )}
               {epicFilter.length > 0 && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded">
                   Epic: {epicFilter.length} selected
                 </span>
               )}
               {searchQuery && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                <span className="px-2 py-1 bg-bg-secondary text-fg rounded border border-border">
                   Search: "{searchQuery}"
                 </span>
               )}
               <button
                 onClick={clearAllFilters}
-                className="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                className="ml-2 px-3 py-1 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
               >
                 Clear All
               </button>
@@ -534,8 +593,8 @@ export function EpicPlanningView() {
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-2 text-muted-foreground">Loading planning data...</p>
+                <div className="inline-block w-8 h-8 border-4 border-primary-600 dark:border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-2 text-muted">Loading planning data...</p>
               </div>
             </div>
           ) : (
@@ -551,6 +610,7 @@ export function EpicPlanningView() {
                       onAddStory={handleAddStory}
                       isExpanded={!collapsedEpics.has(epic.id)}
                       onToggleExpand={() => toggleEpicExpansion(epic.id)}
+                      hideCompletedItems={hideCompletedItems}
                     />
                   ))}
 
@@ -561,12 +621,13 @@ export function EpicPlanningView() {
                       stories={filteredAndSortedData.unassignedStories}
                       onStoryClick={handleItemClick}
                       onAddStory={handleAddStory}
+                      hideCompletedItems={hideCompletedItems}
                     />
                   )}
 
                   {filteredAndSortedData.epics.length === 0 && filteredAndSortedData.unassignedStories.length === 0 && (
                     <div className="text-center py-12">
-                      <p className="text-muted-foreground">No items match the current filters.</p>
+                      <p className="text-muted">No items match the current filters.</p>
                     </div>
                   )}
                 </div>

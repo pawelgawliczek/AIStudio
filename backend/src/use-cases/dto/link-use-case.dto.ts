@@ -1,6 +1,6 @@
-import { IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UseCaseRelation } from '@prisma/client';
+import { IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
 
 export class LinkUseCaseToStoryDto {
   @ApiProperty({

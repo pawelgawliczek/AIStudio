@@ -210,4 +210,137 @@ export class NotificationProcessor {
     // TODO: Notify story assignees
     return { success: true };
   }
+
+  /**
+   * Send disk space alert notification
+   * Triggered when disk space thresholds are breached
+   *
+   * @see ST-54 - Disk Space Monitoring & Alerts
+   */
+  @Process('disk-space-alert')
+  async notifyDiskSpaceAlert(
+    job: Job<{
+      alertType: 'warning' | 'critical';
+      availableSpaceGB: number;
+      thresholdGB: number;
+      percentUsed: number;
+      stalledWorktreeCount: number;
+      recommendations: string[];
+    }>
+  ) {
+    const {
+      alertType,
+      availableSpaceGB,
+      thresholdGB,
+      percentUsed,
+      stalledWorktreeCount,
+      recommendations,
+    } = job.data;
+
+    const severity = alertType === 'critical' ? 'CRITICAL' : 'WARNING';
+    const subject = `[${severity}] Disk Space Alert - ${availableSpaceGB}GB Available`;
+
+    const message = `
+Disk space alert triggered:
+
+Available Space: ${availableSpaceGB}GB (Threshold: ${thresholdGB}GB)
+Disk Usage: ${percentUsed}% full
+Stalled Worktrees: ${stalledWorktreeCount}
+
+Recommended Actions:
+${recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+
+Use the get_disk_usage MCP tool for detailed analysis.
+    `.trim();
+
+    this.logger.warn(`${severity} Disk Alert: ${availableSpaceGB}GB available`);
+
+    // Get admin email recipients from environment
+    const adminEmailsStr = process.env.DISK_ALERT_RECIPIENTS || '';
+    const adminEmails = adminEmailsStr
+      .split(',')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
+
+    if (adminEmails.length > 0) {
+      await this.sendEmailNotification(adminEmails, subject, message, job.data);
+    } else {
+      this.logger.warn('No DISK_ALERT_RECIPIENTS configured - skipping email notification');
+    }
+
+    // Also send WebSocket notification to admin users
+    // TODO: Query admin users from database
+    // For now, just log
+    this.logger.log('Would send WebSocket notification to admin users');
+
+    return { success: true, recipients: adminEmails.length };
+  }
+
+  /**
+   * Send weekly disk usage report
+   * Triggered every Monday at 9am
+   *
+   * @see ST-54 - Disk Space Monitoring & Alerts
+   */
+  @Process('weekly-disk-report')
+  async sendWeeklyDiskReport(
+    job: Job<{
+      reportId: string;
+      metrics: any;
+      weekOverWeekChangeGB?: string;
+      weekOverWeekChangePercent?: string;
+    }>
+  ) {
+    const { reportId, metrics, weekOverWeekChangeGB, weekOverWeekChangePercent } = job.data;
+
+    this.logger.log(`Sending weekly disk usage report: ${reportId}`);
+
+    const subject = `Weekly Disk Usage Report - ${new Date().toLocaleDateString()}`;
+
+    const message = `
+Weekly Disk Usage Report
+
+System Disk Space:
+- Total: ${metrics.totalSpaceGB}GB
+- Available: ${metrics.availableSpaceGB}GB (${100 - metrics.percentUsed}% free)
+- Used: ${metrics.percentUsed}% full
+
+Worktrees:
+- Total: ${metrics.worktreeCount}
+- Stalled: ${metrics.stalledWorktrees.length} worktrees (inactive > 14 days)
+
+Week-over-Week Change:
+${weekOverWeekChangeGB ? `- Disk Usage: ${weekOverWeekChangeGB}GB (${weekOverWeekChangePercent}%)` : '- No previous report for comparison'}
+
+Stalled Worktrees Requiring Attention:
+${metrics.stalledWorktrees.slice(0, 10).map((wt: any, i: number) =>
+  `${i + 1}. ${wt.storyKey} (${wt.branchName}): ${wt.daysStale} days old`
+).join('\n') || 'None'}
+
+Use the get_disk_usage MCP tool for detailed analysis and cleanup.
+    `.trim();
+
+    // Get admin email recipients
+    const adminEmailsStr = process.env.DISK_ALERT_RECIPIENTS || '';
+    const adminEmails = adminEmailsStr
+      .split(',')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
+
+    if (adminEmails.length > 0) {
+      await this.sendEmailNotification(adminEmails, subject, message, job.data);
+    }
+
+    // Update report as sent
+    await this.prisma.diskUsageReport.update({
+      where: { id: reportId },
+      data: {
+        emailSent: true,
+        emailSentAt: new Date(),
+      },
+    });
+
+    this.logger.log(`Weekly report sent to ${adminEmails.length} recipients`);
+    return { success: true, recipients: adminEmails.length };
+  }
 }

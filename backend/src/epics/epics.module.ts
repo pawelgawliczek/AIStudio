@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { EpicsController } from './epics.controller';
-import { EpicsService } from './epics.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WebSocketModule } from '../websocket/websocket.module';
+import { EpicsController } from './epics.controller';
+import { EpicsService } from './epics.service';
 
 @Module({
   imports: [PrismaModule, WebSocketModule],

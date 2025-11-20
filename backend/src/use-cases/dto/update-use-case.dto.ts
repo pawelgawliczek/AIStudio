@@ -1,5 +1,5 @@
-import { IsString, IsOptional, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
 
 export class UpdateUseCaseDto {
   @ApiPropertyOptional({

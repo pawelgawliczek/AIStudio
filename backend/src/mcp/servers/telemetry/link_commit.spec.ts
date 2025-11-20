@@ -66,11 +66,18 @@ describe('link_commit automatic mapping creation', () => {
       ];
 
       mockPrismaClient.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaClient.commit.findUnique.mockResolvedValue(null);
+      // First call to commit.findUnique (checking if exists): return null
+      // Second call (in ImpactAnalysisService): return full commit with story and useCaseLinks
+      mockPrismaClient.commit.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          ...mockCommit,
+          story: {
+            ...mockCommit.story,
+            useCaseLinks: mockUseCaseLinks,
+          },
+        });
       mockPrismaClient.commit.create.mockResolvedValue(mockCommit);
-      mockPrismaClient.storyUseCaseLink.findMany.mockResolvedValue(
-        mockUseCaseLinks,
-      );
       mockPrismaClient.fileUseCaseLink.findUnique.mockResolvedValue(null);
       mockPrismaClient.fileUseCaseLink.create.mockResolvedValue({});
 
@@ -108,13 +115,20 @@ describe('link_commit automatic mapping creation', () => {
       const mockCommit = {
         hash: 'abc123',
         projectId: 'proj-1',
+        author: 'test@example.com',
+        timestamp: new Date(),
+        message: 'Test commit',
         storyId: null,
         story: null,
+        epic: null,
         files: [{ filePath: 'file1.ts', locAdded: 10, locDeleted: 5 }],
       };
 
       mockPrismaClient.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaClient.commit.findUnique.mockResolvedValue(null);
+      // First call: null, Second call (ImpactAnalysisService): commit with no story
+      mockPrismaClient.commit.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(mockCommit);
       mockPrismaClient.commit.create.mockResolvedValue(mockCommit);
 
       const result = await handler(prisma, {
@@ -136,15 +150,23 @@ describe('link_commit automatic mapping creation', () => {
       const mockCommit = {
         hash: 'abc123',
         projectId: 'proj-1',
+        author: 'test@example.com',
+        timestamp: new Date(),
+        message: 'Test commit',
         storyId: 'story-1',
-        story: { key: 'ST-1' },
+        story: {
+          key: 'ST-1',
+          useCaseLinks: [], // Empty use case links
+        },
+        epic: null,
         files: [{ filePath: 'file1.ts', locAdded: 10, locDeleted: 5 }],
       };
 
       mockPrismaClient.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaClient.commit.findUnique.mockResolvedValue(null);
+      mockPrismaClient.commit.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(mockCommit);
       mockPrismaClient.commit.create.mockResolvedValue(mockCommit);
-      mockPrismaClient.storyUseCaseLink.findMany.mockResolvedValue([]);
 
       const result = await handler(prisma, {
         hash: 'abc123',
@@ -162,32 +184,38 @@ describe('link_commit automatic mapping creation', () => {
 
     it('should update existing mappings instead of creating duplicates', async () => {
       const mockProject = { id: 'proj-1', name: 'Test' };
-      const mockCommit = {
-        hash: 'abc123',
-        projectId: 'proj-1',
-        storyId: 'story-1',
-        story: { key: 'ST-1' },
-        files: [{ filePath: 'file1.ts', locAdded: 10, locDeleted: 5 }],
-      };
-
       const mockUseCaseLinks = [
         {
           useCaseId: 'uc-1',
           useCase: { key: 'UC-001' },
         },
       ];
+      const mockCommit = {
+        hash: 'abc123',
+        projectId: 'proj-1',
+        author: 'test@example.com',
+        timestamp: new Date(),
+        message: 'Test commit',
+        storyId: 'story-1',
+        story: {
+          key: 'ST-1',
+          useCaseLinks: mockUseCaseLinks,
+        },
+        epic: null,
+        files: [{ filePath: 'file1.ts', locAdded: 10, locDeleted: 5 }],
+      };
 
       const existingMapping = {
         id: 'mapping-1',
         occurrences: 3,
+        confidence: 0.7,
       };
 
       mockPrismaClient.project.findUnique.mockResolvedValue(mockProject);
-      mockPrismaClient.commit.findUnique.mockResolvedValue(null);
+      mockPrismaClient.commit.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(mockCommit);
       mockPrismaClient.commit.create.mockResolvedValue(mockCommit);
-      mockPrismaClient.storyUseCaseLink.findMany.mockResolvedValue(
-        mockUseCaseLinks,
-      );
       mockPrismaClient.fileUseCaseLink.findUnique.mockResolvedValue(
         existingMapping,
       );
@@ -211,6 +239,8 @@ describe('link_commit automatic mapping creation', () => {
         where: { id: 'mapping-1' },
         data: {
           occurrences: { increment: 1 },
+          confidence: 0.8, // Math.max(0.7, 0.8)
+          source: 'COMMIT_DERIVED',
           lastSeenAt: expect.any(Date),
         },
       });

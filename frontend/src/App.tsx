@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { PlanningView } from './pages/PlanningView';
 import { EpicPlanningView } from './pages/EpicPlanningView';
+import { StoryDetailPage } from './pages/StoryDetailPage';
 import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
@@ -15,9 +16,9 @@ import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { PerformanceDashboard } from './pages/PerformanceDashboard';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
-import AgentPerformanceView from './pages/AgentPerformanceView';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
 import ComponentCoverageView from './pages/ComponentCoverageView';
+import WorkflowDetailsPage from './pages/WorkflowDetailsPage';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
 
@@ -34,10 +35,11 @@ function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="planning" element={<PlanningView />} />
               <Route path="epic-planning" element={<EpicPlanningView />} />
+              <Route path="story/:storyKey" element={<StoryDetailPage />} />
+              <Route path="stories/:storyKey" element={<StoryDetailPage />} />
               <Route path="timeline" element={<TimelineView />} />
               <Route path="use-cases" element={<UseCaseLibraryView />} />
               <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
-              <Route path="agent-performance/:projectId" element={<AgentPerformanceView />} />
               <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
               <Route path="layers-components" element={<LayersComponentsPage />} />
@@ -47,6 +49,7 @@ function App() {
               <Route path="workflow-runs/:runId/results" element={<WorkflowResultsView />} />
               <Route path="workflow-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />
+              <Route path="analytics/workflow-details" element={<WorkflowDetailsPage />} />
             </Route>
           </Routes>
         </ProjectProvider>

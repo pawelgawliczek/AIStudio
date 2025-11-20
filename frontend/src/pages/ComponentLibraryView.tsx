@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { componentsService } from '../services/components.service';
+import { workflowsService } from '../services/workflows.service';
 import { Component } from '../types';
 import { ComponentCard } from '../components/ComponentCard';
 import { CreateComponentModal } from '../components/CreateComponentModal';
@@ -18,10 +19,21 @@ export function ComponentLibraryView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>('all');
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all');
+  const [selectedWorkflowFilter, setSelectedWorkflowFilter] = useState<string>('all');
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingComponent, setEditingComponent] = useState<Component | null>(null);
+
+  // Fetch workflows
+  const { data: workflows = [] } = useQuery({
+    queryKey: ['workflows', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      return workflowsService.getAll(projectId);
+    },
+    enabled: !!projectId,
+  });
 
   // Fetch components
   const { data: components = [], isLoading, refetch } = useQuery({
@@ -39,20 +51,43 @@ export function ComponentLibraryView() {
     enabled: !!projectId,
   });
 
-  // Get unique tags for filtering
+  // Get unique tags for filtering (exclude 'coordinator' tag)
   const tags = useMemo(() => {
     const tagSet = new Set<string>();
     components.forEach(c => {
-      c.tags.forEach(tag => tagSet.add(tag));
+      c.tags.forEach(tag => {
+        if (tag !== 'coordinator' && tag !== 'orchestrator') {
+          tagSet.add(tag);
+        }
+      });
     });
     return Array.from(tagSet).sort();
   }, [components]);
 
-  // Filter by tag on client side
+  // Filter by tag and workflow on client side
   const filteredComponents = useMemo(() => {
-    if (selectedTagFilter === 'all') return components;
-    return components.filter(c => c.tags.includes(selectedTagFilter));
-  }, [components, selectedTagFilter]);
+    let filtered = components;
+
+    // EXCLUDE COORDINATORS - they should only appear on /coordinators page
+    filtered = filtered.filter(c => !c.tags.includes('coordinator'));
+
+    // Tag filter
+    if (selectedTagFilter !== 'all') {
+      filtered = filtered.filter(c => c.tags.includes(selectedTagFilter));
+    }
+
+    // Workflow filter
+    if (selectedWorkflowFilter !== 'all') {
+      const workflow = workflows.find(w => w.id === selectedWorkflowFilter);
+      if (workflow?.coordinator?.componentIds) {
+        filtered = filtered.filter(c =>
+          workflow.coordinator!.componentIds!.includes(c.id)
+        );
+      }
+    }
+
+    return filtered;
+  }, [components, selectedTagFilter, selectedWorkflowFilter, workflows]);
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -176,13 +211,31 @@ export function ComponentLibraryView() {
             </div>
           )}
 
+          {/* Workflow Filter */}
+          {workflows.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-fg">Workflow:</label>
+              <select
+                value={selectedWorkflowFilter}
+                onChange={(e) => setSelectedWorkflowFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg"
+              >
+                <option value="all">All Workflows</option>
+                {workflows.map(workflow => (
+                  <option key={workflow.id} value={workflow.id}>{workflow.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Clear Filters */}
-          {(searchQuery || selectedActiveFilter !== 'all' || selectedTagFilter !== 'all') && (
+          {(searchQuery || selectedActiveFilter !== 'all' || selectedTagFilter !== 'all' || selectedWorkflowFilter !== 'all') && (
             <button
               onClick={() => {
                 setSearchQuery('');
                 setSelectedActiveFilter('all');
                 setSelectedTagFilter('all');
+                setSelectedWorkflowFilter('all');
               }}
               className="text-sm text-fg hover:text-accent underline"
             >

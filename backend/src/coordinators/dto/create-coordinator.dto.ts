@@ -1,6 +1,6 @@
-import { IsString, IsArray, IsObject, IsBoolean, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsString, IsArray, IsObject, IsBoolean, IsOptional, ValidateNested } from 'class-validator';
 
 class CoordinatorConfigDto {
   @ApiProperty({ description: 'Model ID (e.g., claude-sonnet-4)' })

@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { CoordinatorsService } from './coordinators.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { CoordinatorsService } from './coordinators.service';
 import { CreateCoordinatorDto, UpdateCoordinatorDto } from './dto';
 
 describe('CoordinatorsService', () => {

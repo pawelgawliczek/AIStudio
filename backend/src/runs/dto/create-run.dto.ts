@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsInt, IsBoolean, IsEnum, IsDateString, Min, IsObject } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RunOrigin } from '@prisma/client';
+import { IsString, IsOptional, IsInt, IsBoolean, IsEnum, IsDateString, Min, IsObject } from 'class-validator';
 
 export class CreateRunDto {
   @ApiProperty({ description: 'Project ID' })

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { storiesService } from '../services/stories.service';
 import { subtasksService } from '../services/subtasks.service';
 import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { WorkflowAnalysisDisplay } from '../components/workflow/WorkflowAnalysisDisplay';
+import { StoryTraceabilityTabs } from '../components/story/StoryTraceabilityTabs';
+import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -39,10 +43,18 @@ const STATUS_TRANSITIONS: Record<string, StoryStatus[]> = {
 };
 
 export function StoryDetailPage() {
-  const { projectId, storyId } = useParams<{ projectId: string; storyId: string }>();
+  // Support both /story/:storyKey and legacy /projects/:projectId/stories/:storyId patterns
+  const { storyKey, storyId: legacyStoryId, projectId } = useParams<{
+    storyKey?: string;
+    storyId?: string;
+    projectId?: string;
+  }>();
   const navigate = useNavigate();
 
-  console.log('[StoryDetailPage] Component mounted, params:', { projectId, storyId });
+  // Use storyKey if available, otherwise use legacy storyId
+  const storyIdOrKey = storyKey || legacyStoryId;
+
+  console.log('[StoryDetailPage] Component mounted, params:', { storyKey, legacyStoryId, projectId, storyIdOrKey });
 
   const [story, setStory] = useState<Story | null>(null);
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
@@ -57,7 +69,7 @@ export function StoryDetailPage() {
 
   // New subtask form
   const [newSubtask, setNewSubtask] = useState<CreateSubtaskDto>({
-    storyId: storyId!,
+    storyId: story?.id || '',
     title: '',
     description: '',
     layer: undefined,
@@ -68,13 +80,26 @@ export function StoryDetailPage() {
   const isAdmin = currentUser.role === 'admin';
 
   const loadStory = async () => {
-    if (!storyId || storyId === 'new') {
+    if (!storyIdOrKey || storyIdOrKey === 'new') {
       setIsLoading(false);  // Set loading to false for 'new' story creation
       return;
     }
     try {
       setIsLoading(true);
-      const data = await storiesService.getById(storyId);
+      console.log('[StoryDetailPage] Fetching story with idOrKey:', storyIdOrKey);
+      // Use the new endpoint that supports both ID and storyKey
+      const data = await storiesService.getById(storyIdOrKey);
+      console.log('[StoryDetailPage] Story data received:', data);
+      console.log('[StoryDetailPage] Complexity scores:', {
+        businessComplexity: data.businessComplexity,
+        technicalComplexity: data.technicalComplexity,
+        businessImpact: data.businessImpact,
+      });
+      console.log('[StoryDetailPage] Traceability data:', {
+        workflowRuns: data.workflowRuns?.length || 0,
+        useCaseLinks: data.useCaseLinks?.length || 0,
+        commits: data.commits?.length || 0,
+      });
       setStory(data);
     } catch (error) {
       console.error('Failed to load story:', error);
@@ -84,9 +109,9 @@ export function StoryDetailPage() {
   };
 
   const loadSubtasks = async () => {
-    if (!storyId || storyId === 'new') return;
+    if (!story?.id) return;
     try {
-      const data = await subtasksService.getAll({ storyId });
+      const data = await subtasksService.getAll({ storyId: story.id });
       setSubtasks(data);
     } catch (error) {
       console.error('Failed to load subtasks:', error);
@@ -94,20 +119,27 @@ export function StoryDetailPage() {
   };
 
   useEffect(() => {
-    console.log('[StoryDetailPage] useEffect triggered, storyId:', storyId);
+    console.log('[StoryDetailPage] useEffect triggered, storyIdOrKey:', storyIdOrKey);
     loadStory();
-    loadSubtasks();
-  }, [storyId]);
+  }, [storyIdOrKey]);
+
+  useEffect(() => {
+    if (story?.id) {
+      loadSubtasks();
+      // Update newSubtask storyId when story loads
+      setNewSubtask(prev => ({ ...prev, storyId: story.id }));
+    }
+  }, [story?.id]);
 
   // Real-time updates
   useStoryEvents({
     onStoryUpdated: (data) => {
-      if (data.story.id === storyId) {
+      if (data.story.id === story?.id) {
         setStory(data.story);
       }
     },
     onStoryStatusChanged: (data) => {
-      if (data.storyId === storyId) {
+      if (data.storyId === story?.id) {
         setStory(prev => prev ? { ...prev, status: data.newStatus } : null);
       }
     },
@@ -115,21 +147,21 @@ export function StoryDetailPage() {
 
   useSubtaskEvents({
     onSubtaskCreated: (data) => {
-      if (data.subtask.storyId === storyId) {
+      if (data.subtask.storyId === story?.id) {
         setSubtasks(prev => [...prev, data.subtask]);
       }
     },
     onSubtaskUpdated: (data) => {
-      if (data.subtask.storyId === storyId) {
+      if (data.subtask.storyId === story?.id) {
         setSubtasks(prev => prev.map(s => s.id === data.subtask.id ? data.subtask : s));
       }
     },
   });
 
   const handleStatusTransition = async (newStatus: StoryStatus) => {
-    if (!storyId) return;
+    if (!story?.id) return;
     try {
-      await storiesService.updateStatus(storyId, { status: newStatus });
+      await storiesService.updateStatus(story.id, { status: newStatus });
       loadStory();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to update status');
@@ -137,9 +169,9 @@ export function StoryDetailPage() {
   };
 
   const handleOverrideStatus = async () => {
-    if (!storyId || !isAdmin) return;
+    if (!story?.id || !isAdmin) return;
     try {
-      await storiesService.updateStatus(storyId, { status: overrideStatus });
+      await storiesService.updateStatus(story.id, { status: overrideStatus });
       setShowOverride(false);
       loadStory();
     } catch (error) {
@@ -148,10 +180,10 @@ export function StoryDetailPage() {
   };
 
   const handleCreateSubtask = async () => {
-    if (!newSubtask.title || !storyId) return;
+    if (!newSubtask.title || !story?.id) return;
     try {
-      await subtasksService.create({ ...newSubtask, storyId });
-      setNewSubtask({ storyId, title: '', description: '', layer: undefined, component: '' });
+      await subtasksService.create({ ...newSubtask, storyId: story.id });
+      setNewSubtask({ storyId: story.id, title: '', description: '', layer: undefined, component: '' });
       setShowAddSubtask(false);
       loadSubtasks();
     } catch (error) {
@@ -211,7 +243,7 @@ export function StoryDetailPage() {
       <div className="mb-6">
         <Breadcrumbs
           items={[
-            { name: 'Stories', href: `/projects/${projectId}/stories`, testId: 'breadcrumb-stories' },
+            { name: 'Stories', href: '/epic-planning', testId: 'breadcrumb-stories' },
             { name: story.key, testId: 'breadcrumb-story' },
           ]}
         />
@@ -221,7 +253,7 @@ export function StoryDetailPage() {
       <div className="bg-card border border-border rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
               <span className="text-sm font-mono text-muted">{story.key}</span>
               <span
                 data-testid="current-status"
@@ -232,15 +264,27 @@ export function StoryDetailPage() {
               >
                 {story.status}
               </span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                {story.type}
+              </span>
               {story.epic && (
                 <span className="text-xs text-muted">{story.epic.key}</span>
               )}
             </div>
             <h1 className="text-2xl font-bold text-fg mb-2">{story.title}</h1>
             {story.description && (
-              <p className="text-muted">{story.description}</p>
+              <div className="text-muted prose prose-sm max-w-none prose-headings:text-fg prose-p:text-muted prose-strong:text-fg prose-code:text-fg prose-pre:bg-bg-secondary">
+                <ReactMarkdown>{story.description}</ReactMarkdown>
+              </div>
             )}
           </div>
+          <button
+            onClick={() => navigate(`/epic-planning?editStory=${story.key}`)}
+            className="ml-4 px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm inline-flex items-center"
+          >
+            <PencilIcon className="h-4 w-4 mr-1" />
+            Edit
+          </button>
         </div>
 
         {/* Complexity Warning */}
@@ -334,8 +378,35 @@ export function StoryDetailPage() {
         </div>
       </div>
 
-      {/* Subtasks Section */}
-      <div className="bg-card border border-border rounded-lg shadow-md p-6">
+      {/* 2-Column Responsive Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Workflow Analysis Section */}
+          <WorkflowAnalysisDisplay story={story} />
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Traceability Section */}
+          <StoryTraceabilityTabs
+            workflowRuns={(story as any).workflowRuns}
+            useCaseLinks={(story as any).useCaseLinks}
+            commits={(story as any).commits}
+          />
+        </div>
+      </div>
+
+      {/* Token Metrics Section - Full Width */}
+      {story?.id && (
+        <div className="mb-6">
+          <TokenMetricsPanel storyId={story.id} />
+        </div>
+      )}
+
+      {/* Subtasks Section - Hidden */}
+      {false && (
+        <div className="bg-card border border-border rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-fg">Subtasks</h2>
           <div className="flex gap-2">
@@ -416,7 +487,7 @@ export function StoryDetailPage() {
               <button
                 onClick={() => {
                   setShowAddSubtask(false);
-                  setNewSubtask({ storyId: storyId!, title: '', description: '', layer: undefined, component: '' });
+                  setNewSubtask({ storyId: story?.id || '', title: '', description: '', layer: undefined, component: '' });
                 }}
                 className="px-4 py-2 rounded-md font-semibold bg-bg-secondary text-fg hover:bg-muted shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm"
               >
@@ -488,6 +559,7 @@ export function StoryDetailPage() {
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

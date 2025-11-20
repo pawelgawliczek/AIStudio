@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsObject, IsBoolean, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsObject, IsBoolean, ValidateNested } from 'class-validator';
 
 class TriggerConfigDto {
   @ApiProperty({ description: 'Trigger type', enum: ['manual', 'story_status_change', 'scheduled', 'webhook'], example: 'story_status_change' })

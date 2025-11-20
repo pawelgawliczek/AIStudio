@@ -1,10 +1,15 @@
 version: '3.8'
 
+# Vibe Studio Docker Compose Configuration
+# Production-ready setup with development capabilities
+# Usage: docker compose up -d --build
+
 services:
   # PostgreSQL Database with pgvector extension
   postgres:
     image: pgvector/pgvector:pg15
     container_name: vibe-studio-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: vibestudio
       POSTGRES_USER: postgres
@@ -14,6 +19,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backups:/backups  # Mount for database backups (ST-70)
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 10s
@@ -21,11 +27,17 @@ services:
       retries: 5
     networks:
       - aistudio-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Redis for caching and Bull queue
   redis:
     image: redis:7-alpine
     container_name: vibe-studio-redis
+    restart: unless-stopped
     ports:
       - '127.0.0.1:6380:6379'
     volumes:
@@ -38,6 +50,11 @@ services:
       retries: 5
     networks:
       - aistudio-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Backend API (NestJS)
   backend:
@@ -45,20 +62,29 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: vibe-studio-backend
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/vibestudio
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/vibestudio?schema=public
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: development-secret-change-in-production
       PORT: 3000
+      # HOST path for transcript tracking (where Claude Code runs, not Docker path)
+      PROJECT_HOST_PATH: /opt/stack/AIStudio
     ports:
-      - '127.0.0.1:3001:3000'
+      - '127.0.0.1:3000:3000'
     volumes:
-      - ./backend:/app/backend
-      - ./shared:/app/shared
-      - /app/backend/node_modules
-      - /app/shared/node_modules
-      - .:/opt/stack/AIStudio  # Mount full repository for code analysis
+      # For hot-reload during development
+      - ./backend/src:/app/backend/src
+      - ./backend/prisma:/app/backend/prisma
+      - ./shared/src:/app/shared/src
+      - ./frontend/src:/app/frontend/src:ro
+      # Mount .git for code analysis
+      - ./.git:/app/.git:ro
+      # Mount coverage data for test coverage analysis
+      - ./backend/coverage:/app/backend/coverage:ro
+      - ./frontend/coverage:/app/frontend/coverage:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,30 +93,45 @@ services:
     networks:
       - aistudio-network
       - stack_appnet
-    command: sh -c "cd backend && npx nest build && node dist/main.js"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Frontend (React + Vite)
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_WS_URL: /socket.io
     container_name: vibe-studio-frontend
-    environment:
-      VITE_API_URL: /api
-      VITE_WS_URL: /socket.io
+    restart: unless-stopped
     ports:
-      - '127.0.0.1:5174:5173'
-    volumes:
-      - ./frontend:/app/frontend
-      - ./shared:/app/shared
-      - /app/frontend/node_modules
-      - /app/shared/node_modules
+      - '127.0.0.1:5173:80'
     depends_on:
       - backend
     networks:
       - aistudio-network
       - stack_appnet
-    command: npm run dev --workspace=frontend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

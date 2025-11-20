@@ -20,8 +20,40 @@ interface ComponentRun {
   completedAt?: string;
   durationSeconds?: number;
   tokensUsed?: number;
+  // ST-27 Enhanced Metrics
+  tokensInput?: number;
+  tokensOutput?: number;
+  tokensCacheRead?: number;
+  tokensCacheWrite?: number;
+  cacheHits?: number;
+  cacheMisses?: number;
+  cacheHitRate?: number;
+  // Quality & Behavior
   userPrompts: number;
-  artifacts: string[];
+  systemIterations?: number;
+  humanInterventions?: number;
+  errorRate?: number;
+  successRate?: number;
+  // Code Impact
+  linesAdded?: number;
+  linesDeleted?: number;
+  linesModified?: number;
+  locGenerated?: number;
+  testsAdded?: number;
+  filesModified?: string[];
+  // Cost & Performance
+  cost?: number;
+  costBreakdown?: any;
+  tokensPerSecond?: number;
+  timeToFirstToken?: number;
+  modelId?: string;
+  temperature?: number;
+  // Tool Usage
+  toolBreakdown?: any;
+  // Artifacts & Content
+  artifacts: any[];
+  inputData?: any;
+  outputData?: any;
 }
 
 interface ComponentProgressTrackerProps {
@@ -109,15 +141,59 @@ const ComponentProgressTracker: React.FC<ComponentProgressTrackerProps> = ({
             </StepLabel>
             <StepContent>
               <Box pl={2}>
-                <Box display="flex" gap={2} flexWrap="wrap">
-                  {componentRun.tokensUsed && (
-                    <Typography variant="caption" color="text.secondary">
-                      Tokens: {componentRun.tokensUsed.toLocaleString()}
+                {/* Token Breakdown */}
+                <Box display="flex" gap={2} flexWrap="wrap" mb={0.5}>
+                  {componentRun.tokensInput !== undefined && (
+                    <Typography variant="caption" color="primary.main">
+                      In: {componentRun.tokensInput.toLocaleString()}
                     </Typography>
                   )}
+                  {componentRun.tokensOutput !== undefined && (
+                    <Typography variant="caption" color="secondary.main">
+                      Out: {componentRun.tokensOutput.toLocaleString()}
+                    </Typography>
+                  )}
+                  {componentRun.tokensCacheRead !== undefined && componentRun.tokensCacheRead > 0 && (
+                    <Typography variant="caption" color="success.main">
+                      Cached: {componentRun.tokensCacheRead.toLocaleString()}
+                    </Typography>
+                  )}
+                  {componentRun.cacheHitRate !== undefined && (
+                    <Typography variant="caption" color="text.secondary">
+                      ({(componentRun.cacheHitRate * 100).toFixed(0)}% cache)
+                    </Typography>
+                  )}
+                </Box>
+                {/* Other Metrics */}
+                <Box display="flex" gap={2} flexWrap="wrap">
                   {componentRun.userPrompts > 0 && (
                     <Typography variant="caption" color="text.secondary">
                       Prompts: {componentRun.userPrompts}
+                    </Typography>
+                  )}
+                  {componentRun.systemIterations !== undefined && componentRun.systemIterations > 0 && (
+                    <Typography variant="caption" color="text.secondary">
+                      Iterations: {componentRun.systemIterations}
+                    </Typography>
+                  )}
+                  {componentRun.linesAdded !== undefined && componentRun.linesAdded > 0 && (
+                    <Typography variant="caption" color="success.main">
+                      +{componentRun.linesAdded} lines
+                    </Typography>
+                  )}
+                  {componentRun.linesModified !== undefined && componentRun.linesModified > 0 && (
+                    <Typography variant="caption" color="info.main">
+                      ~{componentRun.linesModified} modified
+                    </Typography>
+                  )}
+                  {componentRun.testsAdded !== undefined && componentRun.testsAdded > 0 && (
+                    <Typography variant="caption" color="text.secondary">
+                      Tests: {componentRun.testsAdded}
+                    </Typography>
+                  )}
+                  {componentRun.cost !== undefined && (
+                    <Typography variant="caption" color="warning.main">
+                      ${componentRun.cost.toFixed(4)}
                     </Typography>
                   )}
                   {componentRun.artifacts.length > 0 && (
@@ -138,7 +214,7 @@ const ComponentProgressTracker: React.FC<ComponentProgressTrackerProps> = ({
       </Stepper>
 
       {componentRuns.length < totalComponents && (
-        <Box mt={2} p={2} bgcolor="grey.50" borderRadius={1}>
+        <Box mt={2} p={2} bgcolor="action.hover" borderRadius={1}>
           <Typography variant="body2" color="text.secondary">
             {totalComponents - componentRuns.length} component(s) remaining
           </Typography>

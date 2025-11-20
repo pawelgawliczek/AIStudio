@@ -3,13 +3,13 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { ValidationError, NotFoundError } from '../types';
 import {
   bootstrapProject,
   createProject,
   listProjects,
   getProject,
 } from './project.tools';
-import { ValidationError, NotFoundError } from '../types';
 
 // Mock Prisma Client
 jest.mock('@prisma/client', () => {

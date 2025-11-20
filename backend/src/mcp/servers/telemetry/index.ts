@@ -1,10 +1,4 @@
 export {
-  tool as logRunTool,
-  handler as logRunHandler,
-  metadata as logRunMetadata
-} from './log_run';
-
-export {
   tool as linkCommitTool,
   handler as linkCommitHandler,
   metadata as linkCommitMetadata

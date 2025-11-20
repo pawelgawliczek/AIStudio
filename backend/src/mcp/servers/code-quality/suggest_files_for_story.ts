@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
@@ -78,7 +78,7 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
   // Score each file based on relevance
   const scoredFiles = allFiles.map((file) => {
     let score = 0;
-    let reasons: string[] = [];
+    const reasons: string[] = [];
 
     const fileLower = file.filePath.toLowerCase();
     const fileName = file.filePath.split('/').pop() || '';

@@ -122,7 +122,7 @@ const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ runId }) => {
           variant="outlined"
           sx={{
             p: 2,
-            bgcolor: 'grey.50',
+            bgcolor: 'action.hover',
             maxHeight: '60vh',
             overflow: 'auto',
           }}

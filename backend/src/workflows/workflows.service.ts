@@ -17,7 +17,7 @@ export class WorkflowsService {
     }
 
     // Verify coordinator exists and belongs to the project
-    const coordinator = await this.prisma.coordinatorAgent.findUnique({
+    const coordinator = await this.prisma.component.findUnique({
       where: { id: dto.coordinatorId },
     });
 
@@ -76,7 +76,34 @@ export class WorkflowsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return workflows.map((w) => this.mapToResponseDto(w));
+    // Fetch component names for coordinators
+    const workflowsWithComponents = await Promise.all(
+      workflows.map(async (workflow) => {
+        const coordinatorConfig = (workflow.coordinator?.config as any) || {};
+        const componentIds = coordinatorConfig.componentIds || [];
+        if (componentIds.length > 0) {
+          const components = await this.prisma.component.findMany({
+            where: {
+              id: { in: componentIds },
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          });
+          return {
+            ...workflow,
+            coordinator: {
+              ...workflow.coordinator,
+              components,
+            },
+          };
+        }
+        return workflow;
+      }),
+    );
+
+    return workflowsWithComponents.map((w) => this.mapToResponseDto(w));
   }
 
   async findOne(id: string, includeStats = false): Promise<WorkflowResponseDto> {
@@ -122,7 +149,7 @@ export class WorkflowsService {
 
     // Verify coordinator if provided
     if (dto.coordinatorId) {
-      const coordinator = await this.prisma.coordinatorAgent.findUnique({
+      const coordinator = await this.prisma.component.findUnique({
         where: { id: dto.coordinatorId },
       });
 
@@ -246,6 +273,10 @@ export class WorkflowsService {
   }
 
   private mapToResponseDto(workflow: any): WorkflowResponseDto {
+    // Extract coordinator-specific fields from config
+    const coordinatorConfig = (workflow.coordinator?.config as any) || {};
+    const componentIds = coordinatorConfig.componentIds || [];
+
     return {
       id: workflow.id,
       projectId: workflow.projectId,
@@ -261,7 +292,10 @@ export class WorkflowsService {
         ? {
             id: workflow.coordinator.id,
             name: workflow.coordinator.name,
-            domain: workflow.coordinator.domain,
+            domain: coordinatorConfig.domain,
+            flowDiagram: coordinatorConfig.flowDiagram,
+            componentIds: componentIds,
+            components: workflow.coordinator.components,
           }
         : undefined,
     };

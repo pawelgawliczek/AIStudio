@@ -85,11 +85,12 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
         cost: acc.cost + (week.aggregated.avgCost || 0),
         duration: acc.duration + (week.aggregated.avgDuration || 0),
         loc: acc.loc + (week.aggregated.totalLoc || 0),
+        tests: acc.tests + (week.aggregated.testsAdded || 0),
         tokensPerLoc: acc.tokensPerLoc + (week.aggregated.avgTokensPerLoc || 0),
         locPerPrompt: acc.locPerPrompt + (week.aggregated.avgLocPerPrompt || 0),
         runtimePerLoc: acc.runtimePerLoc + (week.aggregated.avgRuntimePerLoc || 0),
       }),
-      { stories: 0, tokens: 0, cost: 0, duration: 0, loc: 0, tokensPerLoc: 0, locPerPrompt: 0, runtimePerLoc: 0 },
+      { stories: 0, tokens: 0, cost: 0, duration: 0, loc: 0, tests: 0, tokensPerLoc: 0, locPerPrompt: 0, runtimePerLoc: 0 },
     );
 
     const count = weeklyData.length;
@@ -99,6 +100,7 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
       cost: totals.cost / count,
       duration: totals.duration / count,
       loc: totals.loc / count,
+      tests: totals.tests / count,
       tokensPerLoc: totals.tokensPerLoc / count,
       locPerPrompt: totals.locPerPrompt / count,
       runtimePerLoc: totals.runtimePerLoc / count,
@@ -134,6 +136,9 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   LOC
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
+                  Tests
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase">
                   Success Rate
@@ -195,6 +200,11 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm text-fg">
+                          {formatNumber(week.aggregated.testsAdded)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div className="text-sm font-medium text-fg">
                           {week.aggregated.successRate.toFixed(0)}%
                         </div>
@@ -204,7 +214,7 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                     {/* Expanded workflow details */}
                     {isExpanded && week.workflows.length > 0 && (
                       <tr key={`${weekKey}-details`}>
-                        <td colSpan={7} className="px-4 py-0 bg-bg-secondary">
+                        <td colSpan={8} className="px-4 py-0 bg-bg-secondary">
                           <div className="py-3 pl-8">
                             <div className="text-xs font-semibold text-muted mb-2 uppercase">
                               Workflows in Week {week.weekNumber}
@@ -230,6 +240,9 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                                     </th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       LOC
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted">
+                                      Tests
                                     </th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted">
                                       Cost
@@ -277,6 +290,9 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                                         {formatNumber(workflow.totalLoc)}
                                       </td>
                                       <td className="px-3 py-2 text-right text-xs text-fg">
+                                        {formatNumber(workflow.testsAdded)}
+                                      </td>
+                                      <td className="px-3 py-2 text-right text-xs text-fg">
                                         {formatCost(workflow.avgCost)}
                                       </td>
                                     </tr>
@@ -308,6 +324,9 @@ export function WorkflowsTab({ weeklyData, workflowMetrics, isLoading }: Workflo
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-fg">
                     {formatNumber(Math.round(averages.loc))}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm text-fg">
+                    {formatNumber(Math.round(averages.tests))}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-fg">-</td>
                 </tr>

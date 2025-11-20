@@ -38,6 +38,7 @@ export interface AggregatedMetrics {
   totalLoc?: number;
   avgLocPerStory?: number;
   avgLocPerPrompt?: number;
+  testsAdded?: number;
   avgRuntimePerLoc?: number;
   avgRuntimePerToken?: number;
   avgPromptsPerRun?: number;

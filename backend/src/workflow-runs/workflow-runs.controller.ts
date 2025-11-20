@@ -11,15 +11,15 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { WorkflowRunsService } from './workflow-runs.service';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import {
   CreateWorkflowRunDto,
   UpdateWorkflowRunDto,
   WorkflowRunResponseDto,
   RunStatus,
 } from './dto';
+import { WorkflowRunsService } from './workflow-runs.service';
 
 @ApiTags('workflow-runs')
 @Controller('projects/:projectId/workflow-runs')
@@ -67,6 +67,16 @@ export class WorkflowRunsController {
       status,
       includeRelations: includeRelations === 'true',
     });
+  }
+
+  @Get('active/current')
+  @ApiOperation({ summary: 'Get active workflow run for project (for global tracking bar)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active workflow retrieved successfully (or null if none active)',
+  })
+  async getActiveWorkflow(@Param('projectId') projectId: string): Promise<any> {
+    return this.workflowRunsService.getActiveWorkflowForProject(projectId);
   }
 
   @Get(':id')

@@ -235,7 +235,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile.prod
+      dockerfile: backend/Dockerfile
     container_name: vibe-studio-backend
     restart: unless-stopped
     env_file:
@@ -260,7 +260,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile.prod
+      dockerfile: frontend/Dockerfile
     container_name: vibe-studio-frontend
     restart: unless-stopped
     env_file:
@@ -307,10 +307,10 @@ networks:
 
 ### Step 2: Create Production Dockerfiles
 
-Create `backend/Dockerfile.prod`:
+Create `backend/Dockerfile`:
 
 ```bash
-nano backend/Dockerfile.prod
+nano backend/Dockerfile
 ```
 
 ```dockerfile
@@ -370,10 +370,10 @@ EXPOSE 3000
 CMD cd backend && npx prisma migrate deploy && cd .. && node backend/dist/main.js
 ```
 
-Create `frontend/Dockerfile.prod`:
+Create `frontend/Dockerfile`:
 
 ```bash
-nano frontend/Dockerfile.prod
+nano frontend/Dockerfile
 ```
 
 ```dockerfile

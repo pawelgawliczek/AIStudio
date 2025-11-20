@@ -3,10 +3,10 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateEpicDto, UpdateEpicDto, FilterEpicDto } from './dto';
 import { EpicStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
+import { CreateEpicDto, UpdateEpicDto, FilterEpicDto } from './dto';
 
 @Injectable()
 export class EpicsService {

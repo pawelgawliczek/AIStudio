@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsUrl, MinLength, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectStatus } from '@prisma/client';
+import { IsString, IsOptional, IsUrl, MinLength, IsEnum } from 'class-validator';
 
 export class UpdateProjectDto {
   @ApiPropertyOptional({

@@ -9,3 +9,9 @@ export {
   handler as getComponentTestCoverageHandler,
   metadata as getComponentTestCoverageMetadata
 } from './get_component_test_coverage';
+
+export {
+  tool as createTestCaseTool,
+  handler as createTestCaseHandler,
+  metadata as createTestCaseMetadata
+} from './create_test_case';

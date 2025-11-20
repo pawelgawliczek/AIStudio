@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { EpicsService } from './epics.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { CreateEpicDto, UpdateEpicDto, FilterEpicDto } from './dto';
+import { EpicsService } from './epics.service';
 
 describe('EpicsService', () => {
   let service: EpicsService;

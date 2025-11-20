@@ -10,8 +10,6 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { MetricsService } from './metrics.service';
-import { MetricsQueryDto, WorkflowComparisonDto } from './dto/metrics-query.dto';
 import {
   WorkflowMetricsDto,
   ComponentMetricsDto,
@@ -19,6 +17,8 @@ import {
   WorkflowComparisonResponseDto,
   WeeklyAggregationDto,
 } from './dto/aggregated-metrics.dto';
+import { MetricsQueryDto, WorkflowComparisonDto } from './dto/metrics-query.dto';
+import { MetricsService } from './metrics.service';
 
 @Controller('projects/:projectId/metrics')
 @UseGuards(AuthGuard('jwt'))

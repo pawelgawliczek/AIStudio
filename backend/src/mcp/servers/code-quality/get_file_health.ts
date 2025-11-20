@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
@@ -87,13 +87,15 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
     );
   }
 
-  // Calculate risk score
-  // Risk = (complexity / 10) × churn × (100 - maintainability)
-  const riskScore = Math.round(
+  // Use stored risk score (calculated by worker using canonical formula) - ST-28
+  // Only recalculate if stored value is missing (backward compatibility)
+  // Implements BR-2 (Single Source of Truth) and BR-CALC-002 from baAnalysis
+  // Cap fallback calculation at 100 per AC17 requirements (ST-36)
+  const riskScore = fileMetric.riskScore ?? Math.max(0, Math.min(100, Math.round(
     (fileMetric.cyclomaticComplexity / 10) *
       fileMetric.churnRate *
-      (100 - fileMetric.maintainabilityIndex),
-  );
+      (100 - fileMetric.maintainabilityIndex)
+  )));
 
   // Parse code smells from metadata
   const codeSmells = (fileMetric.metadata as any)?.codeSmells || [];

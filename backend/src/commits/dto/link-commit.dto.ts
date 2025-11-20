@@ -1,6 +1,6 @@
-import { IsString, IsOptional, IsDateString, IsArray, ValidateNested, IsInt, Min } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsDateString, IsArray, ValidateNested, IsInt, Min } from 'class-validator';
 
 export class CommitFileDto {
   @ApiProperty({ description: 'File path relative to repository root' })
