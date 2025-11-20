@@ -26,12 +26,35 @@
 
 **ALWAYS use the safe migration system for ANY database schema changes:**
 
-### Required Commands
+### ⚠️ CRITICAL: Directory Requirements
 
-- ✅ **CORRECT**: `npm run migrate:safe` - Safe migration with all safeguards
-- ✅ **CORRECT**: `npm run migrate:safe:dry-run` - Preview migrations
-- ✅ **CORRECT**: `npm run db:backup` - Manual backup
-- ✅ **CORRECT**: `npm run db:restore` - Restore from backup
+**Safe migration scripts are ONLY in the ROOT package.json, NOT in backend/package.json**
+
+**YOU MUST run migration commands from the ROOT directory:**
+
+```bash
+# ✅ CORRECT - Run from ROOT
+cd /opt/stack/AIStudio              # ← Always change to ROOT first!
+npm run migrate:safe -- --story-id=ST-XX
+
+# ❌ WRONG - Will fail with "Missing script" error
+cd /opt/stack/AIStudio/backend      # ← Wrong directory!
+npm run migrate:safe                # ← Script doesn't exist here!
+```
+
+**If you get "Missing script: migrate:safe" error:**
+- You are in the WRONG directory (probably backend/)
+- Change to ROOT directory: `cd /opt/stack/AIStudio`
+- DO NOT use `prisma migrate deploy` as a fallback
+- DO NOT proceed without the safe migration wrapper
+- Report that ST-70 safe migration system needs verification
+
+### Required Commands (Run from ROOT)
+
+- ✅ **CORRECT**: `cd /opt/stack/AIStudio && npm run migrate:safe -- --story-id=ST-XX` - Safe migration with all safeguards
+- ✅ **CORRECT**: `cd /opt/stack/AIStudio && npm run migrate:safe:dry-run` - Preview migrations
+- ✅ **CORRECT**: `cd /opt/stack/AIStudio && npm run db:backup` - Manual backup
+- ✅ **CORRECT**: `cd /opt/stack/AIStudio && npm run db:restore` - Restore from backup
 
 ### Forbidden Commands
 
@@ -39,12 +62,28 @@
 - ❌ **NEVER USE**: `prisma db push` without safeguards
 - ❌ **NEVER USE**: Direct SQL without backup
 - ❌ **NEVER USE**: `prisma migrate deploy` without the safe migration wrapper
+- ❌ **NEVER USE**: `npx prisma migrate resolve --applied` without creating a backup first
 
-### Migration Workflow
+### Migration Workflow (MANDATORY STEPS)
 
-1. Create migration: `npx prisma migrate dev --create-only --name <description>`
-2. Preview changes: `npm run migrate:safe:dry-run`
-3. Execute safely: `npm run migrate:safe --story-id=ST-XX`
+1. **Create migration in backend/**:
+   ```bash
+   cd /opt/stack/AIStudio/backend
+   npx prisma migrate dev --create-only --name <description>
+   ```
+
+2. **Preview changes from ROOT**:
+   ```bash
+   cd /opt/stack/AIStudio
+   npm run migrate:safe:dry-run
+   ```
+
+3. **Execute safely from ROOT**:
+   ```bash
+   cd /opt/stack/AIStudio
+   npm run migrate:safe -- --story-id=ST-XX
+   ```
+
 4. The system automatically:
    - Creates pre-migration backup
    - Verifies backup integrity
@@ -54,6 +93,25 @@
    - Runs smoke tests
    - Releases queue lock
    - Auto-rolls back on any failure
+
+### Pre-Flight Validation
+
+**Before ANY migration, verify the safe migration system exists:**
+
+```bash
+cd /opt/stack/AIStudio
+if ! grep -q "migrate:safe" package.json; then
+    echo "❌ ERROR: Safe migration system not found!"
+    echo "ST-70 must be implemented first"
+    exit 1
+fi
+```
+
+**If validation fails:**
+- STOP immediately
+- DO NOT create or apply migrations
+- DO NOT use unsafe migration commands as fallback
+- Report dependency on ST-70 (Database Schema Migration Strategy & Safeguards)
 
 ### Enforcement
 
