@@ -25,6 +25,7 @@ const mockPrisma = {
   },
   worktree: {
     findFirst: jest.fn(),
+    update: jest.fn(),
   },
   testQueue: {
     findFirst: jest.fn(),
@@ -76,6 +77,10 @@ describe('deploy_to_test_env Tool', () => {
         branchName: 'ST-1-test-story',
         worktreePath: '/nonexistent/path',
       });
+      (mockPrisma.worktree.update as jest.Mock).mockResolvedValue({
+        id: 'worktree-1',
+        status: 'removed',
+      });
 
       const fs = require('fs');
       fs.existsSync = jest.fn().mockReturnValue(false);
@@ -83,6 +88,12 @@ describe('deploy_to_test_env Tool', () => {
       await expect(
         handler(mockPrisma, { storyId: 'story-1' })
       ).rejects.toThrow(ValidationError);
+
+      // Verify worktree status was updated to 'removed'
+      expect(mockPrisma.worktree.update).toHaveBeenCalledWith({
+        where: { id: 'worktree-1' },
+        data: { status: 'removed' },
+      });
     });
   });
 

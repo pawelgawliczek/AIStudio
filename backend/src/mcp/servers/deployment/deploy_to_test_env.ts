@@ -413,9 +413,22 @@ async function validateAndFetchStory(
 
   // Validate worktree filesystem exists
   if (!existsSync(worktree.worktreePath)) {
+    // Update worktree status to 'removed' since filesystem doesn't exist
+    await prisma.worktree.update({
+      where: { id: worktree.id },
+      data: { status: 'removed' }
+    });
+
     throw new ValidationError(
-      `Worktree path does not exist: ${worktree.worktreePath}`,
-      { worktreePath: worktree.worktreePath }
+      `Worktree path does not exist: ${worktree.worktreePath}\n\n` +
+      `The worktree was likely deleted from filesystem but database record remained.\n` +
+      `Database record has been updated to status='removed'.\n\n` +
+      `To fix: Run mcp__vibestudio__git_create_worktree with storyId="${storyId}" to create a fresh worktree, then retry deployment.`,
+      {
+        worktreePath: worktree.worktreePath,
+        storyId,
+        fixTool: 'mcp__vibestudio__git_create_worktree'
+      }
     );
   }
 
