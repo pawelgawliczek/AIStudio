@@ -1,0 +1,25 @@
+services:
+  test-postgres:
+    image: pgvector/pgvector:pg15
+    container_name: vibe-studio-test-postgres
+    environment:
+      POSTGRES_DB: vibestudio_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test
+    ports:
+      - '127.0.0.1:5434:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  test-redis:
+    image: redis:7-alpine
+    container_name: vibe-studio-test-redis
+    ports:
+      - '127.0.0.1:6381:6379'
+    tmpfs:
+      - /data

@@ -82,13 +82,13 @@ export async function buildContainers(
 export async function restartServices(
   mainWorktreePath: string
 ): Promise<void> {
-  console.log('Restarting backend and frontend services...');
+  console.log('Recreating containers with new images...');
 
   try {
-    execDockerCompose('restart backend frontend', mainWorktreePath, 60000); // 1 min timeout
-    console.log('Services restarted successfully');
+    execDockerCompose('up -d backend frontend', mainWorktreePath, 120000); // 2 min timeout (may need to pull/create)
+    console.log('Containers recreated successfully');
   } catch (error) {
-    console.error('Service restart failed');
+    console.error('Container recreation failed');
     throw error;
   }
 }

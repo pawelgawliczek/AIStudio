@@ -230,7 +230,7 @@ export async function handler(
           return null;
         }
 
-        const diskUsageMB = await getDiskUsageMB(wt.worktreePath).catch(() => null);
+        const diskUsageMB = getDiskUsageMB(wt.worktreePath) ?? null;
         const ageInDays = Math.floor((Date.now() - wt.createdAt.getTime()) / (24 * 60 * 60 * 1000));
 
         return {

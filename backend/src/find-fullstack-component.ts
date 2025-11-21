@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const component = await prisma.workflowComponent.findFirst({
+  const component = await prisma.component.findFirst({
     where: { name: { contains: 'Full-Stack', mode: 'insensitive' } }
   });
 
