@@ -8,6 +8,8 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { WorkflowAnalysisDisplay } from '../components/workflow/WorkflowAnalysisDisplay';
 import { StoryTraceabilityTabs } from '../components/story/StoryTraceabilityTabs';
 import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
+import { ReviewDashboard } from '../components/story/ReviewDashboard';
+import { StoryDetailTabs } from '../components/story/StoryDetailTabs';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -378,31 +380,59 @@ export function StoryDetailPage() {
         </div>
       </div>
 
-      {/* 2-Column Responsive Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {/* Workflow Analysis Section */}
-          <WorkflowAnalysisDisplay story={story} />
-        </div>
+      {/* Tabbed Content */}
+      <StoryDetailTabs
+        storyContent={
+          <>
+            {/* 2-Column Responsive Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-6">
+                {/* Workflow Analysis Section */}
+                <WorkflowAnalysisDisplay story={story} />
+              </div>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Traceability Section */}
-          <StoryTraceabilityTabs
-            workflowRuns={(story as any).workflowRuns}
-            useCaseLinks={(story as any).useCaseLinks}
-            commits={(story as any).commits}
-          />
-        </div>
-      </div>
+              {/* Right Column */}
+              <div className="space-y-6">
+                {/* Traceability Section */}
+                <StoryTraceabilityTabs
+                  workflowRuns={(story as any).workflowRuns}
+                  useCaseLinks={(story as any).useCaseLinks}
+                  commits={(story as any).commits}
+                />
+              </div>
+            </div>
+          </>
+        }
+        executionContent={
+          <>
+            {/* Token Metrics Section */}
+            {story?.id && (
+              <div className="mb-6">
+                <TokenMetricsPanel storyId={story.id} />
+              </div>
+            )}
 
-      {/* Token Metrics Section - Full Width */}
-      {story?.id && (
-        <div className="mb-6">
-          <TokenMetricsPanel storyId={story.id} />
-        </div>
-      )}
+            {/* Review & Deploy Dashboard */}
+            {story?.id && (
+              <div className="mb-6">
+                <ReviewDashboard
+                  story={story}
+                  commits={(story as any).commits || []}
+                  onDeployToTest={async () => {
+                    console.log('Deploy to test triggered for story:', story.key);
+                    // MCP tool call would happen here via backend API
+                  }}
+                  onQAStatusChange={async (status) => {
+                    console.log('QA status changed to:', status);
+                    // Update story metadata via API
+                  }}
+                />
+              </div>
+            )}
+          </>
+        }
+      />
 
       {/* Subtasks Section - Hidden */}
       {false && (
