@@ -204,9 +204,12 @@ export function createDefaultHealthChecks(): HealthCheckConfig[] {
  * Uses isolated test ports: backend=3001, frontend=5174
  */
 export function createTestStackHealthChecks(): HealthCheckConfig[] {
+  // Use 127.0.0.1 explicitly instead of localhost to avoid IPv6 resolution issues.
+  // MCP server runs on HOST and test containers bind to 127.0.0.1:3001 and 127.0.0.1:5174.
+  // Using localhost may resolve to ::1 (IPv6) on some systems, causing connection failures.
   return [
     {
-      url: 'http://localhost:3001/api/health',
+      url: 'http://127.0.0.1:3001/api/health',
       timeout: 5000,
       expectedStatus: 200,
       validateBody: (body: any) => {
@@ -214,7 +217,7 @@ export function createTestStackHealthChecks(): HealthCheckConfig[] {
       }
     },
     {
-      url: 'http://localhost:5174/health',
+      url: 'http://127.0.0.1:5174/health',
       timeout: 5000,
       expectedStatus: 200
       // Frontend nginx health endpoint
