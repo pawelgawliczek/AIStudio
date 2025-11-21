@@ -69,3 +69,4 @@ docker-compose.override.yml
 .mcp.json
 mcp-config.json
 mcp-config-dev.json
+backup/

@@ -82,6 +82,8 @@ services:
       - ./frontend/src:/app/frontend/src:ro
       # Mount .git for code analysis
       - ./.git:/app/.git:ro
+      # Mount worktrees for deployment tool (dynamic - subdirs auto-appear)
+      - /opt/stack/worktrees:/opt/stack/worktrees
       # Mount coverage data for test coverage analysis
       - ./backend/coverage:/app/backend/coverage:ro
       - ./frontend/coverage:/app/frontend/coverage:ro
