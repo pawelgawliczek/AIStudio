@@ -1,6 +1,6 @@
 /**
  * Update Workflow Tool
- * Updates an existing workflow
+ * Updates an existing workflow with auto-versioning for structural changes
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -13,6 +13,7 @@ import {
   validateRequired,
   handlePrismaError,
 } from '../../utils';
+import { VersioningService } from '../../../services/versioning.service';
 
 export interface UpdateWorkflowParams {
   workflowId: string;
@@ -35,10 +36,15 @@ export interface WorkflowResponse {
   name: string;
   description: string | null;
   version: string;
+  versionMajor?: number;
+  versionMinor?: number;
   triggerConfig: any;
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  autoVersioned?: boolean;
+  versionedFrom?: string;
+  changeDescription?: string;
 }
 
 export const tool: Tool = {
@@ -119,6 +125,15 @@ export async function handler(
       throw new NotFoundError('Workflow', params.workflowId);
     }
 
+    // Check if structural changes require auto-versioning
+    const coordinatorChanged = params.coordinatorId !== undefined &&
+      params.coordinatorId !== existingWorkflow.coordinatorId;
+
+    const triggerConfigChanged = params.triggerConfig !== undefined &&
+      JSON.stringify(params.triggerConfig) !== JSON.stringify(existingWorkflow.triggerConfig);
+
+    const requiresAutoVersion = coordinatorChanged || triggerConfigChanged;
+
     // Build update data object with only provided fields
     const updateData: any = {};
 
@@ -165,7 +180,60 @@ export async function handler(
       throw new ValidationError('No fields to update');
     }
 
-    // Update workflow
+    // If structural changes, auto-version before applying updates
+    if (requiresAutoVersion) {
+      const versioningService = new VersioningService(prisma as any);
+
+      // Build change description
+      const changes: string[] = [];
+      if (coordinatorChanged) {
+        changes.push(`Updated coordinator from ${existingWorkflow.coordinatorId} to ${params.coordinatorId}`);
+      }
+      if (triggerConfigChanged) {
+        changes.push('Updated trigger configuration');
+      }
+      const changeDescription = changes.join('; ');
+
+      // Create new version
+      const newWorkflow = await versioningService.createMinorVersion(
+        'workflow',
+        params.workflowId,
+        { changeDescription },
+      );
+
+      // Apply updates to the new version
+      const updatedWorkflow = await prisma.workflow.update({
+        where: { id: newWorkflow.id },
+        data: updateData,
+      });
+
+      // Update version string to match versionMajor.versionMinor
+      const versionLabel = `v${updatedWorkflow.versionMajor}.${updatedWorkflow.versionMinor}`;
+      const finalWorkflow = await prisma.workflow.update({
+        where: { id: updatedWorkflow.id },
+        data: { version: versionLabel },
+      });
+
+      return {
+        id: finalWorkflow.id,
+        projectId: finalWorkflow.projectId,
+        coordinatorId: finalWorkflow.coordinatorId,
+        name: finalWorkflow.name,
+        description: finalWorkflow.description,
+        version: finalWorkflow.version,
+        versionMajor: finalWorkflow.versionMajor,
+        versionMinor: finalWorkflow.versionMinor,
+        triggerConfig: finalWorkflow.triggerConfig,
+        active: finalWorkflow.active,
+        createdAt: finalWorkflow.createdAt.toISOString(),
+        updatedAt: finalWorkflow.updatedAt.toISOString(),
+        autoVersioned: true,
+        versionedFrom: `v${existingWorkflow.versionMajor}.${existingWorkflow.versionMinor}`,
+        changeDescription,
+      };
+    }
+
+    // No structural changes - update in place (metadata only)
     const workflow = await prisma.workflow.update({
       where: { id: params.workflowId },
       data: updateData,
@@ -178,10 +246,13 @@ export async function handler(
       name: workflow.name,
       description: workflow.description,
       version: workflow.version,
+      versionMajor: workflow.versionMajor,
+      versionMinor: workflow.versionMinor,
       triggerConfig: workflow.triggerConfig,
       active: workflow.active,
       createdAt: workflow.createdAt.toISOString(),
       updatedAt: workflow.updatedAt.toISOString(),
+      autoVersioned: false,
     };
   } catch (error: any) {
     if (error.name === 'MCPError') {
