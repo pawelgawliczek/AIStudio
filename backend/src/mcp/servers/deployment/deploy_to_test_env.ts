@@ -277,10 +277,10 @@ export async function handler(
     console.log(`Checking out ${worktree.branchName} in main worktree for testing...`);
     try {
       // Remove worktree's git lock on the branch temporarily
-      execGit('checkout --detach', worktree.worktreePath);
+      execGit('git checkout --detach', worktree.worktreePath);
 
       // Now checkout in main worktree
-      execGit(`checkout ${worktree.branchName}`, mainWorktreePath);
+      execGit(`git checkout ${worktree.branchName}`, mainWorktreePath);
       console.log(`✓ Checked out ${worktree.branchName} in main worktree`);
       actionsExecuted.gitCheckout = true;
     } catch (error: any) {
