@@ -177,7 +177,7 @@ export async function waitForHealthy(
 }
 
 /**
- * Create health check configs for backend and frontend
+ * Create health check configs for production backend and frontend
  */
 export function createDefaultHealthChecks(): HealthCheckConfig[] {
   return [
@@ -191,10 +191,33 @@ export function createDefaultHealthChecks(): HealthCheckConfig[] {
       }
     },
     {
-      url: 'http://localhost:5174',
+      url: 'http://localhost:5173',
       timeout: 5000,
       expectedStatus: 200
       // Frontend may not have health endpoint, just check if accessible
+    }
+  ];
+}
+
+/**
+ * Create health check configs for TEST stack (ST-76)
+ * Uses isolated test ports: backend=3001, frontend=5174
+ */
+export function createTestStackHealthChecks(): HealthCheckConfig[] {
+  return [
+    {
+      url: 'http://localhost:3001/api/health',
+      timeout: 5000,
+      expectedStatus: 200,
+      validateBody: (body: any) => {
+        return body && (body.status === 'ok' || body.healthy === true);
+      }
+    },
+    {
+      url: 'http://localhost:5174/health',
+      timeout: 5000,
+      expectedStatus: 200
+      // Frontend nginx health endpoint
     }
   ];
 }

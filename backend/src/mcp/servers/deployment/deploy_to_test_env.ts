@@ -22,21 +22,26 @@ import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
 import { handler as checkForConflicts } from '../git/check_for_conflicts.js';
-import { execGit } from '../git/git_utils.js';
+import {
+  enableAgentTestingMode,
+  disableAgentTestingMode,
+  assertNotProductionDb,
+  TEST,
+} from '../../../config/environments.js';
 import {
   detectAllChanges,
   DetectedChanges,
   EnvChanges
 } from './utils/change-detection.util.js';
 import {
-  buildContainers,
-  restartServices,
-  getContainerLogs,
-  checkAllServicesHealthy
+  buildTestContainers,
+  startTestStack,
+  getTestContainerLogs,
+  checkTestStackHealthy
 } from './utils/docker.util.js';
 import {
   waitForHealthy,
-  createDefaultHealthChecks,
+  createTestStackHealthChecks,
   HealthCheckResult
 } from './utils/health-check.util.js';
 
@@ -116,26 +121,28 @@ class DeploymentError extends Error {
 // Tool definition
 export const tool: Tool = {
   name: 'mcp__vibestudio__deploy_to_test_env',
-  description: `Deploy a story to the test environment with automatic change detection and safe migrations.
+  description: `Deploy a story to the ISOLATED test environment (ST-76).
 
-This tool orchestrates the complete deployment process:
-1. Fetches latest from origin
-2. Detects schema, dependency, environment, and Docker changes
-3. Checks for merge conflicts with main branch (fails fast if conflicts detected)
-4. Executes safe migrations if schema changes detected (with queue locking)
-5. Installs dependencies if package.json/package-lock.json changed
-6. Rebuilds containers if Dockerfile or docker-compose.yml changed
-7. Uses dev worktree for deployment (no git checkout needed - already on correct branch)
-8. Rebuilds containers with volume mounts pointing to dev worktree
-9. Restarts backend and frontend services with worktree code
-10. Waits for health checks to pass (max 2 minutes)
-11. Updates test queue status to 'running'
+IMPORTANT: This deploys to test containers (port 3001/5174), NOT production.
+Production containers remain untouched during testing.
 
-The tool supports EP-7 worktree workflow by using existing dev worktrees instead of
-checking out branches in the main worktree. This avoids git conflicts and maintains
-proper isolation between concurrent development and testing.
+Deployment process:
+1. Validates story and worktree
+2. Fetches latest from origin
+3. Checks for merge conflicts with main (fails fast if conflicts)
+4. Builds test-backend and test-frontend containers
+5. Starts isolated test stack (test-postgres:5434, test-redis:6381)
+6. Applies migrations to TEST database only
+7. Waits for test stack health checks (backend:3001, frontend:5174)
+8. Updates test queue status to 'running'
 
-The tool ensures safe deployments with automatic rollback on migration failures.`,
+Key isolation guarantees:
+- NO checkout in main worktree (production code untouched)
+- NO production database changes
+- NO production container restarts
+- Tests run against isolated test-postgres (port 5434)
+
+The tool supports EP-7 worktree workflow for parallel development and testing.`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -175,11 +182,15 @@ export async function handler(
 
   let migrationDetails: MigrationDetails | undefined;
 
+  // Enable agent testing mode - activates all production safety guards
+  enableAgentTestingMode();
+
   try {
     // Validate inputs
     validateRequired(params, ['storyId']);
 
     console.log(`Starting deployment for story ${params.storyId}...`);
+    console.log('🔒 Production safety guards ACTIVE - only test environment will be modified');
 
     // Phase 1: Validation & Setup
     const { story, worktree, mainWorktreePath } = await validateAndFetchStory(
@@ -245,10 +256,39 @@ export async function handler(
       warnings.push(`Conflict check failed: ${error.message}. Proceeding with caution.`);
     }
 
-    // Phase 5: Schema Migration (if needed)
+    // Phase 5: Build test containers (ST-76 - isolated test stack)
+    // Note: We build from main worktree but run against test DB
+    console.log('Building test stack containers...');
+    try {
+      await buildTestContainers(mainWorktreePath, true, true);
+      actionsExecuted.dockerRebuild = true;
+    } catch (error: any) {
+      throw new DeploymentError(
+        `Failed to build test containers: ${error.message}`,
+        DeploymentPhase.DOCKER_REBUILD,
+        true,
+        'Check Docker and retry'
+      );
+    }
+
+    // Phase 6: Start test stack (postgres, redis, backend, frontend)
+    console.log('Starting isolated test stack...');
+    try {
+      await startTestStack(mainWorktreePath);
+      actionsExecuted.containerRestart = true;
+    } catch (error: any) {
+      throw new DeploymentError(
+        `Failed to start test stack: ${error.message}`,
+        DeploymentPhase.CONTAINER_RESTART,
+        true,
+        'Check test container logs and retry'
+      );
+    }
+
+    // Phase 7: Schema Migration to TEST DB (if needed)
     if (changes.schema && changes.schemaDetails?.hasChanges) {
-      console.log('Schema changes detected, executing safe migration...');
-      migrationDetails = await executeSafeMigration(
+      console.log('Schema changes detected, applying to TEST database...');
+      migrationDetails = await executeSafeMigrationToTestDb(
         mainWorktreePath,
         story.key,
         changes.schemaDetails
@@ -256,74 +296,28 @@ export async function handler(
       actionsExecuted.schemaMigration = true;
     }
 
-    // Phase 6: NPM Install (if needed)
-    if (changes.dependencies) {
-      console.log('Dependency changes detected, running npm install...');
-      await installDependencies(mainWorktreePath);
-      actionsExecuted.npmInstall = true;
-    }
-
-    // Phase 7: Docker Rebuild (if needed)
-    if (changes.docker) {
-      console.log('Docker changes detected, rebuilding containers...');
-      await buildContainers(mainWorktreePath, true, true);
-      actionsExecuted.dockerRebuild = true;
-    }
-
-    // Phase 8: Checkout branch in main worktree (TEMPORARY WORKAROUND)
-    // LIMITATION: This temporarily detaches the branch from dev worktree during testing.
-    // TODO (ST-44 enhancement): Implement proper CODE_PATH support in docker-compose.yml
-    // to enable true parallel worktree testing without git conflicts.
-    console.log(`Checking out ${worktree.branchName} in main worktree for testing...`);
-    try {
-      // Remove worktree's git lock on the branch temporarily
-      execGit('git checkout --detach', worktree.worktreePath);
-
-      // Now checkout in main worktree
-      execGit(`git checkout ${worktree.branchName}`, mainWorktreePath);
-      console.log(`✓ Checked out ${worktree.branchName} in main worktree`);
-      actionsExecuted.gitCheckout = true;
-    } catch (error: any) {
-      throw new DeploymentError(
-        `Failed to checkout branch ${worktree.branchName}: ${error.message}`,
-        DeploymentPhase.GIT_CHECKOUT,
-        true, // Recoverable
-        'Resolve git conflicts or ensure worktree branch can be detached'
-      );
-    }
-
-    // Phase 9: Rebuild containers from main worktree
-    console.log('Rebuilding containers with checked-out branch...');
-    await buildContainers(mainWorktreePath, true, true);
-    actionsExecuted.dockerRebuild = true;
-
-    // Phase 10: Container Restart
-    console.log('Restarting services...');
-    await restartServices(mainWorktreePath);
-    actionsExecuted.containerRestart = true;
-
-    // Phase 11: Health Checks
-    console.log('Waiting for health checks (max 2 minutes)...');
-    const healthCheckConfigs = createDefaultHealthChecks();
+    // Phase 8: Health Checks for TEST stack
+    console.log('Waiting for test stack health checks (max 2 minutes)...');
+    const healthCheckConfigs = createTestStackHealthChecks();
     const healthCheckResult = await waitForHealthy(healthCheckConfigs, 120000);
     actionsExecuted.healthChecks = true;
 
     if (!healthCheckResult.healthy) {
-      // Get container logs for debugging
-      const backendLogs = getContainerLogs(mainWorktreePath, 'backend', 50);
-      const frontendLogs = getContainerLogs(mainWorktreePath, 'frontend', 50);
+      // Get test container logs for debugging
+      const backendLogs = getTestContainerLogs(mainWorktreePath, 'test-backend', 50);
+      const frontendLogs = getTestContainerLogs(mainWorktreePath, 'test-frontend', 50);
 
       throw new DeploymentError(
-        `Health checks failed after 2 minutes. Services may be unhealthy.\n\n` +
-          `Backend logs:\n${backendLogs}\n\n` +
-          `Frontend logs:\n${frontendLogs}`,
+        `Test stack health checks failed after 2 minutes.\n\n` +
+          `Test backend logs:\n${backendLogs}\n\n` +
+          `Test frontend logs:\n${frontendLogs}`,
         DeploymentPhase.HEALTH_CHECKS,
         true,
-        'To restore previous state: git checkout main && docker compose restart backend frontend'
+        'Check test container logs: docker compose -f docker-compose.test.yml logs'
       );
     }
 
-    // Phase 11: Update Test Queue Status
+    // Phase 9: Update Test Queue Status
     let testQueueUpdate: TestQueueUpdate | undefined;
     try {
       testQueueUpdate = await updateTestQueueStatus(prisma, params.storyId);
@@ -353,7 +347,7 @@ export async function handler(
       },
       testQueueUpdate,
       warnings,
-      message: `Successfully deployed ${story.key} to test environment. Ready for QA testing.`
+      message: `Successfully deployed ${story.key} to ISOLATED test environment (backend:3001, frontend:5174). Production untouched. Ready for QA testing.`
     };
   } catch (error) {
     // Note: Queue lock release is handled automatically by safe migration script
@@ -369,6 +363,9 @@ export async function handler(
     }
 
     throw error;
+  } finally {
+    // Always disable agent testing mode when done
+    disableAgentTestingMode();
   }
 }
 
@@ -437,7 +434,11 @@ async function validateAndFetchStory(
  */
 async function fetchLatestFromOrigin(mainWorktreePath: string): Promise<void> {
   try {
-    execGit('git fetch origin', mainWorktreePath);
+    execSync('git fetch origin', {
+      cwd: mainWorktreePath,
+      encoding: 'utf-8',
+      timeout: 60000
+    });
   } catch (error) {
     throw new DeploymentError(
       `Failed to fetch from origin: ${error}`,
@@ -454,35 +455,46 @@ async function fetchLatestFromOrigin(mainWorktreePath: string): Promise<void> {
  */
 
 /**
- * Execute safe migration with queue locking
+ * Execute migration to TEST database only (ST-76)
+ * Uses isolated test-postgres on port 5434
+ * SAFETY: Validates database URL is NOT production before executing
  */
-async function executeSafeMigration(
+async function executeSafeMigrationToTestDb(
   mainWorktreePath: string,
   storyKey: string,
   schemaDetails: any
 ): Promise<MigrationDetails> {
+  // Build test DB URL using constants
+  const testDbUrl = `postgresql://postgres:test@${TEST.DB_HOST}:${TEST.DB_PORT}/${TEST.DB_NAME}?schema=public`;
+
+  // SAFETY: Double-check we're not targeting production
+  assertNotProductionDb(testDbUrl, 'apply migrations');
+  console.log(`✓ Safety check passed: targeting test DB on port ${TEST.DB_PORT}`);
+
   try {
-    // Run safe migration script
-    const command = `npm run migrate:safe -- --story-id=${storyKey}`;
-    console.log(`Executing: ${command}`);
+    // Run prisma migrate deploy against TEST database
+    const command = `DATABASE_URL='${testDbUrl}' npx prisma migrate deploy`;
+    console.log(`Applying migrations to TEST database (port ${TEST.DB_PORT})...`);
 
     execSync(command, {
-      cwd: mainWorktreePath,
+      cwd: join(mainWorktreePath, 'backend'),
       encoding: 'utf-8',
       stdio: 'inherit',
       timeout: 300000 // 5 minutes
     });
 
+    console.log('✓ Migrations applied to test database');
+
     return {
-      lockAcquired: true,
+      lockAcquired: false, // No lock needed for test DB
       migrationsApplied: schemaDetails.migrationCount,
       schemaVersion: schemaDetails.schemaVersion
     };
   } catch (error: any) {
     throw new DeploymentError(
-      `Schema migration failed: ${error.message}\n\nDatabase unchanged (auto-rollback). Check migration logs.`,
+      `Test database migration failed: ${error.message}\n\nTest DB unchanged. Check migration files.`,
       DeploymentPhase.SCHEMA_MIGRATION,
-      false,
+      true,
       'Fix migration issues and retry deployment'
     );
   }

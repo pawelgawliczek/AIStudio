@@ -139,19 +139,20 @@ describe('deploy_to_test_env Tool', () => {
         },
       });
 
-      (dockerUtil.restartServices as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.buildTestContainers as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.startTestStack as jest.Mock).mockResolvedValue(undefined);
       (healthCheckUtil.waitForHealthy as jest.Mock).mockResolvedValue({
         healthy: true,
         results: [
           {
-            url: 'http://localhost:3000/api/health',
+            url: 'http://localhost:3001/api/health',
             status: 200,
             healthy: true,
             latency: 100,
             timestamp: new Date().toISOString(),
           },
           {
-            url: 'http://localhost:5173',
+            url: 'http://localhost:5174/health',
             status: 200,
             healthy: true,
             latency: 50,
@@ -161,39 +162,43 @@ describe('deploy_to_test_env Tool', () => {
       });
 
       const childProcess = require('child_process');
-      childProcess.execSync = jest.fn(); // Mock npm run migrate:safe
+      childProcess.execSync = jest.fn(); // Mock prisma migrate deploy
 
       const result = await handler(mockPrisma, { storyId: 'story-1' });
 
       expect(result.success).toBe(true);
       expect(result.actionsExecuted.schemaMigration).toBe(true);
+      // Now uses prisma migrate deploy against test DB
       expect(childProcess.execSync).toHaveBeenCalledWith(
-        expect.stringContaining('migrate:safe'),
+        expect.stringContaining('prisma migrate deploy'),
         expect.any(Object)
       );
     });
 
-    it('should detect dependency changes and run npm install', async () => {
+    it('should no longer run npm install (test containers are pre-built)', async () => {
+      // ST-76: We no longer run npm install during deployment
+      // Test containers are pre-built with dependencies
       (changeDetectionUtil.detectAllChanges as jest.Mock).mockResolvedValue({
         schema: false,
-        dependencies: true,
+        dependencies: true, // This is ignored now
         environment: false,
         docker: false,
       });
 
-      (dockerUtil.restartServices as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.buildTestContainers as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.startTestStack as jest.Mock).mockResolvedValue(undefined);
       (healthCheckUtil.waitForHealthy as jest.Mock).mockResolvedValue({
         healthy: true,
         results: [
           {
-            url: 'http://localhost:3000/api/health',
+            url: 'http://localhost:3001/api/health',
             status: 200,
             healthy: true,
             latency: 100,
             timestamp: new Date().toISOString(),
           },
           {
-            url: 'http://localhost:5173',
+            url: 'http://localhost:5174/health',
             status: 200,
             healthy: true,
             latency: 50,
@@ -201,58 +206,67 @@ describe('deploy_to_test_env Tool', () => {
           },
         ],
       });
-
-      const childProcess = require('child_process');
-      childProcess.execSync = jest.fn();
 
       const result = await handler(mockPrisma, { storyId: 'story-1' });
 
       expect(result.success).toBe(true);
-      expect(result.actionsExecuted.npmInstall).toBe(true);
-      expect(childProcess.execSync).toHaveBeenCalledWith(
-        'npm install',
-        expect.any(Object)
-      );
+      // npm install is no longer executed in isolated test stack
+      expect(result.actionsExecuted.npmInstall).toBe(false);
     });
 
-    it('should detect docker changes and rebuild containers', async () => {
+    it('should build and start test containers', async () => {
       (changeDetectionUtil.detectAllChanges as jest.Mock).mockResolvedValue({
         schema: false,
         dependencies: false,
         environment: false,
-        docker: true,
+        docker: false,
       });
 
-      (dockerUtil.buildContainers as jest.Mock).mockResolvedValue(undefined);
-      (dockerUtil.restartServices as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.buildTestContainers as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.startTestStack as jest.Mock).mockResolvedValue(undefined);
       (healthCheckUtil.waitForHealthy as jest.Mock).mockResolvedValue({
         healthy: true,
         results: [
           {
-            url: 'http://localhost:3000/api/health',
+            url: 'http://localhost:3001/api/health',
             status: 200,
             healthy: true,
             latency: 100,
             timestamp: new Date().toISOString(),
           },
           {
-            url: 'http://localhost:5173',
+            url: 'http://localhost:5174/health',
             status: 200,
             healthy: true,
             latency: 50,
             timestamp: new Date().toISOString(),
           },
         ],
+      });
+
+      (mockPrisma.testQueue.findFirst as jest.Mock).mockResolvedValue({
+        id: 'queue-1',
+        status: 'pending',
+        position: 1,
+      });
+      (mockPrisma.testQueue.update as jest.Mock).mockResolvedValue({
+        id: 'queue-1',
+        status: 'running',
+        position: 1,
       });
 
       const result = await handler(mockPrisma, { storyId: 'story-1' });
 
       expect(result.success).toBe(true);
       expect(result.actionsExecuted.dockerRebuild).toBe(true);
-      expect(dockerUtil.buildContainers).toHaveBeenCalledWith(
+      expect(result.actionsExecuted.containerRestart).toBe(true);
+      expect(dockerUtil.buildTestContainers).toHaveBeenCalledWith(
         '/opt/stack/AIStudio',
         true,
         true
+      );
+      expect(dockerUtil.startTestStack).toHaveBeenCalledWith(
+        '/opt/stack/AIStudio'
       );
     });
 
@@ -271,19 +285,20 @@ describe('deploy_to_test_env Tool', () => {
         },
       });
 
-      (dockerUtil.restartServices as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.buildTestContainers as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.startTestStack as jest.Mock).mockResolvedValue(undefined);
       (healthCheckUtil.waitForHealthy as jest.Mock).mockResolvedValue({
         healthy: true,
         results: [
           {
-            url: 'http://localhost:3000/api/health',
+            url: 'http://localhost:3001/api/health',
             status: 200,
             healthy: true,
             latency: 100,
             timestamp: new Date().toISOString(),
           },
           {
-            url: 'http://localhost:5173',
+            url: 'http://localhost:5174/health',
             status: 200,
             healthy: true,
             latency: 50,
@@ -336,9 +351,6 @@ describe('deploy_to_test_env Tool', () => {
       const fs = require('fs');
       fs.existsSync = jest.fn().mockReturnValue(true);
 
-      const gitUtils = require('../../git/git_utils');
-      gitUtils.execGit = jest.fn();
-
       (changeDetectionUtil.detectAllChanges as jest.Mock).mockResolvedValue({
         schema: false,
         dependencies: false,
@@ -346,15 +358,16 @@ describe('deploy_to_test_env Tool', () => {
         docker: false,
       });
 
-      (dockerUtil.restartServices as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.buildTestContainers as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.startTestStack as jest.Mock).mockResolvedValue(undefined);
     });
 
-    it('should fail deployment when health checks fail', async () => {
+    it('should fail deployment when test stack health checks fail', async () => {
       (healthCheckUtil.waitForHealthy as jest.Mock).mockResolvedValue({
         healthy: false,
         results: [
           {
-            url: 'http://localhost:3000/api/health',
+            url: 'http://localhost:3001/api/health',
             status: 500,
             healthy: false,
             latency: 100,
@@ -362,7 +375,7 @@ describe('deploy_to_test_env Tool', () => {
             error: 'Internal server error',
           },
           {
-            url: 'http://localhost:5173',
+            url: 'http://localhost:5174/health',
             status: 200,
             healthy: true,
             latency: 50,
@@ -371,28 +384,28 @@ describe('deploy_to_test_env Tool', () => {
         ],
       });
 
-      (dockerUtil.getContainerLogs as jest.Mock).mockReturnValue(
-        'Backend error logs...'
+      (dockerUtil.getTestContainerLogs as jest.Mock).mockReturnValue(
+        'Test backend error logs...'
       );
 
       await expect(
         handler(mockPrisma, { storyId: 'story-1' })
-      ).rejects.toThrow(/Health checks failed/);
+      ).rejects.toThrow(/Test stack health checks failed/);
     });
 
-    it('should succeed when all health checks pass', async () => {
+    it('should succeed when all test stack health checks pass', async () => {
       (healthCheckUtil.waitForHealthy as jest.Mock).mockResolvedValue({
         healthy: true,
         results: [
           {
-            url: 'http://localhost:3000/api/health',
+            url: 'http://localhost:3001/api/health',
             status: 200,
             healthy: true,
             latency: 100,
             timestamp: new Date().toISOString(),
           },
           {
-            url: 'http://localhost:5173',
+            url: 'http://localhost:5174/health',
             status: 200,
             healthy: true,
             latency: 50,
@@ -436,9 +449,6 @@ describe('deploy_to_test_env Tool', () => {
       const fs = require('fs');
       fs.existsSync = jest.fn().mockReturnValue(true);
 
-      const gitUtils = require('../../git/git_utils');
-      gitUtils.execGit = jest.fn();
-
       (changeDetectionUtil.detectAllChanges as jest.Mock).mockResolvedValue({
         schema: false,
         dependencies: false,
@@ -446,19 +456,20 @@ describe('deploy_to_test_env Tool', () => {
         docker: false,
       });
 
-      (dockerUtil.restartServices as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.buildTestContainers as jest.Mock).mockResolvedValue(undefined);
+      (dockerUtil.startTestStack as jest.Mock).mockResolvedValue(undefined);
       (healthCheckUtil.waitForHealthy as jest.Mock).mockResolvedValue({
         healthy: true,
         results: [
           {
-            url: 'http://localhost:3000/api/health',
+            url: 'http://localhost:3001/api/health',
             status: 200,
             healthy: true,
             latency: 100,
             timestamp: new Date().toISOString(),
           },
           {
-            url: 'http://localhost:5173',
+            url: 'http://localhost:5174/health',
             status: 200,
             healthy: true,
             latency: 50,
