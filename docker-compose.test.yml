@@ -1,4 +1,9 @@
+# Vibe Studio Test Environment Docker Compose Configuration
+# Provides isolated test database, redis, backend, and frontend
+# Usage: docker compose -f docker-compose.test.yml up -d
+
 services:
+  # Isolated Test PostgreSQL with pgvector extension
   test-postgres:
     image: pgvector/pgvector:pg15
     container_name: vibe-studio-test-postgres
@@ -15,7 +20,10 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
+    networks:
+      - test-network
 
+  # Isolated Test Redis
   test-redis:
     image: redis:7-alpine
     container_name: vibe-studio-test-redis
@@ -23,3 +31,91 @@ services:
       - '127.0.0.1:6381:6379'
     tmpfs:
       - /data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    networks:
+      - test-network
+
+  # Test Backend API (NestJS)
+  test-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: vibe-studio-test-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:test@test-postgres:5432/vibestudio_test?schema=public
+      REDIS_URL: redis://test-redis:6379
+      PORT: 3000
+      PROJECT_HOST_PATH: /opt/stack/AIStudio
+    ports:
+      - '127.0.0.1:3001:3000'
+    volumes:
+      # Mount source code for hot-reload
+      - ./backend/src:/app/backend/src
+      - ./backend/prisma:/app/backend/prisma
+      - ./shared/src:/app/shared/src
+      - ./frontend/src:/app/frontend/src:ro
+      # Mount .git for code analysis
+      - ./.git:/app/.git:ro
+      # Mount worktrees for deployment tool
+      - /opt/stack/worktrees:/opt/stack/worktrees
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+      test-redis:
+        condition: service_healthy
+    networks:
+      - test-network
+      - stack_appnet
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Test Frontend (React + Vite via nginx)
+  test-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_WS_URL: /socket.io
+    container_name: vibe-studio-test-frontend
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:5174:80'
+    depends_on:
+      - test-backend
+    networks:
+      - test-network
+      - stack_appnet
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  test-network:
+    driver: bridge
+  stack_appnet:
+    external: true
