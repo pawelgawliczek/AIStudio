@@ -22,9 +22,37 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { readdirSync, rmdirSync } from 'fs';
+import { dirname } from 'path';
 import { NotFoundError, ValidationError } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
 import { execGit, validateWorktreePath, validateBranchName } from './git_utils';
+
+const WORKTREES_ROOT = '/opt/stack/worktrees';
+
+/**
+ * Remove empty parent directories up to WORKTREES_ROOT
+ */
+function cleanupEmptyParentDirs(worktreePath: string): string[] {
+  const cleaned: string[] = [];
+  let dir = dirname(worktreePath);
+
+  while (dir.startsWith(WORKTREES_ROOT) && dir !== WORKTREES_ROOT) {
+    try {
+      const contents = readdirSync(dir);
+      if (contents.length === 0) {
+        rmdirSync(dir);
+        cleaned.push(dir);
+        dir = dirname(dir);
+      } else {
+        break; // Directory not empty
+      }
+    } catch {
+      break; // Can't read/remove, stop
+    }
+  }
+  return cleaned;
+}
 
 export const tool: Tool = {
   name: 'git_delete_worktree',
@@ -80,6 +108,7 @@ interface DeleteWorktreeParams {
 
 interface DeleteActions {
   filesystemRemoved: boolean;
+  emptyDirsRemoved: string[];
   branchDeleted: boolean;
   databaseUpdated: boolean;
   databaseDeleted: boolean;
@@ -153,6 +182,7 @@ export async function handler(
     // Track actions and warnings
     const actions: DeleteActions = {
       filesystemRemoved: false,
+      emptyDirsRemoved: [],
       branchDeleted: false,
       databaseUpdated: false,
       databaseDeleted: false,
@@ -179,6 +209,11 @@ export async function handler(
       } else {
         throw new Error(`Failed to remove worktree: ${error.message}`);
       }
+    }
+
+    // Step 1b: Cleanup empty parent directories
+    if (actions.filesystemRemoved) {
+      actions.emptyDirsRemoved = cleanupEmptyParentDirs(worktree.worktreePath);
     }
 
     // Step 2: Delete git branch (local only)
@@ -235,6 +270,7 @@ export async function handler(
     // Build success message
     let message = `Successfully deleted worktree for ${worktree.story.key}`;
     if (actions.filesystemRemoved) message += '\n- Removed from filesystem';
+    if (actions.emptyDirsRemoved.length > 0) message += `\n- Cleaned empty dirs: ${actions.emptyDirsRemoved.join(', ')}`;
     if (actions.branchDeleted) message += `\n- Deleted branch: ${worktree.branchName}`;
     if (actions.databaseUpdated) message += '\n- Updated database (status: removed)';
     if (actions.databaseDeleted) message += '\n- Removed from database';
