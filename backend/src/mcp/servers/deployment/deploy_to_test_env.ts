@@ -23,6 +23,12 @@ import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
 import { handler as checkForConflicts } from '../git/check_for_conflicts.js';
 import {
+  enableAgentTestingMode,
+  disableAgentTestingMode,
+  assertNotProductionDb,
+  TEST,
+} from '../../../config/environments.js';
+import {
   detectAllChanges,
   DetectedChanges,
   EnvChanges
@@ -176,11 +182,15 @@ export async function handler(
 
   let migrationDetails: MigrationDetails | undefined;
 
+  // Enable agent testing mode - activates all production safety guards
+  enableAgentTestingMode();
+
   try {
     // Validate inputs
     validateRequired(params, ['storyId']);
 
     console.log(`Starting deployment for story ${params.storyId}...`);
+    console.log('🔒 Production safety guards ACTIVE - only test environment will be modified');
 
     // Phase 1: Validation & Setup
     const { story, worktree, mainWorktreePath } = await validateAndFetchStory(
@@ -353,6 +363,9 @@ export async function handler(
     }
 
     throw error;
+  } finally {
+    // Always disable agent testing mode when done
+    disableAgentTestingMode();
   }
 }
 
@@ -444,18 +457,24 @@ async function fetchLatestFromOrigin(mainWorktreePath: string): Promise<void> {
 /**
  * Execute migration to TEST database only (ST-76)
  * Uses isolated test-postgres on port 5434
+ * SAFETY: Validates database URL is NOT production before executing
  */
 async function executeSafeMigrationToTestDb(
   mainWorktreePath: string,
   storyKey: string,
   schemaDetails: any
 ): Promise<MigrationDetails> {
-  const testDbUrl = 'postgresql://postgres:test@127.0.0.1:5434/vibestudio_test?schema=public';
+  // Build test DB URL using constants
+  const testDbUrl = `postgresql://postgres:test@${TEST.DB_HOST}:${TEST.DB_PORT}/${TEST.DB_NAME}?schema=public`;
+
+  // SAFETY: Double-check we're not targeting production
+  assertNotProductionDb(testDbUrl, 'apply migrations');
+  console.log(`✓ Safety check passed: targeting test DB on port ${TEST.DB_PORT}`);
 
   try {
     // Run prisma migrate deploy against TEST database
     const command = `DATABASE_URL='${testDbUrl}' npx prisma migrate deploy`;
-    console.log(`Applying migrations to TEST database (port 5434)...`);
+    console.log(`Applying migrations to TEST database (port ${TEST.DB_PORT})...`);
 
     execSync(command, {
       cwd: join(mainWorktreePath, 'backend'),

@@ -5,9 +5,16 @@
  * - Building containers with cache strategies
  * - Restarting services
  * - Fetching container status and logs
+ *
+ * SAFETY: Production operations are blocked when agent testing mode is active.
  */
 
 import { execSync } from 'child_process';
+import {
+  isAgentTestingMode,
+  assertSafeDockerCommand,
+  ProductionSafetyError,
+} from '../../../../config/environments.js';
 
 export interface ContainerStatus {
   name: string;
@@ -17,12 +24,18 @@ export interface ContainerStatus {
 
 /**
  * Execute Docker Compose command safely
+ * SAFETY: Blocks production container operations when in agent testing mode
  */
 function execDockerCompose(
   command: string,
   cwd: string,
   timeoutMs: number = 120000
 ): string {
+  // Safety check: Block production operations in agent testing mode
+  if (isAgentTestingMode()) {
+    assertSafeDockerCommand(command);
+  }
+
   try {
     return execSync(`docker compose ${command}`, {
       cwd,
