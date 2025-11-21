@@ -281,8 +281,35 @@ npx prisma migrate dev --name your_migration_name
 
 The project uses Jest for backend testing and Vitest for frontend testing.
 
+### Isolated Test Environment (Recommended)
+
+For deterministic, isolated tests, use the Docker-based test environment:
+
 ```bash
-# Run all tests
+# Run all tests with isolated containers
+npm run test:isolated
+
+# Run specific test types
+npm run test:unit          # Unit tests only (no containers needed)
+npm run test:integration   # Integration tests with isolated DB
+npm run test:e2e           # E2E tests with Playwright
+
+# Or use the script directly
+./scripts/test.sh all          # All tests
+./scripts/test.sh integration  # Integration only
+./scripts/test.sh e2e          # E2E only
+```
+
+**Isolated environment details:**
+- PostgreSQL: `127.0.0.1:5434` (separate from dev on 5432/5433)
+- Redis: `127.0.0.1:6381` (separate from dev on 6379/6380)
+- Uses tmpfs volumes for fast, ephemeral storage
+- Auto-starts containers, runs tests, auto-cleanup
+
+### Standard Testing
+
+```bash
+# Run all tests (uses dev database)
 npm test
 
 # Run tests in watch mode
