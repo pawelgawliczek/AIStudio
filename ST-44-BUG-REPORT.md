@@ -192,10 +192,41 @@ npm test
 
 But this defeats the purpose of automated EP-7 workflow.
 
+## Bug #5: Missing .env File in Worktree (FIXED)
+
+**Discovered:** During ST-71 deployment testing
+**Status:** ✅ Fixed in commit 288fe5a
+
+### Problem
+- Docker Compose reads `.env` file from current working directory
+- Deployment runs `docker compose up -d` from worktree path
+- Worktrees don't have `.env` file (not tracked in git)
+
+### Error Message
+```
+env file /opt/stack/worktrees/feature/ST-71-test-coverage-display/.env not found:
+stat /opt/stack/worktrees/feature/ST-71-test-coverage-display/.env: no such file or directory
+```
+
+### Solution (Implemented)
+```typescript
+// Phase 8b: Copy .env file to worktree (required for docker-compose)
+const mainEnvPath = join(mainWorktreePath, '.env');
+const worktreeEnvPath = join(worktree.worktreePath, '.env');
+if (existsSync(mainEnvPath)) {
+  execSync(`cp ${mainEnvPath} ${worktreeEnvPath}`, { cwd: mainWorktreePath });
+  console.log('✓ .env file copied successfully');
+}
+```
+
+**File:** `backend/src/mcp/servers/deployment/deploy_to_test_env.ts:286-296`
+
+---
+
 ## Related Stories
 
 - ST-39: Create Worktree (works correctly)
-- ST-44: Deploy to Test Environment (❌ broken for worktree stories)
+- ST-44: Deploy to Test Environment (❌ broken for worktree stories - 5 bugs found)
 - ST-45: Run Tests (blocked by ST-44)
 - ST-51: End-to-End Workflow (blocked by ST-44)
 
