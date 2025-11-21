@@ -28,6 +28,7 @@ import { DiskMonitorModule } from './workers/disk-monitor.module';
 // import { ComponentsModule } from './components/components.module'; // Removed - old components deprecated
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { VersioningModule } from './services/versioning.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     MetricsModule,
     ImpactAnalysisModule,
     DocsModule,
+    VersioningModule,
   ],
   controllers: [HealthController],
 })

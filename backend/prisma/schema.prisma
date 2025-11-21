@@ -577,16 +577,32 @@ model Component {
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
+  // Versioning fields (ST-58)
+  versionMajor          Int      @default(1) @map("version_major")
+  versionMinor          Int      @default(0) @map("version_minor")
+  parentId              String?  @map("parent_id") @db.Uuid
+  instructionsChecksum  String?  @map("instructions_checksum")
+  configChecksum        String?  @map("config_checksum")
+  isDeprecated          Boolean  @default(false) @map("is_deprecated")
+  deprecatedAt          DateTime? @map("deprecated_at")
+  changeDescription     String?  @map("change_description")
+  createdFromVersion    String?  @map("created_from_version")
+
   // Relations
   project                Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   componentRuns          ComponentRun[]
   defects                DefectNew[]
   workflowsAsCoordinator Workflow[]     @relation("WorkflowCoordinator")
   workflowRunsAsCoordinator WorkflowRun[] @relation("WorkflowRunCoordinator")
+  parent                 Component?     @relation("ComponentVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  children               Component[]    @relation("ComponentVersions")
 
   @@index([projectId])
   @@index([projectId, active])
   @@index([tags])
+  @@index([parentId])
+  @@index([projectId, active, versionMajor])
+  @@index([versionMajor, versionMinor])
   @@map("components")
 }
 
@@ -611,16 +627,32 @@ model Workflow {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
+  // Versioning fields (ST-58)
+  versionMajor          Int      @default(1) @map("version_major")
+  versionMinor          Int      @default(0) @map("version_minor")
+  parentId              String?  @map("parent_id") @db.Uuid
+  instructionsChecksum  String?  @map("instructions_checksum")
+  configChecksum        String?  @map("config_checksum")
+  isDeprecated          Boolean  @default(false) @map("is_deprecated")
+  deprecatedAt          DateTime? @map("deprecated_at")
+  changeDescription     String?  @map("change_description")
+  createdFromVersion    String?  @map("created_from_version")
+
   // Relations
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   coordinator     Component        @relation("WorkflowCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
   stories         Story[]
   workflowRuns    WorkflowRun[]
   activeWorkflows ActiveWorkflow[]
+  parent          Workflow?        @relation("WorkflowVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Workflow[]       @relation("WorkflowVersions")
 
   @@index([projectId])
   @@index([coordinatorId])
   @@index([projectId, active])
+  @@index([parentId])
+  @@index([projectId, active, versionMajor])
+  @@index([versionMajor, versionMinor])
   @@map("workflows")
 }
 
