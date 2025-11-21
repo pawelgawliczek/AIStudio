@@ -1,4 +1,13 @@
 import * as createComponent from './create_component';
 import * as updateComponent from './update_component';
+import * as activateComponent from './activate_component';
+import * as deactivateComponent from './deactivate_component';
+import * as getComponentUsage from './get_component_usage';
 
-export const tools = [createComponent, updateComponent];
+export const tools = [
+  createComponent,
+  updateComponent,
+  activateComponent,
+  deactivateComponent,
+  getComponentUsage,
+];

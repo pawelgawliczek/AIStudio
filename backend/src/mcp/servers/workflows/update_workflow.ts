@@ -142,6 +142,13 @@ export async function handler(
         throw new ValidationError('Coordinator does not belong to the same project as the workflow');
       }
 
+      // Validate coordinator is active
+      if (!coordinator.active) {
+        throw new ValidationError(
+          `Cannot assign inactive coordinator '${coordinator.name}' v${coordinator.version} to workflow. Please select an active coordinator version.`
+        );
+      }
+
       updateData.coordinatorId = params.coordinatorId;
     }
 
