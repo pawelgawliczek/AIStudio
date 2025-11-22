@@ -2,14 +2,63 @@
 
 **NEVER use npm/node commands for building. ALWAYS use Docker:**
 
-### Required Commands
+### Production Deployment (ST-77)
 
-- ✅ **CORRECT**: `docker compose build backend --no-cache` - Rebuild backend
-- ✅ **CORRECT**: `docker compose build frontend --no-cache` - Rebuild frontend
-- ✅ **CORRECT**: `docker compose up -d <service>` - Start/restart service after build
+**⚠️ CRITICAL: Production deployments MUST use the MCP tool ONLY**
+
+#### Required Commands for Production
+
+- ✅ **CORRECT**: Use `deploy_to_production` MCP tool ONLY
+- ✅ **CORRECT**: Requires PR approval AND merge to main
+- ✅ **CORRECT**: Requires confirmDeploy: true parameter
+- ✅ **CORRECT**: Automatic pre-deployment backup
+- ✅ **CORRECT**: 3 consecutive health checks required
+
+#### Forbidden Commands for Production
+
+- ❌ **NEVER USE**: `docker compose build` for production - Use MCP tool
+- ❌ **NEVER USE**: `docker compose up -d` for production - Use MCP tool
+- ❌ **NEVER USE**: Direct Docker commands for production - Use MCP tool
+- ❌ **NEVER USE**: Manual container builds/restarts - Use MCP tool
+
+#### Production Deployment Example
+
+```typescript
+// ✅ CORRECT - Only way to deploy to production
+deploy_to_production({
+  storyId: "uuid-here",
+  prNumber: 42,
+  triggeredBy: "claude-agent",
+  confirmDeploy: true  // REQUIRED
+})
+```
+
+#### Production Deployment Safeguards
+
+The `deploy_to_production` MCP tool enforces:
+1. Story in 'qa' or 'done' status
+2. PR approved by at least 1 reviewer
+3. PR merged to main branch
+4. No merge conflicts
+5. Deployment lock (only 1 deployment at a time)
+6. Pre-deployment backup created automatically
+7. Sequential builds (backend → frontend)
+8. Health checks (3 consecutive successes)
+9. Complete audit trail (7-year retention)
+10. Auto-rollback on failure
+
+### Test/Development Deployment
+
+For test environment deployments, use `deploy_to_test_env` MCP tool.
+
+### Local Development (Docker)
+
+- ✅ **CORRECT**: `docker compose build backend --no-cache` - Rebuild backend (local only)
+- ✅ **CORRECT**: `docker compose build frontend --no-cache` - Rebuild frontend (local only)
+- ✅ **CORRECT**: `docker compose up -d <service>` - Start/restart service (local only)
 - ✅ **CORRECT**: Use prod Dockerfile for all builds
 
-### Forbidden Commands
+### Forbidden Commands (All Environments)
 
 - ❌ **NEVER USE**: `npm run build` - Won't be picked up by containers
 - ❌ **NEVER USE**: `npm install` - Dependencies managed by Docker
@@ -21,6 +70,7 @@
 - Frontend: Always use `--no-cache` when rebuilding
 - Use `docker compose` (without hyphen)
 - TypeScript changes require Docker rebuild, not just container restart
+- **Production: ONLY use deploy_to_production MCP tool**
 
 ## Database Migration Safety (CRITICAL)
 
