@@ -3,6 +3,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler, tool } from '../git_delete_worktree';
 import * as gitUtils from '../git_utils';
 
@@ -13,7 +14,7 @@ describe('git_delete_worktree', () => {
   const mockTransaction = jest.fn();
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     prisma.$transaction = mockTransaction as any;
     jest.clearAllMocks();
   });

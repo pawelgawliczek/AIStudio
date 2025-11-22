@@ -6,6 +6,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler, tool } from '../git_create_worktree';
 
 // Mock child_process
@@ -19,7 +20,7 @@ describe('git_create_worktree', () => {
   const testProjectId = 'test-project-id-456';
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
 
     // Default mock implementations

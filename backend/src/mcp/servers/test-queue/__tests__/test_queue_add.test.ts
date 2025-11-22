@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { NotFoundError, ValidationError } from '../../../types';
 import { handler, tool } from '../test_queue_add';
 
@@ -13,7 +14,7 @@ describe('test_queue_add', () => {
   const testStoryKey = 'ST-41';
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
 
     // Mock testQueueLock to always return null (no active lock) by default

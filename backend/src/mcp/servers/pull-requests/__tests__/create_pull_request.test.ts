@@ -4,6 +4,7 @@
 
 import { execSync } from 'child_process';
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler, tool } from '../create_pull_request';
 
 // Mock child_process
@@ -18,7 +19,7 @@ describe('create_pull_request', () => {
   const testPrUrl = 'https://github.com/org/repo/pull/456';
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
 
     // Set environment variables

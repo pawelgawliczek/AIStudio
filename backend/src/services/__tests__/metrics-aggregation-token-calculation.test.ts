@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { MetricsAggregationService } from '../metrics-aggregation.service';
 
 describe('ST-73: Token Calculation Correctness', () => {
@@ -13,7 +14,7 @@ describe('ST-73: Token Calculation Correctness', () => {
   let metricsService: MetricsAggregationService;
 
   beforeAll(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     metricsService = new MetricsAggregationService(prisma);
   });
 

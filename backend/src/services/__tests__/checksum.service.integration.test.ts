@@ -11,6 +11,7 @@
  */
 
 import { PrismaClient, Component, Project } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { ChecksumService } from '../checksum.service';
 import { randomUUID } from 'crypto';
 
@@ -21,7 +22,7 @@ describe('ChecksumService - Integration Tests', () => {
   const TEST_PREFIX = 'test_ST83_checksum_';
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     checksumService = new ChecksumService(prisma);
 
     // Create test project

@@ -4,13 +4,14 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler, tool } from '../test_queue_list';
 
 describe('test_queue_list', () => {
   let prisma: PrismaClient;
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
   });
 

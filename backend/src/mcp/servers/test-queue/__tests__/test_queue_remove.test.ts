@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { NotFoundError } from '../../../types';
 import { handler, tool } from '../test_queue_remove';
 
@@ -12,7 +13,7 @@ describe('test_queue_remove', () => {
   const testStoryId = 'test-story-id-123';
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
   });
 

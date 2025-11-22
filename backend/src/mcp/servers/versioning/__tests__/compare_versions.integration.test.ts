@@ -8,6 +8,7 @@
  */
 
 import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler } from '../compare_versions';
 import { randomUUID } from 'crypto';
 
@@ -17,7 +18,7 @@ describe('compare_versions MCP Tool - Integration Tests', () => {
   const TEST_PREFIX = 'test_ST83_compare_';
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
 
     // Create test project
     testProject = await prisma.project.create({

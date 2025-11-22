@@ -3,6 +3,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler } from '../execute_story_with_workflow';
 
 // Note: These tests would require actual database connection
@@ -13,7 +14,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Integration Tests', () => {
 
   beforeAll(async () => {
     // Would initialize test database connection
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
   });
 
   afterAll(async () => {

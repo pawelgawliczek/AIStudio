@@ -4,6 +4,7 @@
 
 import { execSync } from 'child_process';
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler as closeHandler, tool as closeTool } from '../close_pull_request';
 import { handler as createPrHandler, tool as createPrTool } from '../create_pull_request';
 import { handler as getStatusHandler, tool as getStatusTool } from '../get_pr_status';
@@ -18,7 +19,7 @@ describe('Pull Request Tools', () => {
   let prisma: PrismaClient;
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
     process.env.GITHUB_TOKEN = 'test-token';
     process.env.GITHUB_REPOSITORY = 'org/repo';

@@ -1,5 +1,6 @@
 import * as childProcess from 'child_process';
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { ValidationError, NotFoundError } from '../../../types';
 import { handler } from '../run_tests';
 
@@ -18,7 +19,7 @@ describe('run_tests Tool', () => {
     // Use fake timers to mock sleep delays (5 seconds per retry)
     jest.useFakeTimers();
 
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     mockExecSync = childProcess.execSync as jest.MockedFunction<typeof childProcess.execSync>;
     jest.clearAllMocks();
 

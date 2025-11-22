@@ -6,6 +6,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler, tool } from '../detect_schema_changes';
 
 // Mock dependencies
@@ -51,7 +52,7 @@ describe('detect_schema_changes', () => {
   };
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
 
     // Default mock implementations

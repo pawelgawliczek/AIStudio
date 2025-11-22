@@ -7,8 +7,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 
-const prisma = new PrismaClient();
+const prisma = createTestPrismaClient();
 
 describe('ST-38: Database Schema - Worktree & Queue Management', () => {
 

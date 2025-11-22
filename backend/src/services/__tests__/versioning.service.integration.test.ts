@@ -12,6 +12,7 @@
  */
 
 import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { VersioningService } from '../versioning.service';
 import { randomUUID } from 'crypto';
 
@@ -22,7 +23,7 @@ describe('VersioningService - Integration Tests', () => {
   const TEST_PREFIX = 'test_ST83_';
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     versioningService = new VersioningService(prisma as any);
 
     // Create test project

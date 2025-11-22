@@ -3,6 +3,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler, tool } from '../git_get_worktree_status';
 import * as gitUtils from '../git_utils';
 
@@ -12,7 +13,7 @@ describe('git_get_worktree_status', () => {
   let prisma: PrismaClient;
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
     jest.clearAllMocks();
   });
 

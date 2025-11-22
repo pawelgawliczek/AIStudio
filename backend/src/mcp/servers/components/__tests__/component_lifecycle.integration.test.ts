@@ -11,6 +11,7 @@
  */
 
 import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
+import { createTestPrismaClient } from '@/test-utils/safe-prisma-client';
 import { handler as activateHandler } from '../activate_component';
 import { handler as deactivateHandler } from '../deactivate_component';
 import { randomUUID } from 'crypto';
@@ -21,7 +22,7 @@ describe('Component Lifecycle MCP Tools - Integration Tests', () => {
   const TEST_PREFIX = 'test_ST83_lifecycle_';
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createTestPrismaClient();
 
     // Create test project
     testProject = await prisma.project.create({
