@@ -183,8 +183,8 @@ describe('create_component_version MCP Tool - Integration Tests', () => {
       await expect(
         handler(prisma, { componentId: fakeId }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
-        code: -32602,
+        name: 'NotFoundError',
+        code: 'NOT_FOUND',
       });
     });
 
@@ -197,7 +197,8 @@ describe('create_component_version MCP Tool - Integration Tests', () => {
       await expect(
         handler(prisma, { componentId: deprecatedComponent.id }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
       });
 
       await prisma.component.delete({ where: { id: deprecatedComponent.id } });

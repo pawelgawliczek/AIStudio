@@ -187,7 +187,8 @@ describe('get_version_history MCP Tool - Integration Tests', () => {
           entityId: regularComponent.id,
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
       });
 
       await prisma.component.delete({ where: { id: regularComponent.id } });
@@ -252,8 +253,8 @@ describe('get_version_history MCP Tool - Integration Tests', () => {
           entityId: fakeId,
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
-        code: -32602,
+        name: 'NotFoundError',
+        code: 'NOT_FOUND',
       });
     });
 
@@ -266,8 +267,8 @@ describe('get_version_history MCP Tool - Integration Tests', () => {
           entityId: fakeId,
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
-        code: -32602,
+        name: 'NotFoundError',
+        code: 'NOT_FOUND',
       });
     });
 
@@ -278,7 +279,8 @@ describe('get_version_history MCP Tool - Integration Tests', () => {
           entityId: randomUUID(),
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
       });
     });
 

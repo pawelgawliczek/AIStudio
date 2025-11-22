@@ -158,8 +158,8 @@ describe('Component Lifecycle MCP Tools - Integration Tests', () => {
       await expect(
         activateHandler(prisma, { componentId: randomUUID() }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
-        code: -32602,
+        name: 'NotFoundError',
+        code: 'NOT_FOUND',
       });
     });
   });
@@ -185,7 +185,8 @@ describe('Component Lifecycle MCP Tools - Integration Tests', () => {
           force: false,
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
       });
     });
 
@@ -359,8 +360,8 @@ describe('Component Lifecycle MCP Tools - Integration Tests', () => {
       await expect(
         deactivateHandler(prisma, { componentId: randomUUID() }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
-        code: -32602,
+        name: 'NotFoundError',
+        code: 'NOT_FOUND',
       });
     });
 

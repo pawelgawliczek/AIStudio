@@ -255,15 +255,15 @@ describe('compare_versions MCP Tool - Integration Tests', () => {
       coordinator1 = await createTestComponent({
         name: 'Coordinator V1',
         tags: ['coordinator'],
-        coordinatorInstructions: 'Original instructions',
-        decisionStrategy: 'sequential',
+        description: 'Original coordinator description',
+        inputInstructions: 'Original coordinator input',
       });
 
       coordinator2 = await createTestComponent({
         name: 'Coordinator V2',
         tags: ['coordinator'],
-        coordinatorInstructions: 'Modified instructions',
-        decisionStrategy: 'adaptive',
+        description: 'Modified coordinator description',
+        inputInstructions: 'Modified coordinator input',
         parentId: coordinator1.id,
         versionMinor: 1,
       });
@@ -281,15 +281,15 @@ describe('compare_versions MCP Tool - Integration Tests', () => {
         versionId2: coordinator2.id,
       });
 
-      const instructionsDiff = result.fieldDiffs.find(
-        d => d.field === 'coordinatorInstructions',
+      const descriptionDiff = result.fieldDiffs.find(
+        d => d.field === 'description',
       );
-      expect(instructionsDiff).toBeDefined();
+      expect(descriptionDiff?.changeType).toBe('modified');
 
-      const strategyDiff = result.fieldDiffs.find(
-        d => d.field === 'decisionStrategy',
+      const inputDiff = result.fieldDiffs.find(
+        d => d.field === 'inputInstructions',
       );
-      expect(strategyDiff?.changeType).toBe('modified');
+      expect(inputDiff?.changeType).toBe('modified');
     });
 
     it('should throw ValidationError if entity is not a coordinator', async () => {
@@ -304,7 +304,8 @@ describe('compare_versions MCP Tool - Integration Tests', () => {
           versionId2: coordinator1.id,
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
       });
 
       await prisma.component.delete({ where: { id: regularComponent.id } });
@@ -387,8 +388,8 @@ describe('compare_versions MCP Tool - Integration Tests', () => {
           versionId2: existingComponent.id,
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
-        code: -32602,
+        name: 'NotFoundError',
+        code: 'NOT_FOUND',
       });
 
       await prisma.component.delete({ where: { id: existingComponent.id } });
@@ -404,8 +405,8 @@ describe('compare_versions MCP Tool - Integration Tests', () => {
           versionId2: randomUUID(),
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
-        code: -32602,
+        name: 'NotFoundError',
+        code: 'NOT_FOUND',
       });
 
       await prisma.component.delete({ where: { id: existingComponent.id } });
@@ -419,7 +420,8 @@ describe('compare_versions MCP Tool - Integration Tests', () => {
           versionId2: randomUUID(),
         }),
       ).rejects.toMatchObject({
-        name: 'MCPError',
+        name: 'ValidationError',
+        code: 'VALIDATION_ERROR',
       });
     });
 
