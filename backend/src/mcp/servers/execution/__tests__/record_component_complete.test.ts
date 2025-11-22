@@ -1,0 +1,903 @@
+/**
+ * Test Suite: record_component_complete.ts (TC-EXEC-003)
+ * Coverage Target: 80%+ of 717 LOC
+ * Focus: Transcript parsing, multi-file aggregation, metric calculation
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import * as readline from 'readline';
+import { PrismaClient } from '@prisma/client';
+import { mockDeep, mockReset, DeepMockProxy } from 'jest-mock-extended';
+import { handler } from '../record_component_complete';
+import { ValidationError } from '../../../types';
+import { fixtures, prismaMock } from './test-setup';
+
+// Mock fs module
+jest.mock('fs');
+jest.mock('readline');
+
+const mockFs = fs as jest.Mocked<typeof fs>;
+const mockReadline = readline as jest.Mocked<typeof readline>;
+
+describe('record_component_complete', () => {
+  beforeEach(() => {
+    mockReset(prismaMock);
+    jest.clearAllMocks();
+
+    // Default mock behavior for fs operations
+    mockFs.existsSync.mockReturnValue(false);
+    mockFs.readdirSync.mockReturnValue([]);
+  });
+
+  // ========== VALIDATION TESTS ==========
+
+  describe('Input Validation', () => {
+    it('TC-EXEC-003-V1: should throw ValidationError when runId is missing', async () => {
+      // ========== ARRANGE ==========
+      const params = { componentId: 'comp-001' };
+
+      // ========== ACT & ASSERT ==========
+      await expect(handler(prismaMock as any, params)).rejects.toThrow(ValidationError);
+      await expect(handler(prismaMock as any, params)).rejects.toThrow('Missing required parameter: runId');
+    });
+
+    it('TC-EXEC-003-V2: should throw ValidationError when componentId is missing', async () => {
+      // ========== ARRANGE ==========
+      const params = { runId: 'run-001' };
+
+      // ========== ACT & ASSERT ==========
+      await expect(handler(prismaMock as any, params)).rejects.toThrow(ValidationError);
+      await expect(handler(prismaMock as any, params)).rejects.toThrow('Missing required parameter: componentId');
+    });
+
+    it('TC-EXEC-003-V3: should throw ValidationError for invalid status', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        status: 'invalid-status',
+      };
+
+      // ========== ACT & ASSERT ==========
+      await expect(handler(prismaMock as any, params)).rejects.toThrow(ValidationError);
+      await expect(handler(prismaMock as any, params)).rejects.toThrow('Invalid status value');
+    });
+
+    it('TC-EXEC-003-V4: should throw ValidationError when no running component found', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+      };
+      prismaMock.componentRun.findFirst.mockResolvedValue(null);
+
+      // ========== ACT & ASSERT ==========
+      await expect(handler(prismaMock as any, params)).rejects.toThrow(ValidationError);
+      await expect(handler(prismaMock as any, params)).rejects.toThrow('No running component execution found');
+    });
+  });
+
+  // ========== TRANSCRIPT PARSING TESTS ==========
+
+  describe('UC-EXEC-003: Transcript Parsing', () => {
+    const FIXED_START_TIME = new Date('2025-01-01T10:00:00.000Z');
+    const FIXED_END_TIME = new Date('2025-01-01T10:05:00.000Z');
+    const EXPECTED_DURATION = 300; // 5 minutes in seconds
+
+    const mockComponentRun = {
+      ...fixtures.componentRun,
+      id: 'comprun-001',
+      workflowRunId: 'run-001',
+      componentId: 'comp-001',
+      status: 'running',
+      startedAt: FIXED_START_TIME,
+      finishedAt: null,
+      executionOrder: 1,
+      metadata: {},
+    };
+
+    it('TC-EXEC-003-U1: should parse valid transcript with all metrics', async () => {
+      // ========== ARRANGE ==========
+      const transcriptPath = '/tmp/transcript.jsonl';
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      // Mock transcript content with complete metrics
+      const transcriptLines = [
+        JSON.stringify({
+          type: 'assistant',
+          role: 'assistant',
+          timestamp: '2025-01-01T10:01:00Z',
+          usage: {
+            input_tokens: 1000,
+            output_tokens: 500,
+            cache_read_input_tokens: 200,
+          },
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                name: 'Write',
+                input: {
+                  file_path: '/app/test.ts',
+                  content: 'line1\nline2\nline3',
+                },
+              },
+            ],
+          },
+        }),
+        JSON.stringify({
+          type: 'assistant',
+          role: 'assistant',
+          timestamp: '2025-01-01T10:02:00Z',
+          usage: {
+            input_tokens: 2000,
+            output_tokens: 1000,
+            cache_creation_input_tokens: 100,
+          },
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                name: 'Edit',
+                input: {
+                  file_path: '/app/test.ts',
+                  old_string: 'old',
+                  new_string: 'new\nnew2',
+                },
+              },
+            ],
+          },
+        }),
+        JSON.stringify({
+          type: 'user',
+          role: 'user',
+          timestamp: '2025-01-01T10:03:00Z',
+        }),
+      ];
+
+      const mockReadStream = {
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator],
+      } as any);
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({
+        ...mockComponentRun,
+        status: 'completed',
+        finishedAt: FIXED_END_TIME,
+      } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(true);
+      expect(result.dataSource).toBe('transcript');
+      expect(result.autoAggregatedMetrics.tokensInput).toBe(3000);
+      expect(result.autoAggregatedMetrics.tokensOutput).toBe(1500);
+      expect(result.autoAggregatedMetrics.totalTokens).toBe(4500);
+      expect(result.autoAggregatedMetrics.cacheHits).toBe(1);
+      expect(result.autoAggregatedMetrics.cacheMisses).toBe(1);
+      expect(result.autoAggregatedMetrics.cacheHitRate).toBe(0.5);
+      expect(result.autoAggregatedMetrics.tokensCacheRead).toBe(200);
+      expect(result.autoAggregatedMetrics.tokensCacheWrite).toBe(100);
+      expect(result.autoAggregatedMetrics.toolCalls).toBe(2);
+      expect(result.autoAggregatedMetrics.linesAdded).toBeGreaterThan(0);
+      expect(result.autoAggregatedMetrics.filesModified).toBe(1);
+      expect(result.autoAggregatedMetrics.filesModifiedPaths).toContain('/app/test.ts');
+    });
+
+    it('TC-EXEC-003-U2: should handle malformed JSON lines gracefully', async () => {
+      // ========== ARRANGE ==========
+      const transcriptPath = '/tmp/transcript.jsonl';
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      // Mix of valid and malformed lines
+      const transcriptLines = [
+        '{ invalid json',
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:01:00Z',
+          usage: { input_tokens: 1000, output_tokens: 500 },
+          message: { content: [] },
+        }),
+        'another bad line {{{',
+        JSON.stringify({
+          type: 'user',
+          timestamp: '2025-01-01T10:02:00Z',
+        }),
+      ];
+
+      const mockReadStream = {
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator],
+      } as any);
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(true);
+      expect(result.autoAggregatedMetrics.tokensInput).toBe(1000);
+      expect(result.autoAggregatedMetrics.tokensOutput).toBe(500);
+      // Malformed lines should be skipped without causing failure
+    });
+
+    it('TC-EXEC-003-U3: should filter entries by time window with millisecond precision', async () => {
+      // ========== ARRANGE ==========
+      const componentStart = new Date('2025-01-01T10:00:00.000Z');
+      const componentEnd = new Date('2025-01-01T10:05:00.000Z');
+      const transcriptPath = '/tmp/transcript.jsonl';
+
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      const mockRunWithTime = {
+        ...mockComponentRun,
+        startedAt: componentStart,
+        finishedAt: componentEnd,
+      };
+
+      // Entries with different timestamps
+      const transcriptLines = [
+        // Before component start (should be filtered out)
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T09:59:59.999Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: { content: [] },
+        }),
+        // Within window (should be included)
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:02:00.000Z',
+          usage: { input_tokens: 1000, output_tokens: 500 },
+          message: { content: [] },
+        }),
+        // After component end + buffer (should be filtered out)
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:06:00.000Z',
+          usage: { input_tokens: 200, output_tokens: 100 },
+          message: { content: [] },
+        }),
+      ];
+
+      const mockReadStream = {
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator],
+      } as any);
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockRunWithTime as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockRunWithTime, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockRunWithTime] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      // Only the middle entry should be counted
+      expect(result.autoAggregatedMetrics.tokensInput).toBe(1000);
+      expect(result.autoAggregatedMetrics.tokensOutput).toBe(500);
+    });
+
+    it('TC-EXEC-003-U4: should aggregate metrics from multiple transcripts', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        cleanupPolicy: 'keep',
+      };
+
+      const transcriptDir = '/tmp/transcripts';
+      const mockRunWithMetadata = {
+        ...mockComponentRun,
+        metadata: {
+          _transcriptTracking: {
+            transcriptDirectory: transcriptDir,
+            existingTranscriptsBeforeAgent: [],
+          },
+        },
+      };
+
+      // Mock multiple transcript files
+      const transcript1Lines = [
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:01:00Z',
+          usage: { input_tokens: 1000, output_tokens: 500 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Write',
+              input: { file_path: '/app/file1.ts', content: 'line1\nline2' },
+            }],
+          },
+        }),
+      ];
+
+      const transcript2Lines = [
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:02:00Z',
+          usage: { input_tokens: 2000, output_tokens: 1000 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Write',
+              input: { file_path: '/app/file2.ts', content: 'line1\nline2\nline3' },
+            }],
+          },
+        }),
+      ];
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.readdirSync.mockReturnValue(['transcript1.jsonl', 'transcript2.jsonl'] as any);
+      mockFs.statSync.mockImplementation((filePath: any) => ({
+        mtime: new Date('2025-01-01T10:05:00Z'),
+        mtimeMs: new Date('2025-01-01T10:05:00Z').getTime(),
+      } as any));
+
+      let callCount = 0;
+      mockFs.createReadStream.mockImplementation(() => {
+        const lines = callCount === 0 ? transcript1Lines : transcript2Lines;
+        callCount++;
+        return {
+          [Symbol.asyncIterator]: async function* () {
+            for (const line of lines) {
+              yield line;
+            }
+          },
+        } as any;
+      });
+
+      mockReadline.createInterface.mockImplementation((config: any) => ({
+        [Symbol.asyncIterator]: config.input[Symbol.asyncIterator],
+      } as any));
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockRunWithMetadata as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockRunWithMetadata, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockRunWithMetadata] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // Mock setTimeout to resolve immediately
+      jest.spyOn(global, 'setTimeout').mockImplementation((cb: any) => {
+        cb();
+        return {} as any;
+      });
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(true);
+      expect(result.autoAggregatedMetrics.tokensInput).toBe(3000); // 1000 + 2000
+      expect(result.autoAggregatedMetrics.tokensOutput).toBe(1500); // 500 + 1000
+      expect(result.autoAggregatedMetrics.filesModified).toBe(2); // file1.ts + file2.ts
+      expect(result.autoAggregatedMetrics.filesModifiedPaths).toContain('/app/file1.ts');
+      expect(result.autoAggregatedMetrics.filesModifiedPaths).toContain('/app/file2.ts');
+      expect(result.transcriptCleanup).toContain('Auto-detected');
+      expect(result.transcriptCleanup).toContain('2 transcript(s)');
+    });
+
+    it('TC-EXEC-003-U5: should execute cleanup policies correctly', async () => {
+      // ========== ARRANGE ==========
+      const transcriptPath = '/tmp/transcript.jsonl';
+      const transcriptLines = [
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:01:00Z',
+          usage: { input_tokens: 1000, output_tokens: 500 },
+          message: { content: [] },
+        }),
+      ];
+
+      const mockReadStream = {
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator],
+      } as any);
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // Test delete policy
+      const paramsDelete = { runId: 'run-001', componentId: 'comp-001', transcriptPath, cleanupPolicy: 'delete' };
+      await handler(prismaMock as any, paramsDelete);
+      expect(mockFs.unlinkSync).toHaveBeenCalledWith(transcriptPath);
+
+      jest.clearAllMocks();
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({ [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator] } as any);
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // Test truncate policy
+      const paramsTruncate = { runId: 'run-001', componentId: 'comp-001', transcriptPath, cleanupPolicy: 'truncate' };
+      await handler(prismaMock as any, paramsTruncate);
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(transcriptPath, '');
+
+      jest.clearAllMocks();
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({ [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator] } as any);
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // Test archive policy (note: archive dir may not exist initially)
+      mockFs.existsSync.mockImplementation((path: any) => {
+        if (path === '/tmp/vibestudio-transcript-archives') return false;
+        return true;
+      });
+      mockFs.mkdirSync.mockImplementation(() => undefined);
+      const paramsArchive = { runId: 'run-001', componentId: 'comp-001', transcriptPath, cleanupPolicy: 'archive' };
+      await handler(prismaMock as any, paramsArchive);
+      expect(mockFs.renameSync).toHaveBeenCalled();
+    });
+
+    it('TC-EXEC-003-U6: should calculate cost with Sonnet 4 pricing', async () => {
+      // ========== ARRANGE ==========
+      const transcriptPath = '/tmp/transcript.jsonl';
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      // Exact token counts for predictable cost
+      const transcriptLines = [
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:01:00Z',
+          usage: {
+            input_tokens: 1000000, // 1M input tokens
+            output_tokens: 1000000, // 1M output tokens
+            cache_read_input_tokens: 1000000, // 1M cache read tokens
+          },
+          message: { content: [] },
+        }),
+      ];
+
+      const mockReadStream = {
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator],
+      } as any);
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      // Cost = (1M * $3/M) + (1M * $15/M) + (1M * $0.30/M)
+      // Cost = $3 + $15 + $0.30 = $18.30
+      expect(result.autoAggregatedMetrics.totalCostUsd).toBeCloseTo(18.30, 2);
+    });
+
+    it('TC-EXEC-003-U7: should extract LOC from Write/Edit tools correctly', async () => {
+      // ========== ARRANGE ==========
+      const transcriptPath = '/tmp/transcript.jsonl';
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      const transcriptLines = [
+        // Write tool adds 5 lines
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:01:00Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Write',
+              input: {
+                file_path: '/app/new.ts',
+                content: 'line1\nline2\nline3\nline4\nline5',
+              },
+            }],
+          },
+        }),
+        // Edit tool: 3 old lines -> 5 new lines (net +2, modified 3)
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:02:00Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Edit',
+              input: {
+                file_path: '/app/existing.ts',
+                old_string: 'old1\nold2\nold3',
+                new_string: 'new1\nnew2\nnew3\nnew4\nnew5',
+              },
+            }],
+          },
+        }),
+        // Edit tool: 5 old lines -> 2 new lines (net -3, modified 2)
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:03:00Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Edit',
+              input: {
+                file_path: '/app/shrink.ts',
+                old_string: 'old1\nold2\nold3\nold4\nold5',
+                new_string: 'new1\nnew2',
+              },
+            }],
+          },
+        }),
+      ];
+
+      const mockReadStream = {
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator],
+      } as any);
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.autoAggregatedMetrics.linesAdded).toBe(7); // 5 (Write) + 2 (Edit net positive)
+      expect(result.autoAggregatedMetrics.linesDeleted).toBe(3); // 3 (Edit net negative)
+      expect(result.autoAggregatedMetrics.linesModified).toBe(5); // 3 (first Edit) + 2 (second Edit)
+      expect(result.autoAggregatedMetrics.filesModified).toBe(3);
+    });
+
+    it('TC-EXEC-003-U8: should detect test files correctly', async () => {
+      // ========== ARRANGE ==========
+      const transcriptPath = '/tmp/transcript.jsonl';
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      const transcriptLines = [
+        // Test file in __tests__ directory
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:01:00Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Write',
+              input: {
+                file_path: '/app/__tests__/feature.test.ts',
+                content: 'test code',
+              },
+            }],
+          },
+        }),
+        // Test file with 'spec' in name
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:02:00Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Write',
+              input: {
+                file_path: '/app/component.spec.ts',
+                content: 'spec code',
+              },
+            }],
+          },
+        }),
+        // Test file with 'test' in name
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:03:00Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Edit',
+              input: {
+                file_path: '/app/service.test.ts',
+                old_string: 'old',
+                new_string: 'new',
+              },
+            }],
+          },
+        }),
+        // Regular non-test file
+        JSON.stringify({
+          type: 'assistant',
+          timestamp: '2025-01-01T10:04:00Z',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          message: {
+            content: [{
+              type: 'tool_use',
+              name: 'Write',
+              input: {
+                file_path: '/app/regular.ts',
+                content: 'regular code',
+              },
+            }],
+          },
+        }),
+      ];
+
+      const mockReadStream = {
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(mockReadStream as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: mockReadStream[Symbol.asyncIterator],
+      } as any);
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.autoAggregatedMetrics.testsGenerated).toBe(3); // 3 test files detected
+    });
+
+    it('TC-EXEC-003-U9: should only count userPrompts for orchestrator (executionOrder=0)', async () => {
+      // ========== ARRANGE ==========
+      const transcriptPath = '/tmp/transcript.jsonl';
+
+      const transcriptLines = [
+        JSON.stringify({ type: 'user', timestamp: '2025-01-01T10:01:00Z' }),
+        JSON.stringify({ type: 'user', timestamp: '2025-01-01T10:02:00Z' }),
+        JSON.stringify({ type: 'assistant', timestamp: '2025-01-01T10:03:00Z', usage: { input_tokens: 100, output_tokens: 50 }, message: { content: [] } }),
+      ];
+
+      const createMockReadStream = () => ({
+        [Symbol.asyncIterator]: async function* () {
+          for (const line of transcriptLines) {
+            yield line;
+          }
+        },
+      });
+
+      // Test with orchestrator (executionOrder=0)
+      const params1 = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(createMockReadStream() as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: createMockReadStream()[Symbol.asyncIterator],
+      } as any);
+
+      const orchestratorRun = { ...mockComponentRun, executionOrder: 0 };
+      prismaMock.componentRun.findFirst.mockResolvedValue(orchestratorRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Orchestrator' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...orchestratorRun, status: 'completed', userPrompts: 2 } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([orchestratorRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      const result1 = await handler(prismaMock as any, params1);
+
+      // Verify that orchestrator ComponentRun.update was called with userPrompts
+      const updateCall = (prismaMock.componentRun.update as jest.Mock).mock.calls[0][0];
+      expect(updateCall.data.userPrompts).toBe(2); // Orchestrator counts user prompts
+
+      jest.clearAllMocks();
+
+      // Test with regular component (executionOrder>0)
+      const params2 = {
+        runId: 'run-002',
+        componentId: 'comp-002',
+        transcriptPath,
+        cleanupPolicy: 'keep',
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.createReadStream.mockReturnValue(createMockReadStream() as any);
+      mockReadline.createInterface.mockReturnValue({
+        [Symbol.asyncIterator]: createMockReadStream()[Symbol.asyncIterator],
+      } as any);
+
+      const componentRun = { ...mockComponentRun, executionOrder: 1 };
+      prismaMock.componentRun.findFirst.mockResolvedValue(componentRun as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Component' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...componentRun, status: 'completed', userPrompts: 0 } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([componentRun] as any);
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      const result2 = await handler(prismaMock as any, params2);
+
+      // Verify that component ComponentRun.update was called with userPrompts=0
+      const updateCall2 = (prismaMock.componentRun.update as jest.Mock).mock.calls[0][0];
+      expect(updateCall2.data.userPrompts).toBe(0); // Component doesn't count user prompts
+    });
+  });
+
+  // ========== WORKFLOW AGGREGATION TESTS ==========
+
+  describe('Workflow Metrics Aggregation', () => {
+    it('TC-EXEC-003-I1: should aggregate metrics across all completed components', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        componentId: 'comp-001',
+      };
+
+      const mockComponentRun1 = {
+        ...fixtures.componentRun,
+        id: 'comp-1',
+        totalTokens: 1000,
+        cost: 10,
+        durationSeconds: 100,
+        userPrompts: 2,
+        systemIterations: 5,
+        humanInterventions: 1,
+      };
+
+      const mockComponentRun2 = {
+        ...fixtures.componentRun,
+        id: 'comp-2',
+        totalTokens: 2000,
+        cost: 20,
+        durationSeconds: 200,
+        userPrompts: 3,
+        systemIterations: 10,
+        humanInterventions: 2,
+      };
+
+      prismaMock.componentRun.findFirst.mockResolvedValue(mockComponentRun1 as any);
+      prismaMock.component.findUnique.mockResolvedValue({ ...fixtures.component, name: 'Test' } as any);
+      prismaMock.componentRun.update.mockResolvedValue({ ...mockComponentRun1, status: 'completed' } as any);
+      prismaMock.componentRun.findMany.mockResolvedValue([mockComponentRun1, mockComponentRun2] as any);
+
+      prismaMock.workflowRun.update.mockResolvedValue({} as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.aggregatedMetrics.totalTokens).toBe(3000);
+      expect(result.aggregatedMetrics.estimatedCost).toBe(30);
+      expect(result.aggregatedMetrics.durationSeconds).toBe(300);
+      expect(result.aggregatedMetrics.totalUserPrompts).toBe(5);
+      expect(result.aggregatedMetrics.totalIterations).toBe(15);
+      expect(result.aggregatedMetrics.totalInterventions).toBe(3);
+      expect(result.aggregatedMetrics.avgPromptsPerComponent).toBe(2.5); // 5 / 2
+
+      // Verify WorkflowRun was updated
+      expect(prismaMock.workflowRun.update).toHaveBeenCalledWith({
+        where: { id: 'run-001' },
+        data: expect.objectContaining({
+          totalTokens: 3000,
+          estimatedCost: 30,
+          durationSeconds: 300,
+          totalUserPrompts: 5,
+          totalIterations: 15,
+          totalInterventions: 3,
+          avgPromptsPerComponent: 2.5,
+        }),
+      });
+    });
+  });
+});
