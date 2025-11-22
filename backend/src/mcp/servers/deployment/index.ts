@@ -1,11 +1,12 @@
 /**
  * Deployment MCP Server
  *
- * Provides tools for deploying stories to test environments
+ * Provides tools for deploying stories to test and production environments
  */
 
-import * as deployToTestEnv from './deploy_to_test_env';
+import * as deployToTestEnv from './deploy_to_test_env.js';
+import * as deployToProduction from './deploy_to_production.js';
 
-export const tools = [deployToTestEnv];
+export const tools = [deployToTestEnv, deployToProduction];
 
-export { deployToTestEnv };
+export { deployToTestEnv, deployToProduction };
