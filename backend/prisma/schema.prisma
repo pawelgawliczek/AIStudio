@@ -2,13 +2,13 @@
 // Based on req.md Section 20 and architecture.md
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [uuidOssp(map: "uuid-ossp"), vector, pgTrgm(map: "pg_trgm")]
 }
 
@@ -20,53 +20,53 @@ model User {
   id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name         String
   email        String   @unique
-  password     String   // bcrypt hashed
+  password     String // bcrypt hashed
   role         UserRole
   refreshToken String?  @map("refresh_token") // JWT refresh token (hashed)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  createdStories         Story[]            @relation("CreatedStories")
+  createdStories         Story[]          @relation("CreatedStories")
   createdUseCaseVersions UseCaseVersion[]
-  assignedTestCases      TestCase[]         @relation("TestCaseAssignee")
-  createdTestCases       TestCase[]         @relation("TestCaseCreator")
+  assignedTestCases      TestCase[]       @relation("TestCaseAssignee")
+  createdTestCases       TestCase[]       @relation("TestCaseCreator")
 
   @@map("users")
 }
 
 model Project {
-  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name        String        @unique
-  description String?
-  repositoryUrl String?     @map("repository_url")
-  localPath   String?       @map("local_path") // Local path to git repository for code analysis (Docker container path)
-  hostPath    String?       @map("host_path")  // Host filesystem path for transcript tracking (where Claude Code runs)
-  status      ProjectStatus @default(active)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id            String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name          String        @unique
+  description   String?
+  repositoryUrl String?       @map("repository_url")
+  localPath     String?       @map("local_path") // Local path to git repository for code analysis (Docker container path)
+  hostPath      String?       @map("host_path") // Host filesystem path for transcript tracking (where Claude Code runs)
+  status        ProjectStatus @default(active)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  epics               Epic[]
-  stories             Story[]
-  useCases            UseCase[]
-  commits             Commit[]
-  testCases           TestCase[]
-  agents              Agent[]
-  frameworks          AgentFramework[]
-  runs                Run[]
-  releases            Release[]
-  auditLogs           AuditLog[]
-  codeMetrics         CodeMetrics[]
+  epics                Epic[]
+  stories              Story[]
+  useCases             UseCase[]
+  commits              Commit[]
+  testCases            TestCase[]
+  agents               Agent[]
+  frameworks           AgentFramework[]
+  runs                 Run[]
+  releases             Release[]
+  auditLogs            AuditLog[]
+  codeMetrics          CodeMetrics[]
   codeMetricsSnapshots CodeMetricsSnapshot[]
-  components          Component[]
-  workflows           Workflow[]
-  workflowRuns        WorkflowRun[]
-  defectsNew          DefectNew[]
-  activeWorkflows     ActiveWorkflow[]
-  metricsAggregations MetricsAggregation[]
-  fileUseCaseLinks    FileUseCaseLink[]
-  otelEvents          OtelEvent[]
+  components           Component[]
+  workflows            Workflow[]
+  workflowRuns         WorkflowRun[]
+  defectsNew           DefectNew[]
+  activeWorkflows      ActiveWorkflow[]
+  metricsAggregations  MetricsAggregation[]
+  fileUseCaseLinks     FileUseCaseLink[]
+  otelEvents           OtelEvent[]
 
   @@map("projects")
 }
@@ -74,7 +74,7 @@ model Project {
 model Epic {
   id          String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   projectId   String     @map("project_id") @db.Uuid
-  key         String     // e.g., EP-1, unique within project
+  key         String // e.g., EP-1, unique within project
   title       String
   description String?
   status      EpicStatus @default(planning)
@@ -83,9 +83,9 @@ model Epic {
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
   // Relations
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stories Story[]
-  commits Commit[]
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stories      Story[]
+  commits      Commit[]
   workflowRuns WorkflowRun[]
 
   @@unique([projectId, key])
@@ -94,53 +94,53 @@ model Epic {
 }
 
 model Story {
-  id                   String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId            String       @map("project_id") @db.Uuid
-  epicId               String?      @map("epic_id") @db.Uuid
-  key                  String       // e.g., ST-1, unique within project
-  type                 StoryType    @default(feature)
-  title                String
-  description          String?
-  status               StoryStatus  @default(planning)
-  priority             Int          @default(0)
-  businessImpact       Int?         @map("business_impact")
-  businessComplexity   Int?         @map("business_complexity")
-  technicalComplexity  Int?         @map("technical_complexity")
-  estimatedTokenCost   Int?         @map("estimated_token_cost")
-  assignedFrameworkId  String?      @map("assigned_framework_id") @db.Uuid
-  assignedWorkflowId   String?      @map("assigned_workflow_id") @db.Uuid
-  createdById          String       @map("created_by") @db.Uuid
+  id                  String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId           String      @map("project_id") @db.Uuid
+  epicId              String?     @map("epic_id") @db.Uuid
+  key                 String // e.g., ST-1, unique within project
+  type                StoryType   @default(feature)
+  title               String
+  description         String?
+  status              StoryStatus @default(planning)
+  priority            Int         @default(0)
+  businessImpact      Int?        @map("business_impact")
+  businessComplexity  Int?        @map("business_complexity")
+  technicalComplexity Int?        @map("technical_complexity")
+  estimatedTokenCost  Int?        @map("estimated_token_cost")
+  assignedFrameworkId String?     @map("assigned_framework_id") @db.Uuid
+  assignedWorkflowId  String?     @map("assigned_workflow_id") @db.Uuid
+  createdById         String      @map("created_by") @db.Uuid
 
   // Analysis fields (filled by agents)
-  contextExploration   String?      @map("context_exploration") @db.Text  // Context from Explore component
-  baAnalysis           String?      @map("ba_analysis") @db.Text  // Requirements from BA component
-  designerAnalysis     String?      @map("designer_analysis") @db.Text  // UI/UX design from Designer component
-  architectAnalysis    String?      @map("architect_analysis") @db.Text  // Technical design from Architect component
+  contextExploration String? @map("context_exploration") @db.Text // Context from Explore component
+  baAnalysis         String? @map("ba_analysis") @db.Text // Requirements from BA component
+  designerAnalysis   String? @map("designer_analysis") @db.Text // UI/UX design from Designer component
+  architectAnalysis  String? @map("architect_analysis") @db.Text // Technical design from Architect component
 
   // Analysis timestamps
-  contextExploredAt    DateTime?    @map("context_explored_at")
-  baAnalyzedAt         DateTime?    @map("ba_analyzed_at")
-  designerAnalyzedAt   DateTime?    @map("designer_analyzed_at")
-  architectAnalyzedAt  DateTime?    @map("architect_analyzed_at")
+  contextExploredAt   DateTime? @map("context_explored_at")
+  baAnalyzedAt        DateTime? @map("ba_analyzed_at")
+  designerAnalyzedAt  DateTime? @map("designer_analyzed_at")
+  architectAnalyzedAt DateTime? @map("architect_analyzed_at")
 
   // Workflow phase tracking (Epic EP-7 - ST-38)
-  currentPhase         StoryPhase?  @map("current_phase")
+  currentPhase StoryPhase? @map("current_phase")
 
   // Metadata (metrics, framework info, etc.)
-  metadata             Json?        // Stores aggregated metrics, framework info, and other dynamic data
+  metadata Json? // Stores aggregated metrics, framework info, and other dynamic data
 
   // Defect leakage tracking
-  defectLeakageCount   Int          @default(0) @map("defect_leakage_count")
+  defectLeakageCount Int @default(0) @map("defect_leakage_count")
 
-  createdAt            DateTime     @default(now()) @map("created_at")
-  updatedAt            DateTime     @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project           Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  epic              Epic?                @relation(fields: [epicId], references: [id], onDelete: SetNull)
-  createdBy         User                 @relation("CreatedStories", fields: [createdById], references: [id])
-  assignedFramework AgentFramework?      @relation(fields: [assignedFrameworkId], references: [id], onDelete: SetNull)
-  assignedWorkflow  Workflow?            @relation(fields: [assignedWorkflowId], references: [id], onDelete: SetNull)
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  epic              Epic?              @relation(fields: [epicId], references: [id], onDelete: SetNull)
+  createdBy         User               @relation("CreatedStories", fields: [createdById], references: [id])
+  assignedFramework AgentFramework?    @relation(fields: [assignedFrameworkId], references: [id], onDelete: SetNull)
+  assignedWorkflow  Workflow?          @relation(fields: [assignedWorkflowId], references: [id], onDelete: SetNull)
   subtasks          Subtask[]
   useCaseLinks      StoryUseCaseLink[]
   commits           Commit[]
@@ -148,8 +148,8 @@ model Story {
   workflowRuns      WorkflowRun[]
   testExecutions    TestExecution[]
   defect            Defect?
-  defectsIntroduced DefectNew[]          @relation("DefectsIntroducedByStory")
-  defectsFound      DefectNew[]          @relation("DefectsFoundInStory")
+  defectsIntroduced DefectNew[]        @relation("DefectsIntroducedByStory")
+  defectsFound      DefectNew[]        @relation("DefectsFoundInStory")
   releaseItems      ReleaseItem[]
   worktrees         Worktree[]
   testQueueEntries  TestQueue[]
@@ -164,20 +164,20 @@ model Story {
 }
 
 model Subtask {
-  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  storyId       String          @map("story_id") @db.Uuid
-  key           String?         // optional key within story
-  title         String
-  description   String?
-  assigneeType  AssigneeType    @default(agent) @map("assignee_type")
-  assigneeId    String?         @map("assignee_id") @db.Uuid
-  status        SubtaskStatus   @default(todo)
+  id           String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId      String        @map("story_id") @db.Uuid
+  key          String? // optional key within story
+  title        String
+  description  String?
+  assigneeType AssigneeType  @default(agent) @map("assignee_type")
+  assigneeId   String?       @map("assignee_id") @db.Uuid
+  status       SubtaskStatus @default(todo)
 
   // Link to component run (for agent-created subtasks)
-  componentRunId String?        @map("component_run_id") @db.Uuid
+  componentRunId String? @map("component_run_id") @db.Uuid
 
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   story        Story         @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -194,25 +194,25 @@ model Subtask {
 // ============================================================================
 
 model CodeMetrics {
-  id                    String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId             String   @map("project_id") @db.Uuid
-  filePath              String   @map("file_path")
-  language              String?  // e.g., TypeScript, Python, etc.
-  linesOfCode           Int      @map("lines_of_code")
-  cyclomaticComplexity  Float    @map("cyclomatic_complexity")
-  cognitiveComplexity   Float    @map("cognitive_complexity")
-  maintainabilityIndex  Float    @map("maintainability_index") // 0-100 scale
-  testCoverage          Float?   @map("test_coverage") @default(0.0) // 0-100%
-  churnRate             Int      @map("churn_rate") // Number of changes in last 90 days
-  churnCount            Int      @map("churn_count") @default(0) // Total number of changes
-  riskScore             Float    @map("risk_score") @default(0.0) // 0-100 scale. Formula: round((complexity/10) × churn × (100-maintainability)). Capped at 100. (ST-28)
-  codeSmellCount        Int      @map("code_smell_count")
-  criticalIssues        Int      @map("critical_issues") @default(0)
-  lastModified          DateTime @map("last_modified") @default(now())
-  lastAnalyzedAt        DateTime @map("last_analyzed_at")
-  metadata              Json?    // Stores code smells, function metrics, imports, importedBy, etc.
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  filePath             String   @map("file_path")
+  language             String? // e.g., TypeScript, Python, etc.
+  linesOfCode          Int      @map("lines_of_code")
+  cyclomaticComplexity Float    @map("cyclomatic_complexity")
+  cognitiveComplexity  Float    @map("cognitive_complexity")
+  maintainabilityIndex Float    @map("maintainability_index") // 0-100 scale
+  testCoverage         Float?   @default(0.0) @map("test_coverage") // 0-100%
+  churnRate            Int      @map("churn_rate") // Number of changes in last 90 days
+  churnCount           Int      @default(0) @map("churn_count") // Total number of changes
+  riskScore            Float    @default(0.0) @map("risk_score") // 0-100 scale. Formula: round((complexity/10) × churn × (100-maintainability)). Capped at 100. (ST-28)
+  codeSmellCount       Int      @map("code_smell_count")
+  criticalIssues       Int      @default(0) @map("critical_issues")
+  lastModified         DateTime @default(now()) @map("last_modified")
+  lastAnalyzedAt       DateTime @map("last_analyzed_at")
+  metadata             Json? // Stores code smells, function metrics, imports, importedBy, etc.
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -225,24 +225,24 @@ model CodeMetrics {
 
 // ST-18: Historical snapshots for Code Quality trends
 model CodeMetricsSnapshot {
-  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId       String   @map("project_id") @db.Uuid
-  snapshotDate    DateTime @default(now()) @map("snapshot_date")
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId    String   @map("project_id") @db.Uuid
+  snapshotDate DateTime @default(now()) @map("snapshot_date")
 
   // Aggregated project metrics at time of snapshot
-  totalFiles      Int      @map("total_files")
-  totalLOC        Int      @map("total_loc")
-  avgComplexity   Float    @map("avg_complexity")
-  avgCoverage     Float    @map("avg_coverage")
-  healthScore     Float    @map("health_score")
-  techDebtRatio   Float    @map("tech_debt_ratio")
+  totalFiles    Int   @map("total_files")
+  totalLOC      Int   @map("total_loc")
+  avgComplexity Float @map("avg_complexity")
+  avgCoverage   Float @map("avg_coverage")
+  healthScore   Float @map("health_score")
+  techDebtRatio Float @map("tech_debt_ratio")
 
   // Optional: Store additional metadata (locByLanguage, topHotspots, etc.)
-  metadata        Json?    // { locByLanguage: {...}, topHotspots: [...] }
+  metadata Json? // { locByLanguage: {...}, topHotspots: [...] }
 
   // Provenance tracking
-  analysisRunId   String?  @map("analysis_run_id") // Link to analysis job if available
-  createdAt       DateTime @default(now()) @map("created_at")
+  analysisRunId String?  @map("analysis_run_id") // Link to analysis job if available
+  createdAt     DateTime @default(now()) @map("created_at")
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -259,13 +259,13 @@ model CodeMetricsSnapshot {
 // ============================================================================
 
 model UseCase {
-  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  key         String   // unique within project
-  title       String
-  area        String?  // screen/flow/feature area
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  key       String // unique within project
+  title     String
+  area      String? // screen/flow/feature area
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   project    Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -280,20 +280,20 @@ model UseCase {
 }
 
 model UseCaseVersion {
-  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  useCaseId       String   @map("use_case_id") @db.Uuid
-  version         Int
-  summary         String?
-  content         String   // markdown or JSON
-  embedding       Unsupported("vector(1536)")?  // pgvector for semantic search
-  createdById     String   @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at")
-  linkedStoryId   String?  @map("linked_story_id") @db.Uuid
-  linkedDefectId  String?  @map("linked_defect_id") @db.Uuid
+  id             String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  useCaseId      String                       @map("use_case_id") @db.Uuid
+  version        Int
+  summary        String?
+  content        String // markdown or JSON
+  embedding      Unsupported("vector(1536)")? // pgvector for semantic search
+  createdById    String                       @map("created_by") @db.Uuid
+  createdAt      DateTime                     @default(now()) @map("created_at")
+  linkedStoryId  String?                      @map("linked_story_id") @db.Uuid
+  linkedDefectId String?                      @map("linked_defect_id") @db.Uuid
 
   // Relations
-  useCase  UseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
-  createdBy User   @relation(fields: [createdById], references: [id])
+  useCase   UseCase @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
 
   @@unique([useCaseId, version])
   @@index([useCaseId])
@@ -301,10 +301,10 @@ model UseCaseVersion {
 }
 
 model StoryUseCaseLink {
-  storyId   String             @map("story_id") @db.Uuid
-  useCaseId String             @map("use_case_id") @db.Uuid
-  relation  UseCaseRelation    @default(implements)
-  createdAt DateTime           @default(now()) @map("created_at")
+  storyId   String          @map("story_id") @db.Uuid
+  useCaseId String          @map("use_case_id") @db.Uuid
+  relation  UseCaseRelation @default(implements)
+  createdAt DateTime        @default(now()) @map("created_at")
 
   // Relations
   story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -315,19 +315,19 @@ model StoryUseCaseLink {
 }
 
 model FileUseCaseLink {
-  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId   String        @map("project_id") @db.Uuid
-  filePath    String        @map("file_path") // Relative path from repo root
-  useCaseId   String        @map("use_case_id") @db.Uuid
+  id        String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  filePath  String @map("file_path") // Relative path from repo root
+  useCaseId String @map("use_case_id") @db.Uuid
 
   // Confidence and provenance
-  confidence  Float         @default(1.0) // 0.0-1.0
-  source      MappingSource // How was this link created?
+  confidence Float         @default(1.0) // 0.0-1.0
+  source     MappingSource // How was this link created?
 
   // Metadata
-  firstSeenAt DateTime      @default(now()) @map("first_seen_at")
-  lastSeenAt  DateTime      @updatedAt @map("last_seen_at")
-  occurrences Int           @default(1) // How many times confirmed
+  firstSeenAt DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt  DateTime @updatedAt @map("last_seen_at")
+  occurrences Int      @default(1) // How many times confirmed
 
   // Relations
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -345,10 +345,10 @@ model FileUseCaseLink {
 // ============================================================================
 
 model Defect {
-  storyId        String          @map("story_id") @db.Uuid @id
-  originStoryId  String?         @map("origin_story_id") @db.Uuid
-  originStage    OriginStage?    @map("origin_stage")
-  discoveryStage DiscoveryStage  @map("discovery_stage")
+  storyId        String         @id @map("story_id") @db.Uuid
+  originStoryId  String?        @map("origin_story_id") @db.Uuid
+  originStage    OriginStage?   @map("origin_stage")
+  discoveryStage DiscoveryStage @map("discovery_stage")
   severity       DefectSeverity
 
   // Relations
@@ -402,10 +402,10 @@ model CommitFile {
 }
 
 model TestCase {
-  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId   String       @map("project_id") @db.Uuid
-  useCaseId   String       @map("use_case_id") @db.Uuid
-  key         String       // unique within project (e.g., TC-AUTH-101)
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String  @map("project_id") @db.Uuid
+  useCaseId   String  @map("use_case_id") @db.Uuid
+  key         String // unique within project (e.g., TC-AUTH-101)
   title       String
   description String?
 
@@ -423,7 +423,7 @@ model TestCase {
   assignedToId String?        @map("assigned_to") @db.Uuid
 
   // Metadata (coverage stats, execution history, etc.)
-  metadata     Json?          // Additional test case data
+  metadata Json? // Additional test case data
 
   // Audit
   createdById String   @map("created_by") @db.Uuid
@@ -431,11 +431,11 @@ model TestCase {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  useCase     UseCase         @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
-  assignedTo  User?           @relation("TestCaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdBy   User            @relation("TestCaseCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  executions  TestExecution[]
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  useCase    UseCase         @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  assignedTo User?           @relation("TestCaseAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User            @relation("TestCaseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  executions TestExecution[]
 
   @@unique([projectId, key])
   @@index([projectId, testLevel])
@@ -445,16 +445,16 @@ model TestCase {
 }
 
 model TestExecution {
-  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  testCaseId   String   @map("test_case_id") @db.Uuid
-  storyId      String?  @map("story_id") @db.Uuid
-  commitHash   String?  @map("commit_hash")
+  id         String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  testCaseId String  @map("test_case_id") @db.Uuid
+  storyId    String? @map("story_id") @db.Uuid
+  commitHash String? @map("commit_hash")
 
   // Execution details
-  executedAt   DateTime           @map("executed_at") @db.Timestamptz
+  executedAt   DateTime            @map("executed_at") @db.Timestamptz
   status       TestExecutionStatus
-  durationMs   Int?               @map("duration_ms")
-  errorMessage String?            @map("error_message")
+  durationMs   Int?                @map("duration_ms")
+  errorMessage String?             @map("error_message")
 
   // Coverage data (from CI reports)
   coveragePercentage Decimal? @map("coverage_percentage") @db.Decimal(5, 2)
@@ -486,7 +486,7 @@ model Agent {
   projectId String?  @map("project_id") @db.Uuid
   name      String
   role      String
-  config    Json     // system prompt, tools, limits
+  config    Json // system prompt, tools, limits
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -504,7 +504,7 @@ model AgentFramework {
   projectId   String?  @map("project_id") @db.Uuid
   name        String
   description String?
-  config      Json     // composition of agents, routing rules
+  config      Json // composition of agents, routing rules
   active      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -519,21 +519,21 @@ model AgentFramework {
 }
 
 model Run {
-  id           String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId    String      @map("project_id") @db.Uuid
-  storyId      String?     @map("story_id") @db.Uuid
-  subtaskId    String?     @map("subtask_id") @db.Uuid
-  agentId      String?     @map("agent_id") @db.Uuid
-  frameworkId  String?     @map("framework_id") @db.Uuid
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId    String    @map("project_id") @db.Uuid
+  storyId      String?   @map("story_id") @db.Uuid
+  subtaskId    String?   @map("subtask_id") @db.Uuid
+  agentId      String?   @map("agent_id") @db.Uuid
+  frameworkId  String?   @map("framework_id") @db.Uuid
   origin       RunOrigin
-  tokensInput  Int         @default(0) @map("tokens_input")
-  tokensOutput Int         @default(0) @map("tokens_output")
-  startedAt    DateTime    @map("started_at") @db.Timestamptz
-  finishedAt   DateTime?   @map("finished_at") @db.Timestamptz
-  success      Boolean     @default(true)
-  errorType    String?     @map("error_type")
-  iterations   Int         @default(1)
-  metadata     Json?       // flexible storage for additional data
+  tokensInput  Int       @default(0) @map("tokens_input")
+  tokensOutput Int       @default(0) @map("tokens_output")
+  startedAt    DateTime  @map("started_at") @db.Timestamptz
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz
+  success      Boolean   @default(true)
+  errorType    String?   @map("error_type")
+  iterations   Int       @default(1)
+  metadata     Json? // flexible storage for additional data
 
   // Relations
   project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -554,48 +554,48 @@ model Run {
 
 // Component - Generic building block configured via 3 instruction sets
 model Component {
-  id                    String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId             String   @map("project_id") @db.Uuid
-  name                  String
-  description           String?
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String  @map("project_id") @db.Uuid
+  name        String
+  description String?
 
   // The core: 3 instruction sets
-  inputInstructions     String   @db.Text @map("input_instructions")
-  operationInstructions String   @db.Text @map("operation_instructions")
-  outputInstructions    String   @db.Text @map("output_instructions")
+  inputInstructions     String @map("input_instructions") @db.Text
+  operationInstructions String @map("operation_instructions") @db.Text
+  outputInstructions    String @map("output_instructions") @db.Text
 
   // Execution configuration
-  config                Json     // { modelId, temperature, maxInputTokens, maxOutputTokens, timeout, maxRetries, costLimit }
-  tools                 String[] // MCP tool names this component can use
-  subtaskConfig         Json?    @map("subtask_config") // { createSubtask, layer, assignee }
-  onFailure             String   @default("stop") @map("on_failure") // stop, skip, retry, pause
+  config        Json // { modelId, temperature, maxInputTokens, maxOutputTokens, timeout, maxRetries, costLimit }
+  tools         String[] // MCP tool names this component can use
+  subtaskConfig Json?    @map("subtask_config") // { createSubtask, layer, assignee }
+  onFailure     String   @default("stop") @map("on_failure") // stop, skip, retry, pause
 
   // Metadata
-  tags                  String[]
-  active                Boolean  @default(true)
-  version               String   @default("v1.0")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  tags      String[]
+  active    Boolean  @default(true)
+  version   String   @default("v1.0")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Versioning fields (ST-58)
-  versionMajor          Int      @default(1) @map("version_major")
-  versionMinor          Int      @default(0) @map("version_minor")
-  parentId              String?  @map("parent_id") @db.Uuid
-  instructionsChecksum  String?  @map("instructions_checksum")
-  configChecksum        String?  @map("config_checksum")
-  isDeprecated          Boolean  @default(false) @map("is_deprecated")
-  deprecatedAt          DateTime? @map("deprecated_at")
-  changeDescription     String?  @map("change_description")
-  createdFromVersion    String?  @map("created_from_version")
+  versionMajor         Int       @default(1) @map("version_major")
+  versionMinor         Int       @default(0) @map("version_minor")
+  parentId             String?   @map("parent_id") @db.Uuid
+  instructionsChecksum String?   @map("instructions_checksum")
+  configChecksum       String?   @map("config_checksum")
+  isDeprecated         Boolean   @default(false) @map("is_deprecated")
+  deprecatedAt         DateTime? @map("deprecated_at")
+  changeDescription    String?   @map("change_description")
+  createdFromVersion   String?   @map("created_from_version")
 
   // Relations
-  project                Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  componentRuns          ComponentRun[]
-  defects                DefectNew[]
-  workflowsAsCoordinator Workflow[]     @relation("WorkflowCoordinator")
-  workflowRunsAsCoordinator WorkflowRun[] @relation("WorkflowRunCoordinator")
-  parent                 Component?     @relation("ComponentVersions", fields: [parentId], references: [id], onDelete: SetNull)
-  children               Component[]    @relation("ComponentVersions")
+  project                   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  componentRuns             ComponentRun[]
+  defects                   DefectNew[]
+  workflowsAsCoordinator    Workflow[]     @relation("WorkflowCoordinator")
+  workflowRunsAsCoordinator WorkflowRun[]  @relation("WorkflowRunCoordinator")
+  parent                    Component?     @relation("ComponentVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  children                  Component[]    @relation("ComponentVersions")
 
   @@index([projectId])
   @@index([projectId, active])
@@ -612,31 +612,31 @@ model Component {
 
 // Workflow - Links coordinator + trigger configuration
 model Workflow {
-  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId        String   @map("project_id") @db.Uuid
-  coordinatorId    String   @map("coordinator_id") @db.Uuid
-  name             String
-  description      String?
-  version          String   @default("v1.0")
+  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId     String  @map("project_id") @db.Uuid
+  coordinatorId String  @map("coordinator_id") @db.Uuid
+  name          String
+  description   String?
+  version       String  @default("v1.0")
 
   // Trigger configuration
-  triggerConfig    Json     @map("trigger_config") // { type, filters, notifications }
+  triggerConfig Json @map("trigger_config") // { type, filters, notifications }
 
   // Settings
-  active           Boolean  @default(true)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Versioning fields (ST-58)
-  versionMajor          Int      @default(1) @map("version_major")
-  versionMinor          Int      @default(0) @map("version_minor")
-  parentId              String?  @map("parent_id") @db.Uuid
-  instructionsChecksum  String?  @map("instructions_checksum")
-  configChecksum        String?  @map("config_checksum")
-  isDeprecated          Boolean  @default(false) @map("is_deprecated")
-  deprecatedAt          DateTime? @map("deprecated_at")
-  changeDescription     String?  @map("change_description")
-  createdFromVersion    String?  @map("created_from_version")
+  versionMajor         Int       @default(1) @map("version_major")
+  versionMinor         Int       @default(0) @map("version_minor")
+  parentId             String?   @map("parent_id") @db.Uuid
+  instructionsChecksum String?   @map("instructions_checksum")
+  configChecksum       String?   @map("config_checksum")
+  isDeprecated         Boolean   @default(false) @map("is_deprecated")
+  deprecatedAt         DateTime? @map("deprecated_at")
+  changeDescription    String?   @map("change_description")
+  createdFromVersion   String?   @map("created_from_version")
 
   // Relations
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -658,53 +658,53 @@ model Workflow {
 
 // WorkflowRun - Execution of a workflow
 model WorkflowRun {
-  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId        String      @map("project_id") @db.Uuid
-  workflowId       String      @map("workflow_id") @db.Uuid
-  storyId          String?     @map("story_id") @db.Uuid
-  epicId           String?     @map("epic_id") @db.Uuid
-  coordinatorId    String?     @map("coordinator_id") @db.Uuid
+  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId     String  @map("project_id") @db.Uuid
+  workflowId    String  @map("workflow_id") @db.Uuid
+  storyId       String? @map("story_id") @db.Uuid
+  epicId        String? @map("epic_id") @db.Uuid
+  coordinatorId String? @map("coordinator_id") @db.Uuid
 
   // Trigger info
-  triggeredBy      String?     @map("triggered_by") // User ID or "system"
-  triggerType      String?     @map("trigger_type") // manual, story_assigned, etc.
+  triggeredBy String? @map("triggered_by") // User ID or "system"
+  triggerType String? @map("trigger_type") // manual, story_assigned, etc.
 
   // Status
-  status           RunStatus   @default(pending)
+  status RunStatus @default(pending)
 
   // Timing
-  startedAt        DateTime    @map("started_at")
-  finishedAt       DateTime?   @map("finished_at")
-  durationSeconds  Int?        @map("duration_seconds")
+  startedAt       DateTime  @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  durationSeconds Int?      @map("duration_seconds")
 
   // Aggregated metrics
-  totalTokensInput  Int?       @map("total_tokens_input")
-  totalTokensOutput Int?       @map("total_tokens_output")
-  totalTokens      Int?        @map("total_tokens")
-  totalLocGenerated Int?       @map("total_loc_generated")
-  totalTestsAdded   Int?       @map("total_tests_added")
-  estimatedCost    Float?      @map("estimated_cost")
+  totalTokensInput  Int?   @map("total_tokens_input")
+  totalTokensOutput Int?   @map("total_tokens_output")
+  totalTokens       Int?   @map("total_tokens")
+  totalLocGenerated Int?   @map("total_loc_generated")
+  totalTestsAdded   Int?   @map("total_tests_added")
+  estimatedCost     Float? @map("estimated_cost")
 
   // Iteration metrics (NEW)
-  totalUserPrompts        Int?   @map("total_user_prompts")
-  totalIterations         Int?   @map("total_iterations")
-  totalInterventions      Int?   @map("total_interventions")
-  avgPromptsPerComponent  Float? @map("avg_prompts_per_component")
+  totalUserPrompts       Int?   @map("total_user_prompts")
+  totalIterations        Int?   @map("total_iterations")
+  totalInterventions     Int?   @map("total_interventions")
+  avgPromptsPerComponent Float? @map("avg_prompts_per_component")
 
   // Coordinator execution
-  coordinatorDecisions Json?    @map("coordinator_decisions") // Array of decisions made
-  coordinatorMetrics   Json?    @map("coordinator_metrics") // Coordinator runtime, cost, etc.
-  errorMessage         String?  @map("error_message")
+  coordinatorDecisions Json?   @map("coordinator_decisions") // Array of decisions made
+  coordinatorMetrics   Json?   @map("coordinator_metrics") // Coordinator runtime, cost, etc.
+  errorMessage         String? @map("error_message")
 
   // Metadata
-  metadata         Json?       // Execution plan, etc.
+  metadata Json? // Execution plan, etc.
 
   // Relations
-  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  workflow      Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  story         Story?           @relation(fields: [storyId], references: [id], onDelete: SetNull)
-  epic          Epic?            @relation(fields: [epicId], references: [id], onDelete: SetNull)
-  coordinator   Component?       @relation("WorkflowRunCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflow      Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  story         Story?         @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  epic          Epic?          @relation(fields: [epicId], references: [id], onDelete: SetNull)
+  coordinator   Component?     @relation("WorkflowRunCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
   componentRuns ComponentRun[]
   defects       DefectNew[]
   otelEvents    OtelEvent[]
@@ -720,105 +720,105 @@ model WorkflowRun {
 
 // ComponentRun - Individual component execution within workflow
 model ComponentRun {
-  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workflowRunId    String      @map("workflow_run_id") @db.Uuid
-  componentId      String      @map("component_id") @db.Uuid
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workflowRunId String @map("workflow_run_id") @db.Uuid
+  componentId   String @map("component_id") @db.Uuid
 
-  executionOrder   Int?        @map("execution_order") // 1, 2, 3, ... (order within workflow)
+  executionOrder Int? @map("execution_order") // 1, 2, 3, ... (order within workflow)
 
   // Status
-  status           RunStatus   @default(pending)
-  success          Boolean     @default(false)
+  status  RunStatus @default(pending)
+  success Boolean   @default(false)
 
   // Input/Output
-  inputData        Json?       @map("input_data") // Data received
-  outputData       Json?       @map("output_data") // Data produced
-  output           String?     @db.Text // Output text
+  inputData  Json?   @map("input_data") // Data received
+  outputData Json?   @map("output_data") // Data produced
+  output     String? @db.Text // Output text
 
   // Universal metrics
-  tokensInput      Int?        @default(0) @map("tokens_input")
-  tokensOutput     Int?        @default(0) @map("tokens_output")
-  totalTokens      Int?        @map("total_tokens")
-  durationSeconds  Int?        @map("duration_seconds")
-  cost             Float?      @default(0)
-  iterations       Int?        @default(1)
-  locGenerated     Int?        @map("loc_generated") // Lines of code (if applicable)
-  testsAdded       Int?        @map("tests_added") // Number of tests added (if applicable)
+  tokensInput     Int?   @default(0) @map("tokens_input")
+  tokensOutput    Int?   @default(0) @map("tokens_output")
+  totalTokens     Int?   @map("total_tokens")
+  durationSeconds Int?   @map("duration_seconds")
+  cost            Float? @default(0)
+  iterations      Int?   @default(1)
+  locGenerated    Int?   @map("loc_generated") // Lines of code (if applicable)
+  testsAdded      Int?   @map("tests_added") // Number of tests added (if applicable)
 
   // Code changes
-  filesModified    String[]    @default([]) @map("files_modified")
-  commits          String[]    @default([])
+  filesModified String[] @default([]) @map("files_modified")
+  commits       String[] @default([])
 
   // Efficiency metrics (calculated)
-  tokensPerLoc     Float?      @map("tokens_per_loc")
-  locPerPrompt     Float?      @map("loc_per_prompt")
-  runtimePerLoc    Float?      @map("runtime_per_loc")
-  runtimePerToken  Float?      @map("runtime_per_token")
+  tokensPerLoc    Float? @map("tokens_per_loc")
+  locPerPrompt    Float? @map("loc_per_prompt")
+  runtimePerLoc   Float? @map("runtime_per_loc")
+  runtimePerToken Float? @map("runtime_per_token")
 
   // Iteration tracking (NEW)
-  userPrompts         Int?    @default(0) @map("user_prompts")
-  systemIterations    Int?    @default(1) @map("system_iterations")
-  humanInterventions  Int?    @default(0) @map("human_interventions")
-  iterationLog        Json?   @map("iteration_log") // Array of iterations with timestamps
-  toolCalls           Int?    @default(0) @map("tool_calls") // ST-57: Tool calls count (for orchestrator and components)
+  userPrompts        Int?  @default(0) @map("user_prompts")
+  systemIterations   Int?  @default(1) @map("system_iterations")
+  humanInterventions Int?  @default(0) @map("human_interventions")
+  iterationLog       Json? @map("iteration_log") // Array of iterations with timestamps
+  toolCalls          Int?  @default(0) @map("tool_calls") // ST-57: Tool calls count (for orchestrator and components)
 
   // ST-27 Comprehensive Metrics - Session Tracking
-  sessionId           String?    @map("session_id") // Claude Code session ID (transcript-based metrics)
+  sessionId String? @map("session_id") // Claude Code session ID (transcript-based metrics)
 
   // ST-27 Comprehensive Metrics - Cache Metrics
-  tokensCacheRead     Int?       @default(0) @map("tokens_cache_read")
-  tokensCacheWrite    Int?       @default(0) @map("tokens_cache_write")
-  cacheHits           Int?       @default(0) @map("cache_hits")
-  cacheMisses         Int?       @default(0) @map("cache_misses")
-  cacheHitRate        Float?     @map("cache_hit_rate") // Percentage 0.0-1.0
+  tokensCacheRead  Int?   @default(0) @map("tokens_cache_read")
+  tokensCacheWrite Int?   @default(0) @map("tokens_cache_write")
+  cacheHits        Int?   @default(0) @map("cache_hits")
+  cacheMisses      Int?   @default(0) @map("cache_misses")
+  cacheHitRate     Float? @map("cache_hit_rate") // Percentage 0.0-1.0
 
   // ST-27 Comprehensive Metrics - Code Impact Metrics
-  linesAdded          Int?       @default(0) @map("lines_added")
-  linesDeleted        Int?       @default(0) @map("lines_deleted")
-  linesModified       Int?       @default(0) @map("lines_modified")
-  complexityBefore    Float?     @map("complexity_before") // Cyclomatic complexity
-  complexityAfter     Float?     @map("complexity_after")
-  coverageBefore      Float?     @map("coverage_before") // Test coverage %
-  coverageAfter       Float?     @map("coverage_after")
+  linesAdded       Int?   @default(0) @map("lines_added")
+  linesDeleted     Int?   @default(0) @map("lines_deleted")
+  linesModified    Int?   @default(0) @map("lines_modified")
+  complexityBefore Float? @map("complexity_before") // Cyclomatic complexity
+  complexityAfter  Float? @map("complexity_after")
+  coverageBefore   Float? @map("coverage_before") // Test coverage %
+  coverageAfter    Float? @map("coverage_after")
 
   // ST-27 Comprehensive Metrics - Quality Metrics
-  errorRate           Float?     @map("error_rate") // Failed tools / total tools
-  successRate         Float?     @map("success_rate") // Successful completions
-  toolBreakdown       Json?      @map("tool_breakdown") // Tool-level stats {toolName: {calls, errors, avgDuration}}
+  errorRate     Float? @map("error_rate") // Failed tools / total tools
+  successRate   Float? @map("success_rate") // Successful completions
+  toolBreakdown Json?  @map("tool_breakdown") // Tool-level stats {toolName: {calls, errors, avgDuration}}
 
   // ST-27 Comprehensive Metrics - Agent Behavior
-  contextSwitches     Int?       @default(0) @map("context_switches") // File/domain changes
-  explorationDepth    Int?       @default(0) @map("exploration_depth") // Files analyzed before implementing
+  contextSwitches  Int? @default(0) @map("context_switches") // File/domain changes
+  explorationDepth Int? @default(0) @map("exploration_depth") // Files analyzed before implementing
 
   // ST-27 Comprehensive Metrics - Cost & Performance
-  costBreakdown       Json?      @map("cost_breakdown") // {input: $, output: $, cache: $}
-  modelId             String?    @map("model_id") // Model used (e.g., claude-3-opus-20240229)
-  temperature         Float?     // Model temperature setting
-  maxTokens           Int?       @map("max_tokens") // Max tokens configuration
-  stopReason          String?    @map("stop_reason") // end_turn, max_tokens, tool_use, error
-  timeToFirstToken    Float?     @map("time_to_first_token") // Seconds
-  tokensPerSecond     Float?     @map("tokens_per_second") // Throughput
+  costBreakdown    Json?   @map("cost_breakdown") // {input: $, output: $, cache: $}
+  modelId          String? @map("model_id") // Model used (e.g., claude-3-opus-20240229)
+  temperature      Float? // Model temperature setting
+  maxTokens        Int?    @map("max_tokens") // Max tokens configuration
+  stopReason       String? @map("stop_reason") // end_turn, max_tokens, tool_use, error
+  timeToFirstToken Float?  @map("time_to_first_token") // Seconds
+  tokensPerSecond  Float?  @map("tokens_per_second") // Throughput
 
   // Execution details
-  startedAt        DateTime    @map("started_at")
-  finishedAt       DateTime?   @map("finished_at")
-  retryCount       Int?        @default(0) @map("retry_count")
+  startedAt  DateTime  @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  retryCount Int?      @default(0) @map("retry_count")
 
   // Error tracking
-  errorType        String?     @map("error_type")
-  errorMessage     String?     @map("error_message")
+  errorType    String? @map("error_type")
+  errorMessage String? @map("error_message")
 
   // Metadata
-  metadata         Json?       // Logs, intermediate results, etc.
+  metadata Json? // Logs, intermediate results, etc.
 
   // Artifacts (S3 storage)
-  artifacts        Json?       // Array of { name, s3Key, type, size }
+  artifacts Json? // Array of { name, s3Key, type, size }
 
   // Relations
-  workflowRun  WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-  component    Component   @relation(fields: [componentId], references: [id], onDelete: Restrict)
-  subtasks     Subtask[]
-  otelEvents   OtelEvent[]
+  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  component   Component   @relation(fields: [componentId], references: [id], onDelete: Restrict)
+  subtasks    Subtask[]
+  otelEvents  OtelEvent[]
 
   @@index([workflowRunId])
   @@index([componentId])
@@ -831,38 +831,38 @@ model ComponentRun {
 // NOTE: This table and model still exist for backward compatibility but are not actively used.
 // Metrics are now collected via transcript analysis instead of OTEL events.
 model OtelEvent {
-  id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId        String      @map("project_id") @db.Uuid
-  sessionId        String      @map("session_id") // Claude Code session identifier
-  workflowRunId    String?     @map("workflow_run_id") @db.Uuid // Extracted from metadata
-  componentRunId   String?     @map("component_run_id") @db.Uuid // Linked via session mapping
+  id             String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId      String  @map("project_id") @db.Uuid
+  sessionId      String  @map("session_id") // Claude Code session identifier
+  workflowRunId  String? @map("workflow_run_id") @db.Uuid // Extracted from metadata
+  componentRunId String? @map("component_run_id") @db.Uuid // Linked via session mapping
 
   // Event data
-  timestamp        DateTime    // When event occurred
-  eventType        String      @map("event_type") // claude_code.api_request, claude_code.tool_use, etc.
-  eventName        String?     @map("event_name") // Human-readable event name
+  timestamp DateTime // When event occurred
+  eventType String   @map("event_type") // claude_code.api_request, claude_code.tool_use, etc.
+  eventName String?  @map("event_name") // Human-readable event name
 
   // General metadata
-  metadata         Json?       // Event metadata (tokens, model, etc.)
-  attributes       Json?       // Event attributes
+  metadata   Json? // Event metadata (tokens, model, etc.)
+  attributes Json? // Event attributes
 
   // Tool usage specific fields
-  toolName         String?     @map("tool_name") // Read, Write, Edit, Bash, MCP tool name
-  toolParameters   Json?       @map("tool_parameters") // Tool input parameters
-  toolDuration     Float?      @map("tool_duration") // Tool execution time in seconds
-  toolSuccess      Boolean?    @map("tool_success") // Whether tool succeeded
-  toolError        String?     @map("tool_error") // Error message if failed
+  toolName       String?  @map("tool_name") // Read, Write, Edit, Bash, MCP tool name
+  toolParameters Json?    @map("tool_parameters") // Tool input parameters
+  toolDuration   Float?   @map("tool_duration") // Tool execution time in seconds
+  toolSuccess    Boolean? @map("tool_success") // Whether tool succeeded
+  toolError      String?  @map("tool_error") // Error message if failed
 
   // Processed flags
-  processed        Boolean     @default(false) // Whether event has been processed for aggregation
-  aggregatedAt     DateTime?   @map("aggregated_at") // When metrics were aggregated
+  processed    Boolean   @default(false) // Whether event has been processed for aggregation
+  aggregatedAt DateTime? @map("aggregated_at") // When metrics were aggregated
 
-  createdAt        DateTime    @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  workflowRun      WorkflowRun? @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-  componentRun     ComponentRun? @relation(fields: [componentRunId], references: [id], onDelete: Cascade)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflowRun  WorkflowRun?  @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  componentRun ComponentRun? @relation(fields: [componentRunId], references: [id], onDelete: Cascade)
 
   @@index([sessionId, timestamp])
   @@index([workflowRunId, componentRunId])
@@ -873,40 +873,40 @@ model OtelEvent {
 
 // DefectNew - Enhanced defect tracking with origin story
 model DefectNew {
-  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId            String    @map("project_id") @db.Uuid
-  key                  String    @unique // BUG-123
-  title                String
-  description          String
-  severity             DefectSeverity
+  id          String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String         @map("project_id") @db.Uuid
+  key         String         @unique // BUG-123
+  title       String
+  description String
+  severity    DefectSeverity
 
   // Story relationships
-  foundInStoryId       String?   @map("found_in_story_id") @db.Uuid
-  introducedByStoryId  String?   @map("introduced_by_story_id") @db.Uuid
-  confirmedByUserId    String?   @map("confirmed_by_user_id") @db.Uuid
+  foundInStoryId      String? @map("found_in_story_id") @db.Uuid
+  introducedByStoryId String? @map("introduced_by_story_id") @db.Uuid
+  confirmedByUserId   String? @map("confirmed_by_user_id") @db.Uuid
 
   // Workflow tracking
-  introducedByWorkflowRunId  String?  @map("introduced_by_workflow_run_id") @db.Uuid
-  introducedByComponentId    String?  @map("introduced_by_component_id") @db.Uuid
+  introducedByWorkflowRunId String? @map("introduced_by_workflow_run_id") @db.Uuid
+  introducedByComponentId   String? @map("introduced_by_component_id") @db.Uuid
 
   // Status
-  status               String    // open, confirmed, fixed, closed
-  confirmedAt          DateTime? @map("confirmed_at")
-  fixedAt              DateTime? @map("fixed_at")
+  status      String // open, confirmed, fixed, closed
+  confirmedAt DateTime? @map("confirmed_at")
+  fixedAt     DateTime? @map("fixed_at")
 
   // Root cause analysis
-  rootCause            String?   @map("root_cause")
-  affectedFiles        String[]  @map("affected_files")
+  rootCause     String?  @map("root_cause")
+  affectedFiles String[] @map("affected_files")
 
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project                  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  foundInStory             Story?        @relation("DefectsFoundInStory", fields: [foundInStoryId], references: [id], onDelete: SetNull)
-  introducedByStory        Story?        @relation("DefectsIntroducedByStory", fields: [introducedByStoryId], references: [id], onDelete: SetNull)
-  introducedByWorkflowRun  WorkflowRun?  @relation(fields: [introducedByWorkflowRunId], references: [id], onDelete: SetNull)
-  introducedByComponent    Component?    @relation(fields: [introducedByComponentId], references: [id], onDelete: SetNull)
+  project                 Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  foundInStory            Story?       @relation("DefectsFoundInStory", fields: [foundInStoryId], references: [id], onDelete: SetNull)
+  introducedByStory       Story?       @relation("DefectsIntroducedByStory", fields: [introducedByStoryId], references: [id], onDelete: SetNull)
+  introducedByWorkflowRun WorkflowRun? @relation(fields: [introducedByWorkflowRunId], references: [id], onDelete: SetNull)
+  introducedByComponent   Component?   @relation(fields: [introducedByComponentId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([foundInStoryId])
@@ -917,15 +917,15 @@ model DefectNew {
 
 // ActiveWorkflow - Track activated workflows in Claude Code
 model ActiveWorkflow {
-  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId       String   @map("project_id") @db.Uuid
-  workflowId      String   @map("workflow_id") @db.Uuid
-  version         String
-  activatedAt     DateTime @default(now()) @map("activated_at")
-  activatedBy     String   @map("activated_by") // User ID
-  filesGenerated  String[] @map("files_generated") // Paths to generated files
-  status          String   // active, deactivated, replaced
-  autoSync        Boolean  @default(false) @map("auto_sync")
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  workflowId     String   @map("workflow_id") @db.Uuid
+  version        String
+  activatedAt    DateTime @default(now()) @map("activated_at")
+  activatedBy    String   @map("activated_by") // User ID
+  filesGenerated String[] @map("files_generated") // Paths to generated files
+  status         String // active, deactivated, replaced
+  autoSync       Boolean  @default(false) @map("auto_sync")
 
   // Relations
   project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -942,7 +942,7 @@ model Worktree {
   storyId      String         @map("story_id") @db.Uuid
   branchName   String         @map("branch_name")
   worktreePath String         @map("worktree_path")
-  baseBranch   String         @map("base_branch") @default("main")
+  baseBranch   String         @default("main") @map("base_branch")
   status       WorktreeStatus @default(active)
   createdAt    DateTime       @default(now()) @map("created_at")
   updatedAt    DateTime       @updatedAt @map("updated_at")
@@ -959,16 +959,16 @@ model Worktree {
 
 // TestQueue - Queue-based story testing with priority management
 model TestQueue {
-  id           String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  storyId      String       @map("story_id") @db.Uuid
+  id           String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId      String      @map("story_id") @db.Uuid
   position     Int
-  priority     Int          @default(0)
-  status       QueueStatus  @default(pending)
-  submittedBy  String       @map("submitted_by")
-  testResults  Json?        @map("test_results")
-  errorMessage String?      @map("error_message")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  priority     Int         @default(0)
+  status       QueueStatus @default(pending)
+  submittedBy  String      @map("submitted_by")
+  testResults  Json?       @map("test_results")
+  errorMessage String?     @map("error_message")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
 
   // Relations
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -982,15 +982,15 @@ model TestQueue {
 
 // TestQueueLock - Queue locking for schema migrations (ST-43)
 model TestQueueLock {
-  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   reason    String
-  lockedBy  String    @map("locked_by")
-  lockedAt  DateTime  @default(now()) @map("locked_at")
-  expiresAt DateTime  @map("expires_at")
-  active    Boolean   @default(true)
+  lockedBy  String   @map("locked_by")
+  lockedAt  DateTime @default(now()) @map("locked_at")
+  expiresAt DateTime @map("expires_at")
+  active    Boolean  @default(true)
   metadata  Json?
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([active, expiresAt])
   @@map("test_queue_locks")
@@ -998,15 +998,15 @@ model TestQueueLock {
 
 // PullRequest - GitHub/GitLab pull request tracking
 model PullRequest {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  storyId     String    @map("story_id") @db.Uuid
-  prNumber    Int       @map("pr_number")
-  prUrl       String    @map("pr_url")
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId     String   @map("story_id") @db.Uuid
+  prNumber    Int      @map("pr_number")
+  prUrl       String   @map("pr_url")
   title       String
   description String?
-  status      PRStatus  @default(draft)
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  status      PRStatus @default(draft)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -1019,19 +1019,19 @@ model PullRequest {
 
 // MetricsAggregation - Pre-calculated metrics for performance
 model MetricsAggregation {
-  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  aggregationType   String    @map("aggregation_type") // daily, weekly, monthly
-  aggregationDate   DateTime  @map("aggregation_date") // Date of aggregation
-  projectId         String    @map("project_id") @db.Uuid
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  aggregationType String   @map("aggregation_type") // daily, weekly, monthly
+  aggregationDate DateTime @map("aggregation_date") // Date of aggregation
+  projectId       String   @map("project_id") @db.Uuid
 
   // Aggregated data
-  metrics           Json      // Pre-calculated metrics
+  metrics Json // Pre-calculated metrics
 
-  lastCalculatedAt  DateTime  @map("last_calculated_at")
-  calculationTime   Int       @map("calculation_time") // milliseconds
+  lastCalculatedAt DateTime @map("last_calculated_at")
+  calculationTime  Int      @map("calculation_time") // milliseconds
 
   // Relations
-  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, aggregationType, aggregationDate])
   @@index([projectId, aggregationType, aggregationDate])
@@ -1157,11 +1157,11 @@ enum UseCaseRelation {
 }
 
 enum MappingSource {
-  COMMIT_DERIVED   // Created from commit history
-  AI_INFERRED      // AI analyzed code and inferred
-  MANUAL           // Developer manually mapped
-  PATTERN_MATCHED  // File path pattern matched
-  IMPORT_ANALYSIS  // Code dependency analysis
+  COMMIT_DERIVED // Created from commit history
+  AI_INFERRED // AI analyzed code and inferred
+  MANUAL // Developer manually mapped
+  PATTERN_MATCHED // File path pattern matched
+  IMPORT_ANALYSIS // Code dependency analysis
 }
 
 enum OriginStage {
@@ -1242,40 +1242,40 @@ enum RunStatus {
 // ============================================================================
 
 enum WorktreeStatus {
-  active    // Worktree is active and in use
-  idle      // Worktree exists but not actively used
-  cleaning  // Worktree being cleaned up
-  removed   // Worktree removed
+  active // Worktree is active and in use
+  idle // Worktree exists but not actively used
+  cleaning // Worktree being cleaned up
+  removed // Worktree removed
 }
 
 enum QueueStatus {
-  pending   // Waiting in queue
-  running   // Tests currently executing
-  passed    // Tests passed
-  failed    // Tests failed
+  pending // Waiting in queue
+  running // Tests currently executing
+  passed // Tests passed
+  failed // Tests failed
   cancelled // Removed from queue
-  skipped   // Skipped (dependency failed)
+  skipped // Skipped (dependency failed)
 }
 
 enum PRStatus {
-  draft              // PR created as draft
-  open               // PR open for review
-  approved           // PR approved by reviewers
-  changes_requested  // Changes requested
-  merged             // PR merged into base branch
-  closed             // PR closed without merge
-  conflict           // PR has merge conflicts
+  draft // PR created as draft
+  open // PR open for review
+  approved // PR approved by reviewers
+  changes_requested // Changes requested
+  merged // PR merged into base branch
+  closed // PR closed without merge
+  conflict // PR has merge conflicts
 }
 
 enum StoryPhase {
-  context         // Context exploration phase
-  ba              // BA analysis phase
-  design          // Design phase
-  architecture    // Architecture phase
-  implementation  // Development phase
-  testing         // Testing phase (TestQueue)
-  review          // Code review (PullRequest)
-  done            // Complete
+  context // Context exploration phase
+  ba // BA analysis phase
+  design // Design phase
+  architecture // Architecture phase
+  implementation // Development phase
+  testing // Testing phase (TestQueue)
+  review // Code review (PullRequest)
+  done // Complete
 }
 
 // ============================================================================
@@ -1283,8 +1283,8 @@ enum StoryPhase {
 // ============================================================================
 
 enum AlertType {
-  warning   // Disk space below warning threshold (e.g., < 5GB)
-  critical  // Disk space critically low (e.g., < 2GB)
+  warning // Disk space below warning threshold (e.g., < 5GB)
+  critical // Disk space critically low (e.g., < 2GB)
 }
 
 // DiskUsageAlert - Track disk space threshold breach events
@@ -1310,37 +1310,37 @@ model DiskUsageAlert {
 
 // DiskUsageReport - Weekly disk usage summary reports
 model DiskUsageReport {
-  id                         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  createdAt                  DateTime  @default(now()) @map("created_at")
-  reportDate                 DateTime  @map("report_date") // Monday of the week
-  reportPeriodStart          DateTime  @map("report_period_start")
-  reportPeriodEnd            DateTime  @map("report_period_end")
+  id                String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+  reportDate        DateTime @map("report_date") // Monday of the week
+  reportPeriodStart DateTime @map("report_period_start")
+  reportPeriodEnd   DateTime @map("report_period_end")
 
   // Disk metrics
-  totalSpaceGB               Decimal   @map("total_space_gb") @db.Decimal(10, 2)
-  usedSpaceGB                Decimal   @map("used_space_gb") @db.Decimal(10, 2)
-  availableSpaceGB           Decimal   @map("available_space_gb") @db.Decimal(10, 2)
-  percentUsed                Decimal   @map("percent_used") @db.Decimal(5, 2)
+  totalSpaceGB     Decimal @map("total_space_gb") @db.Decimal(10, 2)
+  usedSpaceGB      Decimal @map("used_space_gb") @db.Decimal(10, 2)
+  availableSpaceGB Decimal @map("available_space_gb") @db.Decimal(10, 2)
+  percentUsed      Decimal @map("percent_used") @db.Decimal(5, 2)
 
   // Worktree metrics
-  totalWorktrees             Int       @map("total_worktrees")
-  activeWorktrees            Int       @map("active_worktrees")
-  stalledWorktrees           Int       @map("stalled_worktrees")
-  totalWorktreeUsageMB       Int       @map("total_worktree_usage_mb")
-  avgWorktreeUsageMB         Decimal   @map("avg_worktree_usage_mb") @db.Decimal(10, 2)
+  totalWorktrees       Int     @map("total_worktrees")
+  activeWorktrees      Int     @map("active_worktrees")
+  stalledWorktrees     Int     @map("stalled_worktrees")
+  totalWorktreeUsageMB Int     @map("total_worktree_usage_mb")
+  avgWorktreeUsageMB   Decimal @map("avg_worktree_usage_mb") @db.Decimal(10, 2)
 
   // Breakdown (JSON)
-  largestWorktrees           Json?     @map("largest_worktrees") // Top 10: [{storyKey, size, age}, ...]
-  stalledWorktreesList       Json?     @map("stalled_worktrees_list") // [{storyKey, branch, size, lastUpdated}, ...]
+  largestWorktrees     Json? @map("largest_worktrees") // Top 10: [{storyKey, size, age}, ...]
+  stalledWorktreesList Json? @map("stalled_worktrees_list") // [{storyKey, branch, size, lastUpdated}, ...]
 
   // Trends
-  weekOverWeekChangeGB       Decimal?  @map("week_over_week_change_gb") @db.Decimal(10, 2)
-  weekOverWeekChangePercent  Decimal?  @map("week_over_week_change_percent") @db.Decimal(5, 2)
+  weekOverWeekChangeGB      Decimal? @map("week_over_week_change_gb") @db.Decimal(10, 2)
+  weekOverWeekChangePercent Decimal? @map("week_over_week_change_percent") @db.Decimal(5, 2)
 
   // Report metadata
-  reportHtml                 String?   @db.Text // Rendered HTML report
-  emailSent                  Boolean   @default(false) @map("email_sent")
-  emailSentAt                DateTime? @map("email_sent_at")
+  reportHtml  String?   @db.Text // Rendered HTML report
+  emailSent   Boolean   @default(false) @map("email_sent")
+  emailSentAt DateTime? @map("email_sent_at")
 
   @@index([reportDate(sort: Desc)])
   @@index([createdAt(sort: Desc)])
