@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coordinatorsService } from '../services/coordinators.service';
+import { workflowsService } from '../services/workflows.service';
 import { CoordinatorAgent } from '../types';
 import { useProject } from '../context/ProjectContext';
 
@@ -14,8 +15,19 @@ export function CoordinatorLibraryView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>('all');
   const [selectedDomainFilter, setSelectedDomainFilter] = useState<string>('all');
+  const [selectedWorkflowFilter, setSelectedWorkflowFilter] = useState<string>('all');
   const [selectedCoordinator, setSelectedCoordinator] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Fetch workflows
+  const { data: workflows = [] } = useQuery({
+    queryKey: ['workflows', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      return workflowsService.getAll(projectId);
+    },
+    enabled: !!projectId,
+  });
 
   const { data: coordinators = [], isLoading } = useQuery({
     queryKey: ['coordinators', projectId, searchQuery, selectedActiveFilter, selectedDomainFilter],
@@ -36,6 +48,18 @@ export function CoordinatorLibraryView() {
     coordinators.forEach(c => domainSet.add(c.domain));
     return Array.from(domainSet).sort();
   }, [coordinators]);
+
+  // Filter coordinators by workflow
+  const filteredCoordinators = useMemo(() => {
+    if (selectedWorkflowFilter === 'all') {
+      return coordinators;
+    }
+    const workflow = workflows.find(w => w.id === selectedWorkflowFilter);
+    if (workflow?.coordinator?.id) {
+      return coordinators.filter(c => c.id === workflow.coordinator!.id);
+    }
+    return coordinators;
+  }, [coordinators, selectedWorkflowFilter, workflows]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => coordinatorsService.delete(projectId, id),
@@ -105,12 +129,28 @@ export function CoordinatorLibraryView() {
               </select>
             </div>
           )}
-          {(searchQuery || selectedActiveFilter !== 'all' || selectedDomainFilter !== 'all') && (
+          {workflows.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Workflow:</label>
+              <select
+                value={selectedWorkflowFilter}
+                onChange={(e) => setSelectedWorkflowFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Workflows</option>
+                {workflows.map(workflow => (
+                  <option key={workflow.id} value={workflow.id}>{workflow.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {(searchQuery || selectedActiveFilter !== 'all' || selectedDomainFilter !== 'all' || selectedWorkflowFilter !== 'all') && (
             <button
               onClick={() => {
                 setSearchQuery('');
                 setSelectedActiveFilter('all');
                 setSelectedDomainFilter('all');
+                setSelectedWorkflowFilter('all');
               }}
               className="text-sm text-gray-600 hover:text-gray-900 underline"
             >
@@ -125,7 +165,7 @@ export function CoordinatorLibraryView() {
           <span>Loading...</span>
         ) : (
           <span>
-            Found {coordinators.length} coordinator{coordinators.length !== 1 ? 's' : ''}
+            Found {filteredCoordinators.length} coordinator{filteredCoordinators.length !== 1 ? 's' : ''}
             {searchQuery && ` matching "${searchQuery}"`}
           </span>
         )}
@@ -137,7 +177,7 @@ export function CoordinatorLibraryView() {
             <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-lg" />
           ))}
         </div>
-      ) : coordinators.length === 0 ? (
+      ) : filteredCoordinators.length === 0 ? (
         <div className="text-center py-12">
           <svg
             className="mx-auto h-12 w-12 text-gray-400"
@@ -161,7 +201,7 @@ export function CoordinatorLibraryView() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {coordinators.map(coordinator => (
+          {filteredCoordinators.map(coordinator => (
             <div key={coordinator.id} className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border p-4">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg font-semibold text-fg">{coordinator.name}</h3>
