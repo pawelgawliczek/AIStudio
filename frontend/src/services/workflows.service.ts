@@ -20,7 +20,7 @@ export const workflowsService = {
     if (options?.search) params.search = options.search;
 
     const response = await apiClient.get<Workflow[]>(
-      `/api/projects/${projectId}/workflows`,
+      `/projects/${projectId}/workflows`,
       { params }
     );
     return response.data;
@@ -31,7 +31,7 @@ export const workflowsService = {
    */
   async getById(id: string, includeStats = false): Promise<Workflow> {
     const response = await apiClient.get<Workflow>(
-      `/api/projects/:projectId/workflows/${id}`,
+      `/projects/:projectId/workflows/${id}`,
       { params: { includeStats } }
     );
     return response.data;
@@ -42,7 +42,7 @@ export const workflowsService = {
    */
   async create(projectId: string, data: CreateWorkflowDto): Promise<Workflow> {
     const response = await apiClient.post<Workflow>(
-      `/api/projects/${projectId}/workflows`,
+      `/projects/${projectId}/workflows`,
       data
     );
     return response.data;
@@ -53,7 +53,7 @@ export const workflowsService = {
    */
   async update(id: string, data: UpdateWorkflowDto): Promise<Workflow> {
     const response = await apiClient.put<Workflow>(
-      `/api/projects/:projectId/workflows/${id}`,
+      `/projects/:projectId/workflows/${id}`,
       data
     );
     return response.data;
@@ -63,7 +63,7 @@ export const workflowsService = {
    * Delete a workflow
    */
   async delete(id: string): Promise<void> {
-    await apiClient.delete(`/api/projects/:projectId/workflows/${id}`);
+    await apiClient.delete(`/projects/:projectId/workflows/${id}`);
   },
 
   /**
@@ -71,7 +71,7 @@ export const workflowsService = {
    */
   async activate(id: string): Promise<Workflow> {
     const response = await apiClient.post<Workflow>(
-      `/api/projects/:projectId/workflows/${id}/activate`
+      `/projects/:projectId/workflows/${id}/activate`
     );
     return response.data;
   },
@@ -81,7 +81,7 @@ export const workflowsService = {
    */
   async deactivate(id: string): Promise<Workflow> {
     const response = await apiClient.post<Workflow>(
-      `/api/projects/:projectId/workflows/${id}/deactivate`
+      `/projects/:projectId/workflows/${id}/deactivate`
     );
     return response.data;
   },

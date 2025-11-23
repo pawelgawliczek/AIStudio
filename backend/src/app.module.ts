@@ -29,6 +29,7 @@ import { DiskMonitorModule } from './workers/disk-monitor.module';
 import { WorkflowRunsModule } from './workflow-runs/workflow-runs.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { VersioningModule } from './services/versioning.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { VersioningModule } from './services/versioning.module';
     ImpactAnalysisModule,
     DocsModule,
     VersioningModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
 })

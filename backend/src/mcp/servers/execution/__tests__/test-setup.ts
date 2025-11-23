@@ -11,9 +11,10 @@ export type MockPrisma = DeepMockProxy<PrismaClient>;
 // Mock Prisma Client
 export const prismaMock = mockDeep<PrismaClient>() as MockPrisma;
 
-beforeEach(() => {
+// Export a reset function that can be called in beforeEach hooks
+export function resetPrismaMock() {
   mockReset(prismaMock);
-});
+}
 
 // Test Fixtures
 export const fixtures = {
