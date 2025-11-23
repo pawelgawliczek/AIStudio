@@ -5,6 +5,7 @@ import { coordinatorsService } from '../services/coordinators.service';
 import { workflowsService } from '../services/workflows.service';
 import { CoordinatorAgent } from '../types';
 import { useProject } from '../context/ProjectContext';
+import { CoordinatorDetailModal } from '../components/CoordinatorDetailModal';
 
 export function CoordinatorLibraryView() {
   const [searchParams] = useSearchParams();
@@ -280,116 +281,22 @@ export function CoordinatorLibraryView() {
       )}
 
       {/* Coordinator Details Modal */}
-      {isDetailModalOpen && selectedCoordinator && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setIsDetailModalOpen(false)}>
-          <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-fg">{selectedCoordinator.name}</h2>
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="text-muted hover:text-fg transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Status Badge */}
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                  selectedCoordinator.active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
-                }`}>
-                  {selectedCoordinator.active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-
-              {/* Description */}
-              <div>
-                <h3 className="text-sm font-semibold text-fg mb-2">Description</h3>
-                <p className="text-sm text-muted">{selectedCoordinator.description}</p>
-              </div>
-
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Domain</h3>
-                  <p className="text-sm text-muted">{selectedCoordinator.domain}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Decision Strategy</h3>
-                  <p className="text-sm text-muted capitalize">{selectedCoordinator.decisionStrategy}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Version</h3>
-                  <p className="text-sm text-muted">{selectedCoordinator.version}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Components</h3>
-                  <p className="text-sm text-muted">{selectedCoordinator.componentIds.length}</p>
-                </div>
-              </div>
-
-              {/* Flow Diagram */}
-              {selectedCoordinator.flowDiagram && (
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-2">Workflow Flow</h3>
-                  <pre className="text-xs font-mono leading-relaxed text-fg bg-gray-50 dark:bg-gray-900 overflow-x-auto rounded p-3 whitespace-pre border border-border">
-                    {selectedCoordinator.flowDiagram}
-                  </pre>
-                </div>
-              )}
-
-              {/* Tools */}
-              <div>
-                <h3 className="text-sm font-semibold text-fg mb-2">MCP Tools ({selectedCoordinator.tools.length})</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedCoordinator.tools.map((tool: string) => (
-                    <span key={tool} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs rounded font-mono">
-                      {tool}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Configuration */}
-              <div>
-                <h3 className="text-sm font-semibold text-fg mb-2">Configuration</h3>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 border border-border">
-                  <pre className="text-xs font-mono text-fg overflow-x-auto">
-                    {JSON.stringify(selectedCoordinator.config, null, 2)}
-                  </pre>
-                </div>
-              </div>
-
-              {/* Usage Stats */}
-              {selectedCoordinator.usageStats && (
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-2">Usage Statistics</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-xs text-muted">Total Runs</div>
-                      <div className="text-lg font-semibold text-fg">{selectedCoordinator.usageStats.totalRuns}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted">Success Rate</div>
-                      <div className="text-lg font-semibold text-fg">{selectedCoordinator.usageStats.successRate.toFixed(1)}%</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted">Avg Runtime</div>
-                      <div className="text-lg font-semibold text-fg">{selectedCoordinator.usageStats.avgRuntime.toFixed(1)}s</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted">Avg Cost</div>
-                      <div className="text-lg font-semibold text-fg">${selectedCoordinator.usageStats.avgCost.toFixed(4)}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {selectedCoordinator && (
+        <CoordinatorDetailModal
+          coordinator={selectedCoordinator}
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedCoordinator(null);
+          }}
+          onEdit={() => {
+            // TODO: Implement edit functionality
+            console.log('Edit coordinator:', selectedCoordinator.id);
+          }}
+          onUpdate={() => {
+            queryClient.invalidateQueries({ queryKey: ['coordinators'] });
+          }}
+        />
       )}
     </div>
   );

@@ -1,5 +1,7 @@
+import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface ValidationResult {
   match: boolean;
@@ -17,8 +19,9 @@ export interface ChangeDetectionReport {
   details?: string;
 }
 
+@Injectable()
 export class ChecksumService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma?: PrismaService) {}
 
   /**
    * Normalize whitespace: trim + collapse multiple spaces/tabs/newlines
@@ -67,6 +70,17 @@ export class ChecksumService {
   }
 
   /**
+   * Generic checksum calculation for any data object
+   * Used by versioning controller for flexibility
+   */
+  calculateChecksum(data: any): string {
+    if (typeof data === 'string') {
+      return this.md5(this.normalizeWhitespace(data));
+    }
+    return this.md5(this.sortedJsonStringify(data));
+  }
+
+  /**
    * Calculate checksum for config object
    * TC-CHECKSUM-003: Must be deterministic with key ordering
    */
@@ -80,6 +94,9 @@ export class ChecksumService {
    * TC-CHECKSUM-005: Must be non-blocking (doesn't throw)
    */
   async validateRuntimeChecksum(componentId: string, runtimeChecksum: string): Promise<ValidationResult> {
+    if (!this.prisma) {
+      throw new Error('PrismaClient not initialized');
+    }
     try {
       const component = await this.prisma.component.findUnique({
         where: { id: componentId }
@@ -110,6 +127,9 @@ export class ChecksumService {
    * Update checksums for a component entity
    */
   async updateChecksums(entityType: 'component', entityId: string): Promise<ChecksumResult> {
+    if (!this.prisma) {
+      throw new Error('PrismaClient not initialized');
+    }
     if (entityType !== 'component') {
       throw new Error(`Unsupported entity type: ${entityType}`);
     }
@@ -144,6 +164,9 @@ export class ChecksumService {
    * Detect if component has been manually changed since last checksum update
    */
   async detectManualChanges(entityId: string): Promise<ChangeDetectionReport> {
+    if (!this.prisma) {
+      throw new Error('PrismaClient not initialized');
+    }
     try {
       const component = await this.prisma.component.findUnique({
         where: { id: entityId }

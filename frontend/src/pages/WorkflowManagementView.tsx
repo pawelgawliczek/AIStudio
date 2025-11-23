@@ -8,6 +8,7 @@ import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
 import { WorkflowActivationButton } from '../components/WorkflowActivationButton';
 import { WorkflowRunsHistory } from '../components/WorkflowRunsHistory';
 import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
+import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
 
 export function WorkflowManagementView() {
   const [searchParams] = useSearchParams();
@@ -283,133 +284,12 @@ export function WorkflowManagementView() {
 
       {/* Workflow Details Modal */}
       {isDetailModalOpen && selectedWorkflow && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setIsDetailModalOpen(false)}>
-          <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-fg">{selectedWorkflow.name}</h2>
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="text-muted hover:text-fg transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* Status Badge */}
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                  selectedWorkflow.active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
-                }`}>
-                  {selectedWorkflow.active ? 'Active' : 'Inactive'}
-                </span>
-                {selectedWorkflow.activationStatus?.isActivated && (
-                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
-                    Deployed to Claude Code
-                  </span>
-                )}
-              </div>
-
-              {/* Description */}
-              {selectedWorkflow.description && (
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-2">Description</h3>
-                  <p className="text-sm text-muted">{selectedWorkflow.description}</p>
-                </div>
-              )}
-
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Coordinator</h3>
-                  <p className="text-sm text-muted">{selectedWorkflow.coordinator?.name || 'N/A'}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Trigger Type</h3>
-                  <p className="text-sm text-muted capitalize">{selectedWorkflow.triggerConfig.type}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Version</h3>
-                  <p className="text-sm text-muted">{selectedWorkflow.version}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-1">Connected Agents</h3>
-                  <p className="text-sm text-muted">{selectedWorkflow.coordinator?.componentIds?.length || 0}</p>
-                </div>
-              </div>
-
-              {/* Flow Diagram */}
-              {selectedWorkflow.coordinator?.flowDiagram && (
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-2">Execution Flow</h3>
-                  <pre className="text-xs font-mono leading-relaxed text-fg bg-bg-secondary overflow-x-auto rounded p-3 whitespace-pre border border-border">
-                    {selectedWorkflow.coordinator.flowDiagram}
-                  </pre>
-                </div>
-              )}
-
-              {/* Connected Agents */}
-              {selectedWorkflow.coordinator?.componentIds && selectedWorkflow.coordinator.componentIds.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-2">Connected Agents ({selectedWorkflow.coordinator.componentIds.length})</h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedWorkflow.coordinator.components && selectedWorkflow.coordinator.components.length > 0 ? (
-                      selectedWorkflow.coordinator.components.map((comp: any) => (
-                        <a
-                          key={comp.id}
-                          href={`/components?projectId=${projectId}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setIsDetailModalOpen(false);
-                            window.location.href = `/components?projectId=${projectId}`;
-                          }}
-                          className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer transition-colors"
-                        >
-                          {comp.name}
-                        </a>
-                      ))
-                    ) : (
-                      selectedWorkflow.coordinator.componentIds.map((id: string, idx: number) => (
-                        <span key={id} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded font-medium">
-                          Agent {idx + 1}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Trigger Configuration */}
-              <div>
-                <h3 className="text-sm font-semibold text-fg mb-2">Trigger Configuration</h3>
-                <div className="bg-bg-secondary rounded p-3 border border-border">
-                  <pre className="text-xs font-mono text-fg overflow-x-auto">
-                    {JSON.stringify(selectedWorkflow.triggerConfig, null, 2)}
-                  </pre>
-                </div>
-              </div>
-
-              {/* Usage Stats */}
-              {selectedWorkflow.usageStats && (
-                <div>
-                  <h3 className="text-sm font-semibold text-fg mb-2">Usage Statistics</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-xs text-muted">Total Runs</div>
-                      <div className="text-lg font-semibold text-fg">{selectedWorkflow.usageStats.totalRuns}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted">Success Rate</div>
-                      <div className="text-lg font-semibold text-fg">{selectedWorkflow.usageStats.successRate.toFixed(1)}%</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <WorkflowDetailModal
+          workflow={selectedWorkflow}
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          onUpdate={() => queryClient.invalidateQueries({ queryKey: ['workflows'] })}
+        />
       )}
     </div>
   );
