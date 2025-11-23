@@ -260,28 +260,63 @@ export class SafeMigrationService {
         { timeout: 30000 }
       );
 
-      // Parse output to find pending migrations
-      const lines = stdout.split('\n');
-      const pending: string[] = [];
-
-      for (const line of lines) {
-        if (line.includes('migration') && !line.includes('applied')) {
-          // Extract migration name
-          const match = line.match(/(\d{14}_[\w_]+)/);
-          if (match) {
-            pending.push(match[1]);
-          }
-        }
-      }
-
-      return pending;
+      // Parse successful output
+      return this.parseMigrationStatus(stdout);
     } catch (error: any) {
-      // If error contains "Database schema is up to date", no pending migrations
-      if (error.message.includes('up to date')) {
+      // prisma migrate status returns exit code 1 when there are pending migrations
+      // This is expected behavior, so we parse the output even on "failure"
+      const output = error.stdout || error.stderr || '';
+
+      // Check for various "no migrations" scenarios
+      if (output.includes('Database schema is up to date') ||
+          output.includes('No pending migrations')) {
         return [];
       }
+
+      // If we have pending migrations, parse them from the error output
+      if (output.includes('Following migrations have not yet been applied')) {
+        return this.parseMigrationStatus(output);
+      }
+
+      // True error case
+      console.error('getPendingMigrations error:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * Parse migration status output to extract pending migrations
+   */
+  private parseMigrationStatus(output: string): string[] {
+    const lines = output.split('\n');
+    const pending: string[] = [];
+    let inPendingSection = false;
+
+    for (const line of lines) {
+      // Check if we're in the pending migrations section
+      if (line.includes('Following migrations have not yet been applied')) {
+        inPendingSection = true;
+        continue;
+      }
+
+      // Stop if we hit the next section
+      if (inPendingSection && (line.startsWith('To apply') || line.trim() === '')) {
+        if (line.startsWith('To apply')) {
+          break;
+        }
+        continue;
+      }
+
+      // Extract migration names from the pending section
+      if (inPendingSection) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('prisma migrate')) {
+          pending.push(trimmed);
+        }
+      }
+    }
+
+    return pending;
   }
 
   /**
@@ -334,5 +369,101 @@ export class SafeMigrationService {
       console.error(`Rollback error: ${error.message}`);
       throw error;
     }
+  }
+
+  // ===========================================================================
+  // Public API for MCP Tools (ST-85)
+  // ===========================================================================
+
+  /**
+   * Check for pending migrations (read-only)
+   * Used by preview_migration MCP tool
+   */
+  async checkPendingMigrations(): Promise<string[]> {
+    return this.getPendingMigrations();
+  }
+
+  /**
+   * Create pre-migration backup
+   * Used by run_safe_migration MCP tool
+   */
+  async createPreMigrationBackup(storyId?: string): Promise<{ backupFile: string }> {
+    const backup = await this.backupService.createBackup(
+      BackupType.PRE_MIGRATION,
+      storyId
+    );
+    return { backupFile: backup.filename };
+  }
+
+  /**
+   * Verify backup integrity
+   * Used by run_safe_migration MCP tool
+   */
+  async verifyBackup(backupFile: string): Promise<boolean> {
+    const verification = await this.backupService.verifyBackup({ filename: backupFile } as Backup);
+    return verification.success;
+  }
+
+  /**
+   * Acquire queue lock
+   * Used by run_safe_migration MCP tool
+   */
+  async acquireQueueLock(reason: string): Promise<{ id: string }> {
+    const lockDuration = 60; // 60 minutes default
+    const lock = await this.queueLockService.acquireLock(reason, lockDuration);
+    return { id: lock.id };
+  }
+
+  /**
+   * Execute migration (without pre-flight checks, backup, or validation)
+   * Used by run_safe_migration MCP tool after it handles those steps
+   */
+  async executePrismaDeployOnly(environment?: string): Promise<{ appliedMigrations: string[] }> {
+    const pendingBefore = await this.getPendingMigrations();
+    await this.executePrismaMigrate();
+    return { appliedMigrations: pendingBefore };
+  }
+
+  /**
+   * Validate post-migration state
+   * Used by run_safe_migration MCP tool
+   */
+  async validatePostMigration(): Promise<{
+    schemaValidation: boolean;
+    dataIntegrity: boolean;
+    healthChecks: boolean;
+    smokeTests: boolean;
+  }> {
+    const results = await this.validationService.validateAll();
+    return {
+      schemaValidation: results.schema.passed,
+      dataIntegrity: results.dataIntegrity?.passed ?? true,
+      healthChecks: results.health?.passed ?? true,
+      smokeTests: results.smokeTests?.passed ?? true,
+    };
+  }
+
+  /**
+   * Release queue lock
+   * Used by run_safe_migration MCP tool
+   */
+  async releaseQueueLock(lockId: string): Promise<void> {
+    await this.queueLockService.releaseLock(lockId);
+  }
+
+  /**
+   * Rollback to backup (public wrapper)
+   * Used by run_safe_migration MCP tool
+   */
+  async rollbackToBackup(backupFilename: string): Promise<void> {
+    const backup: Backup = {
+      filename: backupFilename,
+      filepath: `/opt/stack/AIStudio/backups/${backupFilename}`,
+      type: BackupType.PRE_MIGRATION,
+      size: 0,
+      created: new Date(),
+      verified: false,
+    };
+    await this.rollback(backup);
   }
 }
