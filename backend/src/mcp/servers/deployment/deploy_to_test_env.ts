@@ -48,6 +48,7 @@ import {
 // Input/Output Types
 export interface DeployToTestEnvParams {
   storyId: string;
+  worktreePath?: string; // Optional: override auto-detected worktree path
 }
 
 export interface DeployToTestEnvResponse {
@@ -150,6 +151,10 @@ The tool supports EP-7 worktree workflow for parallel development and testing.`,
       storyId: {
         type: 'string',
         description: 'Story UUID to deploy'
+      },
+      worktreePath: {
+        type: 'string',
+        description: 'Optional: Override worktree path for build context (auto-detected from story if not provided)'
       }
     },
     required: ['storyId']
@@ -199,9 +204,13 @@ export async function handler(
       params.storyId
     );
 
+    // Use provided worktreePath or auto-detected from story
+    const buildWorktreePath = params.worktreePath || worktree.worktreePath;
+
     console.log(`Deploying ${story.key}: ${story.title}`);
     console.log(`Branch: ${worktree.branchName}`);
     console.log(`Worktree: ${worktree.worktreePath}`);
+    console.log(`Build context: ${buildWorktreePath}`);
 
     // Phase 2: Git Fetch
     console.log('Fetching latest from origin...');
@@ -261,7 +270,7 @@ export async function handler(
     // Build from STORY WORKTREE to include latest changes
     console.log('Building test stack containers...');
     try {
-      await buildTestContainers(mainWorktreePath, worktree.worktreePath, true, true);
+      await buildTestContainers(mainWorktreePath, buildWorktreePath, true, true);
       actionsExecuted.dockerRebuild = true;
     } catch (error: any) {
       throw new DeploymentError(
