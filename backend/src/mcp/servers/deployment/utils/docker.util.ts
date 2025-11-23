@@ -10,6 +10,8 @@
  */
 
 import { execSync } from 'child_process';
+import { readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import {
   isAgentTestingMode,
   assertSafeDockerCommand,
@@ -219,40 +221,82 @@ function execDockerComposeTest(
 }
 
 /**
+ * Temporarily modify docker-compose.test.yml to use worktree build context
+ * Returns cleanup function to restore original file
+ */
+function modifyComposeFileContext(
+  mainWorktreePath: string,
+  worktreePath: string
+): () => void {
+  const composeFilePath = join(mainWorktreePath, TEST_COMPOSE_FILE);
+  const originalContent = readFileSync(composeFilePath, 'utf-8');
+
+  // Replace build context from '.' to worktree path for both backend and frontend
+  const modifiedContent = originalContent
+    .replace(
+      /test-backend:\s*\n\s*build:\s*\n\s*context:\s*\./,
+      `test-backend:\n    build:\n      context: ${worktreePath}`
+    )
+    .replace(
+      /test-frontend:\s*\n\s*build:\s*\n\s*context:\s*\./,
+      `test-frontend:\n    build:\n      context: ${worktreePath}`
+    );
+
+  // Write modified file
+  writeFileSync(composeFilePath, modifiedContent, 'utf-8');
+  console.log(`✓ Modified ${TEST_COMPOSE_FILE} to use build context: ${worktreePath}`);
+
+  // Return cleanup function to restore original
+  return () => {
+    writeFileSync(composeFilePath, originalContent, 'utf-8');
+    console.log(`✓ Restored ${TEST_COMPOSE_FILE} to original build context`);
+  };
+}
+
+/**
  * Build test stack containers with worktree code
  */
 export async function buildTestContainers(
   mainWorktreePath: string,
+  worktreePath: string,
   rebuildBackend: boolean = true,
   rebuildFrontend: boolean = true
 ): Promise<void> {
   console.log('Building test stack containers...');
 
-  const buildCommands: string[] = [];
+  // Temporarily modify docker-compose.test.yml to use worktree build context
+  const restoreCompose = modifyComposeFileContext(mainWorktreePath, worktreePath);
 
-  if (rebuildBackend) {
-    console.log('Building test-backend...');
-    buildCommands.push('build test-backend');
-  }
+  try {
+    const buildCommands: string[] = [];
 
-  if (rebuildFrontend) {
-    console.log('Building test-frontend (no-cache)...');
-    buildCommands.push('build --no-cache test-frontend');
-  }
-
-  for (const command of buildCommands) {
-    try {
-      execSync(`docker compose -f ${TEST_COMPOSE_FILE} ${command}`, {
-        cwd: mainWorktreePath,
-        encoding: 'utf-8',
-        timeout: 600000, // 10 min
-        stdio: 'inherit'
-      });
-      console.log(`Successfully built: ${command}`);
-    } catch (error) {
-      console.error(`Test build failed for: ${command}`);
-      throw error;
+    if (rebuildBackend) {
+      console.log('Building test-backend...');
+      buildCommands.push('build --no-cache test-backend');
     }
+
+    if (rebuildFrontend) {
+      console.log('Building test-frontend...');
+      buildCommands.push('build --no-cache test-frontend');
+    }
+
+    for (const command of buildCommands) {
+      try {
+        execSync(`docker compose -f ${TEST_COMPOSE_FILE} ${command}`, {
+          cwd: mainWorktreePath,
+          encoding: 'utf-8',
+          timeout: 600000, // 10 min
+          stdio: 'inherit'
+        });
+        console.log(`Successfully built: ${command}`);
+      } catch (error) {
+        console.error(`Test build failed for: ${command}`);
+        throw error;
+      }
+    }
+  } finally {
+    // Always restore docker-compose.test.yml, even if build fails
+    restoreCompose();
   }
 }
 
