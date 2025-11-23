@@ -231,17 +231,12 @@ function modifyComposeFileContext(
   const composeFilePath = join(mainWorktreePath, TEST_COMPOSE_FILE);
   const originalContent = readFileSync(composeFilePath, 'utf-8');
 
-  // Replace build context from '.' to worktree path for both backend and frontend
-  // Use simpler regex that just replaces "context: ." with the worktree path
-  const modifiedContent = originalContent
-    .replace(
-      /(test-backend:[\s\S]*?build:[\s\S]*?context:\s*)\.(?=\s)/,
-      `$1${worktreePath}`
-    )
-    .replace(
-      /(test-frontend:[\s\S]*?build:[\s\S]*?context:\s*)\.(?=\s)/,
-      `$1${worktreePath}`
-    );
+  // Replace all instances of "context: ." with worktree path
+  // This simple approach works regardless of indentation
+  const modifiedContent = originalContent.replace(
+    /context: \./g,
+    `context: ${worktreePath}`
+  );
 
   // Write modified file
   writeFileSync(composeFilePath, modifiedContent, 'utf-8');
