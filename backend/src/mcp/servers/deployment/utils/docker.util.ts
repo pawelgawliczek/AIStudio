@@ -220,7 +220,7 @@ function execDockerComposeTest(
 
 /**
  * Build test stack containers with worktree code
- * Runs docker compose from worktree directory so context: . points to worktree
+ * Uses docker build directly with explicit context path to ensure worktree code is used
  */
 export async function buildTestContainers(
   mainWorktreePath: string,
@@ -231,32 +231,40 @@ export async function buildTestContainers(
   console.log('Building test stack containers...');
   console.log(`Build context: ${worktreePath}`);
 
-  const buildCommands: string[] = [];
-
   if (rebuildBackend) {
-    console.log('Building test-backend...');
-    buildCommands.push('build --no-cache test-backend');
+    console.log('Building test-backend from worktree...');
+    try {
+      execSync(
+        `docker build --no-cache -t aistudio-test-backend -f backend/Dockerfile.test ${worktreePath}`,
+        {
+          cwd: worktreePath,
+          encoding: 'utf-8',
+          timeout: 600000, // 10 min
+          stdio: 'inherit'
+        }
+      );
+      console.log('✓ test-backend built successfully');
+    } catch (error) {
+      console.error('✗ test-backend build failed');
+      throw error;
+    }
   }
 
   if (rebuildFrontend) {
-    console.log('Building test-frontend...');
-    buildCommands.push('build --no-cache test-frontend');
-  }
-
-  // Run docker compose from worktree so relative context '.' points to worktree code
-  const composeFilePath = `${mainWorktreePath}/${TEST_COMPOSE_FILE}`;
-
-  for (const command of buildCommands) {
+    console.log('Building test-frontend from worktree...');
     try {
-      execSync(`docker compose -f ${composeFilePath} ${command}`, {
-        cwd: worktreePath, // Execute from worktree directory
-        encoding: 'utf-8',
-        timeout: 600000, // 10 min
-        stdio: 'inherit'
-      });
-      console.log(`Successfully built: ${command}`);
+      execSync(
+        `docker build --no-cache -t aistudio-test-frontend -f frontend/Dockerfile --build-arg VITE_API_URL=/api --build-arg VITE_WS_URL=/socket.io ${worktreePath}`,
+        {
+          cwd: worktreePath,
+          encoding: 'utf-8',
+          timeout: 600000, // 10 min
+          stdio: 'inherit'
+        }
+      );
+      console.log('✓ test-frontend built successfully');
     } catch (error) {
-      console.error(`Test build failed for: ${command}`);
+      console.error('✗ test-frontend build failed');
       throw error;
     }
   }
