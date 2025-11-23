@@ -234,8 +234,18 @@ export async function buildTestContainers(
   if (rebuildBackend) {
     console.log('Building test-backend from worktree...');
     try {
+      // Remove node_modules symlinks from worktree (prevents docker COPY conflicts)
+      const backendNodeModules = `${worktreePath}/backend/node_modules`;
+      try {
+        execSync(`rm -f ${backendNodeModules}`, { cwd: worktreePath });
+      } catch {
+        // Ignore if doesn't exist
+      }
+
+      // Use Dockerfile from main worktree, but build context from story worktree
+      const dockerfilePath = `${mainWorktreePath}/backend/Dockerfile.test`;
       execSync(
-        `docker build --no-cache -t aistudio-test-backend -f backend/Dockerfile.test ${worktreePath}`,
+        `docker build --no-cache -t aistudio-test-backend -f ${dockerfilePath} ${worktreePath}`,
         {
           cwd: worktreePath,
           encoding: 'utf-8',
@@ -253,8 +263,19 @@ export async function buildTestContainers(
   if (rebuildFrontend) {
     console.log('Building test-frontend from worktree...');
     try {
+      // Remove node_modules symlinks from worktree (prevents docker COPY conflicts)
+      const frontendNodeModules = `${worktreePath}/frontend/node_modules`;
+      const sharedNodeModules = `${worktreePath}/shared/node_modules`;
+      try {
+        execSync(`rm -f ${frontendNodeModules} ${sharedNodeModules}`, { cwd: worktreePath });
+      } catch {
+        // Ignore if doesn't exist
+      }
+
+      // Use Dockerfile from main worktree, but build context from story worktree
+      const dockerfilePath = `${mainWorktreePath}/frontend/Dockerfile`;
       execSync(
-        `docker build --no-cache -t aistudio-test-frontend -f frontend/Dockerfile --build-arg VITE_API_URL=/api --build-arg VITE_WS_URL=/socket.io ${worktreePath}`,
+        `docker build --no-cache -t aistudio-test-frontend -f ${dockerfilePath} --build-arg VITE_API_URL=/api --build-arg VITE_WS_URL=/socket.io ${worktreePath}`,
         {
           cwd: worktreePath,
           encoding: 'utf-8',
