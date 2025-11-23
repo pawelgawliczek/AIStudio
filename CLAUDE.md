@@ -2,14 +2,20 @@
 
 **NEVER use npm/node commands for building. ALWAYS use Docker:**
 
-### Production Deployment (ST-77)
+### Production Deployment (ST-77, ST-84)
 
 **⚠️ CRITICAL: Production deployments MUST use the MCP tool ONLY**
+
+#### Deployment Modes
+
+**Two deployment workflows are supported:**
+
+1. **PR Mode (Team Collaboration)** - Traditional workflow with GitHub PR approval
+2. **Direct Commit Mode (Solo Development)** - Simplified workflow for solo developers with manual approval
 
 #### Required Commands for Production
 
 - ✅ **CORRECT**: Use `deploy_to_production` MCP tool ONLY
-- ✅ **CORRECT**: Requires PR approval AND merge to main
 - ✅ **CORRECT**: Requires confirmDeploy: true parameter
 - ✅ **CORRECT**: Automatic pre-deployment backup
 - ✅ **CORRECT**: 3 consecutive health checks required
@@ -21,10 +27,10 @@
 - ❌ **NEVER USE**: Direct Docker commands for production - Use MCP tool
 - ❌ **NEVER USE**: Manual container builds/restarts - Use MCP tool
 
-#### Production Deployment Example
+#### Production Deployment Example (PR Mode)
 
 ```typescript
-// ✅ CORRECT - Only way to deploy to production
+// ✅ CORRECT - PR-based deployment (team collaboration)
 deploy_to_production({
   storyId: "uuid-here",
   prNumber: 42,
@@ -33,19 +39,58 @@ deploy_to_production({
 })
 ```
 
-#### Production Deployment Safeguards
-
-The `deploy_to_production` MCP tool enforces:
+**PR Mode Requirements:**
 1. Story in 'qa' or 'done' status
 2. PR approved by at least 1 reviewer
 3. PR merged to main branch
 4. No merge conflicts
-5. Deployment lock (only 1 deployment at a time)
-6. Pre-deployment backup created automatically
-7. Sequential builds (backend → frontend)
-8. Health checks (3 consecutive successes)
-9. Complete audit trail (7-year retention)
-10. Auto-rollback on failure
+
+#### Production Deployment Example (Direct Commit Mode - ST-84)
+
+```typescript
+// Step 1: Approve deployment manually
+approve_deployment({
+  storyId: "uuid-here",
+  approvedBy: "pawel",
+  approvalReason: "Hotfix for critical bug - solo development",
+  expiresInMinutes: 60  // Optional, default: 60
+})
+
+// Step 2: Deploy with direct commit flag
+deploy_to_production({
+  storyId: "uuid-here",
+  directCommit: true,
+  triggeredBy: "claude-agent",
+  confirmDeploy: true  // REQUIRED
+})
+```
+
+**Direct Commit Mode Requirements:**
+1. Story in 'qa' or 'done' status
+2. Manual approval via `approve_deployment` tool (valid for 60 minutes by default)
+3. Commit exists on main branch
+4. No PR required (bypasses GitHub approval workflow)
+
+**Direct Commit Mode Notes:**
+- Designed for solo development workflows
+- Approval is single-use (cleared after deployment)
+- Time-limited approval (default 60 minutes, max 8 hours)
+- Full audit trail maintained (approver, timestamp, reason)
+- Developer acts as both implementer and reviewer
+
+#### Production Deployment Safeguards
+
+The `deploy_to_production` MCP tool enforces:
+1. Story in 'qa' or 'done' status
+2. **EITHER**: PR approved & merged (PR mode) **OR** Manual approval (direct commit mode)
+3. Deployment lock (only 1 deployment at a time)
+4. Pre-deployment backup created automatically
+5. Sequential builds (backend → frontend)
+6. Health checks (3 consecutive successes)
+7. Complete audit trail (7-year retention)
+8. Auto-rollback on failure
+9. Mutual exclusivity (cannot use both prNumber and directCommit)
+10. Approval validation (PR or manual, never both)
 
 ### Test/Development Deployment
 

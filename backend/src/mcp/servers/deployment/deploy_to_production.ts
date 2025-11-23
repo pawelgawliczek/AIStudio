@@ -33,6 +33,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
 import { DeploymentService, DeploymentParams } from '../../../services/deployment.service.js';
@@ -43,7 +44,8 @@ import { DeploymentService, DeploymentParams } from '../../../services/deploymen
 
 export interface DeployToProductionParams {
   storyId: string;
-  prNumber: number;
+  prNumber?: number; // Optional - required if directCommit is false
+  directCommit?: boolean; // Optional - enables direct commit mode (bypasses PR workflow)
   triggeredBy?: string; // User/agent identifier (defaults to 'mcp-user')
   skipBackup?: boolean; // EMERGENCY ONLY - skip pre-deployment backup
   skipHealthChecks?: boolean; // EMERGENCY ONLY - skip health checks
@@ -54,7 +56,9 @@ export interface DeployToProductionResponse {
   success: boolean;
   deploymentLogId: string;
   storyKey: string;
-  prNumber: number;
+  prNumber?: number;
+  directCommit?: boolean;
+  commitHash?: string;
   duration: number;
   lockId?: string;
   backupFile?: string;
@@ -104,17 +108,29 @@ export const tool: Tool = {
   name: 'deploy_to_production',
   description: `Deploy a story to production environment with comprehensive safety checks.
 
+**DEPLOYMENT MODES (ST-84):**
+
+**1. PR Mode (Traditional):**
+- Requires approved and merged PR
+- GitHub API validation
+- Team collaboration workflow
+
+**2. Direct Commit Mode (Solo Development):**
+- Requires manual approval via approve_deployment tool
+- Bypasses PR workflow
+- For solo developers with direct main commits
+
 **CRITICAL REQUIREMENTS:**
 - Story must be in 'qa' or 'done' status
-- PR must be approved AND merged to main
-- No merge conflicts
+- EITHER: PR must be approved AND merged to main (PR mode)
+- OR: Manual approval via approve_deployment (direct commit mode)
 - Deployment lock available (only 1 production deployment at a time)
 - Pre-deployment backup created automatically
 - 3 consecutive health checks must pass
 - Complete audit trail logged
 
 **WORKFLOW:**
-1. Validate story, PR approval, and worktree
+1. Validate story and approval (PR or manual)
 2. Acquire deployment lock (blocks concurrent deployments)
 3. Create pre-deployment backup
 4. Build backend container (--no-cache)
@@ -129,23 +145,31 @@ export const tool: Tool = {
 - skipBackup: true - Skip backup creation (USE WITH EXTREME CAUTION)
 - skipHealthChecks: true - Skip health checks (USE WITH EXTREME CAUTION)
 
-**ACCEPTANCE CRITERIA IMPLEMENTED:**
-- AC1: Deployment lock enforcement (singleton)
-- AC2: PR approval workflow (GitHub API)
-- AC3: Merge conflict detection
-- AC4: Pre-deployment backup (automatic)
-- AC5: Docker build and deployment (sequential)
-- AC6: Health check validation (3 consecutive)
-- AC7: Deployment audit trail (7-year retention)
-- AC8: Rollback on failure (automatic)
-- AC9: CLAUDE.md permission enforcement
-- AC10: Structured error handling
-
 **EXAMPLE USAGE:**
+
+PR Mode:
 \`\`\`typescript
 deploy_to_production({
   storyId: "905d1a9c-1337-4cf7-b7f6-72b55db9e336",
   prNumber: 42,
+  triggeredBy: "claude-agent",
+  confirmDeploy: true
+})
+\`\`\`
+
+Direct Commit Mode:
+\`\`\`typescript
+// Step 1: Approve
+approve_deployment({
+  storyId: "2e809be4-cc67-4fc7-8c3d-4d337c0043d5",
+  approvedBy: "pawel",
+  approvalReason: "Hotfix for critical bug"
+})
+
+// Step 2: Deploy
+deploy_to_production({
+  storyId: "2e809be4-cc67-4fc7-8c3d-4d337c0043d5",
+  directCommit: true,
   triggeredBy: "claude-agent",
   confirmDeploy: true
 })
@@ -160,7 +184,11 @@ deploy_to_production({
       },
       prNumber: {
         type: 'number',
-        description: 'GitHub PR number (required)',
+        description: 'GitHub PR number (required for PR mode, mutually exclusive with directCommit)',
+      },
+      directCommit: {
+        type: 'boolean',
+        description: 'Enable direct commit mode (mutually exclusive with prNumber, requires manual approval)',
       },
       triggeredBy: {
         type: 'string',
@@ -179,7 +207,7 @@ deploy_to_production({
         description: 'REQUIRED: Must be true to confirm production deployment',
       },
     },
-    required: ['storyId', 'prNumber', 'confirmDeploy'],
+    required: ['storyId', 'confirmDeploy'],
   },
 };
 
@@ -188,15 +216,21 @@ deploy_to_production({
 // ============================================================================
 
 export async function handler(
+  prisma: PrismaClient,
   params: DeployToProductionParams
 ): Promise<DeployToProductionResponse> {
+  // Note: prisma parameter is provided by registry but not used here
+  // DeploymentService creates its own PrismaClient internally
   const startTime = Date.now();
 
   console.log('='.repeat(80));
   console.log('🚀 PRODUCTION DEPLOYMENT INITIATED');
   console.log('='.repeat(80));
   console.log(`Story ID: ${params.storyId}`);
-  console.log(`PR Number: #${params.prNumber}`);
+  console.log(`Deployment Mode: ${params.directCommit ? 'Direct Commit' : 'PR-based'}`);
+  if (params.prNumber) {
+    console.log(`PR Number: #${params.prNumber}`);
+  }
   console.log(`Triggered By: ${params.triggeredBy || 'mcp-user'}`);
   console.log(`Emergency Mode: Backup=${params.skipBackup || false}, HealthChecks=${params.skipHealthChecks || false}`);
   console.log('='.repeat(80));
@@ -207,7 +241,7 @@ export async function handler(
     // ========================================================================
 
     // Validate required parameters
-    validateRequired(params, ['storyId', 'prNumber', 'confirmDeploy']);
+    validateRequired(params, ['storyId', 'confirmDeploy']);
 
     // AC9: Enforce confirmation (prevents accidental deployments)
     if (params.confirmDeploy !== true) {
@@ -215,6 +249,22 @@ export async function handler(
         'Production deployment requires explicit confirmation. ' +
         'Set confirmDeploy: true to proceed. ' +
         'This is a safety measure to prevent accidental deployments.'
+      );
+    }
+
+    // AC8: ST-84 Mutual exclusivity check
+    if (params.prNumber && params.directCommit) {
+      throw new ValidationError(
+        'Cannot use both prNumber and directCommit simultaneously. ' +
+        'Choose one deployment mode: PR-based (prNumber) OR direct commit (directCommit=true).'
+      );
+    }
+
+    // AC8: ST-84 Require one of the two modes
+    if (!params.prNumber && !params.directCommit) {
+      throw new ValidationError(
+        'Must provide either prNumber (for PR mode) or directCommit=true (for direct commit mode). ' +
+        'Direct commit mode requires prior approval via approve_deployment tool.'
       );
     }
 
@@ -226,8 +276,8 @@ export async function handler(
       );
     }
 
-    // Validate PR number
-    if (params.prNumber < 1) {
+    // Validate PR number if provided
+    if (params.prNumber && params.prNumber < 1) {
       throw new ValidationError(
         `Invalid prNumber: ${params.prNumber}. Expected positive integer.`
       );
@@ -251,6 +301,7 @@ export async function handler(
     const deploymentParams: DeploymentParams = {
       storyId: params.storyId,
       prNumber: params.prNumber,
+      directCommit: params.directCommit,
       triggeredBy: params.triggeredBy || 'mcp-user',
       skipBackup: params.skipBackup || false,
       skipHealthChecks: params.skipHealthChecks || false,
@@ -295,6 +346,8 @@ export async function handler(
       deploymentLogId: result.deploymentLogId,
       storyKey: result.storyKey,
       prNumber: result.prNumber,
+      directCommit: result.directCommit,
+      commitHash: result.commitHash,
       duration: result.duration,
       lockId: result.lockId,
       backupFile: result.backupFile,
@@ -323,6 +376,7 @@ export async function handler(
       deploymentLogId: '',
       storyKey: '',
       prNumber: params.prNumber,
+      directCommit: params.directCommit,
       duration: Date.now() - startTime,
       phases: {
         validation: { success: false, duration: 0, error: error.message },
