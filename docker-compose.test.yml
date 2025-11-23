@@ -1,6 +1,11 @@
 # Vibe Studio Test Environment Docker Compose Configuration
 # Provides isolated test database, redis, backend, and frontend
-# Usage: docker compose -f docker-compose.test.yml up -d
+#
+# IMPORTANT: DO NOT use 'docker compose build' directly for test containers!
+# Builds are managed by deploy_to_test_env MCP tool which uses 'docker build'
+# with explicit worktree context to ensure story code is built, not main worktree.
+#
+# Usage: docker compose -f docker-compose.test.yml up -d (start containers only)
 
 services:
   # Isolated Test PostgreSQL with pgvector extension
@@ -42,7 +47,6 @@ services:
   # Test Backend API (NestJS)
   test-backend:
     build:
-      context: .
       dockerfile: backend/Dockerfile.test
     container_name: vibe-studio-test-backend
     restart: unless-stopped
@@ -89,7 +93,6 @@ services:
   # Test Frontend (React + Vite via nginx)
   test-frontend:
     build:
-      context: .
       dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: /api
