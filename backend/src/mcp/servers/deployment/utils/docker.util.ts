@@ -232,14 +232,15 @@ function modifyComposeFileContext(
   const originalContent = readFileSync(composeFilePath, 'utf-8');
 
   // Replace build context from '.' to worktree path for both backend and frontend
+  // Use simpler regex that just replaces "context: ." with the worktree path
   const modifiedContent = originalContent
     .replace(
-      /test-backend:\s*\n\s*build:\s*\n\s*context:\s*\./,
-      `test-backend:\n    build:\n      context: ${worktreePath}`
+      /(test-backend:[\s\S]*?build:[\s\S]*?context:\s*)\.(?=\s)/,
+      `$1${worktreePath}`
     )
     .replace(
-      /test-frontend:\s*\n\s*build:\s*\n\s*context:\s*\./,
-      `test-frontend:\n    build:\n      context: ${worktreePath}`
+      /(test-frontend:[\s\S]*?build:[\s\S]*?context:\s*)\.(?=\s)/,
+      `$1${worktreePath}`
     );
 
   // Write modified file
