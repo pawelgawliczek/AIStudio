@@ -133,14 +133,15 @@ Deployment process:
 4. Builds test-backend and test-frontend containers
 5. Starts isolated test stack (test-postgres:5434, test-redis:6381)
 6. Applies migrations to TEST database only
-7. Waits for test stack health checks (backend:3001, frontend:5174)
-8. Updates test queue status to 'running'
+7. Seeds TEST database with production data (read-only snapshot)
+8. Waits for test stack health checks (backend:3001, frontend:5174)
+9. Updates test queue status to 'running'
 
 Key isolation guarantees:
 - NO checkout in main worktree (production code untouched)
 - NO production database changes
 - NO production container restarts
-- Tests run against isolated test-postgres (port 5434)
+- Tests run against isolated test-postgres (port 5434) with production data snapshot
 
 The tool supports EP-7 worktree workflow for parallel development and testing.`,
   inputSchema: {
@@ -257,10 +258,10 @@ export async function handler(
     }
 
     // Phase 5: Build test containers (ST-76 - isolated test stack)
-    // Note: We build from main worktree but run against test DB
+    // Build from STORY WORKTREE to include latest changes
     console.log('Building test stack containers...');
     try {
-      await buildTestContainers(mainWorktreePath, true, true);
+      await buildTestContainers(mainWorktreePath, worktree.worktreePath, true, true);
       actionsExecuted.dockerRebuild = true;
     } catch (error: any) {
       throw new DeploymentError(
@@ -295,6 +296,9 @@ export async function handler(
       );
       actionsExecuted.schemaMigration = true;
     }
+
+    // NOTE: Database seeding removed - use mcp__vibestudio__seed_test_database tool instead
+    // Seeding should only happen once during initial setup, not on every deployment
 
     // Phase 8: Health Checks for TEST stack
     console.log('Waiting for test stack health checks (max 2 minutes)...');
