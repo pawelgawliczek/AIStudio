@@ -20,8 +20,7 @@ import * as path from 'path';
 import { DeploymentLockService } from './deployment-lock.service.js';
 import { BackupService } from './backup.service.js';
 import { RestoreService } from './restore.service.js';
-
-const prisma = new PrismaClient();
+import { BackupType } from '../types/migration.types.js';
 
 // ============================================================================
 // Types
@@ -29,7 +28,8 @@ const prisma = new PrismaClient();
 
 export interface DeploymentParams {
   storyId: string;
-  prNumber: number;
+  prNumber?: number; // Optional - required for PR mode
+  directCommit?: boolean; // Optional - enables direct commit mode
   triggeredBy?: string; // User/agent identifier
   skipBackup?: boolean; // For emergencies only
   skipHealthChecks?: boolean; // For emergencies only
@@ -39,7 +39,9 @@ export interface DeploymentResult {
   success: boolean;
   deploymentLogId: string;
   storyKey: string;
-  prNumber: number;
+  prNumber?: number;
+  directCommit?: boolean;
+  commitHash?: string;
   duration: number;
   lockId?: string;
   backupFile?: string;
@@ -91,15 +93,22 @@ export interface PhaseResult {
 // ============================================================================
 
 export class DeploymentService {
+  private prisma: PrismaClient;
   private lockService: DeploymentLockService;
   private backupService: BackupService;
   private restoreService: RestoreService;
   private projectRoot: string;
 
-  constructor() {
-    this.lockService = new DeploymentLockService();
-    this.backupService = new BackupService();
-    this.restoreService = new RestoreService();
+  constructor(
+    prismaClient?: PrismaClient,
+    lockService?: DeploymentLockService,
+    backupService?: BackupService,
+    restoreService?: RestoreService
+  ) {
+    this.prisma = prismaClient || new PrismaClient();
+    this.lockService = lockService || new DeploymentLockService(this.prisma);
+    this.backupService = backupService || new BackupService();
+    this.restoreService = restoreService || new RestoreService();
     this.projectRoot = path.resolve(__dirname, '../../../');
   }
 
@@ -126,6 +135,8 @@ export class DeploymentService {
     let lockId: string | null = null;
     let backupFile: string | null = null;
     let storyKey = '';
+    let commitHash: string | null = null;
+    let approvalMethod: 'PR' | 'MANUAL' = 'PR';
 
     try {
       // ========================================================================
@@ -137,7 +148,19 @@ export class DeploymentService {
       const story = await this.validateStory(params.storyId);
       storyKey = story.key;
 
-      await this.validatePRApproval(params.prNumber);
+      // ST-84: Route to appropriate approval validation based on deployment mode
+      if (params.directCommit) {
+        console.log('[DeploymentService] Direct commit mode - validating manual approval');
+        approvalMethod = 'MANUAL';
+        await this.validateManualApproval(params.storyId);
+        const commitValidation = await this.validateCommit(params.storyId);
+        commitHash = commitValidation.commitHash;
+      } else {
+        console.log('[DeploymentService] PR mode - validating PR approval');
+        approvalMethod = 'PR';
+        await this.validatePRApproval(params.prNumber!);
+      }
+
       await this.validateWorktree(params.storyId);
 
       phases.validation = {
@@ -150,16 +173,20 @@ export class DeploymentService {
       // PHASE 2: Create Deployment Log (pending)
       // ========================================================================
       console.log('[DeploymentService] Phase 2: Creating deployment log');
-      const deploymentLog = await prisma.deploymentLog.create({
+      const deploymentLog = await this.prisma.deploymentLog.create({
         data: {
           storyId: params.storyId,
           prNumber: params.prNumber,
+          commitHash: commitHash,
+          approvalMethod: approvalMethod,
           status: 'pending',
           environment: 'production',
           deployedBy: params.triggeredBy || 'mcp-user',
           metadata: {
             triggeredAt: new Date().toISOString(),
             triggeredBy: params.triggeredBy || 'mcp-user',
+            deploymentMode: params.directCommit ? 'direct_commit' : 'pr',
+            commitHash: commitHash,
           },
         },
       });
@@ -187,7 +214,7 @@ export class DeploymentService {
       };
 
       // Update deployment log with lock ID
-      await prisma.deploymentLog.update({
+      await this.prisma.deploymentLog.update({
         where: { id: deploymentLogId },
         data: {
           deploymentId: lockId,
@@ -204,7 +231,7 @@ export class DeploymentService {
         const backupStart = Date.now();
 
         const backup = await this.backupService.createBackup(
-          'pre_deployment',
+          BackupType.PRE_MIGRATION, // Using PRE_MIGRATION for pre-deployment backups
           `ST-${storyKey}-PR-${params.prNumber}`
         );
         backupFile = backup.filepath;
@@ -334,17 +361,17 @@ export class DeploymentService {
       // ========================================================================
       // PHASE 11: Update Deployment Log (success)
       // ========================================================================
-      await prisma.deploymentLog.update({
+      await this.prisma.deploymentLog.update({
         where: { id: deploymentLogId },
         data: {
           status: 'deployed',
           completedAt: new Date(),
           metadata: {
-            phases,
+            phases: phases as any,
             healthCheckResults,
             backupFile,
             duration: Date.now() - startTime,
-          },
+          } as any,
         },
       });
 
@@ -353,11 +380,18 @@ export class DeploymentService {
       // ========================================================================
       const totalDuration = Date.now() - startTime;
 
+      // Clear manual approval after successful deployment (single-use)
+      if (params.directCommit) {
+        await this.clearManualApproval(params.storyId);
+      }
+
       return {
         success: true,
         deploymentLogId,
         storyKey,
         prNumber: params.prNumber,
+        directCommit: params.directCommit,
+        commitHash: commitHash || undefined,
         duration: totalDuration,
         lockId,
         backupFile: backupFile || undefined,
@@ -365,7 +399,9 @@ export class DeploymentService {
         phases,
         warnings,
         errors: [],
-        message: `✅ Production deployment successful for ${storyKey} (PR #${params.prNumber}). Duration: ${Math.round(totalDuration / 1000)}s`,
+        message: params.directCommit
+          ? `✅ Production deployment successful for ${storyKey} (direct commit: ${commitHash?.substring(0, 7)}). Duration: ${Math.round(totalDuration / 1000)}s`
+          : `✅ Production deployment successful for ${storyKey} (PR #${params.prNumber}). Duration: ${Math.round(totalDuration / 1000)}s`,
       };
 
     } catch (error: any) {
@@ -422,18 +458,18 @@ export class DeploymentService {
 
       // Update deployment log (failed)
       if (deploymentLogId) {
-        await prisma.deploymentLog.update({
+        await this.prisma.deploymentLog.update({
           where: { id: deploymentLogId },
           data: {
             status: phases.rollback?.success ? 'rolled_back' : 'failed',
             completedAt: new Date(),
             errorMessage: error.message,
             metadata: {
-              phases,
+              phases: phases as any,
               errors,
               warnings,
               duration: Date.now() - startTime,
-            },
+            } as any,
           },
         });
       }
@@ -443,6 +479,8 @@ export class DeploymentService {
         deploymentLogId: deploymentLogId || '',
         storyKey,
         prNumber: params.prNumber,
+        directCommit: params.directCommit,
+        commitHash: commitHash || undefined,
         duration: Date.now() - startTime,
         lockId: lockId || undefined,
         backupFile: backupFile || undefined,
@@ -459,7 +497,7 @@ export class DeploymentService {
   // ==========================================================================
 
   private async validateStory(storyId: string): Promise<any> {
-    const story = await prisma.story.findUnique({
+    const story = await this.prisma.story.findUnique({
       where: { id: storyId },
       include: { epic: true },
     });
@@ -531,7 +569,7 @@ export class DeploymentService {
   }
 
   private async validateWorktree(storyId: string): Promise<void> {
-    const worktree = await prisma.worktree.findFirst({
+    const worktree = await this.prisma.worktree.findFirst({
       where: {
         storyId,
         status: 'active',
@@ -547,12 +585,127 @@ export class DeploymentService {
 
     // Verify worktree directory exists
     const { existsSync } = await import('fs');
-    if (!existsSync(worktree.path)) {
+    if (!existsSync(worktree.worktreePath)) {
       throw new Error(
-        `Worktree directory not found: ${worktree.path}. ` +
+        `Worktree directory not found: ${worktree.worktreePath}. ` +
         `Worktree may be stale.`
       );
     }
+  }
+
+  /**
+   * ST-84: Validate manual approval for direct commit deployments
+   */
+  private async validateManualApproval(storyId: string): Promise<void> {
+    console.log(`[DeploymentService] Validating manual approval for story ${storyId}...`);
+
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: {
+        key: true,
+        manualApproval: true,
+        approvedBy: true,
+        approvedAt: true,
+        approvalExpiresAt: true,
+      },
+    });
+
+    if (!story) {
+      throw new Error(`Story ${storyId} not found`);
+    }
+
+    // Check if manual approval exists
+    if (!story.manualApproval) {
+      throw new Error(
+        `Story ${story.key} does not have manual approval. ` +
+        `Use approve_deployment tool before deploying with directCommit mode.`
+      );
+    }
+
+    // Check if approval has expired
+    const now = new Date();
+    if (story.approvalExpiresAt && new Date(story.approvalExpiresAt) < now) {
+      throw new Error(
+        `Manual approval for story ${story.key} has expired. ` +
+        `Approved at: ${story.approvedAt?.toISOString()}, Expired at: ${story.approvalExpiresAt.toISOString()}. ` +
+        `Use approve_deployment tool to renew approval.`
+      );
+    }
+
+    console.log(
+      `[DeploymentService] Manual approval validation passed. ` +
+      `Approved by: ${story.approvedBy}. ` +
+      `Approved at: ${story.approvedAt?.toISOString()}. ` +
+      `Expires at: ${story.approvalExpiresAt?.toISOString()}`
+    );
+  }
+
+  /**
+   * ST-84: Validate commit exists on main branch
+   */
+  private async validateCommit(storyId: string): Promise<{ commitHash: string; valid: boolean }> {
+    console.log(`[DeploymentService] Validating latest commit on main branch...`);
+
+    try {
+      // Get latest commit hash on main branch
+      const commitHash = execSync('git rev-parse main', {
+        cwd: this.projectRoot,
+        encoding: 'utf-8',
+      }).trim();
+
+      // Verify commit exists
+      const commitExists = execSync(`git cat-file -t ${commitHash}`, {
+        cwd: this.projectRoot,
+        encoding: 'utf-8',
+      }).trim();
+
+      if (commitExists !== 'commit') {
+        throw new Error(`Invalid commit hash: ${commitHash}`);
+      }
+
+      // Verify commit is on main branch
+      const branchesContainingCommit = execSync(`git branch --contains ${commitHash}`, {
+        cwd: this.projectRoot,
+        encoding: 'utf-8',
+      }).trim();
+
+      if (!branchesContainingCommit.includes('main')) {
+        throw new Error(
+          `Commit ${commitHash} is not on main branch. ` +
+          `Direct commit deployments must deploy from main branch.`
+        );
+      }
+
+      console.log(
+        `[DeploymentService] Commit validation passed. ` +
+        `Deploying commit: ${commitHash.substring(0, 7)}`
+      );
+
+      return {
+        commitHash,
+        valid: true,
+      };
+    } catch (error: any) {
+      throw new Error(`Commit validation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * ST-84: Clear manual approval after successful deployment (single-use)
+   */
+  private async clearManualApproval(storyId: string): Promise<void> {
+    console.log(`[DeploymentService] Clearing manual approval for story ${storyId}...`);
+
+    await this.prisma.story.update({
+      where: { id: storyId },
+      data: {
+        manualApproval: false,
+        // Keep approval history in metadata, but clear active approval
+        // approvedBy, approvedAt, and approvalExpiresAt remain for audit trail
+      },
+    });
+
+    console.log('[DeploymentService] Manual approval cleared (single-use policy)');
   }
 
   // ==========================================================================
@@ -732,7 +885,7 @@ export class DeploymentService {
    * Get deployment history for a story
    */
   async getDeploymentHistory(storyId: string): Promise<any[]> {
-    return prisma.deploymentLog.findMany({
+    return this.prisma.deploymentLog.findMany({
       where: { storyId },
       orderBy: { createdAt: 'desc' },
       take: 10,
@@ -743,7 +896,7 @@ export class DeploymentService {
    * Get current deployment status
    */
   async getCurrentDeployment(): Promise<any | null> {
-    return prisma.deploymentLog.findFirst({
+    return this.prisma.deploymentLog.findFirst({
       where: {
         status: 'deploying',
       },
