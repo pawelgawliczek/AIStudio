@@ -42,8 +42,8 @@ services:
   # Test Backend API (NestJS)
   test-backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ${WORKTREE_PATH:-.}
+      dockerfile: backend/Dockerfile.test
     container_name: vibe-studio-test-backend
     restart: unless-stopped
     env_file:
@@ -89,7 +89,7 @@ services:
   # Test Frontend (React + Vite via nginx)
   test-frontend:
     build:
-      context: .
+      context: ${WORKTREE_PATH:-.}
       dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: /api
