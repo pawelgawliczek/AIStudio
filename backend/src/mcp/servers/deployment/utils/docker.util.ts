@@ -220,7 +220,7 @@ function execDockerComposeTest(
 
 /**
  * Build test stack containers with worktree code
- * Uses WORKTREE_PATH env var to set build context in docker-compose.test.yml
+ * Runs docker compose from worktree directory so context: . points to worktree
  */
 export async function buildTestContainers(
   mainWorktreePath: string,
@@ -243,14 +243,16 @@ export async function buildTestContainers(
     buildCommands.push('build --no-cache test-frontend');
   }
 
+  // Run docker compose from worktree so relative context '.' points to worktree code
+  const composeFilePath = `${mainWorktreePath}/${TEST_COMPOSE_FILE}`;
+
   for (const command of buildCommands) {
     try {
-      execSync(`WORKTREE_PATH="${worktreePath}" docker compose -f ${TEST_COMPOSE_FILE} ${command}`, {
-        cwd: mainWorktreePath,
+      execSync(`docker compose -f ${composeFilePath} ${command}`, {
+        cwd: worktreePath, // Execute from worktree directory
         encoding: 'utf-8',
         timeout: 600000, // 10 min
-        stdio: 'inherit',
-        env: { ...process.env, WORKTREE_PATH: worktreePath }
+        stdio: 'inherit'
       });
       console.log(`Successfully built: ${command}`);
     } catch (error) {
