@@ -846,6 +846,14 @@ export interface Workflow {
   description?: string;
   version: string;
   triggerConfig: TriggerConfig;
+  componentAssignments?: Array<{
+    componentName: string;
+    componentId: string;
+    versionId: string;
+    version: string;
+    versionMajor: number;
+    versionMinor: number;
+  }>;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -853,6 +861,9 @@ export interface Workflow {
     id: string;
     name: string;
     domain: string;
+    version?: string;
+    versionMajor?: number;
+    versionMinor?: number;
     flowDiagram?: string;
     componentIds?: string[];
     components?: Component[];

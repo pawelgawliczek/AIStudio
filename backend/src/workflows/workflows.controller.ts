@@ -24,7 +24,9 @@ import {
   SyncResponseDto,
   ActiveWorkflowResponseDto,
 } from './dto/activate-workflow.dto';
+import { ValidateTemplateDto, ValidateTemplateResponseDto } from './dto/validate-template.dto';
 import { WorkflowsService } from './workflows.service';
+import { TemplateParserService } from './template-parser.service';
 
 @ApiTags('workflows')
 @Controller('projects/:projectId/workflows')
@@ -34,6 +36,7 @@ export class WorkflowsController {
   constructor(
     private readonly workflowsService: WorkflowsService,
     private readonly activationService: ActivationService,
+    private readonly templateParser: TemplateParserService,
   ) {}
 
   @Post()
@@ -172,5 +175,14 @@ export class WorkflowsController {
   ): Promise<ActiveWorkflowResponseDto> {
     const activeWorkflow = await this.activationService.getActiveWorkflow(projectId);
     return activeWorkflow || {};
+  }
+
+  @Post('validate-template')
+  @ApiOperation({ summary: 'Validate coordinator instructions template references' })
+  @ApiResponse({ status: 200, description: 'Template validation result', type: ValidateTemplateResponseDto })
+  async validateTemplate(
+    @Body() dto: ValidateTemplateDto,
+  ): Promise<ValidateTemplateResponseDto> {
+    return this.templateParser.validateReferences(dto.instructions, dto.componentAssignments as any);
   }
 }

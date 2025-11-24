@@ -11,6 +11,7 @@ interface MarkdownEditorProps {
   height?: number;
   minHeight?: number;
   className?: string;
+  name?: string;
 }
 
 export function MarkdownEditor({
@@ -20,6 +21,7 @@ export function MarkdownEditor({
   height = 200,
   minHeight = 150,
   className = '',
+  name,
 }: MarkdownEditorProps) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -49,6 +51,7 @@ export function MarkdownEditor({
         preview="edit"
         textareaProps={{
           placeholder: placeholder,
+          name: name,
           style: {
             color: 'var(--fg) !important',
           },

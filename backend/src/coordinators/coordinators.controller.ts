@@ -17,7 +17,7 @@ import { CoordinatorsService } from './coordinators.service';
 import { CreateCoordinatorDto, UpdateCoordinatorDto, CoordinatorResponseDto } from './dto';
 
 @ApiTags('coordinators')
-@Controller('api/projects/:projectId/coordinators')
+@Controller('projects/:projectId/coordinators')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CoordinatorsController {

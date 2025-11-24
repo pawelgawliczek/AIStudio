@@ -29,9 +29,9 @@ export const workflowsService = {
   /**
    * Get a single workflow by ID
    */
-  async getById(id: string, includeStats = false): Promise<Workflow> {
+  async getById(projectId: string, id: string, includeStats = false): Promise<Workflow> {
     const response = await apiClient.get<Workflow>(
-      `/projects/:projectId/workflows/${id}`,
+      `/projects/${projectId}/workflows/${id}`,
       { params: { includeStats } }
     );
     return response.data;
@@ -51,9 +51,9 @@ export const workflowsService = {
   /**
    * Update a workflow
    */
-  async update(id: string, data: UpdateWorkflowDto): Promise<Workflow> {
+  async update(projectId: string, id: string, data: UpdateWorkflowDto): Promise<Workflow> {
     const response = await apiClient.put<Workflow>(
-      `/projects/:projectId/workflows/${id}`,
+      `/projects/${projectId}/workflows/${id}`,
       data
     );
     return response.data;
@@ -62,16 +62,16 @@ export const workflowsService = {
   /**
    * Delete a workflow
    */
-  async delete(id: string): Promise<void> {
-    await apiClient.delete(`/projects/:projectId/workflows/${id}`);
+  async delete(projectId: string, id: string): Promise<void> {
+    await apiClient.delete(`/projects/${projectId}/workflows/${id}`);
   },
 
   /**
    * Activate a workflow
    */
-  async activate(id: string): Promise<Workflow> {
+  async activate(projectId: string, id: string): Promise<Workflow> {
     const response = await apiClient.post<Workflow>(
-      `/projects/:projectId/workflows/${id}/activate`
+      `/projects/${projectId}/workflows/${id}/activate`
     );
     return response.data;
   },
@@ -79,9 +79,9 @@ export const workflowsService = {
   /**
    * Deactivate a workflow
    */
-  async deactivate(id: string): Promise<Workflow> {
+  async deactivate(projectId: string, id: string): Promise<Workflow> {
     const response = await apiClient.post<Workflow>(
-      `/projects/:projectId/workflows/${id}/deactivate`
+      `/projects/${projectId}/workflows/${id}/deactivate`
     );
     return response.data;
   },

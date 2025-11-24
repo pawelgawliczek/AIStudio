@@ -17,7 +17,7 @@ import { ComponentsService } from './components.service';
 import { CreateComponentDto, UpdateComponentDto, ComponentResponseDto } from './dto';
 
 @ApiTags('components')
-@Controller('api/projects/:projectId/components')
+@Controller('projects/:projectId/components')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ComponentsController {

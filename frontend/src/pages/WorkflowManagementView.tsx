@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
 import { workflowsService } from '../services/workflows.service';
 import { Workflow } from '../types';
 import { useProject } from '../context/ProjectContext';
@@ -9,10 +11,11 @@ import { WorkflowActivationButton } from '../components/WorkflowActivationButton
 import { WorkflowRunsHistory } from '../components/WorkflowRunsHistory';
 import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
 import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
+import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
 
 export function WorkflowManagementView() {
   const [searchParams] = useSearchParams();
-  const { selectedProject } = useProject();
+  const { selectedProject, projects } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
   const queryClient = useQueryClient();
 
@@ -20,6 +23,7 @@ export function WorkflowManagementView() {
   const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>('all');
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const { data: workflows = [], isLoading } = useQuery({
     queryKey: ['workflows', projectId, searchQuery, selectedActiveFilter],
@@ -35,13 +39,13 @@ export function WorkflowManagementView() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => workflowsService.delete(id),
+    mutationFn: (id: string) => workflowsService.delete(projectId, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
   });
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      active ? workflowsService.deactivate(id) : workflowsService.activate(id),
+      active ? workflowsService.deactivate(projectId, id) : workflowsService.activate(projectId, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
   });
 
@@ -53,6 +57,10 @@ export function WorkflowManagementView() {
     );
   }
 
+  const handleWizardSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['workflows'] });
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
@@ -62,6 +70,14 @@ export function WorkflowManagementView() {
             Manage workflows that link coordinators with trigger configurations
           </p>
         </div>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setIsWizardOpen(true)}
+          disabled={!projectId}
+        >
+          Create Workflow
+        </Button>
       </div>
 
       <ActiveWorkflowBanner />
@@ -145,10 +161,11 @@ export function WorkflowManagementView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {workflows.map(workflow => (
-            <div key={workflow.id} className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border p-4">
+            <div key={workflow.id} data-testid={`workflow-card-${workflow.name}`} className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border p-4">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="text-lg font-semibold text-fg">{workflow.name}</h3>
                 <span
+                  data-testid="workflow-status"
                   className={`px-2 py-1 text-xs font-medium rounded-full ${
                     workflow.active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
                   }`}
@@ -162,7 +179,21 @@ export function WorkflowManagementView() {
               <div className="space-y-2 text-sm text-muted mb-3">
                 {workflow.coordinator && (
                   <div>
-                    <span className="font-medium text-fg">Coordinator:</span> {workflow.coordinator.name}
+                    <span className="font-medium text-fg">Coordinator:</span>{' '}
+                    <a
+                      href={`/components/${workflow.coordinatorId}`}
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      {workflow.coordinator.name}
+                    </a>
+                    {workflow.coordinator.version && (
+                      <span className="ml-1 text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                        v{workflow.coordinator.version}
+                      </span>
+                    )}
                   </div>
                 )}
                 <div>
@@ -183,8 +214,31 @@ export function WorkflowManagementView() {
                 </div>
               )}
 
-              {/* Components - Prominently displayed */}
-              {workflow.coordinator?.componentIds && workflow.coordinator.componentIds.length > 0 && (
+              {/* Components - Prominently displayed (ST-90: Show from componentAssignments) */}
+              {workflow.componentAssignments && workflow.componentAssignments.length > 0 ? (
+                <div className="mb-3 pb-3 border-b border-border">
+                  <div className="text-xs font-semibold text-fg mb-2">
+                    Components ({workflow.componentAssignments.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {workflow.componentAssignments.map((assignment) => (
+                      <a
+                        key={assignment.versionId}
+                        href={`/components/${assignment.componentId}?version=${assignment.versionId}`}
+                        className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors inline-flex items-center gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        {assignment.componentName}
+                        <span className="text-[10px] px-1 py-0 bg-blue-200 dark:bg-blue-800/50 rounded">
+                          v{assignment.version}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : workflow.coordinator?.componentIds && workflow.coordinator.componentIds.length > 0 ? (
                 <div className="mb-3 pb-3 border-b border-border">
                   <div className="text-xs font-semibold text-fg mb-2">
                     Connected Agents ({workflow.coordinator.componentIds.length})
@@ -205,7 +259,7 @@ export function WorkflowManagementView() {
                     )}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {workflow.activationStatus?.isActivated && (
                 <div className="mb-3 pb-3 border-b border-border">
@@ -291,6 +345,14 @@ export function WorkflowManagementView() {
           onUpdate={() => queryClient.invalidateQueries({ queryKey: ['workflows'] })}
         />
       )}
+
+      <WorkflowCreationWizard
+        open={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        projectId={projectId}
+        projects={projects}
+        onSuccess={handleWizardSuccess}
+      />
     </div>
   );
 }

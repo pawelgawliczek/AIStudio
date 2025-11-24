@@ -83,9 +83,9 @@ export function Layout() {
                       label="Agents"
                       icon="🤖"
                       items={[
+                        { label: 'Workflows', icon: '⚡', path: '/workflows' },
                         { label: 'Components', icon: '🧩', path: '/components' },
                         { label: 'Coordinators', icon: '🤖', path: '/coordinators' },
-                        { label: 'Workflows', icon: '⚡', path: '/workflows' },
                         { label: 'Performance', icon: '📊', path: '/analytics/performance' },
                       ]}
                     />
