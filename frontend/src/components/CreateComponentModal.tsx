@@ -79,16 +79,22 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
   const createMutation = useMutation({
     mutationFn: (data: CreateComponentDto) => componentsService.create(projectId, data),
     onSuccess: () => {
+      console.log('[CreateComponentModal] createMutation.onSuccess fired');
       onSuccess();
-      onClose();
+    },
+    onError: (error) => {
+      console.error('[CreateComponentModal] createMutation.onError:', error);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreateComponentDto) => componentsService.update(editingComponent!.id, data),
+    mutationFn: (data: CreateComponentDto) => componentsService.update(projectId, editingComponent!.id, data),
     onSuccess: () => {
+      console.log('[CreateComponentModal] updateMutation.onSuccess fired');
       onSuccess();
-      onClose();
+    },
+    onError: (error) => {
+      console.error('[CreateComponentModal] updateMutation.onError:', error);
     },
   });
 
@@ -114,8 +120,8 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" data-testid="create-component-modal">
+      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" role="dialog">
         <div className="p-6">
           <h2 className="text-2xl font-bold text-fg mb-4">
             {editingComponent ? 'Edit Component' : 'Create Component'}
@@ -130,6 +136,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                 </label>
                 <input
                   type="text"
+                  name="name"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -146,6 +153,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   onChange={(val) => setFormData({ ...formData, description: val })}
                   placeholder="Brief description of the component..."
                   height={120}
+                  name="description"
                 />
               </div>
             </div>
@@ -163,6 +171,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   onChange={(val) => setFormData({ ...formData, inputInstructions: val })}
                   placeholder="How to receive and process input data... (Markdown supported)"
                   height={150}
+                  name="inputInstructions"
                 />
               </div>
 
@@ -175,6 +184,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   onChange={(val) => setFormData({ ...formData, operationInstructions: val })}
                   placeholder="What work to perform... (Markdown supported)"
                   height={180}
+                  name="operationInstructions"
                 />
               </div>
 
@@ -187,6 +197,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   onChange={(val) => setFormData({ ...formData, outputInstructions: val })}
                   placeholder="How to format and return results... (Markdown supported)"
                   height={150}
+                  name="outputInstructions"
                 />
               </div>
             </div>
@@ -260,6 +271,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                   </label>
                   <input
                     type="text"
+                    name="tags"
                     value={tagsInput}
                     onChange={(e) => setTagsInput(e.target.value)}
                     placeholder="requirements, analysis"

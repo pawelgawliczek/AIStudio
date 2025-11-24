@@ -42,16 +42,30 @@ export class VersioningController {
   ): Promise<ComponentVersionResponse[]> {
     this.logger.log(`Getting version history for component ${componentId}`);
 
-    const history = await this.versioningService.getVersionHistory('component', componentId);
+    // Get the full version tree (including all descendants)
+    const tree = await this.versioningService.getVersionLineageTree('component', componentId);
+
+    // Flatten tree to get all versions
+    const flattenTree = (node: any): any[] => {
+      const versions = [node];
+      if (node.children && node.children.length > 0) {
+        node.children.forEach((child: any) => {
+          versions.push(...flattenTree(child));
+        });
+      }
+      return versions;
+    };
+
+    const allVersionIds = flattenTree(tree).map(v => v.id);
 
     // Fetch full component data for each version
     const versions = await Promise.all(
-      history.map(async (item) => {
+      allVersionIds.map(async (versionId) => {
         const component = await this.prisma.component.findUnique({
-          where: { id: item.id },
+          where: { id: versionId },
         });
         if (!component) {
-          throw new NotFoundException(`Component version ${item.id} not found`);
+          throw new NotFoundException(`Component version ${versionId} not found`);
         }
         return this.mapComponentToVersionResponse(component);
       }),

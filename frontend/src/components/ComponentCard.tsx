@@ -11,6 +11,7 @@ interface ComponentCardProps {
 export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleActive }: ComponentCardProps) {
   return (
     <div
+      data-testid={`component-card-${component.id}`}
       className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border overflow-hidden cursor-pointer"
       onClick={onClick}
     >
@@ -18,7 +19,17 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
       <div className="p-4 border-b border-border">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-fg">{component.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-fg">{component.name}</h3>
+              {component.version && (
+                <span
+                  data-testid="component-version"
+                  className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded font-medium"
+                >
+                  {component.version}
+                </span>
+              )}
+            </div>
             {component.description && (
               <p className="mt-1 text-sm text-fg line-clamp-2">{component.description}</p>
             )}

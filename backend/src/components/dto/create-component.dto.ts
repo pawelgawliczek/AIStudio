@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsString, IsOptional, IsArray, IsObject, IsEnum, IsBoolean, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsObject, IsEnum, IsBoolean, ValidateNested, IsNumber } from 'class-validator';
 
 class ExecutionConfigDto {
   @ApiProperty({ description: 'Model ID (e.g., claude-sonnet-4)' })
@@ -8,21 +8,27 @@ class ExecutionConfigDto {
   modelId: string;
 
   @ApiProperty({ description: 'Temperature (0-1)', example: 0.3 })
+  @IsNumber()
   temperature: number;
 
   @ApiProperty({ description: 'Maximum input tokens', example: 50000 })
+  @IsNumber()
   maxInputTokens: number;
 
   @ApiProperty({ description: 'Maximum output tokens', example: 10000 })
+  @IsNumber()
   maxOutputTokens: number;
 
   @ApiProperty({ description: 'Timeout in seconds', example: 300 })
+  @IsNumber()
   timeout: number;
 
   @ApiProperty({ description: 'Maximum retry attempts', example: 2 })
+  @IsNumber()
   maxRetries: number;
 
   @ApiProperty({ description: 'Cost limit in USD', example: 5.0 })
+  @IsNumber()
   costLimit: number;
 }
 

@@ -16,7 +16,7 @@ export default defineConfig({
     ['list'],
   ],
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://127.0.0.1:5174', // Test environment URL
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -30,23 +30,19 @@ export default defineConfig({
     },
   ],
 
-  // Start backend and frontend before running tests
+  // Use existing test servers (already running on ports 3001 and 5174)
   webServer: [
     {
-      command: 'cd backend && npm run start:dev',
-      port: 3000,
+      command: 'echo "Using existing backend on port 3001"',
+      port: 3001,
       timeout: 120 * 1000,
-      reuseExistingServer: !process.env.CI,
-      env: {
-        NODE_ENV: 'test',
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:361a30c6d68396be29c7eddc3f9ff1b1cfe07675c707232a370bda33f7c8b518@localhost:5433/vibestudio?schema=public',
-      },
+      reuseExistingServer: true, // Always reuse existing server for test environment
     },
     {
-      command: 'cd frontend && npm run dev',
-      port: 5173,
+      command: 'echo "Using existing frontend on port 5174"',
+      port: 5174,
       timeout: 120 * 1000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true, // Always reuse existing server for test environment
     },
   ],
 });

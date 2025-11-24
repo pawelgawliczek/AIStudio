@@ -10,19 +10,19 @@ export interface TestUser {
 export const TEST_USERS = {
   admin: {
     email: 'admin@aistudio.local',
-    password: 'Admin123!',
+    password: 'admin123',
     name: 'Admin User',
     role: 'admin',
   },
   pm: {
     email: 'pm@aistudio.local',
-    password: 'PM123!',
+    password: 'admin123',
     name: 'PM User',
     role: 'pm',
   },
   dev: {
     email: 'dev@aistudio.local',
-    password: 'Dev123!',
+    password: 'admin123',
     name: 'Developer User',
     role: 'dev',
   },

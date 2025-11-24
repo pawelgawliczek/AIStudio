@@ -234,12 +234,12 @@ export class AnalyticsService {
     const runs = await this.prisma.workflowRun.findMany({
       where: {
         coordinatorId: targetId,
-        ...(timeFilter && { startTime: timeFilter }),
+        ...(timeFilter && { startedAt: timeFilter }),
       },
       include: {
         workflow: true,
       },
-      orderBy: { startTime: 'desc' },
+      orderBy: { startedAt: 'desc' },
       take: limit,
       skip: offset,
     });
@@ -263,12 +263,12 @@ export class AnalyticsService {
     const runs = await this.prisma.workflowRun.findMany({
       where: {
         workflowId: targetId,
-        ...(timeFilter && { startTime: timeFilter }),
+        ...(timeFilter && { startedAt: timeFilter }),
       },
       include: {
         workflow: true,
       },
-      orderBy: { startTime: 'desc' },
+      orderBy: { startedAt: 'desc' },
       take: limit,
       skip: offset,
     });
@@ -350,7 +350,7 @@ export class AnalyticsService {
       workflows.map(async (workflow) => {
         const lastRun = await this.prisma.workflowRun.findFirst({
           where: { workflowId: workflow.id },
-          orderBy: { startTime: 'desc' },
+          orderBy: { startedAt: 'desc' },
         });
 
         const executionCount = await this.prisma.workflowRun.count({
@@ -361,7 +361,7 @@ export class AnalyticsService {
           workflowId: workflow.id,
           workflowName: workflow.name,
           version: `${workflow.versionMajor}.${workflow.versionMinor}`,
-          lastUsed: lastRun?.startTime?.toISOString() || workflow.createdAt.toISOString(),
+          lastUsed: lastRun?.startedAt?.toISOString() || workflow.createdAt.toISOString(),
           executionCount,
         };
       }),
@@ -527,7 +527,7 @@ export class AnalyticsService {
     timeRange?: TimeRange,
   ): TimeSeriesDataPoint[] {
     const bucketSize = this.getBucketSize(timeRange);
-    const buckets = this.createTimeBuckets(timeRange, bucketSize);
+    const buckets = this.createTimeBuckets(bucketSize, timeRange);
 
     for (const execution of executionHistory) {
       const bucket = this.findBucket(buckets, bucketSize, execution.startTime);
@@ -547,7 +547,7 @@ export class AnalyticsService {
     timeRange?: TimeRange,
   ): TimeSeriesDataPoint[] {
     const bucketSize = this.getBucketSize(timeRange);
-    const buckets = this.createTimeBuckets(timeRange, bucketSize);
+    const buckets = this.createTimeBuckets(bucketSize, timeRange);
 
     for (const execution of executionHistory) {
       if (execution.cost !== undefined) {
@@ -588,7 +588,7 @@ export class AnalyticsService {
     return 24;
   }
 
-  private createTimeBuckets(timeRange?: TimeRange, bucketSizeHours: number): TimeSeriesDataPoint[] {
+  private createTimeBuckets(bucketSizeHours: number, timeRange?: TimeRange): TimeSeriesDataPoint[] {
     const now = new Date();
     const startDate = this.getTimeRangeDate(timeRange) || new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
     const buckets: TimeSeriesDataPoint[] = [];
