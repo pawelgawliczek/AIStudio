@@ -15,7 +15,7 @@ import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCr
 
 export function WorkflowManagementView() {
   const [searchParams] = useSearchParams();
-  const { selectedProject } = useProject();
+  const { selectedProject, projects } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
   const queryClient = useQueryClient();
 
@@ -39,13 +39,13 @@ export function WorkflowManagementView() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => workflowsService.delete(id),
+    mutationFn: (id: string) => workflowsService.delete(projectId, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
   });
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      active ? workflowsService.deactivate(id) : workflowsService.activate(id),
+      active ? workflowsService.deactivate(projectId, id) : workflowsService.activate(projectId, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
   });
 
@@ -56,14 +56,6 @@ export function WorkflowManagementView() {
       </div>
     );
   }
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const response = await fetch('/api/projects');
-      return response.json();
-    },
-  });
 
   const handleWizardSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['workflows'] });
@@ -186,7 +178,21 @@ export function WorkflowManagementView() {
               <div className="space-y-2 text-sm text-muted mb-3">
                 {workflow.coordinator && (
                   <div>
-                    <span className="font-medium text-fg">Coordinator:</span> {workflow.coordinator.name}
+                    <span className="font-medium text-fg">Coordinator:</span>{' '}
+                    <a
+                      href={`/components/${workflow.coordinatorId}`}
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      {workflow.coordinator.name}
+                    </a>
+                    {workflow.coordinator.version && (
+                      <span className="ml-1 text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                        v{workflow.coordinator.version}
+                      </span>
+                    )}
                   </div>
                 )}
                 <div>
@@ -207,8 +213,31 @@ export function WorkflowManagementView() {
                 </div>
               )}
 
-              {/* Components - Prominently displayed */}
-              {workflow.coordinator?.componentIds && workflow.coordinator.componentIds.length > 0 && (
+              {/* Components - Prominently displayed (ST-90: Show from componentAssignments) */}
+              {workflow.componentAssignments && workflow.componentAssignments.length > 0 ? (
+                <div className="mb-3 pb-3 border-b border-border">
+                  <div className="text-xs font-semibold text-fg mb-2">
+                    Components ({workflow.componentAssignments.length})
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {workflow.componentAssignments.map((assignment) => (
+                      <a
+                        key={assignment.versionId}
+                        href={`/components/${assignment.componentId}?version=${assignment.versionId}`}
+                        className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors inline-flex items-center gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        {assignment.componentName}
+                        <span className="text-[10px] px-1 py-0 bg-blue-200 dark:bg-blue-800/50 rounded">
+                          v{assignment.version}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : workflow.coordinator?.componentIds && workflow.coordinator.componentIds.length > 0 ? (
                 <div className="mb-3 pb-3 border-b border-border">
                   <div className="text-xs font-semibold text-fg mb-2">
                     Connected Agents ({workflow.coordinator.componentIds.length})
@@ -229,7 +258,7 @@ export function WorkflowManagementView() {
                     )}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {workflow.activationStatus?.isActivated && (
                 <div className="mb-3 pb-3 border-b border-border">
