@@ -20,7 +20,7 @@ import {
 import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
 import { Component, ComponentVersion, ComponentAssignment } from '../../types/workflow-wizard';
-import { apiClient } from '../../services/api-client';
+import { apiClient } from '../../services/api.client';
 
 export const ComponentVersionSelector: React.FC = () => {
   const {
@@ -81,7 +81,7 @@ export const ComponentVersionSelector: React.FC = () => {
     // Load versions for this component
     setLoading(true);
     try {
-      const response = await apiClient.get(`/components/${componentId}/versions`);
+      const response = await apiClient.get(`/versioning/components/${componentId}/versions`);
       const versionList = response.data || [];
       setVersions(versionList);
 
@@ -154,6 +154,7 @@ export const ComponentVersionSelector: React.FC = () => {
               <FormControl sx={{ minWidth: 250 }} size="small">
                 <InputLabel>Component</InputLabel>
                 <Select
+                  data-testid="available-components-list"
                   value={selectedComponent?.id || ''}
                   onChange={(e) => handleComponentSelect(e.target.value)}
                   label="Component"
@@ -162,7 +163,7 @@ export const ComponentVersionSelector: React.FC = () => {
                   {components
                     .filter((c) => !state.componentAssignments.some((ca) => ca.componentName === c.name))
                     .map((component) => (
-                      <MenuItem key={component.id} value={component.id}>
+                      <MenuItem key={component.id} value={component.id} data-testid={`component-item-${component.name}`}>
                         {component.name} ({component.version})
                       </MenuItem>
                     ))}
@@ -180,7 +181,7 @@ export const ComponentVersionSelector: React.FC = () => {
                   >
                     {versions.map((version) => (
                       <MenuItem key={version.id} value={version.id}>
-                        {version.version}
+                        {version.version} {version.changeDescription && `- ${version.changeDescription}`}
                       </MenuItem>
                     ))}
                   </Select>
@@ -197,8 +198,8 @@ export const ComponentVersionSelector: React.FC = () => {
               </Button>
             </Box>
 
-            {duplicateError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
+            {duplicateError && selectedComponent && (
+              <Alert severity="error" sx={{ mt: 2 }} data-testid={`duplicate-error-${selectedComponent.name}`}>
                 {duplicateError}
               </Alert>
             )}
@@ -218,9 +219,9 @@ export const ComponentVersionSelector: React.FC = () => {
             No components added yet. Add at least one component to proceed to the next step.
           </Alert>
         ) : (
-          <Stack spacing={2}>
+          <Stack spacing={2} data-testid="selected-components-list">
             {state.componentAssignments.map((assignment, index) => (
-              <Card key={index} variant="outlined">
+              <Card key={index} variant="outlined" data-testid={`selected-component-${assignment.componentName}`}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>

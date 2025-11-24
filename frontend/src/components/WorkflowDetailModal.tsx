@@ -220,9 +220,14 @@ export function WorkflowDetailModal({ workflow, isOpen, onClose, onUpdate }: Wor
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Coordinator</h4>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">
-                              {(workflow as any).coordinator?.name || 'Not assigned'}
-                            </p>
+                            <div className="text-sm text-gray-700 dark:text-gray-300">
+                              <div className="font-medium">{(workflow as any).coordinator?.name || 'Not assigned'}</div>
+                              {(workflow as any).coordinator?.version && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Version: {(workflow as any).coordinator.version}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           <div>
                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Trigger Type</h4>
@@ -231,6 +236,32 @@ export function WorkflowDetailModal({ workflow, isOpen, onClose, onUpdate }: Wor
                             </p>
                           </div>
                         </div>
+
+                        {/* Components Summary */}
+                        {workflow.componentAssignments && workflow.componentAssignments.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                              Components ({workflow.componentAssignments.length})
+                            </h4>
+                            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                              <div className="space-y-2">
+                                {workflow.componentAssignments.map((assignment, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                                  >
+                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {assignment.componentName}
+                                    </span>
+                                    <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                                      {assignment.version}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <div>
                           <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Trigger Configuration</h4>

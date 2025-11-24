@@ -66,7 +66,10 @@ export class ComponentsService {
     }
 
     const components = await this.prisma.component.findMany({
-      where,
+      where: {
+        ...where,
+        parentId: null, // Only show root components, not child versions
+      },
       orderBy: { createdAt: 'desc' },
     });
 

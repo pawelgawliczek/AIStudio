@@ -71,7 +71,7 @@ export class WorkflowsService {
         description: dto.description,
         version: dto.version ?? 'v1.0',
         triggerConfig: dto.triggerConfig,
-        componentAssignments: dto.componentAssignments || [],
+        componentAssignments: (dto.componentAssignments || []) as any,
         active: dto.active ?? true,
       },
       include: {
@@ -222,6 +222,7 @@ export class WorkflowsService {
         description: dto.description,
         version: dto.version,
         triggerConfig: dto.triggerConfig,
+        componentAssignments: dto.componentAssignments ? (dto.componentAssignments as any) : undefined,
         active: dto.active,
       },
       include: {

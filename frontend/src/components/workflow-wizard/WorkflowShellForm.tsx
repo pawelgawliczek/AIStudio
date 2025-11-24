@@ -2,10 +2,6 @@ import React from 'react';
 import {
   Box,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Typography,
   Paper,
   Alert,
@@ -19,16 +15,15 @@ interface WorkflowShellFormProps {
 export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }) => {
   const { state, updateState, canProceedToStep } = useWorkflowWizard();
 
+  // Find the current project to display its name (with safety check)
+  const currentProject = Array.isArray(projects) ? projects.find(p => p.id === state.projectId) : undefined;
+
   const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateState({ name: event.target.value });
   };
 
   const handleDescriptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateState({ description: event.target.value });
-  };
-
-  const handleProjectChange = (event: any) => {
-    updateState({ projectId: event.target.value });
   };
 
   const isValid = canProceedToStep(2);
@@ -45,6 +40,7 @@ export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <TextField
           label="Workflow Name"
+          name="name"
           value={state.name}
           onChange={handleNameChange}
           required
@@ -56,6 +52,7 @@ export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }
 
         <TextField
           label="Description"
+          name="description"
           value={state.description}
           onChange={handleDescriptionChange}
           fullWidth
@@ -65,20 +62,20 @@ export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }
           helperText="Optional: Explain what this workflow does and when it should be used"
         />
 
-        <FormControl fullWidth required error={!state.projectId}>
-          <InputLabel>Project</InputLabel>
-          <Select value={state.projectId} onChange={handleProjectChange} label="Project">
-            {projects.map((project) => (
-              <MenuItem key={project.id} value={project.id}>
-                {project.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <TextField
+          label="Project"
+          value={currentProject?.name || 'Loading project...'}
+          fullWidth
+          disabled
+          helperText="Workflow will be created for this project"
+          InputProps={{
+            readOnly: true,
+          }}
+        />
 
         {!isValid && (
           <Alert severity="warning">
-            Please fill in the required fields (Name and Project) to proceed to the next step.
+            Please fill in the workflow name to proceed to the next step.
           </Alert>
         )}
 

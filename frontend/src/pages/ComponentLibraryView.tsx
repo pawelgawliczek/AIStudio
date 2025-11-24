@@ -91,7 +91,7 @@ export function ComponentLibraryView() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => componentsService.delete(id),
+    mutationFn: (id: string) => componentsService.delete(projectId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['components'] });
       if (selectedComponent && isDetailModalOpen) {
@@ -104,7 +104,7 @@ export function ComponentLibraryView() {
   // Toggle active mutation
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      active ? componentsService.deactivate(id) : componentsService.activate(id),
+      active ? componentsService.deactivate(projectId, id) : componentsService.activate(projectId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['components'] });
     },
@@ -136,7 +136,9 @@ export function ComponentLibraryView() {
   };
 
   const handleCloseCreateModal = () => {
+    console.log('[ComponentLibraryView] handleCloseCreateModal called, current isCreateModalOpen:', isCreateModalOpen);
     setIsCreateModalOpen(false);
+    console.log('[ComponentLibraryView] setIsCreateModalOpen(false) called');
     setTimeout(() => setEditingComponent(null), 200);
   };
 
@@ -159,6 +161,7 @@ export function ComponentLibraryView() {
           </p>
         </div>
         <button
+          data-testid="create-component-button"
           onClick={() => setIsCreateModalOpen(true)}
           className="px-4 py-2 bg-accent text-accent-fg rounded-lg hover:bg-accent-dark transition-colors"
         >
@@ -288,6 +291,7 @@ export function ComponentLibraryView() {
           {!searchQuery && (
             <div className="mt-6">
               <button
+                data-testid="create-component-empty-state"
                 onClick={() => setIsCreateModalOpen(true)}
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-accent-fg bg-accent hover:bg-accent-dark"
               >
@@ -297,7 +301,7 @@ export function ComponentLibraryView() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div data-testid="component-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredComponents.map(component => (
             <ComponentCard
               key={component.id}
@@ -329,8 +333,17 @@ export function ComponentLibraryView() {
       <CreateComponentModal
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}
-        onSuccess={() => {
-          refetch();
+        onSuccess={async () => {
+          console.log('[ComponentLibraryView] onSuccess callback called');
+          console.log('[ComponentLibraryView] calling invalidateQueries...');
+          // Invalidate all component queries (will trigger refetch of active queries)
+          await queryClient.invalidateQueries({
+            queryKey: ['components'],
+            refetchType: 'active'
+          });
+          console.log('[ComponentLibraryView] Queries invalidated successfully');
+
+          // Close modal immediately
           handleCloseCreateModal();
         }}
         projectId={projectId}

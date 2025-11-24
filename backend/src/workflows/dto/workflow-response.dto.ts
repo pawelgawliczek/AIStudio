@@ -22,6 +22,30 @@ export class WorkflowResponseDto {
   @ApiProperty({ description: 'Trigger configuration' })
   triggerConfig: any;
 
+  @ApiPropertyOptional({
+    description: 'Component assignments with versions (ST-90)',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        componentName: { type: 'string' },
+        componentId: { type: 'string' },
+        versionId: { type: 'string' },
+        version: { type: 'string' },
+        versionMajor: { type: 'number' },
+        versionMinor: { type: 'number' },
+      },
+    },
+  })
+  componentAssignments?: Array<{
+    componentName: string;
+    componentId: string;
+    versionId: string;
+    version: string;
+    versionMajor: number;
+    versionMinor: number;
+  }>;
+
   @ApiProperty({ description: 'Active status' })
   active: boolean;
 
@@ -36,6 +60,9 @@ export class WorkflowResponseDto {
     id: string;
     name: string;
     domain: string;
+    version?: string;
+    versionMajor?: number;
+    versionMinor?: number;
     flowDiagram?: string;
     componentIds?: string[];
     components?: Array<{

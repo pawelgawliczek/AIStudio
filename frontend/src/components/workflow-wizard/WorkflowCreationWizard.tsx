@@ -16,7 +16,7 @@ import { WorkflowWizardProvider, useWorkflowWizard } from '../../contexts/Workfl
 import { WorkflowShellForm } from './WorkflowShellForm';
 import { ComponentVersionSelector } from './ComponentVersionSelector';
 import { CoordinatorSelector } from './CoordinatorSelector';
-import { apiClient } from '../../services/api-client';
+import { apiClient } from '../../services/api.client';
 
 const STEPS = ['Workflow Information', 'Select Components', 'Choose Coordinator'];
 
@@ -127,12 +127,12 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth data-testid="workflow-wizard-modal">
       <DialogTitle>Create New Workflow</DialogTitle>
 
       <DialogContent>
         <Box sx={{ width: '100%', pt: 2 }}>
-          <Stepper activeStep={currentStep - 1} sx={{ mb: 4 }}>
+          <Stepper activeStep={currentStep - 1} sx={{ mb: 4 }} data-testid="step-indicator">
             {STEPS.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>

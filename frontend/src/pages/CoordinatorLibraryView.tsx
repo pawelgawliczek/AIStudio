@@ -201,11 +201,23 @@ export function CoordinatorLibraryView() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div data-testid="coordinator-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCoordinators.map(coordinator => (
-            <div key={coordinator.id} className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border p-4">
+            <div key={coordinator.id} data-testid={`coordinator-card-${coordinator.name}`} className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border p-4">
               <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg font-semibold text-fg">{coordinator.name}</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-fg">{coordinator.name}</h3>
+                    {coordinator.version && (
+                      <span
+                        data-testid="coordinator-version"
+                        className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded font-medium"
+                      >
+                        {coordinator.version}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <span
                   className={`px-2 py-1 text-xs font-medium rounded-full ${
                     coordinator.active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'

@@ -87,7 +87,10 @@ export class CoordinatorsService {
     }
 
     const coordinators = await this.prisma.component.findMany({
-      where,
+      where: {
+        ...where,
+        parentId: null, // Only show root coordinators, not child versions
+      },
       orderBy: { createdAt: 'desc' },
     });
 

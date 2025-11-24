@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
 import { Coordinator, ComponentVersion } from '../../types/workflow-wizard';
-import { apiClient } from '../../services/api-client';
+import { apiClient } from '../../services/api.client';
 import { CoordinatorInstructionsEditor } from './CoordinatorInstructionsEditor';
 
 const MODELS = [
@@ -96,7 +96,7 @@ export const CoordinatorSelector: React.FC = () => {
     // Load versions for this coordinator
     setLoading(true);
     try {
-      const response = await apiClient.get(`/components/${coordinatorId}/versions`);
+      const response = await apiClient.get(`/versioning/components/${coordinatorId}/versions`);
       const versionList = response.data || [];
       setVersions(versionList);
 
@@ -195,7 +195,11 @@ export const CoordinatorSelector: React.FC = () => {
               <Typography variant="subtitle2" gutterBottom>
                 Coordinator Instructions Preview
               </Typography>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', maxHeight: 300, overflow: 'auto' }}>
+              <Paper
+                variant="outlined"
+                sx={{ p: 2, bgcolor: 'grey.50', maxHeight: 300, overflow: 'auto' }}
+                data-testid="template-preview"
+              >
                 <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
                   {selectedCoordinator.operationInstructions}
                 </Typography>

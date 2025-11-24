@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { debounce } from 'lodash';
 import { ComponentAssignment, TemplateValidationResult } from '../../types/workflow-wizard';
-import { apiClient } from '../../services/api-client';
+import { apiClient } from '../../services/api.client';
 
 interface CoordinatorInstructionsEditorProps {
   instructions: string;
@@ -179,7 +179,7 @@ export const CoordinatorInstructionsEditor: React.FC<CoordinatorInstructionsEdit
       )}
 
       {validation && !isValidating && (
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 2 }} data-testid="template-validation">
           {validation.valid ? (
             <Alert severity="success">
               Template is valid! Found {validation.references.length} component reference(s).
