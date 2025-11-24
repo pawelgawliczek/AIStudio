@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
 import { workflowsService } from '../services/workflows.service';
 import { Workflow } from '../types';
 import { useProject } from '../context/ProjectContext';
@@ -9,6 +11,7 @@ import { WorkflowActivationButton } from '../components/WorkflowActivationButton
 import { WorkflowRunsHistory } from '../components/WorkflowRunsHistory';
 import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
 import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
+import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
 
 export function WorkflowManagementView() {
   const [searchParams] = useSearchParams();
@@ -20,6 +23,7 @@ export function WorkflowManagementView() {
   const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>('all');
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   const { data: workflows = [], isLoading } = useQuery({
     queryKey: ['workflows', projectId, searchQuery, selectedActiveFilter],
@@ -53,6 +57,18 @@ export function WorkflowManagementView() {
     );
   }
 
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const response = await fetch('/api/projects');
+      return response.json();
+    },
+  });
+
+  const handleWizardSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['workflows'] });
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
@@ -62,6 +78,14 @@ export function WorkflowManagementView() {
             Manage workflows that link coordinators with trigger configurations
           </p>
         </div>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setIsWizardOpen(true)}
+          disabled={!projectId}
+        >
+          Create Workflow
+        </Button>
       </div>
 
       <ActiveWorkflowBanner />
@@ -291,6 +315,14 @@ export function WorkflowManagementView() {
           onUpdate={() => queryClient.invalidateQueries({ queryKey: ['workflows'] })}
         />
       )}
+
+      <WorkflowCreationWizard
+        open={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        projectId={projectId}
+        projects={projects}
+        onSuccess={handleWizardSuccess}
+      />
     </div>
   );
 }

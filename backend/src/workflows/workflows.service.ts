@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWorkflowDto, UpdateWorkflowDto, WorkflowResponseDto } from './dto';
+import { TemplateParserService } from './template-parser.service';
 
 @Injectable()
 export class WorkflowsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly templateParser: TemplateParserService,
+  ) {}
 
   async create(projectId: string, dto: CreateWorkflowDto): Promise<WorkflowResponseDto> {
     // Verify project exists
@@ -25,6 +29,40 @@ export class WorkflowsService {
       throw new BadRequestException('Invalid coordinator ID or coordinator does not belong to this project');
     }
 
+    // Validate component assignments if provided
+    if (dto.componentAssignments && dto.componentAssignments.length > 0) {
+      this.validateComponentAssignments(dto.componentAssignments);
+
+      // Verify all component IDs exist
+      const componentIds = dto.componentAssignments.map((ca) => ca.componentId);
+      const components = await this.prisma.component.findMany({
+        where: {
+          id: { in: componentIds },
+          projectId,
+        },
+      });
+
+      if (components.length !== componentIds.length) {
+        throw new BadRequestException('One or more component IDs are invalid or do not belong to this project');
+      }
+    }
+
+    // Validate coordinator instructions against component assignments
+    if (dto.componentAssignments && dto.componentAssignments.length > 0) {
+      const coordinatorInstructions = coordinator.operationInstructions || '';
+      const validation = this.templateParser.validateReferences(
+        coordinatorInstructions,
+        dto.componentAssignments as any,
+      );
+
+      if (!validation.valid) {
+        throw new BadRequestException({
+          message: 'Coordinator instructions contain invalid template references',
+          errors: validation.errors,
+        });
+      }
+    }
+
     const workflow = await this.prisma.workflow.create({
       data: {
         projectId,
@@ -33,6 +71,7 @@ export class WorkflowsService {
         description: dto.description,
         version: dto.version ?? 'v1.0',
         triggerConfig: dto.triggerConfig,
+        componentAssignments: dto.componentAssignments || [],
         active: dto.active ?? true,
       },
       include: {
@@ -41,6 +80,23 @@ export class WorkflowsService {
     });
 
     return this.mapToResponseDto(workflow);
+  }
+
+  /**
+   * Validate that component names are unique within the workflow
+   */
+  private validateComponentAssignments(assignments: any[]): void {
+    const names = assignments.map((a) => a.componentName);
+    const uniqueNames = new Set(names);
+
+    if (names.length !== uniqueNames.size) {
+      // Find duplicates
+      const duplicates = names.filter((name, index) => names.indexOf(name) !== index);
+      throw new BadRequestException({
+        message: 'Component names must be unique within a workflow',
+        duplicates: [...new Set(duplicates)],
+      });
+    }
   }
 
   async findAll(

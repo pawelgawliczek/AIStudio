@@ -622,6 +622,9 @@ model Workflow {
   // Trigger configuration
   triggerConfig Json @map("trigger_config") // { type, filters, notifications }
 
+  // Component assignments (ST-90)
+  componentAssignments Json @default("[]") @map("component_assignments") // Array of { componentName, componentId, versionId, version, versionMajor, versionMinor }
+
   // Settings
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
