@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { componentsService } from '../services/components.service';
 import { workflowsService } from '../services/workflows.service';
 import { Component } from '../types';
@@ -8,24 +8,37 @@ import { ComponentCard } from '../components/ComponentCard';
 import { CreateComponentModal } from '../components/CreateComponentModal';
 import { ComponentDetailModal } from '../components/ComponentDetailModal';
 import { useProject } from '../context/ProjectContext';
+import { useComponentFilters } from '../hooks/useComponentFilters';
+import { useComponentActions } from '../hooks/useComponentActions';
+import { FilterBar } from '../components/FilterBar';
+import { EmptyState } from '../components/EmptyState';
 
 export function ComponentLibraryView() {
   const [searchParams] = useSearchParams();
   const { selectedProject } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
-
   const queryClient = useQueryClient();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>('all');
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all');
-  const [selectedWorkflowFilter, setSelectedWorkflowFilter] = useState<string>('all');
+  // Use extracted hooks
+  const filters = useComponentFilters();
+
+  // Local state for modals and editing
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingComponent, setEditingComponent] = useState<Component | null>(null);
 
-  // Fetch workflows
+  const { handleDelete, handleToggleActive, handleEdit } = useComponentActions(
+    projectId,
+    () => {
+      if (selectedComponent && isDetailModalOpen) {
+        setIsDetailModalOpen(false);
+        setSelectedComponent(null);
+      }
+    }
+  );
+
+  // Fetch workflows for filtering
   const { data: workflows = [] } = useQuery({
     queryKey: ['workflows', projectId],
     queryFn: async () => {
@@ -36,16 +49,27 @@ export function ComponentLibraryView() {
   });
 
   // Fetch components
-  const { data: components = [], isLoading, refetch } = useQuery({
-    queryKey: ['components', projectId, searchQuery, selectedActiveFilter, selectedTagFilter],
+  const {
+    data: components = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'components',
+      projectId,
+      filters.searchQuery,
+      filters.selectedActiveFilter,
+      filters.selectedTagFilter,
+    ],
     queryFn: async () => {
       if (!projectId) return [];
-
-      const activeFilter = selectedActiveFilter === 'all' ? undefined : selectedActiveFilter === 'active';
-
+      const activeFilter =
+        filters.selectedActiveFilter === 'all'
+          ? undefined
+          : filters.selectedActiveFilter === 'active';
       return componentsService.getAll(projectId, {
         active: activeFilter,
-        search: searchQuery || undefined,
+        search: filters.searchQuery || undefined,
       });
     },
     enabled: !!projectId,
@@ -54,8 +78,8 @@ export function ComponentLibraryView() {
   // Get unique tags for filtering (exclude 'coordinator' tag)
   const tags = useMemo(() => {
     const tagSet = new Set<string>();
-    components.forEach(c => {
-      c.tags.forEach(tag => {
+    components.forEach((c) => {
+      c.tags.forEach((tag) => {
         if (tag !== 'coordinator' && tag !== 'orchestrator') {
           tagSet.add(tag);
         }
@@ -69,46 +93,25 @@ export function ComponentLibraryView() {
     let filtered = components;
 
     // EXCLUDE COORDINATORS - they should only appear on /coordinators page
-    filtered = filtered.filter(c => !c.tags.includes('coordinator'));
+    filtered = filtered.filter((c) => !c.tags.includes('coordinator'));
 
     // Tag filter
-    if (selectedTagFilter !== 'all') {
-      filtered = filtered.filter(c => c.tags.includes(selectedTagFilter));
+    if (filters.selectedTagFilter !== 'all') {
+      filtered = filtered.filter((c) => c.tags.includes(filters.selectedTagFilter));
     }
 
     // Workflow filter
-    if (selectedWorkflowFilter !== 'all') {
-      const workflow = workflows.find(w => w.id === selectedWorkflowFilter);
+    if (filters.selectedWorkflowFilter !== 'all') {
+      const workflow = workflows.find((w) => w.id === filters.selectedWorkflowFilter);
       if (workflow?.coordinator?.componentIds) {
-        filtered = filtered.filter(c =>
+        filtered = filtered.filter((c) =>
           workflow.coordinator!.componentIds!.includes(c.id)
         );
       }
     }
 
     return filtered;
-  }, [components, selectedTagFilter, selectedWorkflowFilter, workflows]);
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => componentsService.delete(projectId, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['components'] });
-      if (selectedComponent && isDetailModalOpen) {
-        setIsDetailModalOpen(false);
-        setSelectedComponent(null);
-      }
-    },
-  });
-
-  // Toggle active mutation
-  const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      active ? componentsService.deactivate(projectId, id) : componentsService.activate(projectId, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['components'] });
-    },
-  });
+  }, [components, filters.selectedTagFilter, filters.selectedWorkflowFilter, workflows]);
 
   const handleComponentClick = (component: Component) => {
     setSelectedComponent(component);
@@ -120,25 +123,8 @@ export function ComponentLibraryView() {
     setTimeout(() => setSelectedComponent(null), 200);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this component? This action cannot be undone.')) {
-      await deleteMutation.mutateAsync(id);
-    }
-  };
-
-  const handleToggleActive = async (component: Component) => {
-    await toggleActiveMutation.mutateAsync({ id: component.id, active: component.active });
-  };
-
-  const handleEdit = (component: Component) => {
-    setEditingComponent(component);
-    setIsCreateModalOpen(true);
-  };
-
   const handleCloseCreateModal = () => {
-    console.log('[ComponentLibraryView] handleCloseCreateModal called, current isCreateModalOpen:', isCreateModalOpen);
     setIsCreateModalOpen(false);
-    console.log('[ComponentLibraryView] setIsCreateModalOpen(false) called');
     setTimeout(() => setEditingComponent(null), 200);
   };
 
@@ -149,6 +135,32 @@ export function ComponentLibraryView() {
       </div>
     );
   }
+
+  // Empty state icon
+  const emptyIcon = (
+    <svg
+      className="mx-auto h-12 w-12 text-fg"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+      />
+    </svg>
+  );
+
+  // Loading skeleton
+  const loadingSkeleton = (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="h-64 bg-bg-secondary animate-pulse rounded-lg" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -169,84 +181,46 @@ export function ComponentLibraryView() {
         </button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Search */}
-          <div className="flex-1 min-w-[200px]">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search components..."
-              className="w-full px-4 py-2 rounded-lg"
-            />
-          </div>
-
-          {/* Active Filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-fg">Status:</label>
-            <select
-              value={selectedActiveFilter}
-              onChange={(e) => setSelectedActiveFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg"
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-
-          {/* Tag Filter */}
-          {tags.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-fg">Tag:</label>
-              <select
-                value={selectedTagFilter}
-                onChange={(e) => setSelectedTagFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg"
-              >
-                <option value="all">All Tags</option>
-                {tags.map(tag => (
-                  <option key={tag} value={tag}>{tag}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Workflow Filter */}
-          {workflows.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-fg">Workflow:</label>
-              <select
-                value={selectedWorkflowFilter}
-                onChange={(e) => setSelectedWorkflowFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg"
-              >
-                <option value="all">All Workflows</option>
-                {workflows.map(workflow => (
-                  <option key={workflow.id} value={workflow.id}>{workflow.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Clear Filters */}
-          {(searchQuery || selectedActiveFilter !== 'all' || selectedTagFilter !== 'all' || selectedWorkflowFilter !== 'all') && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedActiveFilter('all');
-                setSelectedTagFilter('all');
-                setSelectedWorkflowFilter('all');
-              }}
-              className="text-sm text-fg hover:text-accent underline"
-            >
-              Clear all filters
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Filter Bar */}
+      <FilterBar
+        searchQuery={filters.searchQuery}
+        onSearchChange={filters.setSearchQuery}
+        searchPlaceholder="Search components..."
+        filters={[
+          {
+            label: 'Status',
+            value: filters.selectedActiveFilter,
+            onChange: filters.setSelectedActiveFilter,
+            options: [
+              { value: 'all', label: 'All' },
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ],
+          },
+          {
+            label: 'Tag',
+            value: filters.selectedTagFilter,
+            onChange: filters.setSelectedTagFilter,
+            options: [
+              { value: 'all', label: 'All Tags' },
+              ...tags.map((tag) => ({ value: tag, label: tag })),
+            ],
+            visible: tags.length > 0,
+          },
+          {
+            label: 'Workflow',
+            value: filters.selectedWorkflowFilter,
+            onChange: filters.setSelectedWorkflowFilter,
+            options: [
+              { value: 'all', label: 'All Workflows' },
+              ...workflows.map((w) => ({ value: w.id, label: w.name })),
+            ],
+            visible: workflows.length > 0,
+          },
+        ]}
+        hasActiveFilters={filters.hasActiveFilters}
+        onClearFilters={filters.clearFilters}
+      />
 
       {/* Results Count */}
       <div className="mb-4 text-sm text-fg">
@@ -254,60 +228,42 @@ export function ComponentLibraryView() {
           <span>Loading...</span>
         ) : (
           <span>
-            Found {filteredComponents.length} component{filteredComponents.length !== 1 ? 's' : ''}
-            {searchQuery && ` matching "${searchQuery}"`}
+            Found {filteredComponents.length} component
+            {filteredComponents.length !== 1 ? 's' : ''}
+            {filters.searchQuery && ` matching "${filters.searchQuery}"`}
           </span>
         )}
       </div>
 
-      {/* Component Grid */}
+      {/* Content */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-64 bg-bg-secondary animate-pulse rounded-lg" />
-          ))}
-        </div>
+        loadingSkeleton
       ) : filteredComponents.length === 0 ? (
-        <div className="text-center py-12">
-          <svg
-            className="mx-auto h-12 w-12 text-fg"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-            />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-fg">No components found</h3>
-          <p className="mt-1 text-sm text-fg">
-            {searchQuery
+        <EmptyState
+          icon={emptyIcon}
+          title="No components found"
+          description={
+            filters.searchQuery
               ? 'Try adjusting your search query or filters.'
-              : 'Get started by creating a new component.'}
-          </p>
-          {!searchQuery && (
-            <div className="mt-6">
-              <button
-                data-testid="create-component-empty-state"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-accent-fg bg-accent hover:bg-accent-dark"
-              >
-                + Create Component
-              </button>
-            </div>
-          )}
-        </div>
+              : 'Get started by creating a new component.'
+          }
+          actionLabel={!filters.searchQuery ? '+ Create Component' : undefined}
+          onAction={!filters.searchQuery ? () => setIsCreateModalOpen(true) : undefined}
+          testId="create-component-empty-state"
+        />
       ) : (
         <div data-testid="component-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredComponents.map(component => (
+          {filteredComponents.map((component) => (
             <ComponentCard
               key={component.id}
               component={component}
               onClick={() => handleComponentClick(component)}
-              onEdit={() => handleEdit(component)}
+              onEdit={() =>
+                handleEdit(component, (comp) => {
+                  setEditingComponent(comp);
+                  setIsCreateModalOpen(true);
+                })
+              }
               onDelete={() => handleDelete(component.id)}
               onToggleActive={() => handleToggleActive(component)}
             />
@@ -322,7 +278,10 @@ export function ComponentLibraryView() {
           isOpen={isDetailModalOpen}
           onClose={handleCloseDetailModal}
           onEdit={() => {
-            handleEdit(selectedComponent);
+            handleEdit(selectedComponent, (comp) => {
+              setEditingComponent(comp);
+              setIsCreateModalOpen(true);
+            });
             handleCloseDetailModal();
           }}
           onUpdate={() => refetch()}
@@ -334,16 +293,10 @@ export function ComponentLibraryView() {
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}
         onSuccess={async () => {
-          console.log('[ComponentLibraryView] onSuccess callback called');
-          console.log('[ComponentLibraryView] calling invalidateQueries...');
-          // Invalidate all component queries (will trigger refetch of active queries)
           await queryClient.invalidateQueries({
             queryKey: ['components'],
-            refetchType: 'active'
+            refetchType: 'active',
           });
-          console.log('[ComponentLibraryView] Queries invalidated successfully');
-
-          // Close modal immediately
           handleCloseCreateModal();
         }}
         projectId={projectId}

@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { apiClient } from './api.client';
 
 export enum RunStatus {
   PENDING = 'PENDING',
@@ -118,7 +116,7 @@ export interface ComponentRunDetails {
   tokensInput?: number;
   tokensOutput?: number;
   totalTokens?: number;
-  // ST-110: Token breakdown from /context command
+// ST-110: Token breakdown from /context command
   tokensSystemPrompt?: number;
   tokensSystemTools?: number;
   tokensMcpTools?: number;
@@ -161,24 +159,13 @@ export interface CreateWorkflowRunDto {
 }
 
 class WorkflowRunsService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('accessToken');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    };
-  }
-
   async create(
     projectId: string,
     data: CreateWorkflowRunDto,
   ): Promise<WorkflowRun> {
-    const response = await axios.post(
-      `${API_BASE_URL}/projects/${projectId}/workflow-runs`,
-      data,
-      this.getAuthHeaders(),
+    const response = await apiClient.post(
+      `/projects/${projectId}/workflow-runs`,
+      data
     );
     return response.data;
   }
@@ -192,49 +179,46 @@ class WorkflowRunsService {
       includeRelations?: boolean;
     },
   ): Promise<WorkflowRun[]> {
-    const params = new URLSearchParams();
-    if (options?.workflowId) params.append('workflowId', options.workflowId);
-    if (options?.storyId) params.append('storyId', options.storyId);
-    if (options?.status) params.append('status', options.status);
-    if (options?.includeRelations) params.append('includeRelations', 'true');
+    const params: any = {};
+    if (options?.workflowId) params.workflowId = options.workflowId;
+    if (options?.storyId) params.storyId = options.storyId;
+    if (options?.status) params.status = options.status;
+    if (options?.includeRelations) params.includeRelations = 'true';
 
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${projectId}/workflow-runs?${params.toString()}`,
-      this.getAuthHeaders(),
+    const response = await apiClient.get(
+      `/projects/${projectId}/workflow-runs`,
+      { params }
     );
     return response.data;
   }
 
   async getOne(id: string, includeRelations = false): Promise<WorkflowRun> {
-    const params = includeRelations ? '?includeRelations=true' : '';
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${id.split('/')[0]}/workflow-runs/${id}${params}`,
-      this.getAuthHeaders(),
+    const params = includeRelations ? { includeRelations: 'true' } : {};
+    const response = await apiClient.get(
+      `/projects/${id.split('/')[0]}/workflow-runs/${id}`,
+      { params }
     );
     return response.data;
   }
 
   async getResults(projectId: string, id: string): Promise<WorkflowRunResults> {
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${projectId}/workflow-runs/${id}/results`,
-      this.getAuthHeaders(),
+    const response = await apiClient.get(
+      `/projects/${projectId}/workflow-runs/${id}/results`
     );
     return response.data;
   }
 
   async update(id: string, data: Partial<CreateWorkflowRunDto>): Promise<WorkflowRun> {
-    const response = await axios.put(
-      `${API_BASE_URL}/projects/${id.split('/')[0]}/workflow-runs/${id}`,
-      data,
-      this.getAuthHeaders(),
+    const response = await apiClient.put(
+      `/projects/${id.split('/')[0]}/workflow-runs/${id}`,
+      data
     );
     return response.data;
   }
 
   async delete(projectId: string, id: string): Promise<void> {
-    await axios.delete(
-      `${API_BASE_URL}/projects/${projectId}/workflow-runs/${id}`,
-      this.getAuthHeaders(),
+    await apiClient.delete(
+      `/projects/${projectId}/workflow-runs/${id}`
     );
   }
 }

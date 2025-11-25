@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { workflowsService } from '../services/workflows.service';
-import { Workflow } from '../types';
 import { useProject } from '../context/ProjectContext';
+import { useWorkflowFilters } from '../hooks/useWorkflowFilters';
+import { useWorkflowActions } from '../hooks/useWorkflowActions';
+import { FilterBar } from '../components/FilterBar';
+import { EmptyState } from '../components/EmptyState';
+import { WorkflowCard } from '../components/WorkflowCard';
 import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
-import { WorkflowActivationButton } from '../components/WorkflowActivationButton';
-import { WorkflowRunsHistory } from '../components/WorkflowRunsHistory';
 import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
 import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
 import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
@@ -19,35 +21,35 @@ export function WorkflowManagementView() {
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
   const queryClient = useQueryClient();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedActiveFilter, setSelectedActiveFilter] = useState<string>('all');
+  // Use extracted hooks
+  const filters = useWorkflowFilters();
+  const { handleDelete, handleToggleActive } = useWorkflowActions(projectId);
+
+  // Local state for modals
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
+  // Fetch workflows
   const { data: workflows = [], isLoading } = useQuery({
-    queryKey: ['workflows', projectId, searchQuery, selectedActiveFilter],
+    queryKey: ['workflows', projectId, filters.searchQuery, filters.selectedActiveFilter],
     queryFn: async () => {
       if (!projectId) return [];
-      const activeFilter = selectedActiveFilter === 'all' ? undefined : selectedActiveFilter === 'active';
+      const activeFilter =
+        filters.selectedActiveFilter === 'all'
+          ? undefined
+          : filters.selectedActiveFilter === 'active';
       return workflowsService.getAll(projectId, {
         active: activeFilter,
-        search: searchQuery || undefined,
+        search: filters.searchQuery || undefined,
       });
     },
     enabled: !!projectId,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => workflowsService.delete(projectId, id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
-  });
-
-  const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      active ? workflowsService.deactivate(projectId, id) : workflowsService.activate(projectId, id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workflows'] }),
-  });
+  const handleWizardSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['workflows'] });
+  };
 
   if (!projectId) {
     return (
@@ -57,12 +59,35 @@ export function WorkflowManagementView() {
     );
   }
 
-  const handleWizardSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['workflows'] });
-  };
+  // Empty state icon
+  const emptyIcon = (
+    <svg
+      className="mx-auto h-12 w-12 text-muted"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 10V3L4 14h7v7l9-11h-7z"
+      />
+    </svg>
+  );
+
+  // Loading skeleton
+  const loadingSkeleton = (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="h-64 bg-bg-secondary animate-pulse rounded-lg" />
+      ))}
+    </div>
+  );
 
   return (
     <div className="container mx-auto px-4 py-6">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-fg">Workflow Management</h1>
@@ -82,250 +107,66 @@ export function WorkflowManagementView() {
 
       <ActiveWorkflowBanner />
 
-      <div className="mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[200px]">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search workflows..."
-              className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-fg">Status:</label>
-            <select
-              value={selectedActiveFilter}
-              onChange={(e) => setSelectedActiveFilter(e.target.value)}
-              className="px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent"
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          {(searchQuery || selectedActiveFilter !== 'all') && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedActiveFilter('all');
-              }}
-              className="text-sm text-muted hover:text-fg underline"
-            >
-              Clear all filters
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Filter Bar */}
+      <FilterBar
+        searchQuery={filters.searchQuery}
+        onSearchChange={filters.setSearchQuery}
+        searchPlaceholder="Search workflows..."
+        filters={[
+          {
+            label: 'Status',
+            value: filters.selectedActiveFilter,
+            onChange: filters.setSelectedActiveFilter,
+            options: [
+              { value: 'all', label: 'All' },
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ],
+          },
+        ]}
+        hasActiveFilters={filters.hasActiveFilters}
+        onClearFilters={filters.clearFilters}
+      />
 
+      {/* Results Count */}
       <div className="mb-4 text-sm text-muted">
         {isLoading ? (
           <span>Loading...</span>
         ) : (
           <span>
             Found {workflows.length} workflow{workflows.length !== 1 ? 's' : ''}
-            {searchQuery && ` matching "${searchQuery}"`}
+            {filters.searchQuery && ` matching "${filters.searchQuery}"`}
           </span>
         )}
       </div>
 
+      {/* Content */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-64 bg-bg-secondary animate-pulse rounded-lg" />
-          ))}
-        </div>
+        loadingSkeleton
       ) : workflows.length === 0 ? (
-        <div className="text-center py-12">
-          <svg
-            className="mx-auto h-12 w-12 text-muted"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 10V3L4 14h7v7l9-11h-7z"
-            />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-fg">No workflows found</h3>
-          <p className="mt-1 text-sm text-muted">
-            {searchQuery
+        <EmptyState
+          icon={emptyIcon}
+          title="No workflows found"
+          description={
+            filters.searchQuery
               ? 'Try adjusting your search query or filters.'
-              : 'Get started by creating a new workflow.'}
-          </p>
-        </div>
+              : 'Get started by creating a new workflow.'
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {workflows.map(workflow => (
-            <div key={workflow.id} data-testid={`workflow-card-${workflow.name}`} className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border p-4">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg font-semibold text-fg">{workflow.name}</h3>
-                <span
-                  data-testid="workflow-status"
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    workflow.active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'
-                  }`}
-                >
-                  {workflow.active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              {workflow.description && (
-                <p className="text-sm text-muted mb-3 line-clamp-2">{workflow.description}</p>
-              )}
-              <div className="space-y-2 text-sm text-muted mb-3">
-                {workflow.coordinator && (
-                  <div>
-                    <span className="font-medium text-fg">Coordinator:</span>{' '}
-                    <a
-                      href={`/components/${workflow.coordinatorId}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                    >
-                      {workflow.coordinator.name}
-                    </a>
-                    {workflow.coordinator.version && (
-                      <span className="ml-1 text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
-                        v{workflow.coordinator.version}
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div>
-                  <span className="font-medium text-fg">Trigger:</span> {workflow.triggerConfig.type}
-                </div>
-                <div>
-                  <span className="font-medium text-fg">Version:</span> {workflow.version}
-                </div>
-              </div>
-
-              {/* Flow Diagram - Prominently displayed */}
-              {workflow.coordinator?.flowDiagram && (
-                <div className="mb-3 pb-3 border-b border-border">
-                  <div className="text-xs font-semibold text-fg mb-2">Execution Flow</div>
-                  <pre className="text-xs font-mono leading-relaxed text-fg bg-bg-secondary overflow-x-auto rounded p-3 whitespace-pre border border-border">
-                    {workflow.coordinator.flowDiagram}
-                  </pre>
-                </div>
-              )}
-
-              {/* Components - Prominently displayed (ST-90: Show from componentAssignments) */}
-              {workflow.componentAssignments && workflow.componentAssignments.length > 0 ? (
-                <div className="mb-3 pb-3 border-b border-border">
-                  <div className="text-xs font-semibold text-fg mb-2">
-                    Components ({workflow.componentAssignments.length})
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {workflow.componentAssignments.map((assignment) => (
-                      <a
-                        key={assignment.versionId}
-                        href={`/components/${assignment.componentId}?version=${assignment.versionId}`}
-                        className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors inline-flex items-center gap-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        {assignment.componentName}
-                        <span className="text-[10px] px-1 py-0 bg-blue-200 dark:bg-blue-800/50 rounded">
-                          v{assignment.version}
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ) : workflow.coordinator?.componentIds && workflow.coordinator.componentIds.length > 0 ? (
-                <div className="mb-3 pb-3 border-b border-border">
-                  <div className="text-xs font-semibold text-fg mb-2">
-                    Connected Agents ({workflow.coordinator.componentIds.length})
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {workflow.coordinator.components && workflow.coordinator.components.length > 0 ? (
-                      workflow.coordinator.components.map(comp => (
-                        <span key={comp.id} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded font-medium">
-                          {comp.name}
-                        </span>
-                      ))
-                    ) : (
-                      workflow.coordinator.componentIds.map((id, idx) => (
-                        <span key={id} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded font-medium">
-                          Agent {idx + 1}
-                        </span>
-                      ))
-                    )}
-                  </div>
-                </div>
-              ) : null}
-
-              {workflow.activationStatus?.isActivated && (
-                <div className="mb-3 pb-3 border-b border-border">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full font-medium">
-                      Deployed to Claude Code
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {workflow.usageStats && (
-                <div className="mb-3 pb-3 border-b border-border grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <div className="text-muted">Total Runs</div>
-                    <div className="font-semibold text-fg">{workflow.usageStats.totalRuns}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted">Success Rate</div>
-                    <div className="font-semibold text-fg">{workflow.usageStats.successRate.toFixed(1)}%</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Workflow Run History */}
-              <div className="mb-3">
-                <WorkflowRunsHistory workflowId={workflow.id} projectId={projectId} />
-              </div>
-
-              <div className="mt-3 space-y-2">
-                <WorkflowActivationButton
-                  workflowId={workflow.id}
-                  workflowName={workflow.name}
-                  disabled={!workflow.active}
-                />
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <button
-                    onClick={() => {
-                      setSelectedWorkflow(workflow);
-                      setIsDetailModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition-colors font-medium"
-                  >
-                    View Details
-                  </button>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => toggleActiveMutation.mutate({ id: workflow.id, active: workflow.active })}
-                      className="text-muted hover:text-fg transition-colors"
-                    >
-                      {workflow.active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
-                          deleteMutation.mutate(workflow.id);
-                        }
-                      }}
-                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {workflows.map((workflow) => (
+            <WorkflowCard
+              key={workflow.id}
+              workflow={workflow}
+              projectId={projectId}
+              onClick={() => {
+                setSelectedWorkflow(workflow);
+                setIsDetailModalOpen(true);
+              }}
+              onToggleActive={() => handleToggleActive(workflow.id, workflow.active)}
+              onDelete={() => handleDelete(workflow.id)}
+            />
           ))}
         </div>
       )}
@@ -333,10 +174,10 @@ export function WorkflowManagementView() {
       {/* All Workflow Runs Table */}
       <WorkflowRunsTable
         projectId={projectId}
-        workflows={workflows.map(w => ({ id: w.id, name: w.name }))}
+        workflows={workflows.map((w) => ({ id: w.id, name: w.name }))}
       />
 
-      {/* Workflow Details Modal */}
+      {/* Modals */}
       {isDetailModalOpen && selectedWorkflow && (
         <WorkflowDetailModal
           workflow={selectedWorkflow}

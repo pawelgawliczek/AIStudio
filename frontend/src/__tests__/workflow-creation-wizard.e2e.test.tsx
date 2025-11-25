@@ -26,11 +26,23 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
-import { apiClient } from '../services/api-client';
+import { vi } from 'vitest';
+import type { AxiosInstance } from 'axios';
 
 // Mock API client
-jest.mock('../services/api-client');
-const mockedApiClient = apiClient as jest.Mocked<typeof apiClient>;
+vi.mock('../services/api.client', () => ({
+  apiClient: {
+    get: vi.fn(),
+    post: vi.fn(),
+  } as unknown as AxiosInstance,
+}));
+
+// Import the mocked client
+import { apiClient } from '../services/api.client';
+const mockedApiClient = apiClient as unknown as {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+};
 
 // Test data fixtures
 const mockProjects = [
@@ -137,8 +149,8 @@ function renderWizard(props = {}) {
   const queryClient = createTestQueryClient();
   const defaultProps = {
     open: true,
-    onClose: jest.fn(),
-    onSuccess: jest.fn(),
+    onClose: vi.fn(),
+    onSuccess: vi.fn(),
     projectId: 'project-1',
     projects: mockProjects,
   };
@@ -152,7 +164,7 @@ function renderWizard(props = {}) {
 
 describe('Workflow Creation Wizard E2E Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default API mocks
     mockedApiClient.get.mockImplementation((url) => {
@@ -220,8 +232,8 @@ describe('Workflow Creation Wizard E2E Tests', () => {
   describe('AC-7: Complete Workflow Creation Flow (Happy Paths)', () => {
     it('should create workflow with existing coordinator through all 3 steps', async () => {
       const user = userEvent.setup();
-      const onSuccess = jest.fn();
-      const onClose = jest.fn();
+      const onSuccess = vi.fn();
+      const onClose = vi.fn();
 
       renderWizard({ onSuccess, onClose });
 
@@ -320,7 +332,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
     it('should create workflow with new coordinator and template validation', async () => {
       const user = userEvent.setup();
-      const onSuccess = jest.fn();
+      const onSuccess = vi.fn();
 
       renderWizard({ onSuccess });
 
@@ -393,7 +405,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
     it('should create workflow with multiple components (5 components)', async () => {
       const user = userEvent.setup();
-      const onSuccess = jest.fn();
+      const onSuccess = vi.fn();
 
       renderWizard({ onSuccess });
 
@@ -566,7 +578,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
   describe('AC-4 & AC-5: New Coordinator Creation with Template Validation', () => {
     it('should create new coordinator with valid template references', async () => {
       const user = userEvent.setup();
-      const onSuccess = jest.fn();
+      const onSuccess = vi.fn();
 
       renderWizard({ onSuccess });
 
@@ -898,7 +910,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
     it('should reset wizard on cancel', async () => {
       const user = userEvent.setup();
-      const onClose = jest.fn();
+      const onClose = vi.fn();
       renderWizard({ onClose });
 
       await user.type(screen.getByLabelText(/workflow name/i), 'Test Workflow');
@@ -1030,7 +1042,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
     it('should allow retry after error', async () => {
       const user = userEvent.setup();
-      const onSuccess = jest.fn();
+      const onSuccess = vi.fn();
       renderWizard({ onSuccess });
 
       // First attempt fails
