@@ -149,7 +149,7 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
 
       // Use authenticated axios instance
       const response = await axios.get<ApiWorkflowRun[]>(
-        `/projects/${effectiveProjectId}/workflow-runs?${params.toString()}`
+        `/api/projects/${effectiveProjectId}/workflow-runs?${params.toString()}`
       );
 
       // Transform API response to frontend types
