@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { WorkflowRun, WorkflowRunStatus } from '../types/workflow-tracking';
 
 interface UseWorkflowRunsOptions {
+  projectId?: string;
   status?: WorkflowRunStatus;
   storyId?: string;
   includeCancelled?: boolean;
@@ -13,26 +14,37 @@ interface UseWorkflowRunsOptions {
  */
 export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
   const {
+    projectId,
     status,
     storyId,
     includeCancelled = false,
     refetchInterval = 5000,
   } = options;
 
+  // Get projectId from options or localStorage
+  const effectiveProjectId = projectId || localStorage.getItem('currentProjectId');
+
   const { data, isLoading, error, refetch } = useQuery<WorkflowRun[]>({
-    queryKey: ['workflow-runs', { status, storyId, includeCancelled }],
+    queryKey: ['workflow-runs', { projectId: effectiveProjectId, status, storyId, includeCancelled }],
     queryFn: async () => {
+      if (!effectiveProjectId) {
+        console.warn('No projectId available for workflow runs query');
+        return [];
+      }
+
       const params = new URLSearchParams();
       if (status) params.append('status', status);
       if (storyId) params.append('storyId', storyId);
 
-      const response = await fetch(`/api/workflow-runs?${params.toString()}`);
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      const response = await fetch(`${apiUrl}/projects/${effectiveProjectId}/workflow-runs?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch workflow runs');
       }
       return response.json();
     },
     refetchInterval,
+    enabled: !!effectiveProjectId, // Only run query if we have a projectId
   });
 
   // Process and sort runs
