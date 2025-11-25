@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { apiClient } from './api.client';
 
 export interface ActivateWorkflowOptions {
   forceOverwrite?: boolean;
@@ -48,25 +46,14 @@ export interface ActiveWorkflowResponse {
 }
 
 class WorkflowActivationService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('accessToken');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    };
-  }
-
   async activateInClaudeCode(
     projectId: string,
     workflowId: string,
     options?: ActivateWorkflowOptions,
   ): Promise<ActivationResponse> {
-    const response = await axios.post(
-      `${API_BASE_URL}/projects/${projectId}/workflows/${workflowId}/activate-claude-code`,
-      options || {},
-      this.getAuthHeaders(),
+    const response = await apiClient.post(
+      `/api/projects/${projectId}/workflows/${workflowId}/activate-claude-code`,
+      options || {}
     );
     return response.data;
   }
@@ -75,27 +62,24 @@ class WorkflowActivationService {
     projectId: string,
     options?: DeactivateWorkflowOptions,
   ): Promise<DeactivationResponse> {
-    const response = await axios.post(
-      `${API_BASE_URL}/projects/${projectId}/workflows/deactivate-claude-code`,
-      options || {},
-      this.getAuthHeaders(),
+    const response = await apiClient.post(
+      `/api/projects/${projectId}/workflows/deactivate-claude-code`,
+      options || {}
     );
     return response.data;
   }
 
   async syncClaudeCode(projectId: string): Promise<SyncResponse> {
-    const response = await axios.post(
-      `${API_BASE_URL}/projects/${projectId}/workflows/sync-claude-code`,
-      {},
-      this.getAuthHeaders(),
+    const response = await apiClient.post(
+      `/api/projects/${projectId}/workflows/sync-claude-code`,
+      {}
     );
     return response.data;
   }
 
   async getActiveWorkflow(projectId: string): Promise<ActiveWorkflowResponse> {
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${projectId}/workflows/active-claude-code`,
-      this.getAuthHeaders(),
+    const response = await apiClient.get(
+      `/api/projects/${projectId}/workflows/active-claude-code`
     );
     return response.data;
   }

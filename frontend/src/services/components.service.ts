@@ -20,7 +20,7 @@ export const componentsService = {
     if (options?.search) params.search = options.search;
 
     const response = await apiClient.get<Component[]>(
-      `/projects/${projectId}/components`,
+      `/api/projects/${projectId}/components`,
       { params }
     );
     return response.data;
@@ -31,7 +31,7 @@ export const componentsService = {
    */
   async getById(projectId: string, id: string, includeStats = false): Promise<Component> {
     const response = await apiClient.get<Component>(
-      `/projects/${projectId}/components/${id}`,
+      `/api/projects/${projectId}/components/${id}`,
       { params: { includeStats } }
     );
     return response.data;
@@ -42,7 +42,7 @@ export const componentsService = {
    */
   async create(projectId: string, data: CreateComponentDto): Promise<Component> {
     const response = await apiClient.post<Component>(
-      `/projects/${projectId}/components`,
+      `/api/projects/${projectId}/components`,
       data
     );
     return response.data;
@@ -53,7 +53,7 @@ export const componentsService = {
    */
   async update(projectId: string, id: string, data: UpdateComponentDto): Promise<Component> {
     const response = await apiClient.put<Component>(
-      `/projects/${projectId}/components/${id}`,
+      `/api/projects/${projectId}/components/${id}`,
       data
     );
     return response.data;
@@ -63,7 +63,7 @@ export const componentsService = {
    * Delete a component
    */
   async delete(projectId: string, id: string): Promise<void> {
-    await apiClient.delete(`/projects/${projectId}/components/${id}`);
+    await apiClient.delete(`/api/projects/${projectId}/components/${id}`);
   },
 
   /**
@@ -71,7 +71,7 @@ export const componentsService = {
    */
   async activate(projectId: string, id: string): Promise<Component> {
     const response = await apiClient.post<Component>(
-      `/projects/${projectId}/components/${id}/activate`
+      `/api/projects/${projectId}/components/${id}/activate`
     );
     return response.data;
   },
@@ -81,7 +81,7 @@ export const componentsService = {
    */
   async deactivate(projectId: string, id: string): Promise<Component> {
     const response = await apiClient.post<Component>(
-      `/projects/${projectId}/components/${id}/deactivate`
+      `/api/projects/${projectId}/components/${id}/deactivate`
     );
     return response.data;
   },
@@ -91,7 +91,7 @@ export const componentsService = {
    */
   async test(projectId: string, id: string, testInput: any): Promise<any> {
     const response = await apiClient.post(
-      `/projects/${projectId}/components/${id}/test`,
+      `/api/projects/${projectId}/components/${id}/test`,
       testInput
     );
     return response.data;

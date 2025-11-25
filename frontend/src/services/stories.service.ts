@@ -13,7 +13,7 @@ export const storiesService = {
    * Get all stories with optional filters
    */
   async getAll(filters?: FilterStoryDto): Promise<PaginatedResponse<Story>> {
-    const response = await apiClient.get<PaginatedResponse<Story>>('/stories', {
+    const response = await apiClient.get<PaginatedResponse<Story>>('/api/stories', {
       params: filters,
     });
     return response.data;
@@ -23,7 +23,7 @@ export const storiesService = {
    * Get a single story by ID
    */
   async getById(id: string): Promise<Story> {
-    const response = await apiClient.get<Story>(`/stories/${id}`);
+    const response = await apiClient.get<Story>(`/api/stories/${id}`);
     return response.data;
   },
 
@@ -31,7 +31,7 @@ export const storiesService = {
    * Create a new story
    */
   async create(data: CreateStoryDto): Promise<Story> {
-    const response = await apiClient.post<Story>('/stories', data);
+    const response = await apiClient.post<Story>('/api/stories', data);
     return response.data;
   },
 
@@ -39,7 +39,7 @@ export const storiesService = {
    * Update a story
    */
   async update(id: string, data: UpdateStoryDto): Promise<Story> {
-    const response = await apiClient.patch<Story>(`/stories/${id}`, data);
+    const response = await apiClient.patch<Story>(`/api/stories/${id}`, data);
     return response.data;
   },
 
@@ -47,7 +47,7 @@ export const storiesService = {
    * Update story status
    */
   async updateStatus(id: string, data: UpdateStoryStatusDto): Promise<Story> {
-    const response = await apiClient.patch<Story>(`/stories/${id}/status`, data);
+    const response = await apiClient.patch<Story>(`/api/stories/${id}/status`, data);
     return response.data;
   },
 
@@ -55,7 +55,7 @@ export const storiesService = {
    * Assign story to framework
    */
   async assignFramework(id: string, frameworkId: string): Promise<Story> {
-    const response = await apiClient.patch<Story>(`/stories/${id}/framework`, {
+    const response = await apiClient.patch<Story>(`/api/stories/${id}/framework`, {
       frameworkId,
     });
     return response.data;
@@ -65,6 +65,6 @@ export const storiesService = {
    * Delete a story
    */
   async delete(id: string): Promise<void> {
-    await apiClient.delete(`/stories/${id}`);
+    await apiClient.delete(`/api/stories/${id}`);
   },
 };

@@ -23,6 +23,7 @@ interface UseCodeQualityMetricsReturn {
   projectMetrics: ProjectMetrics | null;
   hotspots: FileHotspot[];
   folderHierarchy: FolderNode | null;
+  folderStats: any[]; // Add folderStats property
   coverageGaps: CoverageGap[];
   codeIssues: CodeIssue[];
   analysisComparison: AnalysisComparison | null;
@@ -45,6 +46,7 @@ export function useCodeQualityMetrics(
   const [projectMetrics, setProjectMetrics] = useState<ProjectMetrics | null>(null);
   const [hotspots, setHotspots] = useState<FileHotspot[]>([]);
   const [folderHierarchy, setFolderHierarchy] = useState<FolderNode | null>(null);
+  const [folderStats, setFolderStats] = useState<any[]>([]);
   const [coverageGaps, setCoverageGaps] = useState<CoverageGap[]>([]);
   const [codeIssues, setCodeIssues] = useState<CodeIssue[]>([]);
   const [analysisComparison, setAnalysisComparison] = useState<AnalysisComparison | null>(null);
@@ -149,6 +151,7 @@ export function useCodeQualityMetrics(
     projectMetrics,
     hotspots,
     folderHierarchy,
+    folderStats,
     coverageGaps,
     codeIssues,
     analysisComparison,

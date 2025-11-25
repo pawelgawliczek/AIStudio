@@ -121,7 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       navigate('/login', { replace: true });
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [navigate, location]);
 
   const login = useCallback(async (credentials: LoginCredentials, customRedirectPath?: string) => {

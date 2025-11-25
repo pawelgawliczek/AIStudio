@@ -15,7 +15,7 @@ class TestCasesService {
    * Create a new test case
    */
   async create(data: CreateTestCaseDto): Promise<TestCase> {
-    const response = await apiClient.post<TestCase>('/test-cases', data);
+    const response = await apiClient.post<TestCase>('/api/test-cases', data);
     return response.data;
   }
 
@@ -23,7 +23,7 @@ class TestCasesService {
    * Get all test cases with optional filtering
    */
   async findAll(params?: SearchTestCaseDto): Promise<PaginatedResponse<TestCase>> {
-    const response = await apiClient.get<PaginatedResponse<TestCase>>('/test-cases', {
+    const response = await apiClient.get<PaginatedResponse<TestCase>>('/api/test-cases', {
       params,
     });
     return response.data;
@@ -33,7 +33,7 @@ class TestCasesService {
    * Get a single test case by ID
    */
   async findOne(id: string): Promise<TestCase> {
-    const response = await apiClient.get<TestCase>(`/test-cases/${id}`);
+    const response = await apiClient.get<TestCase>(`/api/test-cases/${id}`);
     return response.data;
   }
 
@@ -41,7 +41,7 @@ class TestCasesService {
    * Update a test case
    */
   async update(id: string, data: UpdateTestCaseDto): Promise<TestCase> {
-    const response = await apiClient.put<TestCase>(`/test-cases/${id}`, data);
+    const response = await apiClient.put<TestCase>(`/api/test-cases/${id}`, data);
     return response.data;
   }
 
@@ -49,7 +49,7 @@ class TestCasesService {
    * Delete a test case
    */
   async delete(id: string): Promise<void> {
-    await apiClient.delete(`/test-cases/${id}`);
+    await apiClient.delete(`/api/test-cases/${id}`);
   }
 
   /**
@@ -57,7 +57,7 @@ class TestCasesService {
    */
   async getUseCaseCoverage(useCaseId: string): Promise<UseCaseCoverage> {
     const response = await apiClient.get<UseCaseCoverage>(
-      `/test-cases/use-case/${useCaseId}/coverage`
+      `/api/test-cases/use-case/${useCaseId}/coverage`
     );
     return response.data;
   }
@@ -67,7 +67,7 @@ class TestCasesService {
    */
   async getCoverageGaps(useCaseId: string): Promise<CoverageGap[]> {
     const response = await apiClient.get<CoverageGap[]>(
-      `/test-cases/use-case/${useCaseId}/gaps`
+      `/api/test-cases/use-case/${useCaseId}/gaps`
     );
     return response.data;
   }
@@ -81,7 +81,7 @@ class TestCasesService {
   ): Promise<ComponentCoverage[]> {
     const params = component ? { component } : undefined;
     const response = await apiClient.get<ComponentCoverage[]>(
-      `/test-cases/project/${projectId}/component-coverage`,
+      `/api/test-cases/project/${projectId}/component-coverage`,
       { params }
     );
     return response.data;

@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 
 interface TrendChartProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   data: Array<{
     date: string;
@@ -27,6 +27,10 @@ interface TrendChartProps {
   dataKey?: string;
   height?: number;
   color?: string;
+  stroke?: string;
+  fill?: string;
+  yAxisDomain?: [number | string, number | string];
+  children?: React.ReactNode;
 }
 
 export const TrendChart: React.FC<TrendChartProps> = ({
@@ -36,6 +40,10 @@ export const TrendChart: React.FC<TrendChartProps> = ({
   dataKey = 'value',
   height = 256,
   color = '#135bec',
+  stroke,
+  fill,
+  yAxisDomain,
+  children,
 }) => {
   // Format date for X axis
   const formatDate = (dateStr: string) => {
@@ -45,13 +53,14 @@ export const TrendChart: React.FC<TrendChartProps> = ({
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
-      <p className="font-semibold text-gray-900 dark:text-white">{title}</p>
+      {title && <p className="font-semibold text-gray-900 dark:text-white">{title}</p>}
       {subtitle && (
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>
       )}
       <div className="mt-4 w-full" style={{ height: `${height}px` }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            {children}
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
             <XAxis
               dataKey="date"
@@ -59,7 +68,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({
               stroke="#9CA3AF"
               fontSize={12}
             />
-            <YAxis stroke="#9CA3AF" fontSize={12} />
+            <YAxis stroke="#9CA3AF" fontSize={12} domain={yAxisDomain} />
             <Tooltip
               contentStyle={{
                 backgroundColor: '#1F2937',
@@ -73,9 +82,10 @@ export const TrendChart: React.FC<TrendChartProps> = ({
             <Line
               type="monotone"
               dataKey={dataKey}
-              stroke={color}
+              stroke={stroke || color}
+              fill={fill}
               strokeWidth={3}
-              dot={{ fill: color, strokeWidth: 2 }}
+              dot={{ fill: stroke || color, strokeWidth: 2 }}
               activeDot={{ r: 8 }}
               name={title}
             />

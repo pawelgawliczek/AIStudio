@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { apiClient } from './api.client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export interface User {
   id: string;
@@ -30,7 +30,7 @@ export interface RegisterData {
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
+    const response = await axios.post<AuthResponse>(`${API_URL}/api/auth/login`, credentials);
 
     if (response.data.accessToken) {
       localStorage.setItem('accessToken', response.data.accessToken);
@@ -42,7 +42,7 @@ class AuthService {
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, data);
+    const response = await axios.post<AuthResponse>(`${API_URL}/api/auth/register`, data);
 
     if (response.data.accessToken) {
       localStorage.setItem('accessToken', response.data.accessToken);
@@ -56,7 +56,7 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       // Use apiClient which already includes the auth token
-      await apiClient.post('/auth/logout');
+      await apiClient.post('/api/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
       // Continue with logout even if API call fails
@@ -76,7 +76,7 @@ class AuthService {
 
     try {
       const response = await axios.post<{ accessToken: string; refreshToken: string }>(
-        `${API_URL}/auth/refresh`,
+        `${API_URL}/api/auth/refresh`,
         { refreshToken }
       );
 

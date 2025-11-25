@@ -6,7 +6,7 @@ export const projectsService = {
    * Get all projects
    */
   async getAll(): Promise<Project[]> {
-    const response = await apiClient.get<Project[]>('/projects');
+    const response = await apiClient.get<Project[]>('/api/projects');
     return response.data;
   },
 
@@ -14,7 +14,7 @@ export const projectsService = {
    * Get a single project by ID
    */
   async getById(id: string): Promise<Project> {
-    const response = await apiClient.get<Project>(`/projects/${id}`);
+    const response = await apiClient.get<Project>(`/api/projects/${id}`);
     return response.data;
   },
 
@@ -22,7 +22,7 @@ export const projectsService = {
    * Create a new project
    */
   async create(data: { name: string; description?: string }): Promise<Project> {
-    const response = await apiClient.post<Project>('/projects', data);
+    const response = await apiClient.post<Project>('/api/projects', data);
     return response.data;
   },
 
@@ -30,7 +30,7 @@ export const projectsService = {
    * Update a project
    */
   async update(id: string, data: { name?: string; description?: string }): Promise<Project> {
-    const response = await apiClient.patch<Project>(`/projects/${id}`, data);
+    const response = await apiClient.patch<Project>(`/api/projects/${id}`, data);
     return response.data;
   },
 
@@ -38,6 +38,6 @@ export const projectsService = {
    * Delete a project
    */
   async delete(id: string): Promise<void> {
-    await apiClient.delete(`/projects/${id}`);
+    await apiClient.delete(`/api/projects/${id}`);
   },
 };

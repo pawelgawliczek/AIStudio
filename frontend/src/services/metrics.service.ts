@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { apiClient } from './api.client';
 
 export enum TimeGranularity {
   DAILY = 'DAILY',
@@ -106,31 +104,21 @@ export interface WeeklyAggregation {
 }
 
 class MetricsService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('accessToken');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    };
-  }
-
   async getWorkflowMetrics(
     projectId: string,
     query?: MetricsQuery,
   ): Promise<WorkflowMetrics[]> {
-    const params = new URLSearchParams();
-    if (query?.workflowId) params.append('workflowId', query.workflowId);
-    if (query?.startDate) params.append('startDate', query.startDate);
-    if (query?.endDate) params.append('endDate', query.endDate);
-    if (query?.granularity) params.append('granularity', query.granularity);
-    if (query?.businessComplexity !== undefined) params.append('businessComplexity', query.businessComplexity.toString());
-    if (query?.technicalComplexity !== undefined) params.append('technicalComplexity', query.technicalComplexity.toString());
+    const params: any = {};
+    if (query?.workflowId) params.workflowId = query.workflowId;
+    if (query?.startDate) params.startDate = query.startDate;
+    if (query?.endDate) params.endDate = query.endDate;
+    if (query?.granularity) params.granularity = query.granularity;
+    if (query?.businessComplexity !== undefined) params.businessComplexity = query.businessComplexity.toString();
+    if (query?.technicalComplexity !== undefined) params.technicalComplexity = query.technicalComplexity.toString();
 
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${projectId}/metrics/workflows?${params.toString()}`,
-      this.getAuthHeaders(),
+    const response = await apiClient.get(
+      `/api/projects/${projectId}/metrics/workflows`,
+      { params }
     );
     return response.data;
   }
@@ -139,17 +127,17 @@ class MetricsService {
     projectId: string,
     query?: MetricsQuery,
   ): Promise<ComponentMetrics[]> {
-    const params = new URLSearchParams();
-    if (query?.componentId) params.append('componentId', query.componentId);
-    if (query?.startDate) params.append('startDate', query.startDate);
-    if (query?.endDate) params.append('endDate', query.endDate);
-    if (query?.granularity) params.append('granularity', query.granularity);
-    if (query?.businessComplexity !== undefined) params.append('businessComplexity', query.businessComplexity.toString());
-    if (query?.technicalComplexity !== undefined) params.append('technicalComplexity', query.technicalComplexity.toString());
+    const params: any = {};
+    if (query?.componentId) params.componentId = query.componentId;
+    if (query?.startDate) params.startDate = query.startDate;
+    if (query?.endDate) params.endDate = query.endDate;
+    if (query?.granularity) params.granularity = query.granularity;
+    if (query?.businessComplexity !== undefined) params.businessComplexity = query.businessComplexity.toString();
+    if (query?.technicalComplexity !== undefined) params.technicalComplexity = query.technicalComplexity.toString();
 
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${projectId}/metrics/components?${params.toString()}`,
-      this.getAuthHeaders(),
+    const response = await apiClient.get(
+      `/api/projects/${projectId}/metrics/components`,
+      { params }
     );
     return response.data;
   }
@@ -158,17 +146,17 @@ class MetricsService {
     projectId: string,
     query?: MetricsQuery,
   ): Promise<TrendsResponse[]> {
-    const params = new URLSearchParams();
-    if (query?.workflowId) params.append('workflowId', query.workflowId);
-    if (query?.startDate) params.append('startDate', query.startDate);
-    if (query?.endDate) params.append('endDate', query.endDate);
-    if (query?.granularity) params.append('granularity', query.granularity);
-    if (query?.businessComplexity !== undefined) params.append('businessComplexity', query.businessComplexity.toString());
-    if (query?.technicalComplexity !== undefined) params.append('technicalComplexity', query.technicalComplexity.toString());
+    const params: any = {};
+    if (query?.workflowId) params.workflowId = query.workflowId;
+    if (query?.startDate) params.startDate = query.startDate;
+    if (query?.endDate) params.endDate = query.endDate;
+    if (query?.granularity) params.granularity = query.granularity;
+    if (query?.businessComplexity !== undefined) params.businessComplexity = query.businessComplexity.toString();
+    if (query?.technicalComplexity !== undefined) params.technicalComplexity = query.technicalComplexity.toString();
 
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${projectId}/metrics/trends?${params.toString()}`,
-      this.getAuthHeaders(),
+    const response = await apiClient.get(
+      `/api/projects/${projectId}/metrics/trends`,
+      { params }
     );
     return response.data;
   }
@@ -177,10 +165,9 @@ class MetricsService {
     projectId: string,
     comparison: WorkflowComparison,
   ): Promise<WorkflowComparisonResponse> {
-    const response = await axios.post(
-      `${API_BASE_URL}/projects/${projectId}/metrics/comparisons`,
-      comparison,
-      this.getAuthHeaders(),
+    const response = await apiClient.post(
+      `/api/projects/${projectId}/metrics/comparisons`,
+      comparison
     );
     return response.data;
   }
@@ -191,14 +178,13 @@ class MetricsService {
     businessComplexity?: number,
     technicalComplexity?: number,
   ): Promise<WeeklyAggregation[]> {
-    const params = new URLSearchParams();
-    params.append('weeks', weeks.toString());
-    if (businessComplexity !== undefined) params.append('businessComplexity', businessComplexity.toString());
-    if (technicalComplexity !== undefined) params.append('technicalComplexity', technicalComplexity.toString());
+    const params: any = { weeks: weeks.toString() };
+    if (businessComplexity !== undefined) params.businessComplexity = businessComplexity.toString();
+    if (technicalComplexity !== undefined) params.technicalComplexity = technicalComplexity.toString();
 
-    const response = await axios.get(
-      `${API_BASE_URL}/projects/${projectId}/metrics/weekly?${params.toString()}`,
-      this.getAuthHeaders(),
+    const response = await apiClient.get(
+      `/api/projects/${projectId}/metrics/weekly`,
+      { params }
     );
     return response.data;
   }
