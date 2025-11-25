@@ -22,7 +22,8 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
 }) => {
   const [showContextMenu, setShowContextMenu] = useState(false);
 
-  const heightClass = viewMode === 'compact' ? 'h-14' : 'h-18';
+  // Main content height - the details panel will add to total height
+  const mainContentHeight = viewMode === 'compact' ? 'h-14' : 'h-18';
 
   // Abbreviate worktree path
   const abbreviatedPath = run.worktreePath
@@ -43,11 +44,11 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
   return (
     <div
       data-testid="workflow-run-item"
-      className={`${heightClass} border border-border bg-card rounded-lg shadow-sm relative`}
+      className="border border-border bg-card rounded-lg shadow-sm relative"
       onContextMenu={handleContextMenu}
     >
       {/* Main content */}
-      <div className="h-full flex items-center px-4 gap-3">
+      <div className={`${mainContentHeight} flex items-center px-4 gap-3`}>
         {/* Status Icon */}
         <div
           className={
@@ -61,8 +62,18 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
         <button
           onClick={() => onNavigateToStory(run.storyKey)}
           className="text-sm font-semibold text-accent hover:text-accent-dark hover:underline"
+          title={`View story ${run.storyKey}`}
         >
           {run.storyKey}
+        </button>
+
+        {/* Workflow Run Link */}
+        <button
+          onClick={() => onViewDetails(run.id)}
+          className="text-xs text-muted hover:text-accent px-1.5 py-0.5 rounded hover:bg-muted/20 transition-colors"
+          title="View workflow run details"
+        >
+          ↗
         </button>
 
         {/* Story Title */}

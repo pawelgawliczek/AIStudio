@@ -51,8 +51,13 @@ export const MultiRunStatusBar: React.FC = () => {
   const shouldHide =
     settings.autoHide && runs.every((r) => r.status === 'completed' || r.status === 'cancelled');
 
-  // Height based on view mode
-  const heightClass = settings.viewMode === 'compact' ? 'h-16' : 'h-20';
+  // Check if any runs are expanded
+  const hasExpandedRuns = visibleRuns.some(run => settings.expandedRuns.includes(run.id));
+
+  // Height based on view mode - use min-height when expanded to allow growth
+  const heightClass = hasExpandedRuns
+    ? 'min-h-16'
+    : (settings.viewMode === 'compact' ? 'h-16' : 'h-20');
 
   // Handlers
   const handleCopyWorktreePath = (path: string) => {
@@ -117,12 +122,12 @@ export const MultiRunStatusBar: React.FC = () => {
   return (
     <div
       data-testid="status-bar-container"
-      className={`${heightClass} bg-card border-b border-border relative`}
+      className={`${heightClass} bg-card border-b border-border relative py-2`}
     >
       {/* WebSocket connection indicator */}
       {!connected && (
         <div
-          className="absolute top-2 right-2 flex items-center gap-1 text-xs text-yellow-500"
+          className="absolute top-2 right-2 flex items-center gap-1 text-xs text-yellow-500 z-10"
           aria-label="WebSocket disconnected"
         >
           <span>⚠️</span>
@@ -130,7 +135,7 @@ export const MultiRunStatusBar: React.FC = () => {
         </div>
       )}
 
-      <div className="h-full flex items-center gap-2 px-4 overflow-x-auto">
+      <div className={`flex ${hasExpandedRuns ? 'flex-col gap-2' : 'items-center gap-2'} px-4 ${hasExpandedRuns ? 'overflow-y-auto max-h-96' : 'overflow-x-auto'}`}>
         <AnimatePresence>
           {visibleRuns.map((run) => (
             <motion.div
