@@ -19,7 +19,9 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
 
   useEffect(() => {
     // Initialize socket connection
-    const socket = io(process.env.VITE_WEBSOCKET_URL || 'http://localhost:3000', {
+    // Use VITE_WS_URL from build-time env vars, fallback to relative path for nginx proxy
+    const wsUrl = import.meta.env.VITE_WS_URL || '/socket.io';
+    const socket = io(wsUrl, {
       transports: ['websocket'],
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,
