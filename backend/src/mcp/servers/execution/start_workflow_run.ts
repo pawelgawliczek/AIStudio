@@ -142,7 +142,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     },
   });
 
-  // Get component details with full instructions
+  // ST-99: Get component REFERENCES only (not full instructions)
+  // Agents pull their own instructions via get_component_instructions({ componentId })
   const components = await prisma.component.findMany({
     where: {
       id: { in: componentIds },
@@ -151,11 +152,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       id: true,
       name: true,
       description: true,
-      inputInstructions: true,
-      operationInstructions: true,
-      outputInstructions: true,
-      config: true,
-      tools: true,
+      // NOT including: inputInstructions, operationInstructions, outputInstructions
+      // Agents retrieve these via get_component_instructions tool
     },
   });
 
@@ -174,20 +172,16 @@ export async function handler(prisma: PrismaClient, params: any) {
       tools: workflow.coordinator.tools,
       flowDiagram: coordinatorConfig.flowDiagram,
     },
+    // ST-99: Component references only - agents call get_component_instructions({ componentId }) for full instructions
     components: components.map((c, index) => ({
       componentId: c.id,
       componentName: c.name,
       description: c.description,
-      inputInstructions: c.inputInstructions,
-      operationInstructions: c.operationInstructions,
-      outputInstructions: c.outputInstructions,
-      config: c.config,
-      tools: c.tools,
       order: index + 1,
     })),
     status: workflowRun.status,
     startedAt: workflowRun.startedAt.toISOString(),
     context: workflowRun.metadata,
-    message: `Workflow "${workflow.name}" started successfully. Run ID: ${workflowRun.id}. Orchestrator ComponentRun created (executionOrder=0). Use coordinator instructions to begin orchestration.`,
+    message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Follow coordinator.instructions to orchestrate. Spawn agents with componentId - they call get_component_instructions to retrieve their instructions.`,
   };
 }
