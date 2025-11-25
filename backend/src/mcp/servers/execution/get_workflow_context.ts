@@ -63,7 +63,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   const completedComponentIds = completedComponentRuns.map((cr) => cr.componentId);
   const remainingComponentIds = coordinatorComponentIds.filter((id) => !completedComponentIds.includes(id));
 
-  // Get remaining component details with full instructions
+  // Get remaining component references (WITHOUT full instructions - use get_component_instructions for those)
   const remainingComponents = await prisma.component.findMany({
     where: {
       id: { in: remainingComponentIds },
@@ -72,11 +72,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       id: true,
       name: true,
       description: true,
-      inputInstructions: true,
-      operationInstructions: true,
-      outputInstructions: true,
       config: true,
       tools: true,
+      onFailure: true,
     },
   });
 
@@ -120,11 +118,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       componentId: c.id,
       componentName: c.name,
       description: c.description,
-      inputInstructions: c.inputInstructions,
-      operationInstructions: c.operationInstructions,
-      outputInstructions: c.outputInstructions,
       config: c.config,
       tools: c.tools,
+      onFailure: c.onFailure,
       order: completedComponentRuns.length + index + 1,
     })),
     aggregatedMetrics: {

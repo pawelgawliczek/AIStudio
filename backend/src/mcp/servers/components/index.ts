@@ -3,6 +3,7 @@ import * as updateComponent from './update_component';
 import * as activateComponent from './activate_component';
 import * as deactivateComponent from './deactivate_component';
 import * as getComponentUsage from './get_component_usage';
+import * as getComponentInstructions from './get_component_instructions';
 
 export const tools = [
   createComponent,
@@ -10,4 +11,5 @@ export const tools = [
   activateComponent,
   deactivateComponent,
   getComponentUsage,
+  getComponentInstructions,
 ];
