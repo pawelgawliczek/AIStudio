@@ -186,6 +186,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       name: workflow.name,
       coordinator: workflowRunResult.coordinator,
     },
+    // ST-105: Name→UUID mapping for coordinator to resolve component names
+    componentMap: workflowRunResult.componentMap,
     status: 'running',
     startedAt: workflowRunResult.startedAt,
     components: workflowRunResult.components,
