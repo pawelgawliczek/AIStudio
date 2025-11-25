@@ -13,8 +13,6 @@
 
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
 export interface DeploymentLockResult {
   id: string;
   reason: string;
@@ -35,10 +33,15 @@ export interface DeploymentLockStatus {
 }
 
 export class DeploymentLockService {
+  private prisma: PrismaClient;
   private source: string = 'production-deployment';
   private defaultDuration: number = 30; // 30 minutes
   private maxDuration: number = 60; // 60 minutes
   private renewThreshold: number = 5; // Renew if < 5 minutes remaining
+
+  constructor(prismaClient?: PrismaClient) {
+    this.prisma = prismaClient || new PrismaClient();
+  }
 
   /**
    * Acquire production deployment lock (singleton)
@@ -79,7 +82,7 @@ export class DeploymentLockService {
       const expiresAt = new Date(Date.now() + duration * 60 * 1000);
 
       // Create lock in database (unique index enforces singleton)
-      const lock = await prisma.deploymentLock.create({
+      const lock = await this.prisma.deploymentLock.create({
         data: {
           reason,
           lockedBy: this.source,
@@ -132,7 +135,7 @@ export class DeploymentLockService {
     try {
       if (lockId) {
         // Release specific lock
-        await prisma.deploymentLock.update({
+        await this.prisma.deploymentLock.update({
           where: { id: lockId },
           data: {
             active: false,
@@ -141,7 +144,7 @@ export class DeploymentLockService {
         });
       } else {
         // Release most recent active lock
-        const activeLock = await prisma.deploymentLock.findFirst({
+        const activeLock = await this.prisma.deploymentLock.findFirst({
           where: {
             active: true,
             lockedBy: this.source,
@@ -152,7 +155,7 @@ export class DeploymentLockService {
         });
 
         if (activeLock) {
-          await prisma.deploymentLock.update({
+          await this.prisma.deploymentLock.update({
             where: { id: activeLock.id },
             data: {
               active: false,
@@ -176,7 +179,7 @@ export class DeploymentLockService {
   async checkLockStatus(): Promise<DeploymentLockStatus> {
     try {
       // Find most recent active lock (not expired)
-      const activeLock = await prisma.deploymentLock.findFirst({
+      const activeLock = await this.prisma.deploymentLock.findFirst({
         where: {
           active: true,
           expiresAt: {
@@ -228,7 +231,7 @@ export class DeploymentLockService {
     console.log(`[DeploymentLockService] Renewing lock ${lockId} for ${additionalMinutes}m...`);
 
     try {
-      const lock = await prisma.deploymentLock.findUnique({
+      const lock = await this.prisma.deploymentLock.findUnique({
         where: { id: lockId },
       });
 
@@ -249,7 +252,7 @@ export class DeploymentLockService {
       const newExpiry = new Date(currentExpiry + additionalMinutes * 60 * 1000);
 
       // Update lock
-      await prisma.deploymentLock.update({
+      await this.prisma.deploymentLock.update({
         where: { id: lockId },
         data: {
           expiresAt: newExpiry,
@@ -277,7 +280,7 @@ export class DeploymentLockService {
     console.log(`[DeploymentLockService] Force releasing lock ${lockId}. Reason: ${reason}`);
 
     try {
-      const lock = await prisma.deploymentLock.findUnique({
+      const lock = await this.prisma.deploymentLock.findUnique({
         where: { id: lockId },
       });
 
@@ -285,7 +288,7 @@ export class DeploymentLockService {
         throw new Error(`Lock ${lockId} not found`);
       }
 
-      await prisma.deploymentLock.update({
+      await this.prisma.deploymentLock.update({
         where: { id: lockId },
         data: {
           active: false,
@@ -314,7 +317,7 @@ export class DeploymentLockService {
     console.log('[DeploymentLockService] Checking for expired locks...');
 
     try {
-      const expiredLocks = await prisma.deploymentLock.updateMany({
+      const expiredLocks = await this.prisma.deploymentLock.updateMany({
         where: {
           active: true,
           expiresAt: {
@@ -343,7 +346,7 @@ export class DeploymentLockService {
    */
   async shouldRenewLock(lockId: string): Promise<boolean> {
     try {
-      const lock = await prisma.deploymentLock.findUnique({
+      const lock = await this.prisma.deploymentLock.findUnique({
         where: { id: lockId },
       });
 

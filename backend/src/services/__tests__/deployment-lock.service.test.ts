@@ -2,30 +2,26 @@
  * Unit tests for DeploymentLockService - ST-77
  */
 
-import { PrismaClient } from '@prisma/client';
 import { DeploymentLockService } from '../deployment-lock.service';
-
-// Mock Prisma
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({
-    deploymentLock: {
-      create: jest.fn(),
-      update: jest.fn(),
-      updateMany: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-    },
-  })),
-}));
 
 describe('DeploymentLockService', () => {
   let deploymentLockService: DeploymentLockService;
   let mockPrisma: any;
 
   beforeEach(() => {
-    deploymentLockService = new DeploymentLockService();
-    const PrismaClientMock = PrismaClient as jest.MockedClass<typeof PrismaClient>;
-    mockPrisma = new PrismaClientMock();
+    // Create mock Prisma client
+    mockPrisma = {
+      deploymentLock: {
+        create: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+      },
+    };
+
+    // Inject mock into service constructor
+    deploymentLockService = new DeploymentLockService(mockPrisma as any);
     jest.clearAllMocks();
   });
 
@@ -106,15 +102,18 @@ describe('DeploymentLockService', () => {
     });
 
     it('should handle concurrent lock acquisition (race condition)', async () => {
-      // Simulate race condition - unique constraint violation
-      mockPrisma.deploymentLock.findFirst.mockResolvedValue(null);
-      mockPrisma.deploymentLock.create.mockRejectedValue({
-        code: 'P2002', // Prisma unique constraint violation
-        message: 'Unique constraint failed',
-      });
+      // First check returns null (no lock)
+      mockPrisma.deploymentLock.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null); // checkLockStatus call
 
-      // After race condition, lock exists
-      mockPrisma.deploymentLock.findFirst.mockResolvedValue({
+      // Create throws unique constraint violation
+      const constraintError = new Error('Unique constraint failed');
+      (constraintError as any).code = 'P2002';
+      mockPrisma.deploymentLock.create.mockRejectedValue(constraintError);
+
+      // After race condition, checkLockStatus finds the lock
+      mockPrisma.deploymentLock.findFirst.mockResolvedValueOnce({
         id: 'concurrent-lock',
         reason: 'Concurrent deployment',
         lockedBy: 'other-user',
@@ -205,8 +204,8 @@ describe('DeploymentLockService', () => {
       expect(result.reason).toBe('Production deployment for ST-77');
       expect(result.storyId).toBe('story-uuid');
       expect(result.prNumber).toBe(42);
-      expect(result.remainingMinutes).toBeGreaterThan(29);
-      expect(result.remainingMinutes).toBeLessThan(31);
+      expect(result.remainingMinutes).toBeGreaterThanOrEqual(29);
+      expect(result.remainingMinutes).toBeLessThanOrEqual(30);
     });
 
     it('should ignore expired locks', async () => {

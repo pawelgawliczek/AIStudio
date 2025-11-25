@@ -23,10 +23,12 @@ COPY tsconfig.json ./
 WORKDIR /app/backend
 RUN npx prisma generate
 
+# Clean stale tsbuildinfo files before building
+RUN rm -f tsconfig.*.tsbuildinfo
+
 # Build TypeScript code (fail build if compilation errors)
 WORKDIR /app/backend
-RUN npx tsc -p tsconfig.build.json
-RUN test -d dist || mkdir dist
+RUN npx nest build
 WORKDIR /app
 RUN npm run build --workspace=shared
 

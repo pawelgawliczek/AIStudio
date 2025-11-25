@@ -15,10 +15,24 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',
+    '!src/**/*.test.ts',
+    '!src/**/*.spec.ts',
     '!src/**/index.ts',
+    '!src/main.ts',
+    '!src/test-utils/**',
+    '!src/**/dto/**',
+    '!src/**/entities/**',
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: ['text', 'text-summary', 'lcov', 'html', 'json'],
+  coverageThreshold: {
+    global: {
+      statements: 70,
+      branches: 60,
+      functions: 70,
+      lines: 70,
+    },
+  },
   // Conditionally load setup file - skip for integration tests that need real DB
   setupFilesAfterEnv: [
     '<rootDir>/src/mcp/servers/execution/__tests__/conditional-setup.ts'

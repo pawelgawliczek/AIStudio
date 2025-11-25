@@ -1,0 +1,58 @@
+# Test/Development Dockerfile for Backend
+# ISOLATED TEST ENVIRONMENT - Does NOT affect production
+# Runs on port 3001 (mapped from internal 3000)
+# Connects to test-postgres:5432 (host port 5434)
+# Optimized for fast iteration with TypeScript compilation on container start
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dumb-init, OpenSSL for Prisma, git for code analysis, build tools, and ts-node
+RUN apk add --no-cache dumb-init openssl git python3 make g++
+
+# Copy package files for all workspaces
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY shared/package*.json ./shared/
+
+# Install ALL dependencies (including devDependencies for TypeScript compilation)
+RUN npm ci --include=dev && npm rebuild bcrypt --build-from-source
+
+# Copy tsconfig files
+COPY tsconfig.json ./
+COPY backend/tsconfig*.json ./backend/
+COPY shared/tsconfig*.json ./shared/
+
+# Copy source code (will be overridden by volume mounts in docker-compose.test.yml)
+COPY backend ./backend
+COPY shared ./shared
+
+# Generate Prisma Client
+WORKDIR /app/backend
+RUN npx prisma generate
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+
+EXPOSE 3000
+
+# Health check - IMPORTANT: uses /api/health not /health (NestJS route)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# For test environment:
+# 1. Regenerate Prisma Client (in case schema changed via volume mount)
+# 2. Apply migrations using migrate deploy (NOT db push - we test real migrations)
+# 3. Run with ts-node for TypeScript support (no pre-compilation needed)
+# SAFETY: DATABASE_URL env var MUST point to test DB (vibestudio_test on port 5434)
+CMD ["sh", "-c", "cd backend && npx prisma generate && npx prisma migrate deploy && cd .. && npx ts-node -r tsconfig-paths/register backend/src/main.ts"]

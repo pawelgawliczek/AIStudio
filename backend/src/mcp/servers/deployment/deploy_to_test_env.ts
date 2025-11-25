@@ -284,9 +284,10 @@ export async function handler(
     }
 
     // Phase 6: Start test stack (postgres, redis, backend, frontend)
+    // Pass worktree path to mount story code instead of main worktree code
     console.log('Starting isolated test stack...');
     try {
-      await startTestStack(mainWorktreePath);
+      await startTestStack(mainWorktreePath, buildWorktreePath);
       actionsExecuted.containerRestart = true;
     } catch (error: any) {
       throw new DeploymentError(

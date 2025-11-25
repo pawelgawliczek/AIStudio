@@ -6,5 +6,14 @@
   },
   "mcp": {
     "defaultProjectId": "345a29ee-d6ab-477d-8079-c5dda0844d77"
+  },
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ctx7sk-24346e74-bc1d-41f9-9131-895c926e30ee"
+      }
+    }
   }
 }
