@@ -262,22 +262,21 @@ const CodeQualityDashboard: React.FC = () => {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex bg-gray-50 dark:bg-gray-900">
+        {/* Sidebar - Sticky position within content flow, respects dynamic status bar height */}
+        <aside className={`hidden md:flex bg-gray-900 text-white sticky top-0 h-screen flex-col flex-shrink-0 transition-all duration-300 ${
+          sidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'
+        }`}>
         {/* Sidebar Toggle Button */}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className={`hidden md:flex fixed ${sidebarCollapsed ? 'left-0' : 'left-64'} top-32 z-50 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-r-lg transition-all duration-300 items-center justify-center shadow-lg`}
+          className="absolute -right-8 top-4 z-50 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-r-lg transition-all duration-300 flex items-center justify-center shadow-lg"
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <span className="material-symbols-outlined text-lg">
             {sidebarCollapsed ? 'chevron_right' : 'chevron_left'}
           </span>
         </button>
-
-        {/* Sidebar - Fixed position below header and tracker, does not scroll */}
-        <div className={`hidden md:flex bg-gray-900 text-white fixed left-0 top-28 h-[calc(100vh-7rem)] flex-col z-30 transition-all duration-300 ${
-          sidebarCollapsed ? 'w-0 -translate-x-full' : 'w-64 translate-x-0'
-        }`}>
         <nav className="flex-1 overflow-y-auto py-4">
           {[
             { id: 'overview', label: 'Overview', IconComponent: DashboardIcon },
@@ -305,10 +304,10 @@ const CodeQualityDashboard: React.FC = () => {
             );
           })}
         </nav>
-      </div>
+      </aside>
 
-      {/* Main Content - Adjusts margin based on sidebar state */}
-      <div className={`flex-1 overflow-y-auto transition-all duration-300 ${sidebarCollapsed ? 'md:ml-0' : 'md:ml-64'}`}>
+      {/* Main Content - Flex-1 fills remaining space, no margin needed with flex layout */}
+      <div className="flex-1 overflow-y-auto transition-all duration-300">
         <div className="max-w-7xl mx-auto p-4 md:p-8">
           {/* Tab Content */}
           {activeTab === 'overview' && (

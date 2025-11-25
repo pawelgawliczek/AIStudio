@@ -4,7 +4,7 @@ import { ProjectSelector } from './ProjectSelector';
 import { ConnectionStatus } from './ConnectionStatus';
 import { NavDropdown } from './NavDropdown';
 import { ThemeToggle } from './ThemeToggle';
-import { GlobalWorkflowTrackingBar } from './workflow/GlobalWorkflowTrackingBar';
+import { MultiRunStatusBar } from './workflow/MultiRunStatusBar';
 import { SessionExpiredModal } from './SessionExpiredModal';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useProject } from '../context/ProjectContext';
@@ -120,8 +120,8 @@ export function Layout() {
         </div>
       </nav>
 
-      {/* Global Workflow Tracking Bar */}
-      <GlobalWorkflowTrackingBar />
+      {/* Multi-Run Progress Tracker Status Bar */}
+      <MultiRunStatusBar />
 
       {/* Main content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
