@@ -21,7 +21,7 @@ COPY tsconfig.json ./
 
 # Build arguments for environment variables
 ARG VITE_API_URL=/api
-ARG VITE_WS_URL=/api/ws
+ARG VITE_WS_URL=/socket.io
 
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_WS_URL=$VITE_WS_URL
