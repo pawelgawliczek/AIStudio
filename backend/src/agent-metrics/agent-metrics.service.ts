@@ -1846,12 +1846,12 @@ export class AgentMetricsService {
         ? allComponentRuns.reduce((sum, cr) => sum + (cr.systemIterations || 1), 0) / totalRuns
         : 0;
 
-      // Cache hit rate
-      const cacheReads = allComponentRuns.reduce((sum, cr) => sum + (cr.tokensCacheRead || 0), 0);
-      const cacheWrites = allComponentRuns.reduce((sum, cr) => sum + (cr.tokensCacheWrite || 0), 0);
-      const cacheHits = allComponentRuns.reduce((sum, cr) => sum + (cr.cacheHits || 0), 0);
-      const cacheMisses = allComponentRuns.reduce((sum, cr) => sum + (cr.cacheMisses || 0), 0);
-      const cacheHitRate = (cacheHits + cacheMisses) > 0 ? (cacheHits / (cacheHits + cacheMisses)) * 100 : 0;
+      // ST-110: Cache metrics removed - now using /context command for token tracking
+      const cacheReads = 0;
+      const cacheWrites = 0;
+      const cacheHits = 0;
+      const cacheMisses = 0;
+      const cacheHitRate = 0;
 
       // Quality indicators (mock values - would come from actual quality metrics)
       const f1Score = 0.85 + Math.random() * 0.1;
@@ -2001,12 +2001,13 @@ export class AgentMetricsService {
 
     const systemTotalTokens = allComponentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0) + (cr.tokensOutput || 0), 0);
     const systemTotalCost = allComponentRuns.reduce((sum, cr) => sum + (cr.cost || 0), 0);
-    const systemCacheReads = allComponentRuns.reduce((sum, cr) => sum + (cr.tokensCacheRead || 0), 0);
+    // ST-110: Cache metrics removed - now using /context command for token tracking
+    const systemCacheReads = 0;
     const systemTotalLOC = allComponentRuns.reduce((sum, cr) => sum + (cr.linesAdded || 0) + (cr.linesModified || 0), 0);
     const systemTotalPrompts = allComponentRuns.reduce((sum, cr) => sum + (cr.userPrompts || 0), 0);
     const systemTotalStories = allStoriesSet.size + allBugsSet.size;
-    const systemCacheHits = allComponentRuns.reduce((sum, cr) => sum + (cr.cacheHits || 0), 0);
-    const systemCacheMisses = allComponentRuns.reduce((sum, cr) => sum + (cr.cacheMisses || 0), 0);
+    const systemCacheHits = 0;
+    const systemCacheMisses = 0;
 
     const systemAverages = {
       // Execution Metrics
@@ -2024,11 +2025,12 @@ export class AgentMetricsService {
       totalOutputTokens: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensOutput || 0), 0),
       totalTokens: systemTotalTokens,
       tokenUsage: totalAllRuns > 0 ? systemTotalTokens / totalAllRuns : 0,
-      cacheReads: systemCacheReads,
-      cacheWrites: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensCacheWrite || 0), 0),
-      cacheHits: systemCacheHits,
-      cacheMisses: systemCacheMisses,
-      cacheHitRate: (systemCacheHits + systemCacheMisses) > 0 ? (systemCacheHits / (systemCacheHits + systemCacheMisses)) * 100 : 0,
+      // ST-110: Cache metrics removed - now using /context command
+      cacheReads: 0,
+      cacheWrites: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      cacheHitRate: 0,
 
       // Efficiency Ratios
       locPerPrompt: systemTotalPrompts > 0 ? systemTotalLOC / systemTotalPrompts : 0,

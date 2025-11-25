@@ -131,25 +131,17 @@ export async function handler(prisma: PrismaClient, params: any) {
   const componentBreakdown: any[] = [];
   const timeline: any[] = [];
 
-  let cacheHitRateSum = 0;
+  // ST-110: cacheHitRateSum removed - cache metrics no longer tracked
   let tokensPerSecondSum = 0;
   let timeToFirstTokenSum = 0;
   let metricsCount = 0;
 
   for (const cr of workflowRun.componentRuns) {
-    // Token aggregation
+    // Token aggregation (ST-110: Cache metrics removed)
     overallMetrics.totalTokens += cr.totalTokens || 0;
     overallMetrics.totalInputTokens += cr.tokensInput || 0;
     overallMetrics.totalOutputTokens += cr.tokensOutput || 0;
-    overallMetrics.totalCacheRead += cr.tokensCacheRead || 0;
-    overallMetrics.totalCacheWrite += cr.tokensCacheWrite || 0;
-    overallMetrics.totalCacheHits += cr.cacheHits || 0;
-    overallMetrics.totalCacheMisses += cr.cacheMisses || 0;
-
-    if (cr.cacheHitRate !== null) {
-      cacheHitRateSum += cr.cacheHitRate;
-      metricsCount++;
-    }
+    // ST-110: Cache metrics removed - now using /context command
 
     // Cost aggregation
     overallMetrics.totalCost += cr.cost || 0;
@@ -199,7 +191,7 @@ export async function handler(prisma: PrismaClient, params: any) {
         tokens: cr.totalTokens || 0,
         cost: cr.cost || 0,
         durationSeconds: cr.durationSeconds || 0,
-        cacheHitRate: cr.cacheHitRate || 0,
+        // ST-110: cacheHitRate removed - now using /context command
         linesChanged:
           (cr.linesAdded || 0) + (cr.linesDeleted || 0) + (cr.linesModified || 0),
         tokensPerSecond: cr.tokensPerSecond || 0,
@@ -218,8 +210,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     }
   }
 
-  // Calculate averages
-  overallMetrics.avgCacheHitRate = metricsCount > 0 ? cacheHitRateSum / metricsCount : 0;
+  // Calculate averages (ST-110: avgCacheHitRate removed)
+  overallMetrics.avgCacheHitRate = 0;
   overallMetrics.avgTokensPerSecond =
     metricsCount > 0 ? tokensPerSecondSum / metricsCount : 0;
   overallMetrics.avgTimeToFirstToken =
@@ -245,17 +237,13 @@ export async function handler(prisma: PrismaClient, params: any) {
     // Cost breakdown
     costBreakdown: aggregatedCost,
 
-    // Cache performance summary
+    // ST-110: Cache performance removed - now using /context command for token tracking
     cachePerformance: {
-      totalHits: overallMetrics.totalCacheHits,
-      totalMisses: overallMetrics.totalCacheMisses,
-      avgHitRate: overallMetrics.avgCacheHitRate,
-      tokensSaved: overallMetrics.totalCacheRead,
-      cacheEfficiency: calculateWorkflowCacheEfficiency(
-        overallMetrics.totalCacheHits,
-        overallMetrics.totalCacheMisses,
-        overallMetrics.totalCacheRead,
-      ),
+      totalHits: 0,
+      totalMisses: 0,
+      avgHitRate: 0,
+      tokensSaved: 0,
+      cacheEfficiency: 0,
     },
 
     // Code impact summary
