@@ -768,12 +768,12 @@ model ComponentRun {
   // ST-27 Comprehensive Metrics - Session Tracking
   sessionId String? @map("session_id") // Claude Code session ID (transcript-based metrics)
 
-  // ST-27 Comprehensive Metrics - Cache Metrics
-  tokensCacheRead  Int?   @default(0) @map("tokens_cache_read")
-  tokensCacheWrite Int?   @default(0) @map("tokens_cache_write")
-  cacheHits        Int?   @default(0) @map("cache_hits")
-  cacheMisses      Int?   @default(0) @map("cache_misses")
-  cacheHitRate     Float? @map("cache_hit_rate") // Percentage 0.0-1.0
+  // ST-110: Token Breakdown from /context command (replaces cache metrics)
+  tokensSystemPrompt Int? @default(0) @map("tokens_system_prompt") // System prompt tokens
+  tokensSystemTools  Int? @default(0) @map("tokens_system_tools") // System tools tokens
+  tokensMcpTools     Int? @default(0) @map("tokens_mcp_tools") // MCP tools tokens
+  tokensMemoryFiles  Int? @default(0) @map("tokens_memory_files") // Memory files tokens
+  tokensMessages     Int? @default(0) @map("tokens_messages") // User/assistant messages tokens
 
   // ST-27 Comprehensive Metrics - Code Impact Metrics
   linesAdded       Int?   @default(0) @map("lines_added")
