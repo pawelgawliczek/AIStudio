@@ -21,8 +21,10 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
     refetchInterval = 5000,
   } = options;
 
-  // Get projectId from options or localStorage
-  const effectiveProjectId = projectId || localStorage.getItem('currentProjectId');
+  // Get projectId from options or localStorage (try both keys for compatibility)
+  const effectiveProjectId = projectId ||
+    localStorage.getItem('selectedProjectId') ||
+    localStorage.getItem('currentProjectId');
 
   const { data, isLoading, error, refetch } = useQuery<WorkflowRun[]>({
     queryKey: ['workflow-runs', { projectId: effectiveProjectId, status, storyId, includeCancelled }],
