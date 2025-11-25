@@ -76,7 +76,7 @@ export const epicsApi = {
     api.delete(`/epics/${id}`),
 
   getPlanningOverview: (projectId?: string) =>
-    api.get('/epics/planning/overview', { params: projectId ? { projectId } : {} }),
+    api.get('/api/epics/planning/overview', { params: projectId ? { projectId } : {} }),
 };
 
 // Subtasks API
@@ -88,19 +88,19 @@ export const subtasksApi = {
 // Layers API
 export const layersApi = {
   getAll: (projectId: string) =>
-    api.get('/layers', { params: { projectId } }),
+    api.get('/api/layers', { params: { projectId } }),
 };
 
 // Components API
 export const componentsApi = {
   getAll: (projectId: string) =>
-    api.get('/components', { params: { projectId } }),
+    api.get('/api/components', { params: { projectId } }),
 };
 
 // Workflow runs API
 export const workflowRunsApi = {
   getActiveWorkflowForProject: async (projectId: string) => {
-    const response = await api.get(`/projects/${projectId}/workflow-runs/active/current`);
+    const response = await api.get(`/api/projects/${projectId}/workflow-runs/active/current`);
     return response.data;
   },
 };
