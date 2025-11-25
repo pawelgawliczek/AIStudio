@@ -76,7 +76,7 @@ export const epicsApi = {
     api.delete(`/epics/${id}`),
 
   getPlanningOverview: (projectId?: string) =>
-    api.get('/api/epics/planning/overview', { params: projectId ? { projectId } : {} }),
+    api.get('/epics/planning/overview', { params: projectId ? { projectId } : {} }),
 };
 
 // Subtasks API

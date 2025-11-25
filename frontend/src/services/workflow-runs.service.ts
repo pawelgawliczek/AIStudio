@@ -164,7 +164,7 @@ class WorkflowRunsService {
     data: CreateWorkflowRunDto,
   ): Promise<WorkflowRun> {
     const response = await apiClient.post(
-      `/api/projects/${projectId}/workflow-runs`,
+      `/projects/${projectId}/workflow-runs`,
       data
     );
     return response.data;
@@ -186,7 +186,7 @@ class WorkflowRunsService {
     if (options?.includeRelations) params.includeRelations = 'true';
 
     const response = await apiClient.get(
-      `/api/projects/${projectId}/workflow-runs`,
+      `/projects/${projectId}/workflow-runs`,
       { params }
     );
     return response.data;
@@ -195,7 +195,7 @@ class WorkflowRunsService {
   async getOne(id: string, includeRelations = false): Promise<WorkflowRun> {
     const params = includeRelations ? { includeRelations: 'true' } : {};
     const response = await apiClient.get(
-      `/api/projects/${id.split('/')[0]}/workflow-runs/${id}`,
+      `/projects/${id.split('/')[0]}/workflow-runs/${id}`,
       { params }
     );
     return response.data;
@@ -203,14 +203,14 @@ class WorkflowRunsService {
 
   async getResults(projectId: string, id: string): Promise<WorkflowRunResults> {
     const response = await apiClient.get(
-      `/api/projects/${projectId}/workflow-runs/${id}/results`
+      `/projects/${projectId}/workflow-runs/${id}/results`
     );
     return response.data;
   }
 
   async update(id: string, data: Partial<CreateWorkflowRunDto>): Promise<WorkflowRun> {
     const response = await apiClient.put(
-      `/api/projects/${id.split('/')[0]}/workflow-runs/${id}`,
+      `/projects/${id.split('/')[0]}/workflow-runs/${id}`,
       data
     );
     return response.data;
@@ -218,7 +218,7 @@ class WorkflowRunsService {
 
   async delete(projectId: string, id: string): Promise<void> {
     await apiClient.delete(
-      `/api/projects/${projectId}/workflow-runs/${id}`
+      `/projects/${projectId}/workflow-runs/${id}`
     );
   }
 }

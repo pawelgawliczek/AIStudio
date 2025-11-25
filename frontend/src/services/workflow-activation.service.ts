@@ -52,7 +52,7 @@ class WorkflowActivationService {
     options?: ActivateWorkflowOptions,
   ): Promise<ActivationResponse> {
     const response = await apiClient.post(
-      `/api/projects/${projectId}/workflows/${workflowId}/activate-claude-code`,
+      `/projects/${projectId}/workflows/${workflowId}/activate-claude-code`,
       options || {}
     );
     return response.data;
@@ -63,7 +63,7 @@ class WorkflowActivationService {
     options?: DeactivateWorkflowOptions,
   ): Promise<DeactivationResponse> {
     const response = await apiClient.post(
-      `/api/projects/${projectId}/workflows/deactivate-claude-code`,
+      `/projects/${projectId}/workflows/deactivate-claude-code`,
       options || {}
     );
     return response.data;
@@ -71,7 +71,7 @@ class WorkflowActivationService {
 
   async syncClaudeCode(projectId: string): Promise<SyncResponse> {
     const response = await apiClient.post(
-      `/api/projects/${projectId}/workflows/sync-claude-code`,
+      `/projects/${projectId}/workflows/sync-claude-code`,
       {}
     );
     return response.data;
@@ -79,7 +79,7 @@ class WorkflowActivationService {
 
   async getActiveWorkflow(projectId: string): Promise<ActiveWorkflowResponse> {
     const response = await apiClient.get(
-      `/api/projects/${projectId}/workflows/active-claude-code`
+      `/projects/${projectId}/workflows/active-claude-code`
     );
     return response.data;
   }

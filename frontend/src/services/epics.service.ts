@@ -11,7 +11,7 @@ export const epicsService = {
    * Get all epics with optional filters
    */
   async getAll(filters?: FilterEpicDto): Promise<Epic[]> {
-    const response = await apiClient.get<Epic[]>('/api/epics', {
+    const response = await apiClient.get<Epic[]>('/epics', {
       params: filters,
     });
     return response.data;
@@ -29,7 +29,7 @@ export const epicsService = {
    * Create a new epic
    */
   async create(data: CreateEpicDto): Promise<Epic> {
-    const response = await apiClient.post<Epic>('/api/epics', data);
+    const response = await apiClient.post<Epic>('/epics', data);
     return response.data;
   },
 
