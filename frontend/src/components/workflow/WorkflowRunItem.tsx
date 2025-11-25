@@ -209,6 +209,11 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
 };
 
 function formatDuration(ms: number): string {
+  // Handle NaN, undefined, null, or negative values
+  if (!ms || isNaN(ms) || ms < 0) {
+    return '0s';
+  }
+
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
@@ -219,5 +224,5 @@ function formatDuration(ms: number): string {
   if (minutes > 0) {
     return `${minutes}m ${seconds % 60}s`;
   }
-  return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
 }

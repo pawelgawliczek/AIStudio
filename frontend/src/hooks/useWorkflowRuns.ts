@@ -58,21 +58,40 @@ function transformApiResponse(apiRun: ApiWorkflowRun): WorkflowRun {
     errorMessage: null,
   }));
 
-  // Calculate elapsed time
-  const startedAt = apiRun.startedAt ? new Date(apiRun.startedAt).getTime() : Date.now();
-  const elapsedTimeMs = apiRun.finishedAt
-    ? new Date(apiRun.finishedAt).getTime() - startedAt
-    : Date.now() - startedAt;
+  // Calculate elapsed time - handle null/undefined startedAt gracefully
+  let elapsedTimeMs = 0;
+  const startedAtStr = apiRun.startedAt || apiRun.createdAt;
+  if (startedAtStr) {
+    const startedAtTime = new Date(startedAtStr).getTime();
+    if (!isNaN(startedAtTime)) {
+      if (apiRun.finishedAt) {
+        const finishedAtTime = new Date(apiRun.finishedAt).getTime();
+        if (!isNaN(finishedAtTime)) {
+          elapsedTimeMs = finishedAtTime - startedAtTime;
+        }
+      } else {
+        elapsedTimeMs = Date.now() - startedAtTime;
+      }
+    }
+  }
+  // Use durationSeconds if available and elapsedTimeMs is still 0
+  if (elapsedTimeMs === 0 && apiRun.durationSeconds) {
+    elapsedTimeMs = apiRun.durationSeconds * 1000;
+  }
 
   // Find current running component
   const runningComponent = componentRuns.find(c => c.status === 'running');
+
+  // Extract story info - handle both nested story object and flat fields
+  const storyKey = apiRun.story?.key || `Run-${apiRun.id.slice(0, 8)}`;
+  const storyTitle = apiRun.story?.title || apiRun.workflow?.name || 'Workflow Run';
 
   return {
     id: apiRun.id,
     workflowId: apiRun.workflowId,
     storyId: apiRun.storyId || '',
-    storyKey: apiRun.story?.key || 'Unknown',
-    storyTitle: apiRun.story?.title || 'Unknown Story',
+    storyKey,
+    storyTitle,
     status: apiRun.status,
     progress: 0, // Will be calculated by calculateProgress
     currentComponent: runningComponent?.componentName || null,
@@ -83,7 +102,7 @@ function transformApiResponse(apiRun: ApiWorkflowRun): WorkflowRun {
     queuePriority: null,
     queueWaitTimeMs: null,
     queueLocked: false,
-    startedAt: apiRun.startedAt,
+    startedAt: apiRun.startedAt || apiRun.createdAt,
     completedAt: apiRun.finishedAt || null,
     elapsedTimeMs,
     estimatedTimeRemainingMs: null,
