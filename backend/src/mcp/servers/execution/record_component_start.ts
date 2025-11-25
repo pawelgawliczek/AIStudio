@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
@@ -65,16 +63,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     throw new Error(`Component with ID ${params.componentId} not found`);
   }
 
-  // Get transcript tracking info from workflow run
-  const workflowMetadata = (workflowRun.metadata as Record<string, any>) || {};
-  const transcriptTracking = workflowMetadata._transcriptTracking || {};
-
-  // Record all existing transcripts before agent starts (for detecting new agent transcripts)
-  let existingTranscriptsBeforeAgent: string[] = [];
-  if (transcriptTracking.transcriptDirectory && fs.existsSync(transcriptTracking.transcriptDirectory)) {
-    existingTranscriptsBeforeAgent = fs.readdirSync(transcriptTracking.transcriptDirectory)
-      .filter((f: string) => f.endsWith('.jsonl'));
-  }
+  // ST-110: Removed transcript tracking - now using /context command
 
   // ST-69 FIX: Auto-increment executionOrder for component runs
   // The orchestrator always has executionOrder=0, regular components start at 1 and increment from there
@@ -92,7 +81,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     ? (existingRuns[0].executionOrder || 0) + 1
     : 1; // Start at 1 (orchestrator is always 0)
 
-  // Create ComponentRun record with transcript tracking stored in metadata (internal, not displayed)
+  // Create ComponentRun record
   const componentRun = await prisma.componentRun.create({
     data: {
       workflowRunId: params.runId,
@@ -100,13 +89,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       executionOrder: nextExecutionOrder, // ST-69: Set execution order for proper UI display
       status: 'running',
       inputData: params.input || {}, // User-visible input data only
-      metadata: {
-        // Internal tracking data (not displayed in UI)
-        _transcriptTracking: {
-          existingTranscriptsBeforeAgent,
-          transcriptDirectory: transcriptTracking.transcriptDirectory,
-        },
-      },
+      metadata: {}, // ST-110: Removed transcript tracking
       startedAt: new Date(),
       userPrompts: 0,
       systemIterations: 1,
@@ -123,8 +106,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     componentName: component.name,
     status: componentRun.status,
     startedAt: componentRun.startedAt.toISOString(),
-    transcriptDirectory: transcriptTracking.transcriptDirectory || null,
-    existingTranscripts: existingTranscriptsBeforeAgent.length,
-    message: `Component "${component.name}" execution started. Component run ID: ${componentRun.id}. Tracking ${existingTranscriptsBeforeAgent.length} existing transcripts.`,
+    message: `Component "${component.name}" execution started. Component run ID: ${componentRun.id}.`,
   };
 }

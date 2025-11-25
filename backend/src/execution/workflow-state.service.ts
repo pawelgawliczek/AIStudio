@@ -135,14 +135,11 @@ export class WorkflowStateService {
       : 0;
 
     // Calculate aggregated ST-27 metrics across all component runs
+    // ST-110: Removed cache metrics - now using /context command for token tracking
     const aggregatedMetrics = workflowRun.componentRuns.reduce(
       (acc, cr) => {
         acc.totalInputTokens += cr.tokensInput || 0;
         acc.totalOutputTokens += cr.tokensOutput || 0;
-        acc.totalCacheRead += cr.tokensCacheRead || 0;
-        acc.totalCacheWrite += cr.tokensCacheWrite || 0;
-        acc.totalCacheHits += cr.cacheHits || 0;
-        acc.totalCacheMisses += cr.cacheMisses || 0;
         acc.totalLinesAdded += cr.linesAdded || 0;
         acc.totalLinesDeleted += cr.linesDeleted || 0;
         acc.totalLinesModified += cr.linesModified || 0;
@@ -152,10 +149,6 @@ export class WorkflowStateService {
       {
         totalInputTokens: 0,
         totalOutputTokens: 0,
-        totalCacheRead: 0,
-        totalCacheWrite: 0,
-        totalCacheHits: 0,
-        totalCacheMisses: 0,
         totalLinesAdded: 0,
         totalLinesDeleted: 0,
         totalLinesModified: 0,
@@ -163,11 +156,8 @@ export class WorkflowStateService {
       }
     );
 
-    // Calculate cache hit rate
-    const totalCacheOps = aggregatedMetrics.totalCacheHits + aggregatedMetrics.totalCacheMisses;
-    const avgCacheHitRate = totalCacheOps > 0
-      ? aggregatedMetrics.totalCacheHits / totalCacheOps
-      : 0;
+    // ST-110: Cache metrics removed - now using /context command
+    const avgCacheHitRate = 0;
 
     // Calculate efficiency ratios
     const totalLOC = aggregatedMetrics.totalLinesAdded + aggregatedMetrics.totalLinesModified;
@@ -189,15 +179,15 @@ export class WorkflowStateService {
       errorMessage: workflowRun.errorMessage || undefined,
       metrics: {
         totalTokens: workflowRun.totalTokens,
-        // ST-27 Token Breakdown
+        // ST-27 Token Breakdown (ST-110: Cache metrics removed)
         totalInputTokens: aggregatedMetrics.totalInputTokens,
         totalOutputTokens: aggregatedMetrics.totalOutputTokens,
-        totalCacheRead: aggregatedMetrics.totalCacheRead,
-        totalCacheWrite: aggregatedMetrics.totalCacheWrite,
-        // Cache Performance
-        totalCacheHits: aggregatedMetrics.totalCacheHits,
-        totalCacheMisses: aggregatedMetrics.totalCacheMisses,
-        avgCacheHitRate,
+        // ST-110: Cache metrics removed - now using /context command
+        totalCacheRead: 0,
+        totalCacheWrite: 0,
+        totalCacheHits: 0,
+        totalCacheMisses: 0,
+        avgCacheHitRate: 0,
         // Cost Metrics
         totalCost: aggregatedMetrics.totalCost || (workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null),
         costPerLOC,
@@ -226,14 +216,15 @@ export class WorkflowStateService {
         completedAt: cr.finishedAt?.toISOString(),
         durationSeconds: cr.durationSeconds || undefined,
         tokensUsed: cr.totalTokens || undefined,
-        // ST-27 Enhanced Metrics
+        // ST-27 Enhanced Metrics (ST-110: Cache metrics removed)
         tokensInput: cr.tokensInput || undefined,
         tokensOutput: cr.tokensOutput || undefined,
-        tokensCacheRead: cr.tokensCacheRead || undefined,
-        tokensCacheWrite: cr.tokensCacheWrite || undefined,
-        cacheHits: cr.cacheHits || undefined,
-        cacheMisses: cr.cacheMisses || undefined,
-        cacheHitRate: cr.cacheHitRate || undefined,
+        // ST-110: New token breakdown fields from /context command
+        tokensSystemPrompt: cr.tokensSystemPrompt || undefined,
+        tokensSystemTools: cr.tokensSystemTools || undefined,
+        tokensMcpTools: cr.tokensMcpTools || undefined,
+        tokensMemoryFiles: cr.tokensMemoryFiles || undefined,
+        tokensMessages: cr.tokensMessages || undefined,
         // Quality & Behavior
         userPrompts: cr.userPrompts || 0,
         systemIterations: cr.systemIterations || 1,

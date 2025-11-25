@@ -121,9 +121,7 @@ export function CoordinatorMetrics({
       {/* Data Source Indicator */}
       <div className="mt-4 text-xs text-muted">
         <span>Metrics source: {metrics.dataSource || 'unknown'}</span>
-        {metrics.transcriptPath && (
-          <span className="ml-2">(transcript: {metrics.transcriptPath})</span>
-        )}
+        {/* ST-110: Removed transcriptPath display - now using /context command */}
       </div>
     </div>
   );
