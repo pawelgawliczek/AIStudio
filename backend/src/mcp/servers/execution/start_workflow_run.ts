@@ -80,7 +80,6 @@ export async function handler(prisma: PrismaClient, params: any) {
   // Record the orchestrator's specific transcript (most recently modified = current session)
   const fs = await import('fs');
   let orchestratorTranscript: string | null = null;
-  let existingTranscripts: string[] = [];
 
   if (fs.existsSync(transcriptDirectory)) {
     const transcriptFiles = fs.readdirSync(transcriptDirectory)
@@ -91,12 +90,12 @@ export async function handler(prisma: PrismaClient, params: any) {
       }))
       .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 
-    existingTranscripts = transcriptFiles.map(f => f.name);
     // The most recently modified transcript is the orchestrator's session
     orchestratorTranscript = transcriptFiles.length > 0 ? transcriptFiles[0].name : null;
   }
 
   // Create WorkflowRun record with transcript tracking info
+  // ST-105: Removed existingTranscriptsAtStart - use orchestratorStartTime for timestamp-based filtering
   const workflowRun = await prisma.workflowRun.create({
     data: {
       workflowId: params.workflowId,
@@ -110,7 +109,7 @@ export async function handler(prisma: PrismaClient, params: any) {
           transcriptDirectory,
           orchestratorStartTime: new Date().toISOString(),
           orchestratorTranscript, // Specific filename (e.g., "8f9fc948-....jsonl")
-          existingTranscriptsAtStart: existingTranscripts, // All transcripts before workflow
+          // ST-105: Use orchestratorStartTime for filtering instead of file list
         },
       },
       triggeredBy: params.triggeredBy,
@@ -144,7 +143,7 @@ export async function handler(prisma: PrismaClient, params: any) {
 
   // ST-99: Get component REFERENCES only (not full instructions)
   // Agents pull their own instructions via get_component_instructions({ componentId })
-  const components = await prisma.component.findMany({
+  const componentsFromDb = await prisma.component.findMany({
     where: {
       id: { in: componentIds },
     },
@@ -155,6 +154,19 @@ export async function handler(prisma: PrismaClient, params: any) {
       // NOT including: inputInstructions, operationInstructions, outputInstructions
       // Agents retrieve these via get_component_instructions tool
     },
+  });
+
+  // ST-105: Preserve order from componentIds array (DB returns random order)
+  const componentById = new Map(componentsFromDb.map(c => [c.id, c]));
+  const components = componentIds
+    .map(id => componentById.get(id))
+    .filter((c): c is NonNullable<typeof c> => c !== undefined);
+
+  // ST-105: Create name→id mapping for coordinator to resolve component names to UUIDs
+  // Coordinator instructions say "spawn Full-Stack Developer", workflow provides the UUID
+  const componentMap: Record<string, string> = {};
+  components.forEach(c => {
+    componentMap[c.name] = c.id;
   });
 
   return {
@@ -172,6 +184,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       tools: workflow.coordinator.tools,
       flowDiagram: coordinatorConfig.flowDiagram,
     },
+    // ST-105: Name→UUID mapping for coordinator to resolve component names
+    componentMap,
     // ST-99: Component references only - agents call get_component_instructions({ componentId }) for full instructions
     components: components.map((c, index) => ({
       componentId: c.id,
@@ -182,6 +196,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     status: workflowRun.status,
     startedAt: workflowRun.startedAt.toISOString(),
     context: workflowRun.metadata,
-    message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Follow coordinator.instructions to orchestrate. Spawn agents with componentId - they call get_component_instructions to retrieve their instructions.`,
+    message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Follow coordinator.instructions to orchestrate. Use componentMap to resolve names to UUIDs.`,
   };
 }
