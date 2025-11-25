@@ -140,20 +140,16 @@ export class OtelIngestionService {
     const cacheMetrics = this.aggregateCacheMetrics(events);
 
     // Update component run with aggregated metrics
+    // ST-110: Cache metrics removed - now using /context command for token tracking
     await this.prisma.componentRun.update({
       where: { id: componentRunId },
       data: {
         tokensInput: { increment: tokenMetrics.input },
         tokensOutput: { increment: tokenMetrics.output },
-        tokensCacheRead: { increment: tokenMetrics.cacheRead },
-        tokensCacheWrite: { increment: tokenMetrics.cacheWrite },
         totalTokens: { increment: tokenMetrics.total },
         toolBreakdown: toolMetrics.breakdown,
         errorRate: toolMetrics.errorRate,
         successRate: toolMetrics.successRate,
-        cacheHits: cacheMetrics.hits,
-        cacheMisses: cacheMetrics.misses,
-        cacheHitRate: cacheMetrics.hitRate
       }
     });
 
@@ -223,22 +219,17 @@ export class OtelIngestionService {
     const updates: any = {};
 
     // Update token counts from API requests
+    // ST-110: Cache metrics removed - now using /context command for token tracking
     if (eventData.eventType === 'claude_code.api_request') {
       const tokens = eventData.metadata?.tokens || eventData.attributes?.tokens;
       if (tokens) {
         if (tokens.input) updates.tokensInput = { increment: tokens.input };
         if (tokens.output) updates.tokensOutput = { increment: tokens.output };
-        if (tokens.cache_read) updates.tokensCacheRead = { increment: tokens.cache_read };
-        if (tokens.cache_write) updates.tokensCacheWrite = { increment: tokens.cache_write };
+        // ST-110: Cache token fields removed from DB schema
       }
     }
 
-    // Update cache hits/misses
-    if (eventData.eventType === 'claude_code.cache_hit') {
-      updates.cacheHits = { increment: 1 };
-    } else if (eventData.eventType === 'claude_code.cache_miss') {
-      updates.cacheMisses = { increment: 1 };
-    }
+    // ST-110: Cache hit/miss tracking removed - now using /context command
 
     // Update user prompts
     if (eventData.eventType === 'claude_code.user_prompt') {

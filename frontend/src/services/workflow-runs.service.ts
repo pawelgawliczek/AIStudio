@@ -11,15 +11,20 @@ export enum RunStatus {
 }
 
 export interface CoordinatorMetrics {
-  tokensInput?: number;
+  tokensInput?: number; // Total context tokens from /context
   tokensOutput?: number;
   totalTokens?: number;
   costUsd?: number;
   toolCalls?: number;
   userPrompts?: number;
   iterations?: number;
-  dataSource?: 'transcript' | 'otel';
-  transcriptPath?: string;
+  dataSource?: 'context' | 'otel' | 'transcript'; // ST-110: Added 'context' for /context-based metrics
+  // ST-110: Token breakdown from /context command (replaces cache metrics)
+  tokensSystemPrompt?: number;
+  tokensSystemTools?: number;
+  tokensMcpTools?: number;
+  tokensMemoryFiles?: number;
+  tokensMessages?: number;
 }
 
 export interface WorkflowRun {
@@ -113,6 +118,12 @@ export interface ComponentRunDetails {
   tokensInput?: number;
   tokensOutput?: number;
   totalTokens?: number;
+  // ST-110: Token breakdown from /context command
+  tokensSystemPrompt?: number;
+  tokensSystemTools?: number;
+  tokensMcpTools?: number;
+  tokensMemoryFiles?: number;
+  tokensMessages?: number;
   cost?: number; // ST-57: Cost in USD
   toolCalls?: number; // ST-57: Number of tool calls
   locGenerated?: number;

@@ -118,26 +118,26 @@ export async function handler(prisma: PrismaClient, params: any) {
       stopReason: componentRun.stopReason,
     },
 
-    // Token metrics
+    // Token metrics (ST-110: Now includes /context breakdown)
     tokens: {
       input: componentRun.tokensInput,
       output: componentRun.tokensOutput,
       total: componentRun.totalTokens,
-      cacheRead: componentRun.tokensCacheRead || 0,
-      cacheWrite: componentRun.tokensCacheWrite || 0,
+      // ST-110: New token breakdown from /context command
+      systemPrompt: componentRun.tokensSystemPrompt || 0,
+      systemTools: componentRun.tokensSystemTools || 0,
+      mcpTools: componentRun.tokensMcpTools || 0,
+      memoryFiles: componentRun.tokensMemoryFiles || 0,
+      messages: componentRun.tokensMessages || 0,
     },
 
-    // Cache performance
+    // ST-110: Cache metrics removed - now using /context command for token tracking
     cache: {
-      hits: componentRun.cacheHits || 0,
-      misses: componentRun.cacheMisses || 0,
-      hitRate: componentRun.cacheHitRate || 0,
-      tokensSaved: componentRun.tokensCacheRead || 0,
-      efficiencyScore: calculateCacheEfficiency(
-        componentRun.cacheHits || 0,
-        componentRun.cacheMisses || 0,
-        componentRun.tokensCacheRead || 0,
-      ),
+      hits: 0,
+      misses: 0,
+      hitRate: 0,
+      tokensSaved: 0,
+      efficiencyScore: 0,
     },
 
     // Throughput metrics

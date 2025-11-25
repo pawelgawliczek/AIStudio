@@ -1,6 +1,7 @@
 import { PrismaClient, ComponentRun, WorkflowRun, Story, Epic } from '@prisma/client';
 import { Logger } from '../utils/logger';
 
+// ST-110: Updated token interface to use /context command breakdown
 interface ComponentMetrics {
   componentId: string;
   componentName: string;
@@ -8,8 +9,12 @@ interface ComponentMetrics {
   tokens: {
     input: number;
     output: number;
-    cacheRead: number;
-    cacheWrite: number;
+    // ST-110: New token breakdown from /context command
+    systemPrompt: number;
+    systemTools: number;
+    mcpTools: number;
+    memoryFiles: number;
+    messages: number;
     total: number;
   };
   cost: number;
@@ -153,8 +158,13 @@ export class MetricsAggregationService {
       tokens: {
         input: componentRun.tokensInput || 0,
         output: componentRun.tokensOutput || 0,
-        cacheRead: componentRun.tokensCacheRead || 0,
-        cacheWrite: componentRun.tokensCacheWrite || 0,
+        // ST-110: Cache metrics removed - now using /context command
+        // New token breakdown fields from /context
+        systemPrompt: componentRun.tokensSystemPrompt || 0,
+        systemTools: componentRun.tokensSystemTools || 0,
+        mcpTools: componentRun.tokensMcpTools || 0,
+        memoryFiles: componentRun.tokensMemoryFiles || 0,
+        messages: componentRun.tokensMessages || 0,
         total: totalTokens
       },
       cost: componentRun.cost || 0,

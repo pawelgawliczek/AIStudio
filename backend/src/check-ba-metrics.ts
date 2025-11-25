@@ -33,8 +33,12 @@ async function main() {
     console.log(`Tokens Input: ${run.tokensInput}`);
     console.log(`Tokens Output: ${run.tokensOutput}`);
     console.log(`Total Tokens: ${run.totalTokens}`);
-    console.log(`Cache Read: ${run.tokensCacheRead}`);
-    console.log(`Cache Write: ${run.tokensCacheWrite}`);
+    // ST-110: New token breakdown from /context command
+    console.log(`System Prompt: ${run.tokensSystemPrompt}`);
+    console.log(`System Tools: ${run.tokensSystemTools}`);
+    console.log(`MCP Tools: ${run.tokensMcpTools}`);
+    console.log(`Memory Files: ${run.tokensMemoryFiles}`);
+    console.log(`Messages: ${run.tokensMessages}`);
     console.log(`Cost: $${run.cost}`);
     console.log('---');
   }

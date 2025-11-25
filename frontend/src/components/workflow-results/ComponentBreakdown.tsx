@@ -97,15 +97,11 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
                   <div className="text-xs text-purple-600">
                     In: {formatNumber(orchestratorRun.tokensInput)} | Out: {formatNumber(orchestratorRun.tokensOutput)}
                   </div>
-                  {/* ST-73: Cache token breakdown */}
-                  {(orchestratorRun.tokensCacheRead > 0 || orchestratorRun.tokensCacheWrite > 0) && (
-                    <div className="text-xs text-green-600 mt-1 inline-flex items-center gap-1">
-                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                      <span
-                        className="cursor-help underline decoration-dotted"
-                        title={`Cache Performance:\n• Read: ${formatNumber(orchestratorRun.tokensCacheRead || 0)} tokens (90% cost savings)\n• Write: ${formatNumber(orchestratorRun.tokensCacheWrite || 0)} tokens (cache creation)\n\nCache tokens are already included in input count.`}
-                      >
-                        {formatNumber((orchestratorRun.tokensCacheRead || 0) + (orchestratorRun.tokensCacheWrite || 0))} cached
+                  {/* ST-110: Token breakdown from /context command */}
+                  {(orchestratorRun.tokensMcpTools || orchestratorRun.tokensSystemPrompt) && (
+                    <div className="text-xs text-blue-600 mt-1">
+                      <span className="cursor-help underline decoration-dotted" title={`Token Breakdown (from /context):\n• System Prompt: ${formatNumber(orchestratorRun.tokensSystemPrompt || 0)}\n• System Tools: ${formatNumber(orchestratorRun.tokensSystemTools || 0)}\n• MCP Tools: ${formatNumber(orchestratorRun.tokensMcpTools || 0)}\n• Memory Files: ${formatNumber(orchestratorRun.tokensMemoryFiles || 0)}\n• Messages: ${formatNumber(orchestratorRun.tokensMessages || 0)}`}>
+                        MCP: {formatNumber(orchestratorRun.tokensMcpTools || 0)} | System: {formatNumber((orchestratorRun.tokensSystemPrompt || 0) + (orchestratorRun.tokensSystemTools || 0))}
                       </span>
                     </div>
                   )}
