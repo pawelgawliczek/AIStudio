@@ -101,7 +101,7 @@ services:
     build:
       dockerfile: frontend/Dockerfile
       args:
-        VITE_API_URL: ""
+        VITE_API_URL: "https://test.vibestudio.example.com"
         VITE_WS_URL: "/socket.io"
     container_name: vibe-studio-test-frontend
     restart: unless-stopped
