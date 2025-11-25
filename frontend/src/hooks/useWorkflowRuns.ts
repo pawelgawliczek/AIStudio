@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import axios from '../lib/axios';
 import { WorkflowRun, WorkflowRunStatus } from '../types/workflow-tracking';
 
 interface UseWorkflowRunsOptions {
@@ -38,12 +39,11 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
       if (status) params.append('status', status);
       if (storyId) params.append('storyId', storyId);
 
-      const apiUrl = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiUrl}/projects/${effectiveProjectId}/workflow-runs?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch workflow runs');
-      }
-      return response.json();
+      // Use authenticated axios instance
+      const response = await axios.get<WorkflowRun[]>(
+        `/projects/${effectiveProjectId}/workflow-runs?${params.toString()}`
+      );
+      return response.data;
     },
     refetchInterval,
     enabled: !!effectiveProjectId, // Only run query if we have a projectId
