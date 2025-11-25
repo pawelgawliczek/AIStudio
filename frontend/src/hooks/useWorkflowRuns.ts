@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from '../lib/axios';
-import { WorkflowRun, WorkflowRunStatus } from '../types/workflow-tracking';
+import { WorkflowRun, WorkflowRunStatus, ComponentRun } from '../types/workflow-tracking';
 
 interface UseWorkflowRunsOptions {
   projectId?: string;
@@ -8,6 +8,91 @@ interface UseWorkflowRunsOptions {
   storyId?: string;
   includeCancelled?: boolean;
   refetchInterval?: number;
+}
+
+// API response type (what the backend actually returns)
+interface ApiWorkflowRun {
+  id: string;
+  projectId: string;
+  workflowId: string;
+  storyId?: string;
+  status: WorkflowRunStatus;
+  startedAt: string;
+  finishedAt?: string;
+  durationSeconds?: number;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+  story?: {
+    id: string;
+    key: string;
+    title: string;
+  };
+  workflow?: {
+    id: string;
+    name: string;
+    version: string;
+  };
+  componentRuns?: Array<{
+    id: string;
+    componentId: string;
+    componentName: string;
+    status: string;
+    startedAt: string;
+    finishedAt?: string;
+  }>;
+}
+
+/**
+ * Transform API response to frontend WorkflowRun type
+ */
+function transformApiResponse(apiRun: ApiWorkflowRun): WorkflowRun {
+  const componentRuns: ComponentRun[] = (apiRun.componentRuns || []).map(cr => ({
+    id: cr.id,
+    componentId: cr.componentId,
+    componentName: cr.componentName,
+    status: cr.status as ComponentRun['status'],
+    startedAt: cr.startedAt,
+    completedAt: cr.finishedAt || null,
+    output: null,
+    errorMessage: null,
+  }));
+
+  // Calculate elapsed time
+  const startedAt = apiRun.startedAt ? new Date(apiRun.startedAt).getTime() : Date.now();
+  const elapsedTimeMs = apiRun.finishedAt
+    ? new Date(apiRun.finishedAt).getTime() - startedAt
+    : Date.now() - startedAt;
+
+  // Find current running component
+  const runningComponent = componentRuns.find(c => c.status === 'running');
+
+  return {
+    id: apiRun.id,
+    workflowId: apiRun.workflowId,
+    storyId: apiRun.storyId || '',
+    storyKey: apiRun.story?.key || 'Unknown',
+    storyTitle: apiRun.story?.title || 'Unknown Story',
+    status: apiRun.status,
+    progress: 0, // Will be calculated by calculateProgress
+    currentComponent: runningComponent?.componentName || null,
+    branchName: null, // Not in API yet
+    worktreePath: null, // Not in API yet
+    queueStatus: null, // Not in API yet
+    queuePosition: null,
+    queuePriority: null,
+    queueWaitTimeMs: null,
+    queueLocked: false,
+    startedAt: apiRun.startedAt,
+    completedAt: apiRun.finishedAt || null,
+    elapsedTimeMs,
+    estimatedTimeRemainingMs: null,
+    componentRuns,
+    recentOutputs: [],
+    transcriptPath: null,
+    commitsAhead: null,
+    commitsBehind: null,
+  };
 }
 
 /**
@@ -38,12 +123,16 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
       const params = new URLSearchParams();
       if (status) params.append('status', status);
       if (storyId) params.append('storyId', storyId);
+      // Always include relations to get story key/title
+      params.append('includeRelations', 'true');
 
       // Use authenticated axios instance
-      const response = await axios.get<WorkflowRun[]>(
+      const response = await axios.get<ApiWorkflowRun[]>(
         `/projects/${effectiveProjectId}/workflow-runs?${params.toString()}`
       );
-      return response.data;
+
+      // Transform API response to frontend types
+      return response.data.map(transformApiResponse);
     },
     refetchInterval,
     enabled: !!effectiveProjectId, // Only run query if we have a projectId

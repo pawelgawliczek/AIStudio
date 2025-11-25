@@ -15,16 +15,16 @@ export const WorkflowRunProgress: React.FC<ProgressBarProps> = ({
     running: 'bg-green-500',
     completed: 'bg-green-600',
     failed: 'bg-red-500',
-    paused: 'bg-gray-400',
+    paused: 'bg-muted',
     pending: 'bg-yellow-500',
-    cancelled: 'bg-gray-300',
+    cancelled: 'bg-muted/50',
   };
 
   const bgColor = colorClasses[status];
 
   return (
     <div
-      className={`w-full bg-gray-200 rounded-full overflow-hidden ${height}`}
+      className={`w-full bg-muted/30 rounded-full overflow-hidden ${height}`}
       role="progressbar"
       aria-valuenow={progress}
       aria-valuemin={0}

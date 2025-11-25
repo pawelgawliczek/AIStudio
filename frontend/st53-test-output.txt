@@ -1,0 +1,225 @@
+
+> @aistudio/frontend@0.1.0 test
+> vitest --run components/workflow/__tests__/MultiRunStatusBar.test.tsx components/workflow/__tests__/WorkflowRunItem.test.tsx hooks/__tests__/useWorkflowRuns.test.ts hooks/__tests__/useWorkflowSettings.test.ts hooks/__tests__/useWorkflowWebSocket.test.ts
+
+
+ RUN  v1.6.1 /opt/stack/worktrees/st-53-web-ui-multi-run-progress-tracker-in-status-bar/frontend
+
+ ❯ src/components/workflow/__tests__/WorkflowRunItem.test.tsx  (0 test)
+ ❯ src/components/workflow/__tests__/MultiRunStatusBar.test.tsx  (0 test)
+stdout | src/hooks/__tests__/useWorkflowWebSocket.test.ts > useWorkflowWebSocket > updates connected state on connect
+[WebSocket] Connected
+
+stdout | src/hooks/__tests__/useWorkflowWebSocket.test.ts > useWorkflowWebSocket > updates connected state on disconnect
+[WebSocket] Connected
+[WebSocket] Disconnected
+
+stdout | src/hooks/__tests__/useWorkflowWebSocket.test.ts > useWorkflowWebSocket > reconnects on disconnect
+[WebSocket] Disconnected
+[WebSocket] Attempting reconnection...
+
+ ❯ src/hooks/__tests__/useWorkflowWebSocket.test.ts  (14 tests | 2 failed) 114ms
+   ❯ src/hooks/__tests__/useWorkflowWebSocket.test.ts > useWorkflowWebSocket > emits pause event
+     → expected "spy" to be called with arguments: [ Array(2) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+   ❯ src/hooks/__tests__/useWorkflowWebSocket.test.ts > useWorkflowWebSocket > emits cancel event
+     → expected "spy" to be called with arguments: [ 'workflow:cancel', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/hooks/__tests__/useWorkflowRuns.test.ts  (12 tests | 4 failed) 5037ms
+   ❯ src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > refetches data on interval
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   ❯ src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > calculates progress from component runs
+     → expected 63 to be 62.5 // Object.is equality
+   ❯ src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > filters by status
+     → expected [ { id: '1', …(23) }, …(2) ] to have a length of 1 but got 3
+   ❯ src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > filters by storyId
+     → expected [ { id: '1', …(23) }, …(2) ] to have a length of 2 but got 3
+stderr | src/hooks/__tests__/useWorkflowSettings.test.ts > useWorkflowSettings > handles corrupted localStorage data gracefully
+Failed to load settings from localStorage: SyntaxError: Unexpected token i in JSON at position 0
+    at JSON.parse (<anonymous>)
+    at /opt/stack/worktrees/st-53-web-ui-multi-run-progress-tracker-in-status-bar/frontend/src/hooks/useWorkflowSettings.ts:18:47
+    at mountState (/opt/stack/AIStudio/node_modules/react-dom/cjs/react-dom.development.js:16167:20)
+    at Object.useState (/opt/stack/AIStudio/node_modules/react-dom/cjs/react-dom.development.js:16880:16)
+    at Proxy.useState (/opt/stack/AIStudio/node_modules/react/cjs/react.development.js:1622:21)
+    at Module.useWorkflowSettings (/opt/stack/worktrees/st-53-web-ui-multi-run-progress-tracker-in-status-bar/frontend/src/hooks/useWorkflowSettings.ts:14:35)
+    at /opt/stack/worktrees/st-53-web-ui-multi-run-progress-tracker-in-status-bar/frontend/src/hooks/__tests__/useWorkflowSettings.test.ts:41:41
+    at TestComponent (/opt/stack/AIStudio/node_modules/@testing-library/react/dist/pure.js:331:27)
+    at renderWithHooks (/opt/stack/AIStudio/node_modules/react-dom/cjs/react-dom.development.js:15486:18)
+    at mountIndeterminateComponent (/opt/stack/AIStudio/node_modules/react-dom/cjs/react-dom.development.js:20103:13)
+
+ ❯ src/hooks/__tests__/useWorkflowSettings.test.ts  (18 tests | 1 failed) 95ms
+   ❯ src/hooks/__tests__/useWorkflowSettings.test.ts > useWorkflowSettings > resets settings to defaults
+     → expected '{"autoHide":false,"maxVisibleRuns":5,…' to be null // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/workflow/__tests__/MultiRunStatusBar.test.tsx [ src/components/workflow/__tests__/MultiRunStatusBar.test.tsx ]
+Error: Failed to resolve import "framer-motion" from "src/components/workflow/MultiRunStatusBar.tsx". Does the file exist?
+ ❯ TransformPluginContext._formatError ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41
+ ❯ TransformPluginContext.error ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16
+ ❯ normalizeUrl ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23
+ ❯ async file:/opt/stack/AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+ ❯ TransformPluginContext.transform ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7
+ ❯ PluginContainer.transform ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18
+ ❯ loadAndTransform ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/components/workflow/__tests__/WorkflowRunItem.test.tsx [ src/components/workflow/__tests__/WorkflowRunItem.test.tsx ]
+Error: Failed to resolve import "framer-motion" from "src/components/workflow/WorkflowRunItem.tsx". Does the file exist?
+ ❯ TransformPluginContext._formatError ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41
+ ❯ TransformPluginContext.error ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16
+ ❯ normalizeUrl ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23
+ ❯ async file:/opt/stack/AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+ ❯ TransformPluginContext.transform ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7
+ ❯ PluginContainer.transform ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18
+ ❯ loadAndTransform ../../../AIStudio/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > refetches data on interval
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > calculates progress from component runs
+AssertionError: expected 63 to be 62.5 // Object.is equality
+
+- Expected
++ Received
+
+- 62.5
++ 63
+
+ ❯ src/hooks/__tests__/useWorkflowRuns.test.ts:184:45
+    182| 
+    183|     // 2 completed + 0.5 running = 2.5 / 4 = 62.5%
+    184|     expect(result.current.runs[0].progress).toBe(62.5);
+       |                                             ^
+    185|   });
+    186| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > filters by status
+AssertionError: expected [ { id: '1', …(23) }, …(2) ] to have a length of 1 but got 3
+
+- Expected
++ Received
+
+- 1
++ 3
+
+ ❯ src/hooks/__tests__/useWorkflowRuns.test.ts:238:33
+    236|     const { result } = renderHook(() => useWorkflowRuns({ status: 'run…
+    237| 
+    238|     expect(result.current.runs).toHaveLength(1);
+       |                                 ^
+    239|     expect(result.current.runs[0].status).toBe('running');
+    240|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/hooks/__tests__/useWorkflowRuns.test.ts > useWorkflowRuns > filters by storyId
+AssertionError: expected [ { id: '1', …(23) }, …(2) ] to have a length of 2 but got 3
+
+- Expected
++ Received
+
+- 2
++ 3
+
+ ❯ src/hooks/__tests__/useWorkflowRuns.test.ts:257:33
+    255|     const { result } = renderHook(() => useWorkflowRuns({ storyId: 'st…
+    256| 
+    257|     expect(result.current.runs).toHaveLength(2);
+       |                                 ^
+    258|     expect(result.current.runs.every(r => r.storyId === 'story-1')).to…
+    259|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/hooks/__tests__/useWorkflowSettings.test.ts > useWorkflowSettings > resets settings to defaults
+AssertionError: expected '{"autoHide":false,"maxVisibleRuns":5,…' to be null // Object.is equality
+
+- Expected: 
+null
+
++ Received: 
+"{\"autoHide\":false,\"maxVisibleRuns\":5,\"viewMode\":\"compact\",\"animationsEnabled\":true,\"expandedRuns\":[]}"
+
+ ❯ src/hooks/__tests__/useWorkflowSettings.test.ts:259:20
+    257| 
+    258|     const stored = localStorage.getItem(STORAGE_KEY);
+    259|     expect(stored).toBe(null);
+       |                    ^
+    260|   });
+    261| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  src/hooks/__tests__/useWorkflowWebSocket.test.ts > useWorkflowWebSocket > emits pause event
+AssertionError: expected "spy" to be called with arguments: [ Array(2) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/hooks/__tests__/useWorkflowWebSocket.test.ts:262:29
+    260|     });
+    261| 
+    262|     expect(mockSocket.emit).toHaveBeenCalledWith('workflow:pause', { r…
+       |                             ^
+    263|   });
+    264| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  src/hooks/__tests__/useWorkflowWebSocket.test.ts > useWorkflowWebSocket > emits cancel event
+AssertionError: expected "spy" to be called with arguments: [ 'workflow:cancel', …(1) ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/hooks/__tests__/useWorkflowWebSocket.test.ts:272:29
+    270|     });
+    271| 
+    272|     expect(mockSocket.emit).toHaveBeenCalledWith('workflow:cancel', { …
+       |                             ^
+    273|   });
+    274| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+ Test Files  5 failed (5)
+      Tests  7 failed | 37 passed (44)
+   Start at  09:45:43
+   Duration  9.63s (transform 333ms, setup 751ms, collect 146ms, tests 5.25s, environment 1.69s, prepare 400ms)
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /opt/stack/worktrees/st-53-web-ui-multi-run-progress-tracker-in-status-bar/frontend
+npm error workspace @aistudio/frontend@0.1.0
+npm error location /opt/stack/worktrees/st-53-web-ui-multi-run-progress-tracker-in-status-bar/frontend
+npm error command failed
+npm error command sh -c vitest --run components/workflow/__tests__/MultiRunStatusBar.test.tsx components/workflow/__tests__/WorkflowRunItem.test.tsx hooks/__tests__/useWorkflowRuns.test.ts hooks/__tests__/useWorkflowSettings.test.ts hooks/__tests__/useWorkflowWebSocket.test.ts

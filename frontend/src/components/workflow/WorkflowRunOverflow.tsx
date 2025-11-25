@@ -13,7 +13,7 @@ export const WorkflowRunOverflow: React.FC<OverflowIndicatorProps> = ({
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors text-sm font-medium text-gray-700"
+      className="flex items-center justify-center px-4 py-2 bg-muted/20 hover:bg-muted/30 rounded-md transition-colors text-sm font-medium text-fg"
       title={`Show ${count} more workflow runs`}
     >
       +{count} more

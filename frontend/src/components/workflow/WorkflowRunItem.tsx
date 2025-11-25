@@ -43,7 +43,7 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
   return (
     <div
       data-testid="workflow-run-item"
-      className={`${heightClass} border-b border-gray-200 bg-white relative`}
+      className={`${heightClass} border border-border bg-card rounded-lg shadow-sm relative`}
       onContextMenu={handleContextMenu}
     >
       {/* Main content */}
@@ -60,16 +60,16 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
         {/* Story Key (clickable) */}
         <button
           onClick={() => onNavigateToStory(run.storyKey)}
-          className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+          className="text-sm font-semibold text-accent hover:text-accent-dark hover:underline"
         >
           {run.storyKey}
         </button>
 
         {/* Story Title */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-800 truncate">{run.storyTitle}</p>
+          <p className="text-sm text-fg truncate">{run.storyTitle}</p>
           {viewMode === 'detailed' && run.currentComponent && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted">
               <span className="font-medium">Current:</span> {run.currentComponent}
             </p>
           )}
@@ -77,7 +77,7 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
 
         {/* Current Component (compact mode) */}
         {viewMode === 'compact' && run.currentComponent && (
-          <div className="text-xs text-gray-600 px-2 py-1 bg-gray-100 rounded">
+          <div className="text-xs text-muted px-2 py-1 bg-muted/20 rounded">
             {run.currentComponent}
           </div>
         )}
@@ -90,14 +90,14 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
             animated={animationsEnabled}
             height="h-2"
           />
-          <p className="text-xs text-gray-500 text-center mt-0.5">
+          <p className="text-xs text-muted text-center mt-0.5">
             {run.progress}%
           </p>
         </div>
 
         {/* Branch Name */}
         {run.branchName && (
-          <div className="text-xs text-gray-600 font-mono max-w-40 truncate">
+          <div className="text-xs text-muted font-mono max-w-40 truncate">
             {run.branchName}
           </div>
         )}
@@ -106,7 +106,7 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
         {abbreviatedPath && (
           <button
             onClick={() => onCopyWorktreePath(run.worktreePath!)}
-            className="text-xs text-gray-500 font-mono hover:text-gray-700 hover:underline"
+            className="text-xs text-muted font-mono hover:text-fg hover:underline"
             title={run.worktreePath || ''}
           >
             {abbreviatedPath}
@@ -118,12 +118,12 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
           <div
             className={`text-xs px-2 py-1 rounded ${
               run.queueStatus === 'running'
-                ? 'bg-green-100 text-green-700'
+                ? 'bg-green-500/20 text-green-400'
                 : run.queueStatus === 'pending'
-                ? 'bg-yellow-100 text-yellow-700'
+                ? 'bg-yellow-500/20 text-yellow-400'
                 : run.queueStatus === 'failed'
-                ? 'bg-red-100 text-red-700'
-                : 'bg-gray-100 text-gray-600'
+                ? 'bg-red-500/20 text-red-400'
+                : 'bg-muted/20 text-muted'
             }`}
           >
             {run.queueStatus === 'running' ? 'Running' : run.queueStatus}
@@ -142,15 +142,15 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
         )}
 
         {/* Time Info */}
-        <div className="text-xs text-gray-600 text-right min-w-20">
+        <div className="text-xs text-muted text-right min-w-20">
           <div>{elapsedTime}</div>
-          {remainingTime && <div className="text-gray-500">{remainingTime}</div>}
+          {remainingTime && <div className="text-muted/70">{remainingTime}</div>}
         </div>
 
         {/* Expand/Collapse Button */}
         <button
           onClick={() => onToggleExpand(run.id)}
-          className="text-gray-500 hover:text-gray-700 p-1"
+          className="text-muted hover:text-fg p-1"
           aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
         >
           {isExpanded ? '▲' : '▼'}
@@ -170,7 +170,7 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
       {/* Context Menu */}
       {showContextMenu && (
         <div
-          className="absolute top-full right-4 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10"
+          className="absolute top-full right-4 mt-1 bg-card border border-border rounded shadow-lg z-10"
           onMouseLeave={() => setShowContextMenu(false)}
         >
           <button
@@ -178,7 +178,7 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
               onPauseRun(run.id);
               setShowContextMenu(false);
             }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+            className="block w-full text-left px-4 py-2 text-sm text-fg hover:bg-muted/20 disabled:opacity-50"
             disabled={run.status !== 'running'}
           >
             Pause
@@ -188,7 +188,7 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
               onCancelRun(run.id);
               setShowContextMenu(false);
             }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+            className="block w-full text-left px-4 py-2 text-sm text-fg hover:bg-muted/20 disabled:opacity-50"
             disabled={run.status === 'completed' || run.status === 'cancelled'}
           >
             Cancel
@@ -198,7 +198,7 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
               onViewDetails(run.id);
               setShowContextMenu(false);
             }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+            className="block w-full text-left px-4 py-2 text-sm text-fg hover:bg-muted/20"
           >
             View Details
           </button>

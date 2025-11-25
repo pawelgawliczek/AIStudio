@@ -81,11 +81,11 @@ export const MultiRunStatusBar: React.FC = () => {
     return (
       <div
         data-testid="status-bar-container"
-        className={`${heightClass} bg-white border-b border-gray-200 flex items-center justify-center`}
+        className={`${heightClass} bg-card border-b border-border flex items-center justify-center`}
       >
         <div data-testid="loading-indicator" className="flex items-center gap-2">
-          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-          <span className="text-sm text-gray-600">Loading workflow runs...</span>
+          <div className="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full" />
+          <span className="text-sm text-muted">Loading workflow runs...</span>
         </div>
       </div>
     );
@@ -95,9 +95,9 @@ export const MultiRunStatusBar: React.FC = () => {
     return (
       <div
         data-testid="status-bar-container"
-        className={`${heightClass} bg-white border-b border-gray-200 flex items-center justify-center`}
+        className={`${heightClass} bg-card border-b border-border flex items-center justify-center`}
       >
-        <div className="flex items-center gap-2 text-red-600">
+        <div className="flex items-center gap-2 text-red-500">
           <span className="text-sm">Failed to load workflow runs</span>
           <button
             onClick={() => refetch()}
@@ -117,12 +117,12 @@ export const MultiRunStatusBar: React.FC = () => {
   return (
     <div
       data-testid="status-bar-container"
-      className={`${heightClass} bg-white border-b border-gray-200 relative`}
+      className={`${heightClass} bg-card border-b border-border relative`}
     >
       {/* WebSocket connection indicator */}
       {!connected && (
         <div
-          className="absolute top-2 right-2 flex items-center gap-1 text-xs text-yellow-600"
+          className="absolute top-2 right-2 flex items-center gap-1 text-xs text-yellow-500"
           aria-label="WebSocket disconnected"
         >
           <span>⚠️</span>
@@ -169,7 +169,7 @@ export const MultiRunStatusBar: React.FC = () => {
         {showAll && runs.length > settings.maxVisibleRuns && (
           <button
             onClick={() => setShowAll(false)}
-            className="flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors text-sm font-medium text-gray-700"
+            className="flex items-center justify-center px-4 py-2 bg-muted/20 hover:bg-muted/30 rounded-md transition-colors text-sm font-medium text-fg"
           >
             Show less
           </button>
