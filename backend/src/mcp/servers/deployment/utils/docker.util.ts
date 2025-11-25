@@ -275,7 +275,7 @@ export async function buildTestContainers(
       // Use Dockerfile from main worktree, but build context from story worktree
       const dockerfilePath = `${mainWorktreePath}/frontend/Dockerfile`;
       execSync(
-        `docker build --no-cache -t aistudio-test-frontend -f ${dockerfilePath} --build-arg VITE_API_URL=/api --build-arg VITE_WS_URL=/socket.io ${worktreePath}`,
+        `docker build --no-cache -t aistudio-test-frontend -f ${dockerfilePath} --build-arg VITE_API_URL=/api --build-arg VITE_WS_URL=/socket.io --build-arg BACKEND_HOST=test-backend ${worktreePath}`,
         {
           cwd: worktreePath,
           encoding: 'utf-8',

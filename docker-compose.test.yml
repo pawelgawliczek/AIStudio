@@ -100,6 +100,8 @@ services:
   test-frontend:
     build:
       dockerfile: frontend/Dockerfile
+      args:
+        BACKEND_HOST: test-backend
     container_name: vibe-studio-test-frontend
     restart: unless-stopped
     ports:
@@ -110,7 +112,7 @@ services:
       - test-network
       - stack_appnet
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:80/health"]
       interval: 10s
       timeout: 5s
       retries: 6
