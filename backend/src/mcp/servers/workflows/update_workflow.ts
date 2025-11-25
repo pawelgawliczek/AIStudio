@@ -22,6 +22,7 @@ export interface UpdateWorkflowParams {
   description?: string;
   triggerConfig?: {
     type: string;
+    url?: string;
     filters?: any;
     notifications?: any;
   };

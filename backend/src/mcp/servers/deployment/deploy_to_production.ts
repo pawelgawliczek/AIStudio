@@ -49,6 +49,8 @@ export interface DeployToProductionParams {
   triggeredBy?: string; // User/agent identifier (defaults to 'mcp-user')
   skipBackup?: boolean; // EMERGENCY ONLY - skip pre-deployment backup
   skipHealthChecks?: boolean; // EMERGENCY ONLY - skip health checks
+  skipBackendBuild?: boolean; // Optional - skip backend build (for frontend-only changes)
+  skipFrontendBuild?: boolean; // Optional - skip frontend build (for backend-only changes)
   confirmDeploy?: boolean; // REQUIRED: Must be true to confirm deployment
 }
 
@@ -145,6 +147,10 @@ export const tool: Tool = {
 - skipBackup: true - Skip backup creation (USE WITH EXTREME CAUTION)
 - skipHealthChecks: true - Skip health checks (USE WITH EXTREME CAUTION)
 
+**OPTIMIZATION OPTIONS (ST-87):**
+- skipBackendBuild: true - Skip backend build (for frontend-only changes)
+- skipFrontendBuild: true - Skip frontend build (for backend-only changes)
+
 **EXAMPLE USAGE:**
 
 PR Mode:
@@ -201,6 +207,14 @@ deploy_to_production({
       skipHealthChecks: {
         type: 'boolean',
         description: 'EMERGENCY ONLY: Skip health check validation (default: false)',
+      },
+      skipBackendBuild: {
+        type: 'boolean',
+        description: 'OPTIMIZATION: Skip backend build for frontend-only changes (default: false)',
+      },
+      skipFrontendBuild: {
+        type: 'boolean',
+        description: 'OPTIMIZATION: Skip frontend build for backend-only changes (default: false)',
       },
       confirmDeploy: {
         type: 'boolean',
@@ -305,6 +319,9 @@ export async function handler(
       triggeredBy: params.triggeredBy || 'mcp-user',
       skipBackup: params.skipBackup || false,
       skipHealthChecks: params.skipHealthChecks || false,
+      skipBackendBuild: params.skipBackendBuild || false,
+      skipFrontendBuild: params.skipFrontendBuild || false,
+      confirmDeploy: params.confirmDeploy,
     };
 
     const result = await deploymentService.deployToProduction(deploymentParams);

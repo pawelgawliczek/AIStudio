@@ -293,9 +293,26 @@ export async function buildTestContainers(
 
 /**
  * Start/restart test stack services
+ * @param mainWorktreePath - Path to main worktree (where docker-compose.test.yml is located)
+ * @param worktreePath - Path to story worktree for volume mounts (optional, defaults to main worktree)
  */
-export async function startTestStack(mainWorktreePath: string): Promise<void> {
+export async function startTestStack(
+  mainWorktreePath: string,
+  worktreePath?: string
+): Promise<void> {
   console.log('Starting test stack containers...');
+
+  // Set WORKTREE_PATH environment variable if worktree path provided
+  const env = worktreePath
+    ? {
+        ...process.env,
+        WORKTREE_PATH: worktreePath
+      }
+    : process.env;
+
+  if (worktreePath) {
+    console.log(`Using WORKTREE_PATH: ${worktreePath}`);
+  }
 
   try {
     // Start all test services (postgres, redis, backend, frontend)
@@ -305,7 +322,8 @@ export async function startTestStack(mainWorktreePath: string): Promise<void> {
         cwd: mainWorktreePath,
         encoding: 'utf-8',
         timeout: 180000, // 3 min
-        stdio: 'inherit'
+        stdio: 'inherit',
+        env
       }
     );
     console.log('Test stack started successfully');

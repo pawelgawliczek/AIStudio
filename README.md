@@ -245,6 +245,12 @@ npm run db:seed          # Seed database with test data
 npm run db:reset         # Reset database (⚠️ deletes all data)
 npm run db:studio        # Open Prisma Studio
 
+# Database Backups (ST-78)
+./scripts/backup-database.sh production   # Create production backup
+./scripts/backup-database.sh development  # Create development backup
+./scripts/restore-database.sh             # List/restore backups
+# See docs/BACKUP_MANAGEMENT.md for details
+
 # Testing
 npm test                 # Run all tests
 npm run test:backend     # Run backend tests

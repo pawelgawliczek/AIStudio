@@ -1,40 +1,57 @@
-Act as an orchestrator and implement story {{arg1}} using the standard workflow with worktree isolation.
+Execute story {{arg1}} using the Worktree-Aware Development Workflow (test environment deployment).
 
-## Orchestrator Role
+## Workflow Details
 
-You are the orchestrator. You coordinate by spawning subagents using the Task tool for each phase of work. Do NOT do implementation work directly - delegate to specialized subagents.
+**Workflow ID:** `5159f6c8-0979-458b-bb1e-d67adfb48269`
+**Coordinator:** Worktree-Aware PM
+**Target:** Test environment deployment (http://127.0.0.1:3001 / http://127.0.0.1:5174)
 
-## Get Workflow Context
+## Execution
 
-First, use `mcp__vibestudio__execute_story_with_workflow` to start the workflow run, then use `mcp__vibestudio__get_workflow_context` with the returned runId to get:
-- Coordinator instructions
-- Component definitions and their instructions
-- Previous component outputs
-- Story context and requirements
+```typescript
+mcp__vibestudio__execute_story_with_workflow({
+  storyId: "{{arg1}}",
+  workflowId: "5159f6c8-0979-458b-bb1e-d67adfb48269",
+  triggeredBy: "claude-orchestrator",
+  cwd: "/opt/stack/AIStudio"
+})
+```
 
-Use this context to guide which subagents to spawn and what instructions to give them.
+## Workflow Flow
 
-## Worktree-Aware Workflow
+1. **Worktree Setup** - PM creates/validates git worktree for isolated development
+2. **Conflict Detection** - Checks for merge conflicts with main
+3. **Context Explore** - Discovers files in worktree ONCE (150K tokens)
+4. **Business Analyst** - Creates use cases, maps files (5K tokens)
+5. **Software Architect** - Health assessment + architecture plan (10K tokens)
+6. **Full-Stack Developer** - TDD implementation in worktree, all tests pass (20K tokens)
+7. **QA Automation** - Validates coverage ≥80%, readiness assessment (20K tokens)
+8. **DevOps Build & Deploy** - Acquires test queue lock, deploys to test environment (5K tokens)
+9. **PM Review** - Checks outstanding items, manages lock, initiates re-run if needed (10K tokens)
 
-1. **Check/Create Worktree**: Use `mcp__vibestudio__git_get_worktree_status` to check if a worktree exists. If not, use `mcp__vibestudio__git_create_worktree` to create one.
+**Total:** ~230K tokens (vs 795K = 71% reduction)
 
-2. **Change to Worktree Directory**: All subagents must work in the worktree path.
+## Worktree Isolation
 
-3. **Check for Conflicts**: Use `mcp__vibestudio__mcp__vibestudio__check_for_conflicts` to verify no merge conflicts with main.
+- **Parallel Development** - Multiple stories can work in separate worktrees simultaneously
+- **Production Untouched** - All work happens in isolated worktree, main branch safe
+- **Test Environment** - Deploys to isolated test containers (ports 3001/5174, DB 5434, Redis 6381)
 
-4. **Spawn Subagents**: For each workflow component, spawn a Task subagent with the component's instructions from the workflow context.
+## Test Queue Locking
 
-5. **Validate & Build**: After implementation, run validation:
-   - Build the project in the worktree
-   - Run linting and type checks
-   - Ensure all tests pass locally
+- **Lock acquired** during test environment deployment
+- **Lock kept** until PM Review confirms readiness
+- **Lock released** if re-run needed (allows other worktrees to test)
+- **Re-acquired** when feature ready for testing again
 
-6. **Create PR**: Use `mcp__vibestudio__create_pull_request` to create the PR.
+## Iterative Refinement
 
-7. **Prepare for One-Click Deploy**: After PR creation:
-   - Use `mcp__vibestudio__mcp__vibestudio__deploy_to_test_env` to build and deploy to isolated test environment
-   - Use `mcp__vibestudio__mcp__vibestudio__worktree_run_tests` to run full test suite
-   - Add story to test queue with `mcp__vibestudio__mcp__vibestudio__test_queue_add` for tracking
-   - Report test results and deployment status so user can approve/merge with one click
+- **Max 5 runs** - Workflow automatically re-runs if issues found
+- **Same worktree** - All refinement runs work in same worktree
+- **Outstanding items tracked** - TypeScript errors, test failures, coverage gaps
 
-Record component starts/completions using `mcp__vibestudio__record_component_start` and `mcp__vibestudio__record_component_complete`.
+## Production Safeguards
+
+- **Test environment only** - Never touches production
+- **Health checks** - Validates test containers are healthy
+- **Full test suite** - Unit, integration, E2E, frontend tests

@@ -133,8 +133,8 @@ export async function handler(
       `;
 
       execSync(
-        `${testDbConnection} -c "${truncateSql.replace(/\n/g, ' ').replace(/"/g, '\\"')}"`,
-        { cwd: mainWorktreePath, encoding: 'utf-8', timeout: 30000 }
+        `echo "${truncateSql.replace(/"/g, '\\"')}" | ${testDbConnection}`,
+        { cwd: mainWorktreePath, encoding: 'utf-8', timeout: 30000, shell: '/bin/bash' }
       );
       console.log('✓ Test database truncated');
     }

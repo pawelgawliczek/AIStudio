@@ -99,7 +99,8 @@ export async function handler(
     console.log(`[run_backup] Script completed in ${duration}s`);
 
     // Parse output to extract backup details
-    const output = stdout + stderr;
+    // Strip ANSI color codes before parsing (e.g., [0;32m, [0m)
+    const output = (stdout + stderr).replace(/\x1b\[[0-9;]*m/g, '');
 
     // Extract backup filename (e.g., "vibestudio_production_20251122_115533.sql.gz")
     const filenameMatch = output.match(/Backup File:\s*([^\s]+\.sql\.gz)/);

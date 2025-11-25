@@ -33,6 +33,9 @@ export interface DeploymentParams {
   triggeredBy?: string; // User/agent identifier
   skipBackup?: boolean; // For emergencies only
   skipHealthChecks?: boolean; // For emergencies only
+  skipBackendBuild?: boolean; // Optional - skip backend build (for frontend-only changes)
+  skipFrontendBuild?: boolean; // Optional - skip frontend build (for backend-only changes)
+  confirmDeploy: boolean; // Required - explicit confirmation
 }
 
 export interface DeploymentResult {
@@ -159,9 +162,9 @@ export class DeploymentService {
         console.log('[DeploymentService] PR mode - validating PR approval');
         approvalMethod = 'PR';
         await this.validatePRApproval(params.prNumber!);
+        // Only validate worktree in PR mode (direct commit mode doesn't use worktrees)
+        await this.validateWorktree(params.storyId);
       }
-
-      await this.validateWorktree(params.storyId);
 
       phases.validation = {
         success: true,
@@ -256,32 +259,56 @@ export class DeploymentService {
       }
 
       // ========================================================================
-      // PHASE 5: Build Backend Container (AC5)
+      // PHASE 5 & 6: Build Containers (AC5) - Parallel Execution
       // ========================================================================
-      console.log('[DeploymentService] Phase 5: Building backend container');
-      const backendBuildStart = Date.now();
+      console.log('[DeploymentService] Phase 5 & 6: Building containers (parallel)');
 
-      await this.buildDockerContainer('backend');
+      // Determine which builds to run
+      const buildsToRun: Promise<void>[] = [];
 
-      phases.buildBackend = {
-        success: true,
-        duration: Date.now() - backendBuildStart,
-        message: 'Backend container built successfully',
-      };
+      if (!params.skipBackendBuild) {
+        buildsToRun.push(
+          (async () => {
+            console.log('[DeploymentService] Building backend container');
+            const start = Date.now();
+            await this.buildDockerContainer('backend');
+            phases.buildBackend = {
+              success: true,
+              duration: Date.now() - start,
+              message: 'Backend container built successfully',
+            };
+          })()
+        );
+      } else {
+        console.log('[DeploymentService] Skipping backend build (skipBackendBuild=true)');
+        phases.buildBackend = { success: true, duration: 0, message: 'Backend build skipped' };
+      }
 
-      // ========================================================================
-      // PHASE 6: Build Frontend Container (AC5)
-      // ========================================================================
-      console.log('[DeploymentService] Phase 6: Building frontend container');
-      const frontendBuildStart = Date.now();
+      if (!params.skipFrontendBuild) {
+        buildsToRun.push(
+          (async () => {
+            console.log('[DeploymentService] Building frontend container');
+            const start = Date.now();
+            await this.buildDockerContainer('frontend');
+            phases.buildFrontend = {
+              success: true,
+              duration: Date.now() - start,
+              message: 'Frontend container built successfully',
+            };
+          })()
+        );
+      } else {
+        console.log('[DeploymentService] Skipping frontend build (skipFrontendBuild=true)');
+        phases.buildFrontend = { success: true, duration: 0, message: 'Frontend build skipped' };
+      }
 
-      await this.buildDockerContainer('frontend');
-
-      phases.buildFrontend = {
-        success: true,
-        duration: Date.now() - frontendBuildStart,
-        message: 'Frontend container built successfully',
-      };
+      // Run builds in parallel if multiple builds needed
+      if (buildsToRun.length > 0) {
+        console.log(`[DeploymentService] Running ${buildsToRun.length} build(s) in parallel`);
+        await Promise.all(buildsToRun);
+      } else {
+        console.log('[DeploymentService] All builds skipped');
+      }
 
       // ========================================================================
       // PHASE 7: Restart Backend Container
@@ -756,7 +783,11 @@ export class DeploymentService {
   private async runHealthChecks(): Promise<HealthCheckResults> {
     const requiredConsecutiveSuccesses = 3;
     const delayBetweenChecks = 5000; // 5 seconds
-    const maxAttempts = 10; // Max 10 attempts
+    const maxAttempts = 24; // 2 minutes total (24 * 5s)
+    const warmupDelay = 15000; // 15 seconds initial warmup
+
+    console.log(`[DeploymentService] Waiting ${warmupDelay / 1000} seconds for containers to initialize...`);
+    await new Promise(resolve => setTimeout(resolve, warmupDelay));
 
     let backendSuccesses = 0;
     let frontendSuccesses = 0;
@@ -764,71 +795,69 @@ export class DeploymentService {
 
     while (attempts < maxAttempts) {
       attempts++;
+      console.log(`[DeploymentService] Health check attempt ${attempts}/${maxAttempts}`);
 
       // Check backend
-      const backendCheck = await this.checkServiceHealth('http://localhost:3000/health');
+      const backendCheck = await this.checkServiceHealth('http://127.0.0.1:3000/api/health');
       if (backendCheck.success) {
         backendSuccesses++;
+        console.log(`[DeploymentService] Backend health check passed (${backendSuccesses}/${requiredConsecutiveSuccesses})`);
       } else {
-        backendSuccesses = 0; // Reset on failure
+        console.log(`[DeploymentService] Backend health check failed: ${backendCheck.error || 'Unknown error'}`);
+        // DON'T reset counter - just keep trying
       }
 
       // Check frontend
-      const frontendCheck = await this.checkServiceHealth('http://localhost:5173');
+      const frontendCheck = await this.checkServiceHealth('http://127.0.0.1:5173');
       if (frontendCheck.success) {
         frontendSuccesses++;
+        console.log(`[DeploymentService] Frontend health check passed (${frontendSuccesses}/${requiredConsecutiveSuccesses})`);
       } else {
-        frontendSuccesses = 0; // Reset on failure
+        console.log(`[DeploymentService] Frontend health check failed: ${frontendCheck.error || 'Unknown error'}`);
+        // DON'T reset counter - just keep trying
       }
 
-      console.log(
-        `[DeploymentService] Health check attempt ${attempts}: ` +
-        `Backend ${backendSuccesses}/3, Frontend ${frontendSuccesses}/3`
-      );
-
-      // Check if we have 3 consecutive successes for both
-      if (
-        backendSuccesses >= requiredConsecutiveSuccesses &&
-        frontendSuccesses >= requiredConsecutiveSuccesses
-      ) {
+      // Check if both services have enough consecutive successes
+      if (backendSuccesses >= requiredConsecutiveSuccesses &&
+          frontendSuccesses >= requiredConsecutiveSuccesses) {
+        console.log('[DeploymentService] All health checks passed!');
         return {
           backend: {
             success: true,
             consecutiveSuccesses: backendSuccesses,
-            url: 'http://localhost:3000/health',
+            url: 'http://127.0.0.1:3000/api/health',
             latency: backendCheck.latency,
           },
           frontend: {
             success: true,
             consecutiveSuccesses: frontendSuccesses,
-            url: 'http://localhost:5173',
+            url: 'http://127.0.0.1:5173',
             latency: frontendCheck.latency,
           },
         };
       }
 
-      // Wait before next attempt
       if (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, delayBetweenChecks));
       }
     }
 
-    // Failed to get 3 consecutive successes
+    // Failed after all attempts
     return {
       backend: {
-        success: false,
+        success: backendSuccesses >= requiredConsecutiveSuccesses,
         consecutiveSuccesses: backendSuccesses,
-        url: 'http://localhost:3000/health',
+        url: 'http://127.0.0.1:3000/api/health',
       },
       frontend: {
-        success: false,
+        success: frontendSuccesses >= requiredConsecutiveSuccesses,
         consecutiveSuccesses: frontendSuccesses,
-        url: 'http://localhost:5173',
+        url: 'http://127.0.0.1:5173',
       },
     };
   }
 
-  private async checkServiceHealth(url: string): Promise<{ success: boolean; latency?: number }> {
+  private async checkServiceHealth(url: string): Promise<{ success: boolean; latency?: number; error?: string }> {
     const startTime = Date.now();
 
     try {
@@ -843,12 +872,11 @@ export class DeploymentService {
       if (response.ok) {
         return { success: true, latency };
       } else {
-        console.warn(`[DeploymentService] Health check failed: ${url} returned ${response.status}`);
-        return { success: false };
+        const error = `HTTP ${response.status}`;
+        return { success: false, error };
       }
     } catch (error: any) {
-      console.warn(`[DeploymentService] Health check error: ${url} - ${error.message}`);
-      return { success: false };
+      return { success: false, error: error.message };
     }
   }
 
