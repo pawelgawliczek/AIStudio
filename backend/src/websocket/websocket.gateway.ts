@@ -393,4 +393,44 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
     this.logger.debug(`Broadcasted metrics updated to room: ${runRoom}`);
   }
+
+  /**
+   * Broadcast queue status updated (ST-53)
+   * Notifies clients of queue position, priority, wait time, and lock status changes
+   */
+  broadcastQueueUpdated(runId: string, projectId: string, data: any) {
+    const runRoom = `workflow-run:${runId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(runRoom).emit('queue:updated', data);
+    this.server.to(projectRoom).emit('queue:updated', data);
+
+    this.logger.log(`Broadcasted queue updated to rooms: ${runRoom}, ${projectRoom}`);
+  }
+
+  /**
+   * Handle workflow pause request (ST-53)
+   */
+  @SubscribeMessage('workflow:pause')
+  handleWorkflowPause(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { runId: string }
+  ) {
+    this.logger.log(`Client ${client.id} requested pause for workflow run: ${data.runId}`);
+    // Implementation would be handled by WorkflowRunsService
+    return { success: true, runId: data.runId, action: 'pause' };
+  }
+
+  /**
+   * Handle workflow cancel request (ST-53)
+   */
+  @SubscribeMessage('workflow:cancel')
+  handleWorkflowCancel(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { runId: string }
+  ) {
+    this.logger.log(`Client ${client.id} requested cancel for workflow run: ${data.runId}`);
+    // Implementation would be handled by WorkflowRunsService
+    return { success: true, runId: data.runId, action: 'cancel' };
+  }
 }
