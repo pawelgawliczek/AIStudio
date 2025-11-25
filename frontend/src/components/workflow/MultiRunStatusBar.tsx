@@ -65,7 +65,7 @@ export const MultiRunStatusBar: React.FC = () => {
   };
 
   const handleViewDetails = (runId: string) => {
-    window.location.href = `/workflow-runs/${runId}`;
+    window.location.href = `/workflow-runs/${runId}/monitor`;
   };
 
   if (shouldHide) {
