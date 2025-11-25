@@ -394,6 +394,8 @@ export function PerformanceDashboard() {
     promptsPerStoryChange: 0,
     timePerLOC: 0,
     timePerLOCChange: 0,
+    totalUserPrompts: 0,
+    totalUserPromptsChange: 0,
   };
 
   const trends = dashboardData?.trends || {

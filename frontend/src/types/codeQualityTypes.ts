@@ -15,12 +15,17 @@ export interface HealthScore {
 export interface ProjectMetrics {
   healthScore: HealthScore;
   totalLoc: number;
+  totalFiles?: number;
   locByLanguage: Record<string, number>;
   securityIssues: {
     critical: number;
     high: number;
     medium: number;
     low: number;
+  };
+  coverage?: {
+    overall: number;
+    weeklyChange: number;
   };
   lastUpdate: Date;
 }

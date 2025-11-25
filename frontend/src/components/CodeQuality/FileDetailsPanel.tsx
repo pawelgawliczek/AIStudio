@@ -131,7 +131,7 @@ export const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ file, loadin
                       {change.storyKey || 'Code change'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {change.linesChanged > 0 ? '+' : ''}{change.linesChanged} lines - {new Date(change.date || change.timestamp).toLocaleDateString()}
+                      {change.linesChanged > 0 ? '+' : ''}{change.linesChanged} lines - {new Date(change.date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>

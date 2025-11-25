@@ -12,7 +12,7 @@ import {
   Alert,
   TextField,
   Slider,
-  Grid,
+  Stack,
 } from '@mui/material';
 import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
 import { Coordinator, ComponentVersion } from '../../types/workflow-wizard';
@@ -227,8 +227,8 @@ export const CoordinatorSelector: React.FC = () => {
             componentAssignments={state.componentAssignments}
           />
 
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <FormControl fullWidth>
                 <InputLabel>Model</InputLabel>
                 <Select
@@ -243,9 +243,7 @@ export const CoordinatorSelector: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
 
-            <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel>Decision Strategy</InputLabel>
                 <Select
@@ -260,9 +258,9 @@ export const CoordinatorSelector: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+            </Stack>
 
-            <Grid item xs={12}>
+            <Box>
               <Typography gutterBottom>Temperature: {state.newCoordinator.temperature}</Typography>
               <Slider
                 value={state.newCoordinator.temperature}
@@ -273,9 +271,9 @@ export const CoordinatorSelector: React.FC = () => {
                 marks
                 valueLabelDisplay="auto"
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={4}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <TextField
                 label="Max Retries"
                 type="number"
@@ -284,9 +282,7 @@ export const CoordinatorSelector: React.FC = () => {
                 fullWidth
                 inputProps={{ min: 0, max: 10 }}
               />
-            </Grid>
 
-            <Grid item xs={12} md={4}>
               <TextField
                 label="Timeout (seconds)"
                 type="number"
@@ -295,9 +291,7 @@ export const CoordinatorSelector: React.FC = () => {
                 fullWidth
                 inputProps={{ min: 60, max: 3600 }}
               />
-            </Grid>
 
-            <Grid item xs={12} md={4}>
               <TextField
                 label="Cost Limit (USD)"
                 type="number"
@@ -306,8 +300,8 @@ export const CoordinatorSelector: React.FC = () => {
                 fullWidth
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
               />
-            </Grid>
-          </Grid>
+            </Stack>
+          </Stack>
         </Box>
       )}
     </Paper>
