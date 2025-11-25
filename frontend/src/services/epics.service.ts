@@ -21,7 +21,7 @@ export const epicsService = {
    * Get a single epic by ID
    */
   async getById(id: string): Promise<Epic> {
-    const response = await apiClient.get<Epic>(`/api/epics/${id}`);
+    const response = await apiClient.get<Epic>(`/epics/${id}`);
     return response.data;
   },
 
@@ -37,7 +37,7 @@ export const epicsService = {
    * Update an epic
    */
   async update(id: string, data: UpdateEpicDto): Promise<Epic> {
-    const response = await apiClient.patch<Epic>(`/api/epics/${id}`, data);
+    const response = await apiClient.patch<Epic>(`/epics/${id}`, data);
     return response.data;
   },
 
@@ -45,6 +45,6 @@ export const epicsService = {
    * Delete an epic
    */
   async delete(id: string): Promise<void> {
-    await apiClient.delete(`/api/epics/${id}`);
+    await apiClient.delete(`/epics/${id}`);
   },
 };

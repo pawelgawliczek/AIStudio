@@ -117,7 +117,7 @@ class MetricsService {
     if (query?.technicalComplexity !== undefined) params.technicalComplexity = query.technicalComplexity.toString();
 
     const response = await apiClient.get(
-      `/api/projects/${projectId}/metrics/workflows`,
+      `/projects/${projectId}/metrics/workflows`,
       { params }
     );
     return response.data;
@@ -136,7 +136,7 @@ class MetricsService {
     if (query?.technicalComplexity !== undefined) params.technicalComplexity = query.technicalComplexity.toString();
 
     const response = await apiClient.get(
-      `/api/projects/${projectId}/metrics/components`,
+      `/projects/${projectId}/metrics/components`,
       { params }
     );
     return response.data;
@@ -155,7 +155,7 @@ class MetricsService {
     if (query?.technicalComplexity !== undefined) params.technicalComplexity = query.technicalComplexity.toString();
 
     const response = await apiClient.get(
-      `/api/projects/${projectId}/metrics/trends`,
+      `/projects/${projectId}/metrics/trends`,
       { params }
     );
     return response.data;
@@ -166,7 +166,7 @@ class MetricsService {
     comparison: WorkflowComparison,
   ): Promise<WorkflowComparisonResponse> {
     const response = await apiClient.post(
-      `/api/projects/${projectId}/metrics/comparisons`,
+      `/projects/${projectId}/metrics/comparisons`,
       comparison
     );
     return response.data;
@@ -183,7 +183,7 @@ class MetricsService {
     if (technicalComplexity !== undefined) params.technicalComplexity = technicalComplexity.toString();
 
     const response = await apiClient.get(
-      `/api/projects/${projectId}/metrics/weekly`,
+      `/projects/${projectId}/metrics/weekly`,
       { params }
     );
     return response.data;

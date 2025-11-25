@@ -93,7 +93,7 @@ export const analyticsService = {
     if (versionId) params.versionId = versionId;
 
     const response = await apiClient.get<ComponentUsageAnalytics>(
-      `/api/analytics/components/${componentId}`,
+      `/analytics/components/${componentId}`,
       { params }
     );
     return response.data;
@@ -109,7 +109,7 @@ export const analyticsService = {
     }
   ): Promise<ExecutionHistory[]> {
     const response = await apiClient.get<ExecutionHistory[]>(
-      `/api/analytics/components/${componentId}/executions`,
+      `/analytics/components/${componentId}/executions`,
       { params: options }
     );
     return response.data;
@@ -123,7 +123,7 @@ export const analyticsService = {
     if (versionId) params.versionId = versionId;
 
     const response = await apiClient.get<WorkflowUsage[]>(
-      `/api/analytics/components/${componentId}/workflows`,
+      `/analytics/components/${componentId}/workflows`,
       { params }
     );
     return response.data;
@@ -141,7 +141,7 @@ export const analyticsService = {
     if (versionId) params.versionId = versionId;
 
     const response = await apiClient.get<CoordinatorUsageAnalytics>(
-      `/api/analytics/coordinators/${coordinatorId}`,
+      `/analytics/coordinators/${coordinatorId}`,
       { params }
     );
     return response.data;
@@ -157,7 +157,7 @@ export const analyticsService = {
     }
   ): Promise<ExecutionHistory[]> {
     const response = await apiClient.get<ExecutionHistory[]>(
-      `/api/analytics/coordinators/${coordinatorId}/executions`,
+      `/analytics/coordinators/${coordinatorId}/executions`,
       { params: options }
     );
     return response.data;
@@ -171,7 +171,7 @@ export const analyticsService = {
     if (versionId) params.versionId = versionId;
 
     const response = await apiClient.get<WorkflowUsage[]>(
-      `/api/analytics/coordinators/${coordinatorId}/workflows`,
+      `/analytics/coordinators/${coordinatorId}/workflows`,
       { params }
     );
     return response.data;
@@ -186,7 +186,7 @@ export const analyticsService = {
 
     const response = await apiClient.get<
       Array<{ componentId: string; componentName: string; usageCount: number }>
-    >(`/api/analytics/coordinators/${coordinatorId}/components`, { params });
+    >(`/analytics/coordinators/${coordinatorId}/components`, { params });
     return response.data;
   },
 
@@ -202,7 +202,7 @@ export const analyticsService = {
     if (versionId) params.versionId = versionId;
 
     const response = await apiClient.get<WorkflowUsageAnalytics>(
-      `/api/analytics/workflows/${workflowId}`,
+      `/analytics/workflows/${workflowId}`,
       { params }
     );
     return response.data;
@@ -218,7 +218,7 @@ export const analyticsService = {
     }
   ): Promise<ExecutionHistory[]> {
     const response = await apiClient.get<ExecutionHistory[]>(
-      `/api/analytics/workflows/${workflowId}/executions`,
+      `/analytics/workflows/${workflowId}/executions`,
       { params: options }
     );
     return response.data;
@@ -247,7 +247,7 @@ export const analyticsService = {
         avgCost: number;
         failureRate: number;
       }>
-    >(`/api/analytics/workflows/${workflowId}/component-breakdown`, { params });
+    >(`/analytics/workflows/${workflowId}/component-breakdown`, { params });
     return response.data;
   },
 
@@ -264,7 +264,7 @@ export const analyticsService = {
     }
   ): Promise<Blob> {
     const response = await apiClient.get(
-      `/api/analytics/${entityType}s/${entityId}/export`,
+      `/analytics/${entityType}s/${entityId}/export`,
       {
         params: { format, ...options },
         responseType: 'blob',

@@ -124,14 +124,14 @@ export const versioningService = {
    */
   async getComponentVersionHistory(componentId: string): Promise<ComponentVersion[]> {
     const response = await apiClient.get<ComponentVersion[]>(
-      `/api/versioning/components/${componentId}/versions`
+      `/versioning/components/${componentId}/versions`
     );
     return response.data;
   },
 
   async getComponentVersion(versionId: string): Promise<ComponentVersion> {
     const response = await apiClient.get<ComponentVersion>(
-      `/api/versioning/components/versions/${versionId}`
+      `/versioning/components/versions/${versionId}`
     );
     return response.data;
   },
@@ -144,7 +144,7 @@ export const versioningService = {
     }
   ): Promise<ComponentVersion> {
     const response = await apiClient.post<ComponentVersion>(
-      `/api/versioning/components/${componentId}/versions`,
+      `/versioning/components/${componentId}/versions`,
       data
     );
     return response.data;
@@ -152,14 +152,14 @@ export const versioningService = {
 
   async activateComponentVersion(versionId: string): Promise<ComponentVersion> {
     const response = await apiClient.post<ComponentVersion>(
-      `/api/versioning/components/versions/${versionId}/activate`
+      `/versioning/components/versions/${versionId}/activate`
     );
     return response.data;
   },
 
   async deactivateComponentVersion(versionId: string): Promise<ComponentVersion> {
     const response = await apiClient.post<ComponentVersion>(
-      `/api/versioning/components/versions/${versionId}/deactivate`
+      `/versioning/components/versions/${versionId}/deactivate`
     );
     return response.data;
   },
@@ -169,7 +169,7 @@ export const versioningService = {
     versionId2: string
   ): Promise<VersionComparison> {
     const response = await apiClient.get<VersionComparison>(
-      `/api/versioning/components/versions/compare`,
+      `/versioning/components/versions/compare`,
       {
         params: { versionId1, versionId2 },
       }
@@ -179,7 +179,7 @@ export const versioningService = {
 
   async verifyComponentChecksum(versionId: string): Promise<ChecksumVerification> {
     const response = await apiClient.post<ChecksumVerification>(
-      `/api/versioning/components/versions/${versionId}/verify-checksum`
+      `/versioning/components/versions/${versionId}/verify-checksum`
     );
     return response.data;
   },
@@ -189,14 +189,14 @@ export const versioningService = {
    */
   async getCoordinatorVersionHistory(coordinatorId: string): Promise<CoordinatorVersion[]> {
     const response = await apiClient.get<CoordinatorVersion[]>(
-      `/api/versioning/coordinators/${coordinatorId}/versions`
+      `/versioning/coordinators/${coordinatorId}/versions`
     );
     return response.data;
   },
 
   async getCoordinatorVersion(versionId: string): Promise<CoordinatorVersion> {
     const response = await apiClient.get<CoordinatorVersion>(
-      `/api/versioning/coordinators/versions/${versionId}`
+      `/versioning/coordinators/versions/${versionId}`
     );
     return response.data;
   },
@@ -209,7 +209,7 @@ export const versioningService = {
     }
   ): Promise<CoordinatorVersion> {
     const response = await apiClient.post<CoordinatorVersion>(
-      `/api/versioning/coordinators/${coordinatorId}/versions`,
+      `/versioning/coordinators/${coordinatorId}/versions`,
       data
     );
     return response.data;
@@ -217,14 +217,14 @@ export const versioningService = {
 
   async activateCoordinatorVersion(versionId: string): Promise<CoordinatorVersion> {
     const response = await apiClient.post<CoordinatorVersion>(
-      `/api/versioning/coordinators/versions/${versionId}/activate`
+      `/versioning/coordinators/versions/${versionId}/activate`
     );
     return response.data;
   },
 
   async deactivateCoordinatorVersion(versionId: string): Promise<CoordinatorVersion> {
     const response = await apiClient.post<CoordinatorVersion>(
-      `/api/versioning/coordinators/versions/${versionId}/deactivate`
+      `/versioning/coordinators/versions/${versionId}/deactivate`
     );
     return response.data;
   },
@@ -234,7 +234,7 @@ export const versioningService = {
     versionId2: string
   ): Promise<VersionComparison> {
     const response = await apiClient.get<VersionComparison>(
-      `/api/versioning/coordinators/versions/compare`,
+      `/versioning/coordinators/versions/compare`,
       {
         params: { versionId1, versionId2 },
       }
@@ -244,7 +244,7 @@ export const versioningService = {
 
   async verifyCoordinatorChecksum(versionId: string): Promise<ChecksumVerification> {
     const response = await apiClient.post<ChecksumVerification>(
-      `/api/versioning/coordinators/versions/${versionId}/verify-checksum`
+      `/versioning/coordinators/versions/${versionId}/verify-checksum`
     );
     return response.data;
   },
@@ -254,14 +254,14 @@ export const versioningService = {
    */
   async getWorkflowVersionHistory(workflowId: string): Promise<WorkflowVersion[]> {
     const response = await apiClient.get<WorkflowVersion[]>(
-      `/api/versioning/workflows/${workflowId}/versions`
+      `/versioning/workflows/${workflowId}/versions`
     );
     return response.data;
   },
 
   async getWorkflowVersion(versionId: string): Promise<WorkflowVersion> {
     const response = await apiClient.get<WorkflowVersion>(
-      `/api/versioning/workflows/versions/${versionId}`
+      `/versioning/workflows/versions/${versionId}`
     );
     return response.data;
   },
@@ -274,7 +274,7 @@ export const versioningService = {
     }
   ): Promise<WorkflowVersion> {
     const response = await apiClient.post<WorkflowVersion>(
-      `/api/versioning/workflows/${workflowId}/versions`,
+      `/versioning/workflows/${workflowId}/versions`,
       data
     );
     return response.data;
@@ -282,14 +282,14 @@ export const versioningService = {
 
   async activateWorkflowVersion(versionId: string): Promise<WorkflowVersion> {
     const response = await apiClient.post<WorkflowVersion>(
-      `/api/versioning/workflows/versions/${versionId}/activate`
+      `/versioning/workflows/versions/${versionId}/activate`
     );
     return response.data;
   },
 
   async deactivateWorkflowVersion(versionId: string): Promise<WorkflowVersion> {
     const response = await apiClient.post<WorkflowVersion>(
-      `/api/versioning/workflows/versions/${versionId}/deactivate`
+      `/versioning/workflows/versions/${versionId}/deactivate`
     );
     return response.data;
   },
@@ -299,7 +299,7 @@ export const versioningService = {
     versionId2: string
   ): Promise<VersionComparison> {
     const response = await apiClient.get<VersionComparison>(
-      `/api/versioning/workflows/versions/compare`,
+      `/versioning/workflows/versions/compare`,
       {
         params: { versionId1, versionId2 },
       }
@@ -309,7 +309,7 @@ export const versioningService = {
 
   async verifyWorkflowChecksum(versionId: string): Promise<ChecksumVerification> {
     const response = await apiClient.post<ChecksumVerification>(
-      `/api/versioning/workflows/versions/${versionId}/verify-checksum`
+      `/versioning/workflows/versions/${versionId}/verify-checksum`
     );
     return response.data;
   },

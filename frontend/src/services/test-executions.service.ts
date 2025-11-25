@@ -10,7 +10,7 @@ class TestExecutionsService {
    * Report a new test execution (typically called by CI/CD)
    */
   async report(data: ReportTestExecutionDto): Promise<TestExecution> {
-    const response = await apiClient.post<TestExecution>('/api/test-executions/report', data);
+    const response = await apiClient.post<TestExecution>('/test-executions/report', data);
     return response.data;
   }
 
@@ -19,7 +19,7 @@ class TestExecutionsService {
    */
   async getByTestCase(testCaseId: string): Promise<TestExecution[]> {
     const response = await apiClient.get<TestExecution[]>(
-      `/api/test-executions/test-case/${testCaseId}`
+      `/test-executions/test-case/${testCaseId}`
     );
     return response.data;
   }
@@ -29,7 +29,7 @@ class TestExecutionsService {
    */
   async getByStory(storyId: string): Promise<TestExecution[]> {
     const response = await apiClient.get<TestExecution[]>(
-      `/api/test-executions/story/${storyId}`
+      `/test-executions/story/${storyId}`
     );
     return response.data;
   }
@@ -39,7 +39,7 @@ class TestExecutionsService {
    */
   async getStatistics(testCaseId: string): Promise<TestExecutionStatistics> {
     const response = await apiClient.get<TestExecutionStatistics>(
-      `/api/test-executions/test-case/${testCaseId}/statistics`
+      `/test-executions/test-case/${testCaseId}/statistics`
     );
     return response.data;
   }
@@ -48,7 +48,7 @@ class TestExecutionsService {
    * Get a single execution by ID
    */
   async findOne(id: string): Promise<TestExecution> {
-    const response = await apiClient.get<TestExecution>(`/api/test-executions/${id}`);
+    const response = await apiClient.get<TestExecution>(`/test-executions/${id}`);
     return response.data;
   }
 }

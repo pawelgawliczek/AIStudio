@@ -20,7 +20,7 @@ export const coordinatorsService = {
     if (options?.search) params.search = options.search;
 
     const response = await apiClient.get<CoordinatorAgent[]>(
-      `/api/projects/${projectId}/coordinators`,
+      `/projects/${projectId}/coordinators`,
       { params }
     );
     return response.data;
@@ -31,7 +31,7 @@ export const coordinatorsService = {
    */
   async getById(projectId: string, id: string, includeStats = false): Promise<CoordinatorAgent> {
     const response = await apiClient.get<CoordinatorAgent>(
-      `/api/projects/${projectId}/coordinators/${id}`,
+      `/projects/${projectId}/coordinators/${id}`,
       { params: { includeStats } }
     );
     return response.data;
@@ -42,7 +42,7 @@ export const coordinatorsService = {
    */
   async create(projectId: string, data: CreateCoordinatorDto): Promise<CoordinatorAgent> {
     const response = await apiClient.post<CoordinatorAgent>(
-      `/api/projects/${projectId}/coordinators`,
+      `/projects/${projectId}/coordinators`,
       data
     );
     return response.data;
@@ -53,7 +53,7 @@ export const coordinatorsService = {
    */
   async update(projectId: string, id: string, data: UpdateCoordinatorDto): Promise<CoordinatorAgent> {
     const response = await apiClient.put<CoordinatorAgent>(
-      `/api/projects/${projectId}/coordinators/${id}`,
+      `/projects/${projectId}/coordinators/${id}`,
       data
     );
     return response.data;
@@ -63,7 +63,7 @@ export const coordinatorsService = {
    * Delete a coordinator
    */
   async delete(projectId: string, id: string): Promise<void> {
-    await apiClient.delete(`/api/projects/${projectId}/coordinators/${id}`);
+    await apiClient.delete(`/projects/${projectId}/coordinators/${id}`);
   },
 
   /**
@@ -71,7 +71,7 @@ export const coordinatorsService = {
    */
   async activate(projectId: string, id: string): Promise<CoordinatorAgent> {
     const response = await apiClient.post<CoordinatorAgent>(
-      `/api/projects/${projectId}/coordinators/${id}/activate`
+      `/projects/${projectId}/coordinators/${id}/activate`
     );
     return response.data;
   },
@@ -81,7 +81,7 @@ export const coordinatorsService = {
    */
   async deactivate(projectId: string, id: string): Promise<CoordinatorAgent> {
     const response = await apiClient.post<CoordinatorAgent>(
-      `/api/projects/${projectId}/coordinators/${id}/deactivate`
+      `/projects/${projectId}/coordinators/${id}/deactivate`
     );
     return response.data;
   },
