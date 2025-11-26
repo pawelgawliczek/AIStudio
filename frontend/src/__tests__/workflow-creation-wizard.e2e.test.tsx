@@ -1,18 +1,18 @@
 /**
- * Comprehensive E2E Tests: Workflow Creation Wizard (ST-90)
+ * Comprehensive E2E Tests: Team Creation Wizard (ST-90)
  *
- * Tests the complete 3-step workflow creation process including:
- * - Step 1: Workflow shell creation (name, description, project)
- * - Step 2: Component version selection with unique name validation
- * - Step 3: Coordinator selection (existing) or creation (new) with template validation
+ * Tests the complete 3-step team creation process including:
+ * - Step 1: Team shell creation (name, description, project)
+ * - Step 2: Agent version selection with unique name validation
+ * - Step 3: Project Manager selection (existing) or creation (new) with template validation
  *
  * Coverage:
- * - AC-1: Workflow shell creation
- * - AC-2: Component version selection with duplicate detection
- * - AC-3: Existing coordinator selection with template preview
- * - AC-4: New coordinator creation with template validation
+ * - AC-1: Team shell creation
+ * - AC-2: Agent version selection with duplicate detection
+ * - AC-3: Existing project manager selection with template preview
+ * - AC-4: New project manager creation with template validation
  * - AC-5: Template validation error handling
- * - AC-7: End-to-end workflow creation
+ * - AC-7: End-to-end team creation
  *
  * Additional scenarios:
  * - Navigation and state persistence
@@ -51,7 +51,7 @@ const mockProjects = [
   { id: 'project-3', name: 'Content Management System' },
 ];
 
-const mockComponents = [
+const mockAgents = [
   {
     id: 'comp-1',
     name: 'Fullstack Developer',
@@ -117,10 +117,10 @@ const mockComponentVersions = {
   ],
 };
 
-const mockCoordinators = [
+const mockProjectManagers = [
   {
     id: 'coord-1',
-    name: 'Feature Implementation Coordinator',
+    name: 'Feature Implementation Project Manager',
     version: 'v1.2',
     versionMajor: 1,
     versionMinor: 2,
@@ -128,7 +128,7 @@ const mockCoordinators = [
   },
   {
     id: 'coord-2',
-    name: 'Bug Fix Coordinator',
+    name: 'Bug Fix Project Manager',
     version: 'v1.0',
     versionMajor: 1,
     versionMinor: 0,
@@ -162,17 +162,17 @@ function renderWizard(props = {}) {
   );
 }
 
-describe('Workflow Creation Wizard E2E Tests', () => {
+describe('Team Creation Wizard E2E Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Setup default API mocks
     mockedApiClient.get.mockImplementation((url) => {
       if (url.includes('/components') && !url.includes('/versions')) {
-        return Promise.resolve({ data: mockComponents });
+        return Promise.resolve({ data: mockAgents });
       }
       if (url.includes('/coordinators')) {
-        return Promise.resolve({ data: mockCoordinators });
+        return Promise.resolve({ data: mockProjectManagers });
       }
       if (url.includes('/versions')) {
         const componentId = url.split('/')[3];
@@ -229,19 +229,19 @@ describe('Workflow Creation Wizard E2E Tests', () => {
     });
   });
 
-  describe('AC-7: Complete Workflow Creation Flow (Happy Paths)', () => {
-    it('should create workflow with existing coordinator through all 3 steps', async () => {
+  describe('AC-7: Complete Team Creation Flow (Happy Paths)', () => {
+    it('should create team with existing project manager through all 3 steps', async () => {
       const user = userEvent.setup();
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
       renderWizard({ onSuccess, onClose });
 
-      // Step 1: Workflow Shell
-      expect(screen.getByText('Create New Workflow')).toBeInTheDocument();
-      expect(screen.getByText('Workflow Information')).toBeInTheDocument();
+      // Step 1: Team Shell
+      expect(screen.getByText('Create New Team')).toBeInTheDocument();
+      expect(screen.getByText('Team Information')).toBeInTheDocument();
 
-      const nameInput = screen.getByLabelText(/workflow name/i);
+      const nameInput = screen.getByLabelText(/team name/i);
       const descriptionInput = screen.getByLabelText(/description/i);
 
       await user.type(nameInput, 'Feature Implementation Flow');
@@ -252,32 +252,32 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       await user.click(nextButton);
 
-      // Step 2: Component Selection
+      // Step 2: Agent Selection
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      // Add first component
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
-      await user.click(addComponentButton);
+      // Add first agent
+      const addAgentButton = screen.getByRole('button', { name: /add agent/i });
+      await user.click(addAgentButton);
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/component/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/agent/i)).toBeInTheDocument();
       });
 
-      const componentDropdown = screen.getByLabelText(/component/i);
-      await user.click(componentDropdown);
+      const agentDropdown = screen.getByLabelText(/agent/i);
+      await user.click(agentDropdown);
       await user.click(screen.getByText('Fullstack Developer'));
 
       const versionDropdown = screen.getByLabelText(/version/i);
       await user.click(versionDropdown);
       await user.click(screen.getByText('v0.2'));
 
-      // Add second component
-      await user.click(addComponentButton);
+      // Add second agent
+      await user.click(addAgentButton);
 
-      const componentDropdowns = screen.getAllByLabelText(/component/i);
-      await user.click(componentDropdowns[1]);
+      const agentDropdowns = screen.getAllByLabelText(/agent/i);
+      await user.click(agentDropdowns[1]);
       await user.click(screen.getByText('QA Engineer'));
 
       const versionDropdowns = screen.getAllByLabelText(/version/i);
@@ -288,20 +288,20 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const nextButton2 = screen.getByRole('button', { name: /next/i });
       await user.click(nextButton2);
 
-      // Step 3: Coordinator Selection
+      // Step 3: Project Manager Selection
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const existingRadio = screen.getByLabelText(/use existing coordinator/i);
+      const existingRadio = screen.getByLabelText(/use existing project manager/i);
       expect(existingRadio).toBeChecked();
 
-      const coordinatorDropdown = screen.getByLabelText(/coordinator/i);
-      await user.click(coordinatorDropdown);
-      await user.click(screen.getByText('Feature Implementation Coordinator'));
+      const pmDropdown = screen.getByLabelText(/project manager/i);
+      await user.click(pmDropdown);
+      await user.click(screen.getByText('Feature Implementation Project Manager'));
 
-      // Submit workflow
-      const createButton = screen.getByRole('button', { name: /create workflow/i });
+      // Submit team
+      const createButton = screen.getByRole('button', { name: /create team/i });
       await user.click(createButton);
 
       // Verify API calls
@@ -330,22 +330,22 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       expect(onClose).toHaveBeenCalled();
     });
 
-    it('should create workflow with new coordinator and template validation', async () => {
+    it('should create team with new coordinator and template validation', async () => {
       const user = userEvent.setup();
       const onSuccess = vi.fn();
 
       renderWizard({ onSuccess });
 
       // Step 1: Complete
-      await user.type(screen.getByLabelText(/workflow name/i), 'Custom Bug Fix Flow');
+      await user.type(screen.getByLabelText(/team name/i), 'Custom Bug Fix Flow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       // Step 2: Add components
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
 
       const componentDropdown = screen.getByLabelText(/component/i);
@@ -360,13 +360,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Step 3: Create new coordinator
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const newRadio = screen.getByLabelText(/create new coordinator/i);
+      const newRadio = screen.getByLabelText(/create new project manager/i);
       await user.click(newRadio);
 
-      const coordinatorNameInput = screen.getByLabelText(/coordinator name/i);
+      const coordinatorNameInput = screen.getByLabelText(/project manager name/i);
       await user.type(coordinatorNameInput, 'Bug Fix Coordinator');
 
       const instructionsInput = screen.getByLabelText(/instructions/i);
@@ -377,7 +377,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       await user.click(screen.getByText('claude-sonnet-4.5'));
 
       // Submit
-      const createButton = screen.getByRole('button', { name: /create workflow/i });
+      const createButton = screen.getByRole('button', { name: /create team/i });
       await user.click(createButton);
 
       // Verify coordinator creation
@@ -403,22 +403,22 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       expect(onSuccess).toHaveBeenCalled();
     });
 
-    it('should create workflow with multiple components (5 components)', async () => {
+    it('should create team with multiple components (5 components)', async () => {
       const user = userEvent.setup();
       const onSuccess = vi.fn();
 
       renderWizard({ onSuccess });
 
       // Step 1
-      await user.type(screen.getByLabelText(/workflow name/i), 'Full Stack Feature Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Full Stack Feature Workflow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       // Step 2: Add 5 components
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       const componentNames = ['Fullstack Developer', 'QA Engineer', 'PM Agent', 'Designer', 'Backend Developer'];
 
       for (let i = 0; i < 5; i++) {
@@ -446,14 +446,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Step 3: Select coordinator
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
       const coordinatorDropdown = screen.getByLabelText(/coordinator/i);
       await user.click(coordinatorDropdown);
       await user.click(screen.getByText('Feature Implementation Coordinator'));
 
-      await user.click(screen.getByRole('button', { name: /create workflow/i }));
+      await user.click(screen.getByRole('button', { name: /create team/i }));
 
       await waitFor(() => {
         expect(onSuccess).toHaveBeenCalled();
@@ -467,15 +467,15 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       renderWizard();
 
       // Navigate to step 2
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Test Workflow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Add first component
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
 
       const componentDropdown = screen.getByLabelText(/component/i);
@@ -503,15 +503,15 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const user = userEvent.setup();
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Test Workflow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Add two components with same name (triggering error)
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -543,15 +543,15 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const user = userEvent.setup();
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Test Workflow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Add Developer v0.2
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -576,21 +576,21 @@ describe('Workflow Creation Wizard E2E Tests', () => {
   });
 
   describe('AC-4 & AC-5: New Coordinator Creation with Template Validation', () => {
-    it('should create new coordinator with valid template references', async () => {
+    it('should create new project manager with valid template references', async () => {
       const user = userEvent.setup();
       const onSuccess = vi.fn();
 
       renderWizard({ onSuccess });
 
       // Complete steps 1 and 2
-      await user.type(screen.getByLabelText(/workflow name/i), 'Template Test Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Template Test Workflow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -610,13 +610,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Step 3: Create coordinator with valid template
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const newRadio = screen.getByLabelText(/create new coordinator/i);
+      const newRadio = screen.getByLabelText(/create new project manager/i);
       await user.click(newRadio);
 
-      await user.type(screen.getByLabelText(/coordinator name/i), 'Test Coordinator');
+      await user.type(screen.getByLabelText(/project manager name/i), 'Test Coordinator');
 
       const instructionsInput = screen.getByLabelText(/instructions/i);
       await user.type(
@@ -627,7 +627,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       // Wait for validation (debounced)
       await waitFor(
         () => {
-          const createButton = screen.getByRole('button', { name: /create workflow/i });
+          const createButton = screen.getByRole('button', { name: /create team/i });
           expect(createButton).not.toBeDisabled();
         },
         { timeout: 2000 }
@@ -642,14 +642,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       renderWizard();
 
       // Navigate to step 3
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Test Workflow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -660,13 +660,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Step 3: Create coordinator with invalid reference
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const newRadio = screen.getByLabelText(/create new coordinator/i);
+      const newRadio = screen.getByLabelText(/create new project manager/i);
       await user.click(newRadio);
 
-      await user.type(screen.getByLabelText(/coordinator name/i), 'Invalid Coordinator');
+      await user.type(screen.getByLabelText(/project manager name/i), 'Invalid Coordinator');
 
       const instructionsInput = screen.getByLabelText(/instructions/i);
       await user.type(
@@ -683,7 +683,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       );
 
       // Create button should be disabled
-      const createButton = screen.getByRole('button', { name: /create workflow/i });
+      const createButton = screen.getByRole('button', { name: /create team/i });
       expect(createButton).toBeDisabled();
     });
 
@@ -692,14 +692,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       renderWizard();
 
       // Complete steps 1 and 2 with only one component
-      await user.type(screen.getByLabelText(/workflow name/i), 'Fix Validation Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Fix Validation Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -710,13 +710,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Step 3: Enter invalid reference
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const newRadio = screen.getByLabelText(/create new coordinator/i);
+      const newRadio = screen.getByLabelText(/create new project manager/i);
       await user.click(newRadio);
 
-      await user.type(screen.getByLabelText(/coordinator name/i), 'Test Coordinator');
+      await user.type(screen.getByLabelText(/project manager name/i), 'Test Coordinator');
 
       const instructionsInput = screen.getByLabelText(/instructions/i);
       await user.type(instructionsInput, 'Use {{QA Engineer}}'); // Invalid
@@ -729,7 +729,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       await user.click(screen.getByRole('button', { name: /back/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       await user.click(addComponentButton);
@@ -749,7 +749,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
         expect(screen.queryByText(/not found/i)).not.toBeInTheDocument();
       });
 
-      const createButton = screen.getByRole('button', { name: /create workflow/i });
+      const createButton = screen.getByRole('button', { name: /create team/i });
       expect(createButton).not.toBeDisabled();
     });
 
@@ -758,14 +758,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       renderWizard();
 
       // Setup with components
-      await user.type(screen.getByLabelText(/workflow name/i), 'Highlight Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Highlight Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -776,13 +776,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Create coordinator with valid reference
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const newRadio = screen.getByLabelText(/create new coordinator/i);
+      const newRadio = screen.getByLabelText(/create new project manager/i);
       await user.click(newRadio);
 
-      await user.type(screen.getByLabelText(/coordinator name/i), 'Test');
+      await user.type(screen.getByLabelText(/project manager name/i), 'Test');
 
       const instructionsInput = screen.getByLabelText(/instructions/i);
       await user.type(instructionsInput, 'Use {{Fullstack Developer}} to implement');
@@ -798,14 +798,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const user = userEvent.setup();
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Multiline Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Multiline Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -815,13 +815,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const newRadio = screen.getByLabelText(/create new coordinator/i);
+      const newRadio = screen.getByLabelText(/create new project manager/i);
       await user.click(newRadio);
 
-      await user.type(screen.getByLabelText(/coordinator name/i), 'Test');
+      await user.type(screen.getByLabelText(/project manager name/i), 'Test');
 
       const instructionsInput = screen.getByLabelText(/instructions/i);
       const multilineInstructions = `
@@ -835,7 +835,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       // Should validate all lines
       await waitFor(
         () => {
-          const createButton = screen.getByRole('button', { name: /create workflow/i });
+          const createButton = screen.getByRole('button', { name: /create team/i });
           expect(createButton).not.toBeDisabled();
         },
         { timeout: 2000 }
@@ -852,13 +852,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const workflowName = 'Persistent Workflow';
       const workflowDesc = 'Test description for persistence';
 
-      await user.type(screen.getByLabelText(/workflow name/i), workflowName);
+      await user.type(screen.getByLabelText(/team name/i), workflowName);
       await user.type(screen.getByLabelText(/description/i), workflowDesc);
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       // Step 2
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Go back
@@ -866,7 +866,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Verify data preserved
       await waitFor(() => {
-        expect(screen.getByLabelText(/workflow name/i)).toHaveValue(workflowName);
+        expect(screen.getByLabelText(/team name/i)).toHaveValue(workflowName);
         expect(screen.getByLabelText(/description/i)).toHaveValue(workflowDesc);
       });
     });
@@ -876,15 +876,15 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       renderWizard();
 
       // Complete step 1
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       // Add components in step 2
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -895,7 +895,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Step 3
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
       // Go back
@@ -903,7 +903,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Verify component still there
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
         expect(screen.getByDisplayValue('Fullstack Developer')).toBeInTheDocument();
       });
     });
@@ -913,7 +913,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const onClose = vi.fn();
       renderWizard({ onClose });
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Test Workflow');
       await user.click(screen.getByRole('button', { name: /cancel/i }));
 
       expect(onClose).toHaveBeenCalled();
@@ -924,19 +924,19 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       renderWizard();
 
       // Verify step 1
-      expect(screen.getByText('Workflow Information')).toBeInTheDocument();
+      expect(screen.getByText('Team Information')).toBeInTheDocument();
       expect(screen.getByText(/step 1/i)).toBeInTheDocument();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Sequential Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Sequential Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       // Verify step 2
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
         expect(screen.getByText(/step 2/i)).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -947,7 +947,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Verify step 3
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
         expect(screen.getByText(/step 3/i)).toBeInTheDocument();
       });
     });
@@ -968,14 +968,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       });
 
       // Complete all steps
-      await user.type(screen.getByLabelText(/workflow name/i), 'Duplicate Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Duplicate Workflow');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -985,13 +985,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
       await user.click(screen.getByLabelText(/coordinator/i));
       await user.click(screen.getByText('Feature Implementation Coordinator'));
 
-      await user.click(screen.getByRole('button', { name: /create workflow/i }));
+      await user.click(screen.getByRole('button', { name: /create team/i }));
 
       // Should show error message
       await waitFor(() => {
@@ -999,7 +999,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       });
 
       // Should stay on same step
-      expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+      expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
     });
 
     it('should handle network errors gracefully', async () => {
@@ -1009,14 +1009,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       // Mock network error
       mockedApiClient.post.mockRejectedValueOnce(new Error('Network Error'));
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Network Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Network Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -1026,13 +1026,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
       await user.click(screen.getByLabelText(/coordinator/i));
       await user.click(screen.getByText('Feature Implementation Coordinator'));
 
-      await user.click(screen.getByRole('button', { name: /create workflow/i }));
+      await user.click(screen.getByRole('button', { name: /create team/i }));
 
       // Should show network error
       await waitFor(() => {
@@ -1052,14 +1052,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
         },
       });
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Retry Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Retry Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -1069,13 +1069,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
       await user.click(screen.getByLabelText(/coordinator/i));
       await user.click(screen.getByText('Feature Implementation Coordinator'));
 
-      await user.click(screen.getByRole('button', { name: /create workflow/i }));
+      await user.click(screen.getByRole('button', { name: /create team/i }));
 
       await waitFor(() => {
         expect(screen.getByText(/server error/i)).toBeInTheDocument();
@@ -1086,7 +1086,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
         data: { id: 'workflow-1', name: 'Retry Test' },
       });
 
-      await user.click(screen.getByRole('button', { name: /create workflow/i }));
+      await user.click(screen.getByRole('button', { name: /create team/i }));
 
       await waitFor(() => {
         expect(onSuccess).toHaveBeenCalled();
@@ -1119,15 +1119,15 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Many Components Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Many Components Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Open dropdown
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
 
       const componentDropdown = screen.getByLabelText(/component/i);
@@ -1144,15 +1144,15 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const user = userEvent.setup();
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Max Components Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Max Components Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Add 10 components
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
 
       for (let i = 0; i < 5; i++) {
         await user.click(addComponentButton);
@@ -1164,7 +1164,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
         const componentDropdowns = screen.getAllByLabelText(/component/i);
         await user.click(componentDropdowns[i]);
-        await user.click(screen.getByText(mockComponents[i].name));
+        await user.click(screen.getByText(mockAgents[i].name));
 
         const versionDropdowns = screen.getAllByLabelText(/version/i);
         await user.click(versionDropdowns[i]);
@@ -1180,14 +1180,14 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const user = userEvent.setup();
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Debounce Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Debounce Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));
@@ -1197,13 +1197,13 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Choose Coordinator')).toBeInTheDocument();
+        expect(screen.getByText('Choose Project Manager')).toBeInTheDocument();
       });
 
-      const newRadio = screen.getByLabelText(/create new coordinator/i);
+      const newRadio = screen.getByLabelText(/create new project manager/i);
       await user.click(newRadio);
 
-      await user.type(screen.getByLabelText(/coordinator name/i), 'Test');
+      await user.type(screen.getByLabelText(/project manager name/i), 'Test');
 
       const instructionsInput = screen.getByLabelText(/instructions/i);
 
@@ -1225,7 +1225,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
   });
 
   describe('Step 1 Validation', () => {
-    it('should require workflow name', async () => {
+    it('should require team name', async () => {
       const user = userEvent.setup();
       renderWizard();
 
@@ -1234,7 +1234,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       expect(nextButton).toBeDisabled();
 
       // Add name
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'Test Workflow');
 
       // Should enable next
       expect(nextButton).not.toBeDisabled();
@@ -1245,7 +1245,7 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       renderWizard();
 
       // Name without description should be valid
-      await user.type(screen.getByLabelText(/workflow name/i), 'No Description Workflow');
+      await user.type(screen.getByLabelText(/team name/i), 'No Description Workflow');
 
       const nextButton = screen.getByRole('button', { name: /next/i });
       expect(nextButton).not.toBeDisabled();
@@ -1254,16 +1254,16 @@ describe('Workflow Creation Wizard E2E Tests', () => {
 
       // Should proceed to step 2
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
     });
 
-    it('should validate workflow name format (no special characters)', async () => {
+    it('should validate team name format (no special characters)', async () => {
       const user = userEvent.setup();
       renderWizard();
 
       // Try invalid characters
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test@Workflow#');
+      await user.type(screen.getByLabelText(/team name/i), 'Test@Workflow#');
 
       // Should show validation error
       await waitFor(() => {
@@ -1280,11 +1280,11 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const user = userEvent.setup();
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Next should be disabled without components
@@ -1296,15 +1296,15 @@ describe('Workflow Creation Wizard E2E Tests', () => {
       const user = userEvent.setup();
       renderWizard();
 
-      await user.type(screen.getByLabelText(/workflow name/i), 'Test');
+      await user.type(screen.getByLabelText(/team name/i), 'Test');
       await user.click(screen.getByRole('button', { name: /next/i }));
 
       await waitFor(() => {
-        expect(screen.getByText('Select Components')).toBeInTheDocument();
+        expect(screen.getByText('Select Agents')).toBeInTheDocument();
       });
 
       // Add component
-      const addComponentButton = screen.getByRole('button', { name: /add component/i });
+      const addComponentButton = screen.getByRole('button', { name: /add agent/i });
       await user.click(addComponentButton);
       await user.click(screen.getByLabelText(/component/i));
       await user.click(screen.getByText('Fullstack Developer'));

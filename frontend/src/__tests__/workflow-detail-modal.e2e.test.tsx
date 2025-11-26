@@ -1,8 +1,8 @@
 /**
- * End-to-End Tests for WorkflowDetailModal Component (ST-64)
+ * End-to-End Tests for TeamDetailModal Component (ST-64)
  *
  * Tests critical user journeys through the WorkflowDetailModal UI:
- * 1. View workflow details
+ * 1. View team details
  * 2. Version history timeline navigation
  * 3. Compare versions workflow
  * 4. Activate/deactivate version
@@ -29,8 +29,8 @@ import type { Workflow } from '../types';
 const mockWorkflow: Workflow = {
   id: 'workflow-1',
   projectId: 'project-1',
-  coordinatorId: 'coordinator-1',
-  name: 'Story Implementation Workflow',
+  projectManagerId: 'coordinator-1',
+  name: 'Story Implementation Team',
   description: 'End-to-end workflow for implementing user stories',
   version: 'v1.2',
   versionMajor: 1,
@@ -43,9 +43,9 @@ const mockWorkflow: Workflow = {
   active: true,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-15T00:00:00Z',
-  coordinator: {
+  projectManager: {
     id: 'coordinator-1',
-    name: 'PM Coordinator',
+    name: 'PM Project Manager',
     domain: 'project-management',
   },
   usageStats: {
@@ -63,8 +63,8 @@ const mockVersions = [
     versionMajor: 1,
     versionMinor: 0,
     version: 'v1.0',
-    coordinatorId: 'coordinator-1',
-    coordinatorVersion: 'v1.0',
+    projectManagerId: 'coordinator-1',
+    projectManagerVersion: 'v1.0',
     triggerConfig: { type: 'manual' },
     active: false,
     createdAt: '2024-01-01T00:00:00Z',
@@ -76,8 +76,8 @@ const mockVersions = [
     versionMajor: 1,
     versionMinor: 1,
     version: 'v1.1',
-    coordinatorId: 'coordinator-1',
-    coordinatorVersion: 'v1.1',
+    projectManagerId: 'coordinator-1',
+    projectManagerVersion: 'v1.1',
     triggerConfig: {
       type: 'manual',
       filters: { storyStatus: ['planning'] },
@@ -93,8 +93,8 @@ const mockVersions = [
     versionMajor: 1,
     versionMinor: 2,
     version: 'v1.2',
-    coordinatorId: 'coordinator-1',
-    coordinatorVersion: 'v1.2',
+    projectManagerId: 'coordinator-1',
+    projectManagerVersion: 'v1.2',
     triggerConfig: {
       type: 'manual',
       filters: { storyStatus: ['planning', 'analysis'] },
@@ -123,7 +123,7 @@ const mockAnalytics = {
     {
       id: 'exec-1',
       workflowRunId: 'run-1',
-      workflowName: 'Story Implementation Workflow',
+      workflowName: 'Story Implementation Team',
       status: 'completed' as const,
       runNumber: 150,
       startTime: '2024-01-15T10:00:00Z',
@@ -136,7 +136,7 @@ const mockAnalytics = {
     {
       id: 'exec-2',
       workflowRunId: 'run-2',
-      workflowName: 'Story Implementation Workflow',
+      workflowName: 'Story Implementation Team',
       status: 'failed' as const,
       runNumber: 149,
       startTime: '2024-01-14T15:00:00Z',
@@ -149,7 +149,7 @@ const mockAnalytics = {
     {
       id: 'exec-3',
       workflowRunId: 'run-3',
-      workflowName: 'Story Implementation Workflow',
+      workflowName: 'Story Implementation Team',
       status: 'completed' as const,
       runNumber: 148,
       startTime: '2024-01-13T09:30:00Z',
@@ -261,7 +261,7 @@ const server = setupServer(...handlers);
 // TEST SUITE
 // ============================================================================
 
-describe('WorkflowDetailModal E2E Tests', () => {
+describe('TeamDetailModal E2E Tests', () => {
   let queryClient: QueryClient;
   let user: ReturnType<typeof userEvent.setup>;
   const mockOnClose = vi.fn();
@@ -308,19 +308,19 @@ describe('WorkflowDetailModal E2E Tests', () => {
   // CRITICAL PATH 1: VIEW WORKFLOW DETAILS
   // ============================================================================
 
-  describe('Critical Path 1: View Workflow Details', () => {
+  describe('Critical Path 1: View Team Details', () => {
     it('should open modal when isOpen is true', () => {
       renderModal();
 
       expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByText('Story Implementation Workflow')).toBeInTheDocument();
+      expect(screen.getByText('Story Implementation Team')).toBeInTheDocument();
     });
 
     it('should display all workflow information in Overview tab', () => {
       renderModal();
 
       // Header info
-      expect(screen.getByText('Story Implementation Workflow')).toBeInTheDocument();
+      expect(screen.getByText('Story Implementation Team')).toBeInTheDocument();
       expect(screen.getByText('v1.2')).toBeInTheDocument();
       expect(screen.getByText('Active')).toBeInTheDocument();
 
@@ -335,7 +335,7 @@ describe('WorkflowDetailModal E2E Tests', () => {
     it('should show coordinator information', () => {
       renderModal();
 
-      expect(screen.getByText('PM Coordinator')).toBeInTheDocument();
+      expect(screen.getByText('PM Project Manager')).toBeInTheDocument();
       expect(screen.getByText(/project-management/i)).toBeInTheDocument();
     });
 
