@@ -9,6 +9,7 @@ import { SessionExpiredModal } from './SessionExpiredModal';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
+import { terminology } from '../utils/terminology';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -83,9 +84,9 @@ export function Layout() {
                       label="Agents"
                       icon="🤖"
                       items={[
-                        { label: 'Workflows', icon: '⚡', path: '/workflows' },
-                        { label: 'Components', icon: '🧩', path: '/components' },
-                        { label: 'Coordinators', icon: '🤖', path: '/coordinators' },
+                        { label: terminology.workflows, icon: '⚡', path: '/workflows' },
+                        { label: terminology.components, icon: '🧩', path: '/components' },
+                        { label: terminology.coordinators, icon: '🤖', path: '/coordinators' },
                         { label: 'Performance', icon: '📊', path: '/analytics/performance' },
                       ]}
                     />

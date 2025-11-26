@@ -14,6 +14,7 @@ import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
 import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
 import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
 import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
+import { terminology } from '../utils/terminology';
 
 export function WorkflowManagementView() {
   const [searchParams] = useSearchParams();
@@ -54,7 +55,7 @@ export function WorkflowManagementView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted">Please select a project to view workflows.</p>
+        <p className="text-muted">Please select a project to view {terminology.workflows.toLowerCase()}.</p>
       </div>
     );
   }
@@ -90,9 +91,9 @@ export function WorkflowManagementView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-fg">Workflow Management</h1>
+          <h1 className="text-3xl font-bold text-fg">{terminology.workflows} Management</h1>
           <p className="mt-1 text-sm text-muted">
-            Manage workflows that link coordinators with trigger configurations
+            {terminology.workflowDescription}
           </p>
         </div>
         <Button
@@ -101,7 +102,7 @@ export function WorkflowManagementView() {
           onClick={() => setIsWizardOpen(true)}
           disabled={!projectId}
         >
-          Create Workflow
+          {terminology.createWorkflow}
         </Button>
       </div>
 
@@ -146,11 +147,11 @@ export function WorkflowManagementView() {
       ) : workflows.length === 0 ? (
         <EmptyState
           icon={emptyIcon}
-          title="No workflows found"
+          title={`No ${terminology.workflows.toLowerCase()} found`}
           description={
             filters.searchQuery
               ? 'Try adjusting your search query or filters.'
-              : 'Get started by creating a new workflow.'
+              : `Get started by creating a new ${terminology.workflow.toLowerCase()}.`
           }
         />
       ) : (
