@@ -1,5 +1,6 @@
 import React from 'react';
 import { CoordinatorAgent } from '../types';
+import { VersionBadge } from './VersionBadge';
 
 export interface CoordinatorCardProps {
   coordinator: CoordinatorAgent;
@@ -26,12 +27,12 @@ export function CoordinatorCard({
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-fg">{coordinator.name}</h3>
             {coordinator.version && (
-              <span
+              <VersionBadge
+                version={coordinator.version}
+                status={coordinator.active ? 'active' : 'inactive'}
+                size="sm"
                 data-testid="coordinator-version"
-                className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded font-medium"
-              >
-                {coordinator.version}
-              </span>
+              />
             )}
           </div>
         </div>
