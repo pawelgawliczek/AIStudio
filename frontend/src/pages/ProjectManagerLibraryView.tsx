@@ -90,7 +90,7 @@ export function ProjectManagerLibraryView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Please select a project to view {terminology.coordinators.toLowerCase()}.</p>
+        <p className="text-fg">Please select a project to view {terminology.coordinators.toLowerCase()}.</p>
       </div>
     );
   }
@@ -98,7 +98,7 @@ export function ProjectManagerLibraryView() {
   // Empty state icon
   const emptyIcon = (
     <svg
-      className="mx-auto h-12 w-12 text-gray-400"
+      className="mx-auto h-12 w-12 text-fg"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -116,7 +116,7 @@ export function ProjectManagerLibraryView() {
   const loadingSkeleton = (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-lg" />
+        <div key={i} className="h-64 bg-bg-secondary animate-pulse rounded-lg" />
       ))}
     </div>
   );
@@ -126,8 +126,8 @@ export function ProjectManagerLibraryView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{terminology.coordinator} Library</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-fg">{terminology.coordinator} Library</h1>
+          <p className="mt-1 text-sm text-fg">
             Intelligent orchestrators that manage {terminology.workflow.toLowerCase()} execution
           </p>
         </div>
@@ -165,7 +165,7 @@ export function ProjectManagerLibraryView() {
       />
 
       {/* Results Count */}
-      <div className="mb-4 text-sm text-gray-600">
+      <div className="mb-4 text-sm text-fg">
         {isLoading ? (
           <span>Loading...</span>
         ) : (
