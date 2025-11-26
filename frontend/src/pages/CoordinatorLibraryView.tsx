@@ -1,29 +1,22 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { coordinatorsService } from '../services/coordinators.service';
+import { versioningService } from '../services/versioning.service';
 import { workflowsService } from '../services/workflows.service';
 import { useProject } from '../context/ProjectContext';
 import { useCoordinatorFilters } from '../hooks/useCoordinatorFilters';
-import { useCoordinatorActions } from '../hooks/useCoordinatorActions';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
 import { CoordinatorCard } from '../components/CoordinatorCard';
-import { CoordinatorDetailModal } from '../components/CoordinatorDetailModal';
 
 export function CoordinatorLibraryView() {
   const [searchParams] = useSearchParams();
   const { selectedProject } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
-  const queryClient = useQueryClient();
 
   // Use extracted hooks
   const filters = useCoordinatorFilters();
-  const { handleDelete, handleToggleActive } = useCoordinatorActions(projectId);
-
-  // Local state for modal
-  const [selectedCoordinator, setSelectedCoordinator] = useState<any>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Fetch workflows for filtering
   const { data: workflows = [] } = useQuery({
@@ -41,22 +34,37 @@ export function CoordinatorLibraryView() {
       'coordinators',
       projectId,
       filters.searchQuery,
-      filters.selectedActiveFilter,
       filters.selectedDomainFilter,
     ],
     queryFn: async () => {
       if (!projectId) return [];
-      const activeFilter =
-        filters.selectedActiveFilter === 'all'
-          ? undefined
-          : filters.selectedActiveFilter === 'active';
       return coordinatorsService.getAll(projectId, {
-        active: activeFilter,
         domain: filters.selectedDomainFilter !== 'all' ? filters.selectedDomainFilter : undefined,
         search: filters.searchQuery || undefined,
       });
     },
     enabled: !!projectId,
+  });
+
+  // Fetch version counts for all coordinators
+  const coordinatorIds = useMemo(() => coordinators.map((c) => c.id), [coordinators]);
+  const { data: versionCounts = {} } = useQuery({
+    queryKey: ['coordinatorVersionCounts', coordinatorIds],
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        coordinatorIds.map(async (id) => {
+          try {
+            const versions = await versioningService.getCoordinatorVersionHistory(id);
+            counts[id] = versions.length || 1;
+          } catch {
+            counts[id] = 1;
+          }
+        })
+      );
+      return counts;
+    },
+    enabled: coordinatorIds.length > 0,
   });
 
   // Get unique domains
@@ -131,16 +139,6 @@ export function CoordinatorLibraryView() {
         searchPlaceholder="Search coordinators..."
         filters={[
           {
-            label: 'Status',
-            value: filters.selectedActiveFilter,
-            onChange: filters.setSelectedActiveFilter,
-            options: [
-              { value: 'all', label: 'All' },
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-            ],
-          },
-          {
             label: 'Domain',
             value: filters.selectedDomainFilter,
             onChange: filters.setSelectedDomainFilter,
@@ -200,34 +198,10 @@ export function CoordinatorLibraryView() {
             <CoordinatorCard
               key={coordinator.id}
               coordinator={coordinator}
-              onClick={() => {
-                setSelectedCoordinator(coordinator);
-                setIsDetailModalOpen(true);
-              }}
-              onToggleActive={() => handleToggleActive(coordinator.id, coordinator.active)}
-              onDelete={() => handleDelete(coordinator.id)}
+              versionsCount={versionCounts[coordinator.id] || 1}
             />
           ))}
         </div>
-      )}
-
-      {/* Coordinator Details Modal */}
-      {selectedCoordinator && (
-        <CoordinatorDetailModal
-          coordinator={selectedCoordinator}
-          isOpen={isDetailModalOpen}
-          onClose={() => {
-            setIsDetailModalOpen(false);
-            setSelectedCoordinator(null);
-          }}
-          onEdit={() => {
-            // TODO: Implement edit functionality
-            console.log('Edit coordinator:', selectedCoordinator.id);
-          }}
-          onUpdate={() => {
-            queryClient.invalidateQueries({ queryKey: ['coordinators'] });
-          }}
-        />
       )}
     </div>
   );

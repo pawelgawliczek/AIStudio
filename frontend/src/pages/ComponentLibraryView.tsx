@@ -2,14 +2,12 @@ import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { componentsService } from '../services/components.service';
+import { versioningService } from '../services/versioning.service';
 import { workflowsService } from '../services/workflows.service';
-import { Component } from '../types';
 import { ComponentCard } from '../components/ComponentCard';
 import { CreateComponentModal } from '../components/CreateComponentModal';
-import { ComponentDetailModal } from '../components/ComponentDetailModal';
 import { useProject } from '../context/ProjectContext';
 import { useComponentFilters } from '../hooks/useComponentFilters';
-import { useComponentActions } from '../hooks/useComponentActions';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
 
@@ -22,21 +20,8 @@ export function ComponentLibraryView() {
   // Use extracted hooks
   const filters = useComponentFilters();
 
-  // Local state for modals and editing
-  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  // Local state for create modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingComponent, setEditingComponent] = useState<Component | null>(null);
-
-  const { handleDelete, handleToggleActive, handleEdit } = useComponentActions(
-    projectId,
-    () => {
-      if (selectedComponent && isDetailModalOpen) {
-        setIsDetailModalOpen(false);
-        setSelectedComponent(null);
-      }
-    }
-  );
 
   // Fetch workflows for filtering
   const { data: workflows = [] } = useQuery({
@@ -52,27 +37,41 @@ export function ComponentLibraryView() {
   const {
     data: components = [],
     isLoading,
-    refetch,
   } = useQuery({
     queryKey: [
       'components',
       projectId,
       filters.searchQuery,
-      filters.selectedActiveFilter,
       filters.selectedTagFilter,
     ],
     queryFn: async () => {
       if (!projectId) return [];
-      const activeFilter =
-        filters.selectedActiveFilter === 'all'
-          ? undefined
-          : filters.selectedActiveFilter === 'active';
       return componentsService.getAll(projectId, {
-        active: activeFilter,
         search: filters.searchQuery || undefined,
       });
     },
     enabled: !!projectId,
+  });
+
+  // Fetch version counts for all components
+  const componentIds = useMemo(() => components.map((c) => c.id), [components]);
+  const { data: versionCounts = {} } = useQuery({
+    queryKey: ['componentVersionCounts', componentIds],
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        componentIds.map(async (id) => {
+          try {
+            const versions = await versioningService.getComponentVersionHistory(id);
+            counts[id] = versions.length || 1;
+          } catch {
+            counts[id] = 1;
+          }
+        })
+      );
+      return counts;
+    },
+    enabled: componentIds.length > 0,
   });
 
   // Get unique tags for filtering (exclude 'coordinator' tag)
@@ -113,19 +112,8 @@ export function ComponentLibraryView() {
     return filtered;
   }, [components, filters.selectedTagFilter, filters.selectedWorkflowFilter, workflows]);
 
-  const handleComponentClick = (component: Component) => {
-    setSelectedComponent(component);
-    setIsDetailModalOpen(true);
-  };
-
-  const handleCloseDetailModal = () => {
-    setIsDetailModalOpen(false);
-    setTimeout(() => setSelectedComponent(null), 200);
-  };
-
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
-    setTimeout(() => setEditingComponent(null), 200);
   };
 
   if (!projectId) {
@@ -188,16 +176,6 @@ export function ComponentLibraryView() {
         searchPlaceholder="Search components..."
         filters={[
           {
-            label: 'Status',
-            value: filters.selectedActiveFilter,
-            onChange: filters.setSelectedActiveFilter,
-            options: [
-              { value: 'all', label: 'All' },
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-            ],
-          },
-          {
             label: 'Tag',
             value: filters.selectedTagFilter,
             onChange: filters.setSelectedTagFilter,
@@ -257,38 +235,13 @@ export function ComponentLibraryView() {
             <ComponentCard
               key={component.id}
               component={component}
-              onClick={() => handleComponentClick(component)}
-              onEdit={() =>
-                handleEdit(component, (comp) => {
-                  setEditingComponent(comp);
-                  setIsCreateModalOpen(true);
-                })
-              }
-              onDelete={() => handleDelete(component.id)}
-              onToggleActive={() => handleToggleActive(component)}
+              versionsCount={versionCounts[component.id] || 1}
             />
           ))}
         </div>
       )}
 
-      {/* Detail Modal */}
-      {selectedComponent && (
-        <ComponentDetailModal
-          component={selectedComponent}
-          isOpen={isDetailModalOpen}
-          onClose={handleCloseDetailModal}
-          onEdit={() => {
-            handleEdit(selectedComponent, (comp) => {
-              setEditingComponent(comp);
-              setIsCreateModalOpen(true);
-            });
-            handleCloseDetailModal();
-          }}
-          onUpdate={() => refetch()}
-        />
-      )}
-
-      {/* Create/Edit Modal */}
+      {/* Create Modal */}
       <CreateComponentModal
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}
@@ -300,7 +253,6 @@ export function ComponentLibraryView() {
           handleCloseCreateModal();
         }}
         projectId={projectId}
-        editingComponent={editingComponent}
       />
     </div>
   );

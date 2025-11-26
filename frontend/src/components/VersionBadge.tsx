@@ -2,7 +2,7 @@ import { FC } from 'react';
 
 export interface VersionBadgeProps {
   version: string;
-  status?: 'active' | 'inactive' | 'major';
+  status?: 'current' | 'previous' | 'major';
   size?: 'sm' | 'md' | 'lg';
   onClick?: (version: string) => void;
   className?: string;
@@ -16,8 +16,8 @@ const sizeClasses = {
 };
 
 const statusClasses = {
-  active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  inactive: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+  current: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  previous: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
   major: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
 };
 
@@ -26,13 +26,13 @@ const statusClasses = {
  *
  * @example
  * ```tsx
- * <VersionBadge version="v1.5" status="active" size="md" />
+ * <VersionBadge version="v1.5" status="current" size="md" />
  * <VersionBadge version="v2.0" status="major" size="lg" onClick={handleClick} />
  * ```
  */
 export const VersionBadge: FC<VersionBadgeProps> = ({
   version,
-  status = 'active',
+  status = 'current',
   size = 'md',
   onClick,
   className = '',

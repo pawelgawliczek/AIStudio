@@ -10,7 +10,9 @@ import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
 import { ComponentLibraryView } from './pages/ComponentLibraryView';
+import { ComponentDetailPage } from './pages/ComponentDetailPage';
 import { CoordinatorLibraryView } from './pages/CoordinatorLibraryView';
+import { CoordinatorDetailPage } from './pages/CoordinatorDetailPage';
 import { WorkflowManagementView } from './pages/WorkflowManagementView';
 import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
@@ -44,7 +46,9 @@ function App() {
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
               <Route path="layers-components" element={<LayersComponentsPage />} />
               <Route path="components" element={<ComponentLibraryView />} />
+              <Route path="components/:id" element={<ComponentDetailPage />} />
               <Route path="coordinators" element={<CoordinatorLibraryView />} />
+              <Route path="coordinators/:id" element={<CoordinatorDetailPage />} />
               <Route path="workflows" element={<WorkflowManagementView />} />
               <Route path="workflow-runs/:runId/results" element={<WorkflowResultsView />} />
               <Route path="workflow-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />

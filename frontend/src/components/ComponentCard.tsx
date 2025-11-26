@@ -1,20 +1,17 @@
+import { Link } from 'react-router-dom';
 import { Component } from '../types';
 import { VersionBadge } from './VersionBadge';
 
 interface ComponentCardProps {
   component: Component;
-  onClick: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onToggleActive: () => void;
+  versionsCount?: number;
 }
 
-export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleActive }: ComponentCardProps) {
+export function ComponentCard({ component, versionsCount = 1 }: ComponentCardProps) {
   return (
     <div
       data-testid={`component-card-${component.id}`}
-      className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border overflow-hidden cursor-pointer"
-      onClick={onClick}
+      className="bg-card rounded-lg shadow hover:shadow-md transition-shadow border border-border overflow-hidden"
     >
       {/* Header */}
       <div className="p-4 border-b border-border">
@@ -25,7 +22,7 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
               {component.version && (
                 <VersionBadge
                   version={component.version}
-                  status={component.active ? 'active' : 'inactive'}
+                  status="current"
                   size="sm"
                   data-testid="component-version"
                 />
@@ -34,17 +31,6 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
             {component.description && (
               <p className="mt-1 text-sm text-fg line-clamp-2">{component.description}</p>
             )}
-          </div>
-          <div className="flex items-center gap-1 ml-2">
-            <span
-              className={`px-2 py-1 text-xs font-medium rounded-full ${
-                component.active
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-bg-secondary text-fg'
-              }`}
-            >
-              {component.active ? 'Active' : 'Inactive'}
-            </span>
           </div>
         </div>
       </div>
@@ -94,35 +80,17 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
         )}
       </div>
 
-      {/* Footer Actions */}
-      <div className="px-4 py-3 bg-bg-secondary border-t border-border flex items-center justify-end gap-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleActive();
-          }}
-          className="text-sm text-muted hover:text-fg"
+      {/* Footer */}
+      <div className="px-4 py-3 bg-bg-secondary border-t border-border flex items-center justify-between">
+        <span className="text-sm text-fg">
+          {versionsCount} version{versionsCount !== 1 ? 's' : ''}
+        </span>
+        <Link
+          to={`/components/${component.id}`}
+          className="text-sm text-accent hover:text-blue-800 hover:underline font-medium"
         >
-          {component.active ? 'Deactivate' : 'Activate'}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          className="text-sm text-accent hover:text-blue-800"
-        >
-          Edit
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="text-sm text-red-600 hover:text-red-800"
-        >
-          Delete
-        </button>
+          View Details
+        </Link>
       </div>
     </div>
   );
