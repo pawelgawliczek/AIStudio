@@ -34,6 +34,36 @@ export const metadata = {
   since: '2025-11-14',
 };
 
+// ALIASING: Workflow → Team (ST-109)
+export const teamTool: Tool = {
+  name: 'assign_team_to_story',
+  description:
+    'Assign a team to a story for future execution. A team is a group of agents working together. Pass null as teamId to clear the assignment.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      storyId: {
+        type: 'string',
+        description: 'Story UUID (required)',
+      },
+      teamId: {
+        type: ['string', 'null'],
+        description: 'Team UUID to assign, or null to clear assignment',
+      },
+    },
+    required: ['storyId'],
+  },
+};
+
+export const teamMetadata = {
+  category: 'execution',
+  domain: 'Team Execution',
+  tags: ['team', 'story', 'assignment', 'agents'],
+  version: '1.0.0',
+  since: '2025-11-26',
+  aliasOf: 'assign_workflow_to_story',
+};
+
 export async function handler(prisma: PrismaClient, params: any) {
   // Validate required fields
   if (!params.storyId) {

@@ -110,6 +110,70 @@ export const metadata = {
   since: 'update-tools',
 };
 
+// ALIASING: Workflow → Team, Coordinator → Project Manager (ST-109)
+export const teamTool: Tool = {
+  name: 'update_team',
+  description: 'Update an existing team definition. Supports partial updates - only provided fields will be modified. Auto-versions on structural changes.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      teamId: {
+        type: 'string',
+        description: 'Team UUID to update',
+      },
+      projectManagerId: {
+        type: 'string',
+        description: 'Project Manager UUID (optional)',
+      },
+      name: {
+        type: 'string',
+        description: 'Team name (optional)',
+      },
+      description: {
+        type: 'string',
+        description: 'Team description (optional)',
+      },
+      triggerConfig: {
+        type: 'object',
+        description: 'Trigger configuration (optional)',
+        properties: {
+          type: {
+            type: 'string',
+            description: 'Trigger type (e.g., manual, story_assigned, webhook)',
+          },
+          filters: {
+            type: 'object',
+            description: 'Filters for when to trigger (optional)',
+          },
+          notifications: {
+            type: 'object',
+            description: 'Notification settings (optional)',
+          },
+        },
+        required: ['type'],
+      },
+      active: {
+        type: 'boolean',
+        description: 'Whether team is active (optional)',
+      },
+      version: {
+        type: 'string',
+        description: 'Version (optional)',
+      },
+    },
+    required: ['teamId'],
+  },
+};
+
+export const teamMetadata = {
+  category: 'teams',
+  domain: 'team',
+  tags: ['team', 'update', 'agents'],
+  version: '1.0.0',
+  since: '2025-11-26',
+  aliasOf: 'update_workflow',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: UpdateWorkflowParams,

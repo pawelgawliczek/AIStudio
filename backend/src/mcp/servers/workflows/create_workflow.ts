@@ -103,6 +103,70 @@ export const metadata = {
   since: 'workflow-mvp',
 };
 
+// ALIASING: Workflow → Team, Coordinator → Project Manager (ST-109)
+export const teamTool: Tool = {
+  name: 'create_team',
+  description: 'Create a new team linking a project manager with trigger configuration. A team is a group of agents working together.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      projectId: {
+        type: 'string',
+        description: 'Project UUID',
+      },
+      projectManagerId: {
+        type: 'string',
+        description: 'Project Manager UUID (coordinator that orchestrates the team)',
+      },
+      name: {
+        type: 'string',
+        description: 'Team name',
+      },
+      description: {
+        type: 'string',
+        description: 'Team description (optional)',
+      },
+      triggerConfig: {
+        type: 'object',
+        description: 'Trigger configuration (type, filters, notifications)',
+        properties: {
+          type: {
+            type: 'string',
+            description: 'Trigger type (e.g., manual, story_assigned, webhook)',
+          },
+          filters: {
+            type: 'object',
+            description: 'Filters for when to trigger (optional)',
+          },
+          notifications: {
+            type: 'object',
+            description: 'Notification settings (optional)',
+          },
+        },
+        required: ['type'],
+      },
+      active: {
+        type: 'boolean',
+        description: 'Whether team is active (default: true)',
+      },
+      version: {
+        type: 'string',
+        description: 'Version (default: v1.0)',
+      },
+    },
+    required: ['projectId', 'projectManagerId', 'name', 'triggerConfig'],
+  },
+};
+
+export const teamMetadata = {
+  category: 'teams',
+  domain: 'team',
+  tags: ['team', 'create', 'agents'],
+  version: '1.0.0',
+  since: '2025-11-26',
+  aliasOf: 'create_workflow',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: CreateWorkflowParams,
