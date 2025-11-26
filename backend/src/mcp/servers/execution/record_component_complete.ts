@@ -46,7 +46,20 @@ export const tool: Tool = {
       transcriptPath: {
         type: 'string',
         description:
-          'Path to agent transcript JSONL file (for spawned agents). When provided, token metrics will be parsed from transcript.',
+          'Path to agent transcript JSONL file (for spawned agents). When provided, token metrics will be parsed from transcript. Only works when MCP server runs locally.',
+      },
+      transcriptMetrics: {
+        type: 'object',
+        description:
+          'Direct token metrics from get_transcript_metrics or local parse-transcript.ts script. Use this when MCP server runs remotely.',
+        properties: {
+          inputTokens: { type: 'number' },
+          outputTokens: { type: 'number' },
+          cacheCreationTokens: { type: 'number' },
+          cacheReadTokens: { type: 'number' },
+          totalTokens: { type: 'number' },
+          model: { type: 'string' },
+        },
       },
     },
     required: ['runId', 'componentId'],
@@ -113,9 +126,9 @@ export async function handler(prisma: PrismaClient, params: any) {
     (completedAt.getTime() - componentRun.startedAt.getTime()) / 1000,
   );
 
-  // Parse metrics from contextOutput (orchestrators) or transcriptPath (spawned agents)
+  // Parse metrics from contextOutput, transcriptMetrics, or transcriptPath
   let contextMetrics: ContextMetrics | null = null;
-  let dataSource: 'context' | 'transcript' | 'none' = 'none';
+  let dataSource: 'context' | 'transcript' | 'transcript_metrics' | 'none' = 'none';
 
   // Priority 1: contextOutput (orchestrator agents - ST-110 pattern)
   if (params.contextOutput && typeof params.contextOutput === 'string') {
@@ -130,7 +143,32 @@ export async function handler(prisma: PrismaClient, params: any) {
       tokensMessages: contextMetrics.tokensMessages,
     });
   }
-  // Priority 2: transcriptPath (spawned agents - ST-112 pattern)
+  // Priority 2: transcriptMetrics (direct metrics from get_transcript_metrics or local script)
+  else if (params.transcriptMetrics && typeof params.transcriptMetrics === 'object') {
+    const tm = params.transcriptMetrics;
+    contextMetrics = {
+      tokensInput: tm.inputTokens || 0,
+      tokensOutput: tm.outputTokens || 0,
+      tokensSystemPrompt: null,
+      tokensSystemTools: null,
+      tokensMcpTools: null,
+      tokensMemoryFiles: null,
+      tokensMessages: null,
+      tokensCacheCreation: tm.cacheCreationTokens || 0,
+      tokensCacheRead: tm.cacheReadTokens || 0,
+      sessionId: null,
+    };
+    dataSource = 'transcript_metrics';
+    console.log(`[transcript_metrics] Direct metrics for component ${params.componentId}:`, {
+      inputTokens: tm.inputTokens,
+      outputTokens: tm.outputTokens,
+      cacheCreationTokens: tm.cacheCreationTokens,
+      cacheReadTokens: tm.cacheReadTokens,
+      totalTokens: tm.totalTokens,
+      model: tm.model,
+    });
+  }
+  // Priority 3: transcriptPath (spawned agents - ST-112 pattern, only works locally)
   else if (params.transcriptPath && typeof params.transcriptPath === 'string') {
     const transcriptParser = new TranscriptParserService();
     const transcriptMetrics = await transcriptParser.parseAgentTranscript(params.transcriptPath);
