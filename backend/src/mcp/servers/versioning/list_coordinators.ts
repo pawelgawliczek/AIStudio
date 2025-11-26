@@ -75,6 +75,21 @@ export const metadata = {
   since: '2025-11-21',
 };
 
+// ALIASING: Coordinator → Project Manager (ST-109)
+export const projectManagerTool: Tool = {
+  name: 'list_project_managers',
+  description: 'List project managers with filtering and pagination. Project managers orchestrate agents and manage team execution.',
+  inputSchema: tool.inputSchema,
+};
+
+export const projectManagerMetadata = {
+  category: 'versioning',
+  domain: 'Version Management',
+  tags: ['project-manager', 'list', 'version', 'query'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: ListCoordinatorsParams,

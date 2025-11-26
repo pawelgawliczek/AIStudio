@@ -50,6 +50,21 @@ export const metadata = {
   since: '2025-11-21',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'get_agent_usage',
+  description: 'Get usage statistics for an agent including team count, execution count, and last used date',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'components',
+  domain: 'team',
+  tags: ['agent', 'lifecycle', 'usage', 'metrics'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: GetComponentUsageParams,

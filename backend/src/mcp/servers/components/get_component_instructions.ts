@@ -54,6 +54,23 @@ export const metadata = {
   since: '2025-11-24',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'get_agent_instructions',
+  description:
+    'Retrieve work instructions for an agent. Returns input/operation/output instructions, config, and tools. ' +
+    'Used by spawned agents to get their instructions on-demand, enabling token-efficient team orchestration.',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'components',
+  domain: 'team-execution',
+  tags: ['agent', 'instructions', 'team'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: GetComponentInstructionsParams,

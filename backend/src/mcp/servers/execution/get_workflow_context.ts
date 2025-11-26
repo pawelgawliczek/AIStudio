@@ -24,6 +24,21 @@ export const metadata = {
   since: '2025-11-13',
 };
 
+// ALIASING: Workflow → Team, Coordinator → Project Manager (ST-109)
+export const teamTool: Tool = {
+  name: 'get_team_context',
+  description: 'Retrieve team state, project manager instructions, agent instructions, and previous agent outputs for project manager decision-making. Returns all information needed to orchestrate the team and spawn agent tasks using the Task tool.',
+  inputSchema: tool.inputSchema,
+};
+
+export const teamMetadata = {
+  category: 'execution',
+  domain: 'Team Execution',
+  tags: ['team', 'context', 'project-manager', 'decision'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(prisma: PrismaClient, params: any) {
   // Validate required fields
   if (!params.runId) {

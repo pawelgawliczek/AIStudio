@@ -74,6 +74,21 @@ export const metadata = {
   since: '2025-11-21',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'list_agents',
+  description: 'List agents with filtering (projectId, active, versionMajor) and pagination. Agents are AI workers that execute specific tasks within teams.',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'versioning',
+  domain: 'Version Management',
+  tags: ['agent', 'list', 'version', 'query'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: ListComponentsParams,

@@ -150,6 +150,21 @@ export const metadata = {
   since: 'workflow-mvp',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'create_agent',
+  description: 'Create a new agent with 3 instruction sets (input, operation, output). Agents are AI workers that execute specific tasks within teams.',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'components',
+  domain: 'workflow',
+  tags: ['agent', 'create', 'team'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: CreateComponentParams,

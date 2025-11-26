@@ -130,6 +130,21 @@ export const metadata = {
   since: 'workflow-mvp',
 };
 
+// ALIASING: Coordinator → Project Manager (ST-109)
+export const projectManagerTool: Tool = {
+  name: 'create_project_manager',
+  description: 'Create a new project manager for team orchestration',
+  inputSchema: tool.inputSchema,
+};
+
+export const projectManagerMetadata = {
+  category: 'coordinators',
+  domain: 'team',
+  tags: ['project-manager', 'create', 'team'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 /**
  * Generate a compact flow diagram for the coordinator
  */

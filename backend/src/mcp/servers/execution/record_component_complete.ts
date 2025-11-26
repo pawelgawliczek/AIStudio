@@ -74,6 +74,21 @@ export const metadata = {
   since: '2025-11-25',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'record_agent_complete',
+  description: 'Log the completion of an agent execution with output and metrics. Call this after agent logic finishes.',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'execution',
+  domain: 'Team Execution',
+  tags: ['agent', 'execution', 'tracking', 'metrics'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(prisma: PrismaClient, params: any) {
   // Validate required fields
   if (!params.runId) {

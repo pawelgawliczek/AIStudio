@@ -129,6 +129,21 @@ export const metadata = {
   since: 'update-tools',
 };
 
+// ALIASING: Coordinator → Project Manager (ST-109)
+export const projectManagerTool: Tool = {
+  name: 'update_project_manager',
+  description: 'Update an existing project manager definition. Supports partial updates - only provided fields will be modified.',
+  inputSchema: tool.inputSchema,
+};
+
+export const projectManagerMetadata = {
+  category: 'coordinators',
+  domain: 'team',
+  tags: ['project-manager', 'update', 'team'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 /**
  * Generate a compact flow diagram for the coordinator
  */

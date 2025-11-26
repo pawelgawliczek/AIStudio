@@ -50,6 +50,21 @@ export const metadata = {
   since: '2025-11-21',
 };
 
+// ALIASING: Coordinator → Project Manager (ST-109)
+export const projectManagerTool: Tool = {
+  name: 'get_project_manager_usage',
+  description: 'Get usage statistics for a project manager including team count, execution count, and last used date',
+  inputSchema: tool.inputSchema,
+};
+
+export const projectManagerMetadata = {
+  category: 'coordinators',
+  domain: 'team',
+  tags: ['project-manager', 'lifecycle', 'usage', 'metrics'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: GetCoordinatorUsageParams,

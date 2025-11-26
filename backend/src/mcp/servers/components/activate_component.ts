@@ -50,6 +50,21 @@ export const metadata = {
   since: '2025-11-21',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'activate_agent',
+  description: 'Activate an agent by setting active=true',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'components',
+  domain: 'team',
+  tags: ['agent', 'lifecycle', 'activation'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: ActivateComponentParams,

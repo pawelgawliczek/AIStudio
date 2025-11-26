@@ -32,6 +32,21 @@ export const metadata = {
   since: '2025-11-13',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'record_agent_start',
+  description: 'Log the start of an agent execution within a team run. Call this before executing agent logic.',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'execution',
+  domain: 'Team Execution',
+  tags: ['agent', 'execution', 'tracking'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(prisma: PrismaClient, params: any) {
   // Validate required fields
   if (!params.runId) {

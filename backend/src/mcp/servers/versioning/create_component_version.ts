@@ -46,6 +46,21 @@ export const metadata = {
   since: '2025-11-21',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'create_agent_version',
+  description: 'Create minor/major version of an agent using VersioningService',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'versioning',
+  domain: 'Version Management',
+  tags: ['agent', 'create', 'version'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: CreateComponentVersionParams,

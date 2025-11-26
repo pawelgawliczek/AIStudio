@@ -47,6 +47,47 @@ export const metadata = {
   since: '2025-11-14',
 };
 
+// ALIASING: Workflow → Team (ST-109)
+export const teamTool: Tool = {
+  name: 'execute_story_with_team',
+  description:
+    'Execute a story using a team. A team is a group of agents working together. Validates story and team, creates execution run, and returns runId for tracking.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      storyId: {
+        type: 'string',
+        description: 'Story UUID to execute',
+      },
+      teamId: {
+        type: 'string',
+        description: 'Team UUID to use for execution (workflowId internally)',
+      },
+      triggeredBy: {
+        type: 'string',
+        description: 'User ID or identifier (defaults to "mcp-user")',
+      },
+      context: {
+        type: 'object',
+        description: 'Additional context data for team execution',
+      },
+      cwd: {
+        type: 'string',
+        description: 'Current working directory for transcript tracking (defaults to project localPath if not provided)',
+      },
+    },
+    required: ['storyId', 'teamId'],
+  },
+};
+
+export const teamMetadata = {
+  category: 'execution',
+  domain: 'Team Execution',
+  tags: ['team', 'story', 'execution', 'trigger'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(prisma: PrismaClient, params: any) {
   // Validate required fields
   if (!params.storyId) {
@@ -194,4 +235,14 @@ export async function handler(prisma: PrismaClient, params: any) {
     context: workflowRunResult.context,
     message: `Started workflow "${workflow.name}" for story ${story.key}. Run ID: ${workflowRunResult.runId}. Follow coordinator instructions to orchestrate the workflow.`,
   };
+}
+
+// ALIASING: Team handler wrapper that maps teamId → workflowId (ST-109)
+export async function teamHandler(prisma: PrismaClient, params: any) {
+  // Map teamId parameter to workflowId for internal use
+  const mappedParams = {
+    ...params,
+    workflowId: params.teamId || params.workflowId,
+  };
+  return handler(prisma, mappedParams);
 }

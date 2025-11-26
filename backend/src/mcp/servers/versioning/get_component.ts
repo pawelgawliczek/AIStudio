@@ -46,6 +46,21 @@ export const metadata = {
   since: '2025-11-21',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'get_agent',
+  description: 'Get single agent with version history and usage stats',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'versioning',
+  domain: 'Version Management',
+  tags: ['agent', 'get', 'version', 'history'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: GetComponentParams,

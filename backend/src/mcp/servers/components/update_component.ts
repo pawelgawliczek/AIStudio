@@ -149,6 +149,21 @@ export const metadata = {
   since: 'update-tools',
 };
 
+// ALIASING: Component → Agent (ST-109)
+export const agentTool: Tool = {
+  name: 'update_agent',
+  description: 'Update an existing agent definition. Supports partial updates - only provided fields will be modified.',
+  inputSchema: tool.inputSchema,
+};
+
+export const agentMetadata = {
+  category: 'components',
+  domain: 'workflow',
+  tags: ['agent', 'update', 'team'],
+  version: '1.0.0',
+  since: '2025-11-26',
+};
+
 export async function handler(
   prisma: PrismaClient,
   params: UpdateComponentParams,
