@@ -51,6 +51,8 @@ export interface DeployToProductionParams {
   skipHealthChecks?: boolean; // EMERGENCY ONLY - skip health checks
   skipBackendBuild?: boolean; // Optional - skip backend build (for frontend-only changes)
   skipFrontendBuild?: boolean; // Optional - skip frontend build (for backend-only changes)
+  useCache?: boolean; // ST-115: Use BuildKit cache (default: false for deterministic prod builds)
+  autoDetectBuilds?: boolean; // ST-115: Auto-detect which services need rebuilding based on git diff
   confirmDeploy?: boolean; // REQUIRED: Must be true to confirm deployment
 }
 
@@ -216,6 +218,14 @@ deploy_to_production({
         type: 'boolean',
         description: 'OPTIMIZATION: Skip frontend build for backend-only changes (default: false)',
       },
+      useCache: {
+        type: 'boolean',
+        description: 'OPTIMIZATION (ST-115): Use BuildKit cache for faster builds (default: false for deterministic production builds)',
+      },
+      autoDetectBuilds: {
+        type: 'boolean',
+        description: 'OPTIMIZATION (ST-115): Auto-detect which services need rebuilding based on git diff since last deployment (default: false)',
+      },
       confirmDeploy: {
         type: 'boolean',
         description: 'REQUIRED: Must be true to confirm production deployment',
@@ -321,6 +331,8 @@ export async function handler(
       skipHealthChecks: params.skipHealthChecks || false,
       skipBackendBuild: params.skipBackendBuild || false,
       skipFrontendBuild: params.skipFrontendBuild || false,
+      useCache: params.useCache || false, // ST-115: Default to false for deterministic prod builds
+      autoDetectBuilds: params.autoDetectBuilds || false, // ST-115: Default to false for explicit control
       confirmDeploy: params.confirmDeploy,
     };
 

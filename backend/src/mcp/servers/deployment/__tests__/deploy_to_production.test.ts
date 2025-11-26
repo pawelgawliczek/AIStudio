@@ -672,4 +672,464 @@ describe('deploy_to_production MCP tool', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // ST-115: Build Performance Optimization Tests
+  // ==========================================================================
+
+  describe('ST-115: Build Performance Optimization', () => {
+    describe('useCache Parameter', () => {
+      it('should default useCache to false for deterministic production builds', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          confirmDeploy: true,
+          // useCache not provided - should default to false
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-1',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 600000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            useCache: false,
+          })
+        );
+      });
+
+      it('should pass useCache=true when explicitly set', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          useCache: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-2',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 480000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success with cache',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            useCache: true,
+          })
+        );
+      });
+    });
+
+    describe('autoDetectBuilds Parameter', () => {
+      it('should default autoDetectBuilds to false for explicit control', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          confirmDeploy: true,
+          // autoDetectBuilds not provided - should default to false
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-3',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 600000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            autoDetectBuilds: false,
+          })
+        );
+      });
+
+      it('should pass autoDetectBuilds=true when explicitly set', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          autoDetectBuilds: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-4',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 300000, // Faster due to auto-detect
+          phases: {},
+          warnings: ['Skipping backend build (Frontend-only changes detected)'],
+          errors: [],
+          message: 'Success with auto-detect',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            autoDetectBuilds: true,
+          })
+        );
+      });
+
+      it('should support autoDetectBuilds with directCommit mode', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '2e809be4-cc67-4fc7-8c3d-4d337c0043d5',
+          directCommit: true,
+          autoDetectBuilds: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-5',
+          storyKey: 'ST-115',
+          directCommit: true,
+          commitHash: 'abc1234',
+          duration: 280000,
+          phases: {},
+          warnings: ['Skipping frontend build (Backend-only changes detected)'],
+          errors: [],
+          message: 'Success with auto-detect',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            directCommit: true,
+            autoDetectBuilds: true,
+          })
+        );
+      });
+    });
+
+    describe('skipBackendBuild Parameter', () => {
+      it('should default skipBackendBuild to false', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-6',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 600000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            skipBackendBuild: false,
+          })
+        );
+      });
+
+      it('should pass skipBackendBuild=true for frontend-only changes', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          skipBackendBuild: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-7',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 180000, // Faster without backend build
+          phases: {
+            validation: { success: true, duration: 1000 },
+            lockAcquisition: { success: true, duration: 500 },
+            backup: { success: true, duration: 30000 },
+            buildBackend: { success: true, duration: 0, message: 'Skipped' },
+            buildFrontend: { success: true, duration: 90000 },
+            restartBackend: { success: true, duration: 5000 },
+            restartFrontend: { success: true, duration: 10000 },
+            healthChecks: { success: true, duration: 60000 },
+            lockRelease: { success: true, duration: 500 },
+          },
+          warnings: [],
+          errors: [],
+          message: 'Success (backend build skipped)',
+        });
+
+        const result = await handler(mockPrisma, params);
+
+        expect(result.success).toBe(true);
+        expect(result.duration).toBe(180000);
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            skipBackendBuild: true,
+          })
+        );
+      });
+    });
+
+    describe('skipFrontendBuild Parameter', () => {
+      it('should default skipFrontendBuild to false', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-8',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 600000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            skipFrontendBuild: false,
+          })
+        );
+      });
+
+      it('should pass skipFrontendBuild=true for backend-only changes', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          skipFrontendBuild: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-9',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 250000, // Faster without frontend build
+          phases: {
+            validation: { success: true, duration: 1000 },
+            lockAcquisition: { success: true, duration: 500 },
+            backup: { success: true, duration: 30000 },
+            buildBackend: { success: true, duration: 120000 },
+            buildFrontend: { success: true, duration: 0, message: 'Skipped' },
+            restartBackend: { success: true, duration: 10000 },
+            restartFrontend: { success: true, duration: 5000 },
+            healthChecks: { success: true, duration: 60000 },
+            lockRelease: { success: true, duration: 500 },
+          },
+          warnings: [],
+          errors: [],
+          message: 'Success (frontend build skipped)',
+        });
+
+        const result = await handler(mockPrisma, params);
+
+        expect(result.success).toBe(true);
+        expect(result.duration).toBe(250000);
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            skipFrontendBuild: true,
+          })
+        );
+      });
+    });
+
+    describe('Combined Optimization Parameters', () => {
+      it('should support all optimization params together', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          useCache: true,
+          autoDetectBuilds: true,
+          skipBackendBuild: false,
+          skipFrontendBuild: false,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-10',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 400000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            useCache: true,
+            autoDetectBuilds: true,
+            skipBackendBuild: false,
+            skipFrontendBuild: false,
+          })
+        );
+      });
+
+      it('should allow manual skip flags to override autoDetectBuilds', async () => {
+        // When skipBackendBuild is explicitly true, it should be passed even with autoDetectBuilds
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          autoDetectBuilds: true,
+          skipBackendBuild: true, // Explicit override
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-11',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 200000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            autoDetectBuilds: true,
+            skipBackendBuild: true,
+          })
+        );
+      });
+
+      it('should support docs-only deployment (skip both builds)', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          autoDetectBuilds: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-12',
+          storyKey: 'ST-115',
+          prNumber: 42,
+          duration: 90000, // Very fast - no builds
+          phases: {
+            validation: { success: true, duration: 1000 },
+            lockAcquisition: { success: true, duration: 500 },
+            backup: { success: true, duration: 30000 },
+            buildBackend: { success: true, duration: 0, message: 'Skipped (docs-only changes)' },
+            buildFrontend: { success: true, duration: 0, message: 'Skipped (docs-only changes)' },
+            restartBackend: { success: true, duration: 0, message: 'Skipped' },
+            restartFrontend: { success: true, duration: 0, message: 'Skipped' },
+            healthChecks: { success: true, duration: 30000 },
+            lockRelease: { success: true, duration: 500 },
+          },
+          warnings: ['No code changes detected (docs-only), skipping builds'],
+          errors: [],
+          message: 'Success (docs-only deployment)',
+        });
+
+        const result = await handler(mockPrisma, params);
+
+        expect(result.success).toBe(true);
+        expect(result.duration).toBe(90000);
+        expect(result.warnings).toContain('No code changes detected (docs-only), skipping builds');
+      });
+    });
+
+    describe('Optimization with Direct Commit Mode', () => {
+      it('should support all ST-115 params with directCommit mode', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '2e809be4-cc67-4fc7-8c3d-4d337c0043d5',
+          directCommit: true,
+          useCache: true,
+          autoDetectBuilds: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockResolvedValue({
+          success: true,
+          deploymentLogId: 'log-115-13',
+          storyKey: 'ST-115',
+          directCommit: true,
+          commitHash: 'def5678',
+          duration: 250000,
+          phases: {},
+          warnings: [],
+          errors: [],
+          message: 'Success',
+        });
+
+        await handler(mockPrisma, params);
+
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            directCommit: true,
+            useCache: true,
+            autoDetectBuilds: true,
+          })
+        );
+      });
+    });
+
+    describe('Optimization Error Scenarios', () => {
+      it('should handle build decision service errors gracefully', async () => {
+        const params: DeployToProductionParams = {
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          autoDetectBuilds: true,
+          confirmDeploy: true,
+        };
+
+        mockDeployToProduction.mockRejectedValue(
+          new Error('Build decision failed: Git repository not found')
+        );
+
+        const result = await handler(mockPrisma, params);
+
+        expect(result.success).toBe(false);
+        expect(result.errors.some(e => e.includes('Build decision failed'))).toBe(true);
+      });
+    });
+  });
 });

@@ -12,7 +12,9 @@ COPY frontend/package*.json ./frontend/
 COPY shared/package*.json ./shared/
 
 # Install dependencies
-RUN npm ci
+# ST-115: BuildKit cache mount for faster subsequent builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 # Copy source code
 COPY frontend ./frontend

@@ -21,6 +21,7 @@ import { DeploymentLockService } from './deployment-lock.service.js';
 import { BackupService } from './backup.service.js';
 import { RestoreService } from './restore.service.js';
 import { BackupType } from '../types/migration.types.js';
+import { BuildDecisionService, ChangeAnalysis } from './build-decision.service.js';
 
 // ============================================================================
 // Types
@@ -35,6 +36,8 @@ export interface DeploymentParams {
   skipHealthChecks?: boolean; // For emergencies only
   skipBackendBuild?: boolean; // Optional - skip backend build (for frontend-only changes)
   skipFrontendBuild?: boolean; // Optional - skip frontend build (for backend-only changes)
+  useCache?: boolean; // ST-115: Use BuildKit cache (default: false for deterministic prod builds)
+  autoDetectBuilds?: boolean; // ST-115: Auto-detect which services need rebuilding based on git diff
   confirmDeploy: boolean; // Required - explicit confirmation
 }
 
@@ -100,19 +103,22 @@ export class DeploymentService {
   private lockService: DeploymentLockService;
   private backupService: BackupService;
   private restoreService: RestoreService;
+  private buildDecisionService: BuildDecisionService;
   private projectRoot: string;
 
   constructor(
     prismaClient?: PrismaClient,
     lockService?: DeploymentLockService,
     backupService?: BackupService,
-    restoreService?: RestoreService
+    restoreService?: RestoreService,
+    buildDecisionService?: BuildDecisionService
   ) {
     this.prisma = prismaClient || new PrismaClient();
     this.lockService = lockService || new DeploymentLockService(this.prisma);
     this.backupService = backupService || new BackupService();
     this.restoreService = restoreService || new RestoreService();
     this.projectRoot = path.resolve(__dirname, '../../../');
+    this.buildDecisionService = buildDecisionService || new BuildDecisionService(this.prisma, this.projectRoot);
   }
 
   /**
@@ -142,6 +148,12 @@ export class DeploymentService {
     let approvalMethod: 'PR' | 'MANUAL' = 'PR';
 
     try {
+      // ========================================================================
+      // PHASE 0: Host Environment Check (ST-115)
+      // ========================================================================
+      console.log('[DeploymentService] Phase 0: Host Environment Check');
+      await this.validateHostEnvironment();
+
       // ========================================================================
       // PHASE 1: Validation
       // ========================================================================
@@ -259,6 +271,39 @@ export class DeploymentService {
       }
 
       // ========================================================================
+      // PHASE 4.5: Auto-Detect Build Requirements (ST-115)
+      // ========================================================================
+      let changeAnalysis: ChangeAnalysis | null = null;
+      let effectiveSkipBackend = params.skipBackendBuild || false;
+      let effectiveSkipFrontend = params.skipFrontendBuild || false;
+
+      if (params.autoDetectBuilds) {
+        console.log('[DeploymentService] Phase 4.5: Auto-detecting build requirements');
+        try {
+          const buildDecision = await this.buildDecisionService.makeBuildDecision();
+          changeAnalysis = buildDecision.analysis;
+
+          console.log(`[DeploymentService] Change analysis: ${buildDecision.reason}`);
+          console.log(`[DeploymentService] - Backend files: ${changeAnalysis.backendFiles.length}`);
+          console.log(`[DeploymentService] - Frontend files: ${changeAnalysis.frontendFiles.length}`);
+          console.log(`[DeploymentService] - Shared files: ${changeAnalysis.sharedFiles.length}`);
+
+          // Apply auto-detected build decisions (only if not explicitly set)
+          if (!params.skipBackendBuild && buildDecision.skipBackendBuild) {
+            effectiveSkipBackend = true;
+            warnings.push(`🔍 Auto-detect: Skipping backend build (${buildDecision.reason})`);
+          }
+          if (!params.skipFrontendBuild && buildDecision.skipFrontendBuild) {
+            effectiveSkipFrontend = true;
+            warnings.push(`🔍 Auto-detect: Skipping frontend build (${buildDecision.reason})`);
+          }
+        } catch (autoDetectError: any) {
+          console.warn(`[DeploymentService] Auto-detect failed, building both services: ${autoDetectError.message}`);
+          warnings.push(`⚠️  Auto-detect failed: ${autoDetectError.message}. Building both services.`);
+        }
+      }
+
+      // ========================================================================
       // PHASE 5 & 6: Build Containers (AC5) - Parallel Execution
       // ========================================================================
       console.log('[DeploymentService] Phase 5 & 6: Building containers (parallel)');
@@ -266,40 +311,49 @@ export class DeploymentService {
       // Determine which builds to run
       const buildsToRun: Promise<void>[] = [];
 
-      if (!params.skipBackendBuild) {
+      // ST-115: Log if using cache (default is false for production safety)
+      if (params.useCache) {
+        console.log('[DeploymentService] Using BuildKit cache (useCache=true)');
+      }
+
+      if (!effectiveSkipBackend) {
         buildsToRun.push(
           (async () => {
             console.log('[DeploymentService] Building backend container');
             const start = Date.now();
-            await this.buildDockerContainer('backend');
+            await this.buildDockerContainer('backend', params.useCache || false);
             phases.buildBackend = {
               success: true,
               duration: Date.now() - start,
-              message: 'Backend container built successfully',
+              message: params.useCache
+                ? 'Backend container built successfully (with cache)'
+                : 'Backend container built successfully',
             };
           })()
         );
       } else {
         console.log('[DeploymentService] Skipping backend build (skipBackendBuild=true)');
-        phases.buildBackend = { success: true, duration: 0, message: 'Backend build skipped' };
+        phases.buildBackend = { success: true, duration: 0, message: 'Backend build skipped (no changes detected)' };
       }
 
-      if (!params.skipFrontendBuild) {
+      if (!effectiveSkipFrontend) {
         buildsToRun.push(
           (async () => {
             console.log('[DeploymentService] Building frontend container');
             const start = Date.now();
-            await this.buildDockerContainer('frontend');
+            await this.buildDockerContainer('frontend', params.useCache || false);
             phases.buildFrontend = {
               success: true,
               duration: Date.now() - start,
-              message: 'Frontend container built successfully',
+              message: params.useCache
+                ? 'Frontend container built successfully (with cache)'
+                : 'Frontend container built successfully',
             };
           })()
         );
       } else {
         console.log('[DeploymentService] Skipping frontend build (skipFrontendBuild=true)');
-        phases.buildFrontend = { success: true, duration: 0, message: 'Frontend build skipped' };
+        phases.buildFrontend = { success: true, duration: 0, message: 'Frontend build skipped (no changes detected)' };
       }
 
       // Run builds in parallel if multiple builds needed
@@ -412,6 +466,42 @@ export class DeploymentService {
         await this.clearManualApproval(params.storyId);
       }
 
+      // ========================================================================
+      // PHASE 12: Record Deployment State for Future Change Detection (ST-115)
+      // ========================================================================
+      try {
+        const currentCommit = commitHash || execSync('git rev-parse HEAD', {
+          cwd: this.projectRoot,
+          encoding: 'utf-8',
+        }).trim();
+
+        // Record backend deployment if it was built
+        if (!effectiveSkipBackend) {
+          await this.buildDecisionService.recordDeployment(
+            'backend',
+            currentCommit,
+            changeAnalysis?.backendFiles || [],
+            { storyKey, prNumber: params.prNumber, duration: phases.buildBackend.duration }
+          );
+        }
+
+        // Record frontend deployment if it was built
+        if (!effectiveSkipFrontend) {
+          await this.buildDecisionService.recordDeployment(
+            'frontend',
+            currentCommit,
+            changeAnalysis?.frontendFiles || [],
+            { storyKey, prNumber: params.prNumber, duration: phases.buildFrontend.duration }
+          );
+        }
+
+        console.log('[DeploymentService] ✓ Deployment state recorded for future change detection');
+      } catch (recordError: any) {
+        // Non-fatal - just log warning
+        console.warn(`[DeploymentService] Failed to record deployment state: ${recordError.message}`);
+        warnings.push(`⚠️  Failed to record deployment state: ${recordError.message}`);
+      }
+
       return {
         success: true,
         deploymentLogId,
@@ -522,6 +612,33 @@ export class DeploymentService {
   // ==========================================================================
   // Validation Methods
   // ==========================================================================
+
+  /**
+   * ST-115: Validate host environment before deployment
+   * Checks Prisma client connectivity to catch corrupted node_modules early
+   */
+  private async validateHostEnvironment(): Promise<void> {
+    console.log('[DeploymentService] Validating host environment...');
+
+    try {
+      // Quick Prisma connectivity check
+      await this.prisma.$queryRaw`SELECT 1`;
+      console.log('[DeploymentService] ✓ Host environment validated (Prisma OK)');
+    } catch (error: any) {
+      // Provide clear error message with recovery instructions
+      throw new Error(
+        `Host environment check failed: ${error.message}\n\n` +
+        `The MCP server's Prisma client may be corrupted.\n\n` +
+        `To fix, run these commands:\n` +
+        `  cd /opt/stack/AIStudio\n` +
+        `  rm -rf node_modules backend/node_modules\n` +
+        `  docker cp vibe-studio-backend:/app/node_modules backend/node_modules\n` +
+        `  ln -s backend/node_modules node_modules\n` +
+        `  cd backend && npx prisma generate\n\n` +
+        `Then restart Claude Code.`
+      );
+    }
+  }
 
   private async validateStory(storyId: string): Promise<any> {
     const story = await this.prisma.story.findUnique({
@@ -766,8 +883,16 @@ export class DeploymentService {
     }
   }
 
-  private async buildDockerContainer(service: 'backend' | 'frontend'): Promise<void> {
-    console.log(`[DeploymentService] Building ${service} container with --no-cache...`);
+  /**
+   * Build Docker container for a service
+   * ST-115: Added useCache parameter for faster builds when cache is safe
+   */
+  private async buildDockerContainer(
+    service: 'backend' | 'frontend',
+    useCache: boolean = false
+  ): Promise<void> {
+    const cacheMode = useCache ? 'with cache' : 'with --no-cache';
+    console.log(`[DeploymentService] Building ${service} container ${cacheMode}...`);
 
     try {
       // Ensure vibestudio-prod builder exists for isolated production cache
@@ -777,7 +902,10 @@ export class DeploymentService {
       // Use docker buildx build with isolated builder to prevent test/prod cache conflicts
       const dockerfile = service === 'backend' ? 'backend/Dockerfile' : 'frontend/Dockerfile';
       const imageName = `aistudio-${service}`;
-      const buildCommand = `docker buildx build --builder vibestudio-prod --load --no-cache -t ${imageName} -f ${dockerfile} .`;
+
+      // ST-115: Only add --no-cache flag when useCache is false (default for production safety)
+      const cacheFlag = useCache ? '' : '--no-cache';
+      const buildCommand = `docker buildx build --builder vibestudio-prod --load ${cacheFlag} -t ${imageName} -f ${dockerfile} .`.replace(/\s+/g, ' ').trim();
 
       execSync(buildCommand, {
         cwd: this.projectRoot,

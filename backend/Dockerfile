@@ -12,7 +12,9 @@ COPY backend/package*.json ./backend/
 COPY shared/package*.json ./shared/
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci --include=dev
+# ST-115: BuildKit cache mount for faster subsequent builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --include=dev
 
 # Copy source code
 COPY backend ./backend
@@ -46,17 +48,17 @@ COPY backend/package*.json ./backend/
 COPY shared/package*.json ./shared/
 
 # Install production dependencies only (rebuild native modules for Alpine)
-RUN npm ci --omit=dev --ignore-scripts && npm rebuild bcrypt --build-from-source
+# ST-115: BuildKit cache mount for faster subsequent builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --ignore-scripts && npm rebuild bcrypt --build-from-source
 
 # Copy built files from builder stage
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/prisma ./backend/prisma
 COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Generate Prisma Client in production image
-WORKDIR /app/backend
-RUN npx prisma generate
+# NOTE (ST-115): Prisma client already generated in builder stage (line 24) and copied above (line 55)
+# No need to regenerate - removed redundant `npx prisma generate` that was adding 30-45s to builds
 
 WORKDIR /app
 
