@@ -6,11 +6,15 @@
 
 export interface ContextMetrics {
   tokensInput: number | null; // Total context tokens used
+  tokensOutput?: number | null; // Output tokens (from transcript)
   tokensSystemPrompt: number | null; // System prompt tokens
   tokensSystemTools: number | null; // System tools tokens
   tokensMcpTools: number | null; // MCP tools tokens
   tokensMemoryFiles: number | null; // Memory files tokens
   tokensMessages: number | null; // User/assistant messages tokens
+  tokensCacheCreation?: number | null; // Cache creation tokens (from transcript)
+  tokensCacheRead?: number | null; // Cache read tokens (from transcript)
+  sessionId?: string | null; // Session ID (from transcript)
 }
 
 const NULL_METRICS: ContextMetrics = {
