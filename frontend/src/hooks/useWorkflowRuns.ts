@@ -9,6 +9,7 @@ interface UseWorkflowRunsOptions {
   storyId?: string;
   includeCancelled?: boolean;
   includeCompleted?: boolean;
+  includeFailed?: boolean;
   refetchInterval?: number;
 }
 
@@ -127,6 +128,7 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
     storyId,
     includeCancelled = false,
     includeCompleted = false,
+    includeFailed = false,
     refetchInterval = 5000,
   } = options;
 
@@ -136,7 +138,7 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
     localStorage.getItem('currentProjectId');
 
   const { data, isLoading, error, refetch } = useQuery<WorkflowRun[]>({
-    queryKey: ['workflow-runs', { projectId: effectiveProjectId, status, storyId, includeCancelled, includeCompleted }],
+    queryKey: ['workflow-runs', { projectId: effectiveProjectId, status, storyId, includeCancelled, includeCompleted, includeFailed }],
     queryFn: async () => {
       if (!effectiveProjectId) {
         console.warn('No projectId available for workflow runs query');
@@ -161,12 +163,13 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
     enabled: !!effectiveProjectId, // Only run query if we have a projectId
   });
 
-  // Process and sort runs - filter out completed/cancelled unless explicitly requested
+  // Process and sort runs - filter out completed/cancelled/failed unless explicitly requested
   // Also filter out orphan runs with no linked story (stale/failed starts)
   const runs = (data || [])
     .filter((run) => {
       if (!includeCancelled && run.status === 'cancelled') return false;
       if (!includeCompleted && run.status === 'completed') return false;
+      if (!includeFailed && run.status === 'failed') return false;
       // Filter out orphan runs with no story (stale runs, failed starts, etc.)
       if (!run.storyKey) return false;
       return true;

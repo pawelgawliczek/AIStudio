@@ -59,7 +59,7 @@ export const MultiRunStatusBar: React.FC = () => {
 
   // Auto-hide logic
   const shouldHide =
-    settings.autoHide && runs.every((r) => r.status === 'completed' || r.status === 'cancelled');
+    settings.autoHide && runs.every((r) => r.status === 'completed' || r.status === 'cancelled' || r.status === 'failed');
 
   // Always use vertical layout, dynamic height
   const heightClass = 'min-h-16 max-h-80';
