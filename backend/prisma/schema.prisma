@@ -4,6 +4,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -1360,6 +1361,23 @@ enum DeploymentStatus {
   deployed // Successfully deployed
   failed // Deployment failed (before or during execution)
   rolled_back // Deployment rolled back after failure
+}
+
+// ServiceDeploymentState - Track last deployed commit per service (ST-115 Build Optimization)
+// Used for intelligent change detection to skip rebuilds when service hasn't changed
+model ServiceDeploymentState {
+  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  service            String   @unique // 'backend' | 'frontend'
+  lastDeployedCommit String   @map("last_deployed_commit") // Git commit hash (40 char SHA)
+  lastDeployedAt     DateTime @map("last_deployed_at")
+  filesChanged       String[] @map("files_changed") // List of files in last deployment
+  metadata           Json?    // Additional deployment info (build duration, etc.)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([service])
+  @@index([lastDeployedAt])
+  @@map("service_deployment_states")
 }
 
 // ============================================================================
