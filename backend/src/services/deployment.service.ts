@@ -739,12 +739,45 @@ export class DeploymentService {
   // Docker Operations (AC5)
   // ==========================================================================
 
+  /**
+   * Ensure a Docker buildx builder exists, creating it if necessary
+   * This provides isolated build caches for production deployments
+   */
+  private async ensureBuilderExists(builderName: string): Promise<void> {
+    try {
+      // Check if builder already exists
+      execSync(`docker buildx inspect ${builderName}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe'
+      });
+      console.log(`[DeploymentService] Builder ${builderName} already exists, reusing...`);
+    } catch (error) {
+      // Builder doesn't exist, create it
+      console.log(`[DeploymentService] Creating Docker buildx builder: ${builderName}...`);
+      try {
+        execSync(`docker buildx create --name ${builderName} --driver docker-container --use`, {
+          encoding: 'utf-8',
+          stdio: 'pipe'
+        });
+        console.log(`[DeploymentService] ✓ Builder ${builderName} created successfully`);
+      } catch (createError: any) {
+        throw new Error(`Failed to create buildx builder ${builderName}: ${createError.message}`);
+      }
+    }
+  }
+
   private async buildDockerContainer(service: 'backend' | 'frontend'): Promise<void> {
     console.log(`[DeploymentService] Building ${service} container with --no-cache...`);
 
     try {
-      // Use production Dockerfile (per CLAUDE.md requirements)
-      const buildCommand = `docker compose build ${service} --no-cache`;
+      // Ensure vibestudio-prod builder exists for isolated production cache
+      await this.ensureBuilderExists('vibestudio-prod');
+
+      // Use production Dockerfile with isolated builder (per CLAUDE.md requirements)
+      // Use docker buildx build with isolated builder to prevent test/prod cache conflicts
+      const dockerfile = service === 'backend' ? 'backend/Dockerfile' : 'frontend/Dockerfile';
+      const imageName = `aistudio-${service}`;
+      const buildCommand = `docker buildx build --builder vibestudio-prod --load --no-cache -t ${imageName} -f ${dockerfile} .`;
 
       execSync(buildCommand, {
         cwd: this.projectRoot,

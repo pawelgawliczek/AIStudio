@@ -109,7 +109,10 @@ export class DockerProductionUtils {
       await ensureBuilderExists('vibestudio-prod');
 
       // CRITICAL: Use production Dockerfile with --no-cache and isolated builder (per CLAUDE.md)
-      const buildCommand = `docker compose build ${service} --no-cache`;
+      // Use docker buildx build with isolated builder to prevent test/prod cache conflicts
+      const dockerfile = service === 'backend' ? 'backend/Dockerfile' : 'frontend/Dockerfile';
+      const imageName = `aistudio-${service}`;
+      const buildCommand = `docker buildx build --builder vibestudio-prod --load --no-cache -t ${imageName} -f ${dockerfile} .`;
 
       logs = execSync(buildCommand, {
         cwd: this.projectRoot,
