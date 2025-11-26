@@ -333,6 +333,25 @@ export async function handler(
       );
     }
 
+    // Phase 8.5: Regenerate local Prisma client (MCP server runs outside Docker)
+    // Docker build can corrupt the local .prisma/client when using worktree symlinks
+    console.log('Regenerating local Prisma client for MCP server...');
+    try {
+      execSync('npx prisma generate', {
+        cwd: `${mainWorktreePath}/backend`,
+        encoding: 'utf-8',
+        timeout: 60000,
+        stdio: 'pipe'
+      });
+      console.log('✓ Local Prisma client regenerated');
+    } catch (error: any) {
+      // Non-fatal but important warning
+      console.warn('⚠ Failed to regenerate Prisma client:', error.message);
+      warnings.push(
+        'Prisma client regeneration failed - MCP server may need manual "npx prisma generate"'
+      );
+    }
+
     // Phase 9: Update Test Queue Status
     let testQueueUpdate: TestQueueUpdate | undefined;
     try {
