@@ -1,12 +1,14 @@
 /**
  * ST-110: Refactored record_component_complete to use /context command
  * Removed ALL transcript parsing (1,457 lines) and replaced with simple /context parsing
+ * ST-112: Added transcriptPath parameter for spawned agent token tracking
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { ValidationError } from '../../types';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
+import { TranscriptParserService } from './services/transcript-parser.service';
 
 export const tool: Tool = {
   name: 'record_component_complete',
@@ -40,6 +42,11 @@ export const tool: Tool = {
         type: 'string',
         description:
           'Raw /context command output from Claude Code. When provided, token metrics will be parsed from this output.',
+      },
+      transcriptPath: {
+        type: 'string',
+        description:
+          'Path to agent transcript JSONL file (for spawned agents). When provided, token metrics will be parsed from transcript.',
       },
     },
     required: ['runId', 'componentId'],
@@ -106,10 +113,11 @@ export async function handler(prisma: PrismaClient, params: any) {
     (completedAt.getTime() - componentRun.startedAt.getTime()) / 1000,
   );
 
-  // Parse /context output if provided
+  // Parse metrics from contextOutput (orchestrators) or transcriptPath (spawned agents)
   let contextMetrics: ContextMetrics | null = null;
-  let dataSource: 'context' | 'none' = 'none';
+  let dataSource: 'context' | 'transcript' | 'none' = 'none';
 
+  // Priority 1: contextOutput (orchestrator agents - ST-110 pattern)
   if (params.contextOutput && typeof params.contextOutput === 'string') {
     contextMetrics = parseContextOutput(params.contextOutput);
     dataSource = 'context';
@@ -122,6 +130,38 @@ export async function handler(prisma: PrismaClient, params: any) {
       tokensMessages: contextMetrics.tokensMessages,
     });
   }
+  // Priority 2: transcriptPath (spawned agents - ST-112 pattern)
+  else if (params.transcriptPath && typeof params.transcriptPath === 'string') {
+    const transcriptParser = new TranscriptParserService();
+    const transcriptMetrics = await transcriptParser.parseAgentTranscript(params.transcriptPath);
+
+    if (transcriptMetrics) {
+      // Map transcript metrics to ContextMetrics format for consistency
+      contextMetrics = {
+        tokensInput: transcriptMetrics.inputTokens,
+        tokensOutput: transcriptMetrics.outputTokens,
+        tokensSystemPrompt: null, // Not available in transcript
+        tokensSystemTools: null,  // Not available in transcript
+        tokensMcpTools: null,     // Not available in transcript
+        tokensMemoryFiles: null,  // Not available in transcript
+        tokensMessages: null,     // Not available in transcript
+        tokensCacheCreation: transcriptMetrics.cacheCreationTokens,
+        tokensCacheRead: transcriptMetrics.cacheReadTokens,
+        sessionId: transcriptMetrics.sessionId,
+      };
+      dataSource = 'transcript';
+      console.log(`[ST-112] Parsed transcript for component ${params.componentId}:`, {
+        agentId: transcriptMetrics.agentId,
+        inputTokens: transcriptMetrics.inputTokens,
+        outputTokens: transcriptMetrics.outputTokens,
+        cacheCreationTokens: transcriptMetrics.cacheCreationTokens,
+        cacheReadTokens: transcriptMetrics.cacheReadTokens,
+        totalTokens: transcriptMetrics.totalTokens,
+      });
+    } else {
+      console.warn(`[ST-112] Failed to parse transcript at ${params.transcriptPath}`);
+    }
+  }
 
   // Get the component info
   const componentInfo = await prisma.component.findUnique({
@@ -129,20 +169,33 @@ export async function handler(prisma: PrismaClient, params: any) {
     select: { name: true },
   });
 
-  // Update ComponentRun record with /context metrics
+  // Update ComponentRun record with /context or transcript metrics
   const updatedComponentRun = await prisma.componentRun.update({
     where: { id: componentRun.id },
     data: {
       status,
       outputData: params.output || {},
-      // ST-110: Token breakdown from /context command
+      // ST-110/ST-112: Token breakdown from /context command or transcript
       totalTokens: contextMetrics?.tokensInput || null,
       tokensInput: contextMetrics?.tokensInput || null,
+      tokensOutput: contextMetrics?.tokensOutput || null,
       tokensSystemPrompt: contextMetrics?.tokensSystemPrompt || null,
       tokensSystemTools: contextMetrics?.tokensSystemTools || null,
       tokensMcpTools: contextMetrics?.tokensMcpTools || null,
       tokensMemoryFiles: contextMetrics?.tokensMemoryFiles || null,
       tokensMessages: contextMetrics?.tokensMessages || null,
+      // ST-112: Session ID from transcript
+      sessionId: contextMetrics?.sessionId || componentRun.sessionId || null,
+      // ST-112: Store cache tokens in metadata (no dedicated fields in schema)
+      metadata: contextMetrics?.tokensCacheCreation || contextMetrics?.tokensCacheRead
+        ? {
+            ...(typeof componentRun.metadata === 'object' && componentRun.metadata !== null ? componentRun.metadata : {}),
+            cacheTokens: {
+              creation: contextMetrics.tokensCacheCreation || 0,
+              read: contextMetrics.tokensCacheRead || 0,
+            },
+          }
+        : componentRun.metadata,
       // Duration
       durationSeconds,
       finishedAt: completedAt,
