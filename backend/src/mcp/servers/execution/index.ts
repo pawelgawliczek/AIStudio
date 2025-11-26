@@ -6,6 +6,7 @@ export * as startWorkflowRun from './start_workflow_run.js';
 export * as recordComponentStart from './record_component_start.js';
 export * as recordComponentComplete from './record_component_complete.js';
 export * as getWorkflowContext from './get_workflow_context.js';
+export * as getComponentContext from './get_component_context.js';
 export * as updateWorkflowStatus from './update_workflow_status.js';
 export * as storeArtifact from './store_artifact.js';
 
