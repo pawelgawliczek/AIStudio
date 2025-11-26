@@ -84,7 +84,8 @@ function transformApiResponse(apiRun: ApiWorkflowRun): WorkflowRun {
   const runningComponent = componentRuns.find(c => c.status === 'running');
 
   // Extract story info - handle both nested story object and flat fields
-  const storyKey = apiRun.story?.key || `Run-${apiRun.id.slice(0, 8)}`;
+  // If no story is linked, use "No story" instead of cryptic run ID
+  const storyKey = apiRun.story?.key || null;
   const storyTitle = apiRun.story?.title || apiRun.workflow?.name || 'Workflow Run';
 
   return {
@@ -160,10 +161,13 @@ export function useWorkflowRuns(options: UseWorkflowRunsOptions = {}) {
   });
 
   // Process and sort runs - filter out completed/cancelled unless explicitly requested
+  // Also filter out orphan runs with no linked story (stale/failed starts)
   const runs = (data || [])
     .filter((run) => {
       if (!includeCancelled && run.status === 'cancelled') return false;
       if (!includeCompleted && run.status === 'completed') return false;
+      // Filter out orphan runs with no story (stale runs, failed starts, etc.)
+      if (!run.storyKey) return false;
       return true;
     })
     .map((run) => ({

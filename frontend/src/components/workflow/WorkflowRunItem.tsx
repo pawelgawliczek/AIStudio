@@ -58,14 +58,18 @@ export const WorkflowRunItem: React.FC<WorkflowRunItemProps> = ({
           <WorkflowStatusIcon status={run.status} size="md" />
         </div>
 
-        {/* Story Key (clickable) */}
-        <button
-          onClick={() => onNavigateToStory(run.storyKey)}
-          className="text-sm font-semibold text-accent hover:text-accent-dark hover:underline"
-          title={`View story ${run.storyKey}`}
-        >
-          {run.storyKey}
-        </button>
+        {/* Story Key (clickable) or "No story" fallback */}
+        {run.storyKey ? (
+          <button
+            onClick={() => onNavigateToStory(run.storyKey!)}
+            className="text-sm font-semibold text-accent hover:text-accent-dark hover:underline"
+            title={`View story ${run.storyKey}`}
+          >
+            {run.storyKey}
+          </button>
+        ) : (
+          <span className="text-sm font-medium text-muted italic">No story</span>
+        )}
 
         {/* Workflow Run Link */}
         <button

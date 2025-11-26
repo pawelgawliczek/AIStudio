@@ -40,7 +40,7 @@ export interface WorkflowRun {
   id: string;
   workflowId: string;
   storyId: string;
-  storyKey: string;
+  storyKey: string | null;
   storyTitle: string;
   status: WorkflowRunStatus;
   progress: number; // 0-100
