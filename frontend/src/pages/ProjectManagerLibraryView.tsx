@@ -8,9 +8,9 @@ import { useProject } from '../context/ProjectContext';
 import { useCoordinatorFilters } from '../hooks/useCoordinatorFilters';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
-import { CoordinatorCard } from '../components/CoordinatorCard';
+import { ProjectManagerCard } from '../components/ProjectManagerCard';
 
-export function CoordinatorLibraryView() {
+export function ProjectManagerLibraryView() {
   const [searchParams] = useSearchParams();
   const { selectedProject } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
@@ -195,7 +195,7 @@ export function CoordinatorLibraryView() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {filteredCoordinators.map((coordinator) => (
-            <CoordinatorCard
+            <ProjectManagerCard
               key={coordinator.id}
               coordinator={coordinator}
               versionsCount={versionCounts[coordinator.id] || 1}

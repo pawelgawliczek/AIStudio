@@ -63,6 +63,7 @@ services:
       dockerfile: backend/Dockerfile
     container_name: vibe-studio-backend
     restart: unless-stopped
+    command: ["node", "backend/dist/main.js"]  # Skip migrations for DEV
     env_file:
       - .env
     environment:
@@ -71,7 +72,7 @@ services:
       REDIS_URL: redis://redis:6379
       PORT: 3000
       # HOST path for transcript tracking (where Claude Code runs, not Docker path)
-      PROJECT_HOST_PATH: /opt/stack/AIStudio
+      PROJECT_HOST_PATH: /Users/pawelgawliczek/projects/AIStudio
     ports:
       - '127.0.0.1:3000:3000'
     volumes:
@@ -83,7 +84,7 @@ services:
       # Mount .git for code analysis
       - ./.git:/app/.git:ro
       # Mount worktrees for deployment tool (dynamic - subdirs auto-appear)
-      - /opt/stack/worktrees:/opt/stack/worktrees
+      - ./worktrees:/Users/pawelgawliczek/projects/AIStudio/worktrees
       # Mount coverage data for test coverage analysis
       - ./backend/coverage:/app/backend/coverage:ro
       - ./frontend/coverage:/app/frontend/coverage:ro

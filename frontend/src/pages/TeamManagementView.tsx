@@ -9,14 +9,14 @@ import { useWorkflowFilters } from '../hooks/useWorkflowFilters';
 import { useWorkflowActions } from '../hooks/useWorkflowActions';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
-import { WorkflowCard } from '../components/WorkflowCard';
+import { TeamCard } from '../components/TeamCard';
 import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
 import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
 import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
 import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
 import { terminology } from '../utils/terminology';
 
-export function WorkflowManagementView() {
+export function TeamManagementView() {
   const [searchParams] = useSearchParams();
   const { selectedProject, projects } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
@@ -157,7 +157,7 @@ export function WorkflowManagementView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {workflows.map((workflow) => (
-            <WorkflowCard
+            <TeamCard
               key={workflow.id}
               workflow={workflow}
               projectId={projectId}

@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tab } from '@headlessui/react';
 import { ArrowLeftIcon, TrashIcon, PencilIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 
-import { componentsService } from '../services/components.service';
+import { coordinatorsService } from '../services/coordinators.service';
 import { versioningService } from '../services/versioning.service';
 import { analyticsService } from '../services/analytics.service';
 import { useProject } from '../context/ProjectContext';
-import { Component, UpdateComponentDto } from '../types';
+import { CoordinatorAgent, UpdateCoordinatorDto } from '../types';
 
 import { VersionBadge } from '../components/VersionBadge';
 import { VersionBumpModal } from '../components/VersionBumpModal';
@@ -27,9 +27,9 @@ function classNames(...classes: string[]) {
 interface EditFormData {
   name: string;
   description: string;
-  inputInstructions: string;
-  operationInstructions: string;
-  outputInstructions: string;
+  domain: string;
+  coordinatorInstructions: string;
+  decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
   config: {
     modelId: string;
     temperature: number;
@@ -40,11 +40,9 @@ interface EditFormData {
     costLimit: number;
   };
   tools: string[];
-  tags: string[];
-  onFailure: 'stop' | 'skip' | 'retry' | 'pause';
 }
 
-export function ComponentDetailPage() {
+export function ProjectManagerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -67,46 +65,46 @@ export function ComponentDetailPage() {
   // Workflow filter state
   const [workflowVersionFilter, setWorkflowVersionFilter] = useState<string>('all');
 
-  // Fetch component
+  // Fetch coordinator
   const {
-    data: component,
+    data: coordinator,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['component', projectId, id],
-    queryFn: () => componentsService.getById(projectId, id!, true),
+    queryKey: ['coordinator', projectId, id],
+    queryFn: () => coordinatorsService.getById(projectId, id!, true),
     enabled: !!projectId && !!id,
   });
 
   // Fetch version history
   const { data: versions = [], isLoading: versionsLoading } = useQuery({
-    queryKey: ['componentVersions', id],
-    queryFn: () => versioningService.getComponentVersionHistory(id!),
+    queryKey: ['coordinatorVersions', id],
+    queryFn: () => versioningService.getCoordinatorVersionHistory(id!),
     enabled: !!id,
   });
 
   // Fetch analytics for workflows
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['componentAnalytics', id],
-    queryFn: () => analyticsService.getComponentAnalytics(id!),
+    queryKey: ['coordinatorAnalytics', id],
+    queryFn: () => analyticsService.getCoordinatorAnalytics(id!),
     enabled: !!id,
   });
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => componentsService.delete(projectId, id!),
+    mutationFn: () => coordinatorsService.delete(projectId, id!),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['components'] });
-      navigate('/components');
+      queryClient.invalidateQueries({ queryKey: ['coordinators'] });
+      navigate('/coordinators');
     },
   });
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: (data: UpdateComponentDto) => componentsService.update(projectId, id!, data),
+    mutationFn: (data: UpdateCoordinatorDto) => coordinatorsService.update(projectId, id!, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['component', projectId, id] });
-      queryClient.invalidateQueries({ queryKey: ['componentVersions', id] });
+      queryClient.invalidateQueries({ queryKey: ['coordinator', projectId, id] });
+      queryClient.invalidateQueries({ queryKey: ['coordinatorVersions', id] });
       setIsEditing(false);
       setFormData(null);
     },
@@ -114,22 +112,20 @@ export function ComponentDetailPage() {
 
   // Initialize form data when entering edit mode
   const handleStartEdit = useCallback(() => {
-    if (!component) return;
+    if (!coordinator) return;
 
     setFormData({
-      name: component.name,
-      description: component.description || '',
-      inputInstructions: component.inputInstructions,
-      operationInstructions: component.operationInstructions,
-      outputInstructions: component.outputInstructions,
-      config: { ...component.config },
-      tools: [...component.tools],
-      tags: [...component.tags],
-      onFailure: component.onFailure,
+      name: coordinator.name,
+      description: coordinator.description || '',
+      domain: coordinator.domain,
+      coordinatorInstructions: coordinator.coordinatorInstructions,
+      decisionStrategy: coordinator.decisionStrategy,
+      config: { ...coordinator.config },
+      tools: [...coordinator.tools],
     });
     setErrors({});
     setIsEditing(true);
-  }, [component]);
+  }, [coordinator]);
 
   // Cancel edit mode
   const handleCancelEdit = () => {
@@ -168,14 +164,11 @@ export function ComponentDetailPage() {
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    if (!formData.inputInstructions.trim()) {
-      newErrors.inputInstructions = 'Input instructions are required';
+    if (!formData.coordinatorInstructions.trim()) {
+      newErrors.coordinatorInstructions = 'Coordinator instructions are required';
     }
-    if (!formData.operationInstructions.trim()) {
-      newErrors.operationInstructions = 'Operation instructions are required';
-    }
-    if (!formData.outputInstructions.trim()) {
-      newErrors.outputInstructions = 'Output instructions are required';
+    if (!formData.domain.trim()) {
+      newErrors.domain = 'Domain is required';
     }
 
     setErrors(newErrors);
@@ -191,7 +184,7 @@ export function ComponentDetailPage() {
 
   // Handle version creation success
   const handleVersionCreated = async (newVersion: string) => {
-    // The version has been created, now update the component with new data
+    // The version has been created, now update the coordinator with new data
     if (formData) {
       await updateMutation.mutateAsync(formData);
     }
@@ -200,7 +193,7 @@ export function ComponentDetailPage() {
 
   // Handle delete
   const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete "${component?.name}"?`)) {
+    if (window.confirm(`Are you sure you want to delete "${coordinator?.name}"?`)) {
       deleteMutation.mutate();
     }
   };
@@ -246,29 +239,29 @@ export function ComponentDetailPage() {
   }
 
   // Error state
-  if (error || !component) {
+  if (error || !coordinator) {
     return (
       <div className="text-center py-12">
-        <p className="text-fg text-lg">Component not found</p>
-        <Link to="/components" className="text-accent hover:underline mt-2 inline-block">
-          ← Back to Components
+        <p className="text-fg text-lg">Coordinator not found</p>
+        <Link to="/coordinators" className="text-accent hover:underline mt-2 inline-block">
+          ← Back to Coordinators
         </Link>
       </div>
     );
   }
 
-  // Get display data (either from formData if editing, or from component)
-  const displayData = isEditing && formData ? formData : component;
+  // Get display data (either from formData if editing, or from coordinator)
+  const displayData = isEditing && formData ? formData : coordinator;
 
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Back link */}
       <Link
-        to="/components"
+        to="/coordinators"
         className="inline-flex items-center gap-2 text-fg hover:text-accent mb-6 transition-colors"
       >
         <ArrowLeftIcon className="w-4 h-4" />
-        Back to Components
+        Back to Coordinators
       </Link>
 
       {/* Header */}
@@ -276,23 +269,27 @@ export function ComponentDetailPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-fg">{displayData.name}</h1>
-            <VersionBadge version={component.version} status="current" size="lg" />
+            <VersionBadge version={coordinator.version} status="current" size="lg" />
           </div>
           {displayData.description && (
             <p className="mt-2 text-fg max-w-3xl">{displayData.description}</p>
           )}
+          <div className="mt-2 flex items-center gap-4 text-sm text-fg">
+            <span>Domain: <strong>{displayData.domain}</strong></span>
+            <span>Strategy: <strong className="capitalize">{displayData.decisionStrategy}</strong></span>
+          </div>
         </div>
 
         {/* Usage stats */}
-        {component.usageStats && (
+        {coordinator.usageStats && (
           <div className="flex gap-4 text-sm">
             <div className="text-center">
-              <div className="text-2xl font-bold text-fg">{component.usageStats.totalRuns}</div>
+              <div className="text-2xl font-bold text-fg">{coordinator.usageStats.totalRuns}</div>
               <div className="text-fg">Total Runs</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-fg">
-                {component.usageStats.successRate.toFixed(1)}%
+                {coordinator.usageStats.successRate.toFixed(1)}%
               </div>
               <div className="text-fg">Success Rate</div>
             </div>
@@ -355,9 +352,7 @@ export function ComponentDetailPage() {
           <Tab.Panel className="rounded-xl bg-bg p-4 focus:outline-none">
             <div className="space-y-6">
               <InstructionSetsDisplay
-                inputInstructions={displayData.inputInstructions}
-                operationInstructions={displayData.operationInstructions}
-                outputInstructions={displayData.outputInstructions}
+                coordinatorInstructions={displayData.coordinatorInstructions}
                 isEditing={isEditing}
                 onChange={handleFieldChange}
                 errors={errors}
@@ -366,8 +361,8 @@ export function ComponentDetailPage() {
               <ConfigurationDisplay
                 config={displayData.config}
                 tools={displayData.tools}
-                tags={displayData.tags}
-                onFailure={displayData.onFailure}
+                decisionStrategy={displayData.decisionStrategy}
+                domain={displayData.domain}
                 isEditing={isEditing}
                 onChange={handleFieldChange}
                 errors={errors}
@@ -379,7 +374,7 @@ export function ComponentDetailPage() {
           <Tab.Panel className="rounded-xl bg-bg p-4 focus:outline-none">
             <VersionHistoryTimeline
               versions={versions}
-              entityType="component"
+              entityType="coordinator"
               selectedVersions={[selectedVersion1, selectedVersion2]}
               onVersionSelect={handleVersionSelect}
               onCompare={() => setIsComparisonModalOpen(true)}
@@ -442,14 +437,14 @@ export function ComponentDetailPage() {
       </div>
 
       {/* Version Bump Modal */}
-      {component && (
+      {coordinator && (
         <VersionBumpModal
           isOpen={showVersionBumpModal}
           onClose={() => setShowVersionBumpModal(false)}
-          entityType="component"
-          entityId={component.id}
-          entityName={component.name}
-          currentVersion={component.version}
+          entityType="coordinator"
+          entityId={coordinator.id}
+          entityName={coordinator.name}
+          currentVersion={coordinator.version}
           onSuccess={handleVersionCreated}
         />
       )}
@@ -459,7 +454,7 @@ export function ComponentDetailPage() {
         <VersionComparisonModal
           isOpen={isComparisonModalOpen}
           onClose={() => setIsComparisonModalOpen(false)}
-          entityType="component"
+          entityType="coordinator"
           versionId1={selectedVersion1}
           versionId2={selectedVersion2}
           version1Label={versions.find((v) => v.id === selectedVersion1)?.version}

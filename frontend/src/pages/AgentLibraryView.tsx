@@ -4,14 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { componentsService } from '../services/components.service';
 import { versioningService } from '../services/versioning.service';
 import { workflowsService } from '../services/workflows.service';
-import { ComponentCard } from '../components/ComponentCard';
+import { AgentCard } from '../components/AgentCard';
 import { CreateComponentModal } from '../components/CreateComponentModal';
 import { useProject } from '../context/ProjectContext';
 import { useComponentFilters } from '../hooks/useComponentFilters';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
 
-export function ComponentLibraryView() {
+export function AgentLibraryView() {
   const [searchParams] = useSearchParams();
   const { selectedProject } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
@@ -232,7 +232,7 @@ export function ComponentLibraryView() {
       ) : (
         <div data-testid="component-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredComponents.map((component) => (
-            <ComponentCard
+            <AgentCard
               key={component.id}
               component={component}
               versionsCount={versionCounts[component.id] || 1}

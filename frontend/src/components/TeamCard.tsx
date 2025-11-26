@@ -3,7 +3,7 @@ import { Workflow } from '../types';
 import { WorkflowActivationButton } from './WorkflowActivationButton';
 import { WorkflowRunsHistory } from './WorkflowRunsHistory';
 
-export interface WorkflowCardProps {
+export interface TeamCardProps {
   workflow: Workflow;
   projectId: string;
   onClick: () => void;
@@ -11,13 +11,13 @@ export interface WorkflowCardProps {
   onDelete: () => void;
 }
 
-export function WorkflowCard({
+export function TeamCard({
   workflow,
   projectId,
   onClick,
   onToggleActive,
   onDelete,
-}: WorkflowCardProps) {
+}: TeamCardProps) {
   return (
     <div
       key={workflow.id}

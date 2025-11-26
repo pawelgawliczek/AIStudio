@@ -14,6 +14,14 @@
       "headers": {
         "Authorization": "Bearer ctx7sk-24346e74-bc1d-41f9-9131-895c926e30ee"
       }
+    },
+    "vibestudio": {
+      "command": "ssh",
+      "args": [
+        "-o", "StrictHostKeyChecking=accept-new",
+        "pawel@example.com",
+        "cd /opt/stack/AIStudio && DATABASE_URL='postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5433/vibestudio?schema=public' NODE_ENV=development npx tsx backend/src/mcp/server.ts"
+      ]
     }
   }
 }

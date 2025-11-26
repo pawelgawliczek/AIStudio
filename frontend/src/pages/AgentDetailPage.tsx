@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tab } from '@headlessui/react';
 import { ArrowLeftIcon, TrashIcon, PencilIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 
-import { coordinatorsService } from '../services/coordinators.service';
+import { componentsService } from '../services/components.service';
 import { versioningService } from '../services/versioning.service';
 import { analyticsService } from '../services/analytics.service';
 import { useProject } from '../context/ProjectContext';
-import { CoordinatorAgent, UpdateCoordinatorDto } from '../types';
+import { Component, UpdateComponentDto } from '../types';
 
 import { VersionBadge } from '../components/VersionBadge';
 import { VersionBumpModal } from '../components/VersionBumpModal';
@@ -27,9 +27,9 @@ function classNames(...classes: string[]) {
 interface EditFormData {
   name: string;
   description: string;
-  domain: string;
-  coordinatorInstructions: string;
-  decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
+  inputInstructions: string;
+  operationInstructions: string;
+  outputInstructions: string;
   config: {
     modelId: string;
     temperature: number;
@@ -40,9 +40,11 @@ interface EditFormData {
     costLimit: number;
   };
   tools: string[];
+  tags: string[];
+  onFailure: 'stop' | 'skip' | 'retry' | 'pause';
 }
 
-export function CoordinatorDetailPage() {
+export function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -65,46 +67,46 @@ export function CoordinatorDetailPage() {
   // Workflow filter state
   const [workflowVersionFilter, setWorkflowVersionFilter] = useState<string>('all');
 
-  // Fetch coordinator
+  // Fetch component
   const {
-    data: coordinator,
+    data: component,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['coordinator', projectId, id],
-    queryFn: () => coordinatorsService.getById(projectId, id!, true),
+    queryKey: ['component', projectId, id],
+    queryFn: () => componentsService.getById(projectId, id!, true),
     enabled: !!projectId && !!id,
   });
 
   // Fetch version history
   const { data: versions = [], isLoading: versionsLoading } = useQuery({
-    queryKey: ['coordinatorVersions', id],
-    queryFn: () => versioningService.getCoordinatorVersionHistory(id!),
+    queryKey: ['componentVersions', id],
+    queryFn: () => versioningService.getComponentVersionHistory(id!),
     enabled: !!id,
   });
 
   // Fetch analytics for workflows
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['coordinatorAnalytics', id],
-    queryFn: () => analyticsService.getCoordinatorAnalytics(id!),
+    queryKey: ['componentAnalytics', id],
+    queryFn: () => analyticsService.getComponentAnalytics(id!),
     enabled: !!id,
   });
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => coordinatorsService.delete(projectId, id!),
+    mutationFn: () => componentsService.delete(projectId, id!),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coordinators'] });
-      navigate('/coordinators');
+      queryClient.invalidateQueries({ queryKey: ['components'] });
+      navigate('/components');
     },
   });
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: (data: UpdateCoordinatorDto) => coordinatorsService.update(projectId, id!, data),
+    mutationFn: (data: UpdateComponentDto) => componentsService.update(projectId, id!, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coordinator', projectId, id] });
-      queryClient.invalidateQueries({ queryKey: ['coordinatorVersions', id] });
+      queryClient.invalidateQueries({ queryKey: ['component', projectId, id] });
+      queryClient.invalidateQueries({ queryKey: ['componentVersions', id] });
       setIsEditing(false);
       setFormData(null);
     },
@@ -112,20 +114,22 @@ export function CoordinatorDetailPage() {
 
   // Initialize form data when entering edit mode
   const handleStartEdit = useCallback(() => {
-    if (!coordinator) return;
+    if (!component) return;
 
     setFormData({
-      name: coordinator.name,
-      description: coordinator.description || '',
-      domain: coordinator.domain,
-      coordinatorInstructions: coordinator.coordinatorInstructions,
-      decisionStrategy: coordinator.decisionStrategy,
-      config: { ...coordinator.config },
-      tools: [...coordinator.tools],
+      name: component.name,
+      description: component.description || '',
+      inputInstructions: component.inputInstructions,
+      operationInstructions: component.operationInstructions,
+      outputInstructions: component.outputInstructions,
+      config: { ...component.config },
+      tools: [...component.tools],
+      tags: [...component.tags],
+      onFailure: component.onFailure,
     });
     setErrors({});
     setIsEditing(true);
-  }, [coordinator]);
+  }, [component]);
 
   // Cancel edit mode
   const handleCancelEdit = () => {
@@ -164,11 +168,14 @@ export function CoordinatorDetailPage() {
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    if (!formData.coordinatorInstructions.trim()) {
-      newErrors.coordinatorInstructions = 'Coordinator instructions are required';
+    if (!formData.inputInstructions.trim()) {
+      newErrors.inputInstructions = 'Input instructions are required';
     }
-    if (!formData.domain.trim()) {
-      newErrors.domain = 'Domain is required';
+    if (!formData.operationInstructions.trim()) {
+      newErrors.operationInstructions = 'Operation instructions are required';
+    }
+    if (!formData.outputInstructions.trim()) {
+      newErrors.outputInstructions = 'Output instructions are required';
     }
 
     setErrors(newErrors);
@@ -184,7 +191,7 @@ export function CoordinatorDetailPage() {
 
   // Handle version creation success
   const handleVersionCreated = async (newVersion: string) => {
-    // The version has been created, now update the coordinator with new data
+    // The version has been created, now update the component with new data
     if (formData) {
       await updateMutation.mutateAsync(formData);
     }
@@ -193,7 +200,7 @@ export function CoordinatorDetailPage() {
 
   // Handle delete
   const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete "${coordinator?.name}"?`)) {
+    if (window.confirm(`Are you sure you want to delete "${component?.name}"?`)) {
       deleteMutation.mutate();
     }
   };
@@ -239,29 +246,29 @@ export function CoordinatorDetailPage() {
   }
 
   // Error state
-  if (error || !coordinator) {
+  if (error || !component) {
     return (
       <div className="text-center py-12">
-        <p className="text-fg text-lg">Coordinator not found</p>
-        <Link to="/coordinators" className="text-accent hover:underline mt-2 inline-block">
-          ← Back to Coordinators
+        <p className="text-fg text-lg">Component not found</p>
+        <Link to="/components" className="text-accent hover:underline mt-2 inline-block">
+          ← Back to Components
         </Link>
       </div>
     );
   }
 
-  // Get display data (either from formData if editing, or from coordinator)
-  const displayData = isEditing && formData ? formData : coordinator;
+  // Get display data (either from formData if editing, or from component)
+  const displayData = isEditing && formData ? formData : component;
 
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Back link */}
       <Link
-        to="/coordinators"
+        to="/components"
         className="inline-flex items-center gap-2 text-fg hover:text-accent mb-6 transition-colors"
       >
         <ArrowLeftIcon className="w-4 h-4" />
-        Back to Coordinators
+        Back to Components
       </Link>
 
       {/* Header */}
@@ -269,27 +276,23 @@ export function CoordinatorDetailPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-fg">{displayData.name}</h1>
-            <VersionBadge version={coordinator.version} status="current" size="lg" />
+            <VersionBadge version={component.version} status="current" size="lg" />
           </div>
           {displayData.description && (
             <p className="mt-2 text-fg max-w-3xl">{displayData.description}</p>
           )}
-          <div className="mt-2 flex items-center gap-4 text-sm text-fg">
-            <span>Domain: <strong>{displayData.domain}</strong></span>
-            <span>Strategy: <strong className="capitalize">{displayData.decisionStrategy}</strong></span>
-          </div>
         </div>
 
         {/* Usage stats */}
-        {coordinator.usageStats && (
+        {component.usageStats && (
           <div className="flex gap-4 text-sm">
             <div className="text-center">
-              <div className="text-2xl font-bold text-fg">{coordinator.usageStats.totalRuns}</div>
+              <div className="text-2xl font-bold text-fg">{component.usageStats.totalRuns}</div>
               <div className="text-fg">Total Runs</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-fg">
-                {coordinator.usageStats.successRate.toFixed(1)}%
+                {component.usageStats.successRate.toFixed(1)}%
               </div>
               <div className="text-fg">Success Rate</div>
             </div>
@@ -352,7 +355,9 @@ export function CoordinatorDetailPage() {
           <Tab.Panel className="rounded-xl bg-bg p-4 focus:outline-none">
             <div className="space-y-6">
               <InstructionSetsDisplay
-                coordinatorInstructions={displayData.coordinatorInstructions}
+                inputInstructions={displayData.inputInstructions}
+                operationInstructions={displayData.operationInstructions}
+                outputInstructions={displayData.outputInstructions}
                 isEditing={isEditing}
                 onChange={handleFieldChange}
                 errors={errors}
@@ -361,8 +366,8 @@ export function CoordinatorDetailPage() {
               <ConfigurationDisplay
                 config={displayData.config}
                 tools={displayData.tools}
-                decisionStrategy={displayData.decisionStrategy}
-                domain={displayData.domain}
+                tags={displayData.tags}
+                onFailure={displayData.onFailure}
                 isEditing={isEditing}
                 onChange={handleFieldChange}
                 errors={errors}
@@ -374,7 +379,7 @@ export function CoordinatorDetailPage() {
           <Tab.Panel className="rounded-xl bg-bg p-4 focus:outline-none">
             <VersionHistoryTimeline
               versions={versions}
-              entityType="coordinator"
+              entityType="component"
               selectedVersions={[selectedVersion1, selectedVersion2]}
               onVersionSelect={handleVersionSelect}
               onCompare={() => setIsComparisonModalOpen(true)}
@@ -437,14 +442,14 @@ export function CoordinatorDetailPage() {
       </div>
 
       {/* Version Bump Modal */}
-      {coordinator && (
+      {component && (
         <VersionBumpModal
           isOpen={showVersionBumpModal}
           onClose={() => setShowVersionBumpModal(false)}
-          entityType="coordinator"
-          entityId={coordinator.id}
-          entityName={coordinator.name}
-          currentVersion={coordinator.version}
+          entityType="component"
+          entityId={component.id}
+          entityName={component.name}
+          currentVersion={component.version}
           onSuccess={handleVersionCreated}
         />
       )}
@@ -454,7 +459,7 @@ export function CoordinatorDetailPage() {
         <VersionComparisonModal
           isOpen={isComparisonModalOpen}
           onClose={() => setIsComparisonModalOpen(false)}
-          entityType="coordinator"
+          entityType="component"
           versionId1={selectedVersion1}
           versionId2={selectedVersion2}
           version1Label={versions.find((v) => v.id === selectedVersion1)?.version}

@@ -113,3 +113,21 @@ export class CoordinatorsController {
     return this.coordinatorsService.activate(id);
   }
 }
+
+/**
+ * ProjectManagersController - User-friendly alias for CoordinatorsController
+ *
+ * Part of ST-109: User-Friendly Terminology Rebrand
+ * "Project Manager" is the user-facing term for "Coordinator" (orchestrates agents like a PM)
+ *
+ * This controller provides the same endpoints at /api/projects/:projectId/project-managers
+ * while maintaining backwards compatibility with /api/projects/:projectId/coordinators
+ */
+@ApiTags('project-managers')
+@Controller('projects/:projectId/project-managers')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class ProjectManagersController extends CoordinatorsController {
+  // Inherits all methods from CoordinatorsController
+  // No code duplication - just route aliasing for user-friendly terminology
+}

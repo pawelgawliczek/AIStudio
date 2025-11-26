@@ -124,3 +124,21 @@ export class ComponentsController {
     return this.componentsService.testComponent(id, testInput);
   }
 }
+
+/**
+ * AgentsController - User-friendly alias for ComponentsController
+ *
+ * Part of ST-109: User-Friendly Terminology Rebrand
+ * "Agent" is the user-facing term for "Component" (AI agents executing tasks)
+ *
+ * This controller provides the same endpoints at /api/projects/:projectId/agents
+ * while maintaining backwards compatibility with /api/projects/:projectId/components
+ */
+@ApiTags('agents')
+@Controller('projects/:projectId/agents')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class AgentsController extends ComponentsController {
+  // Inherits all methods from ComponentsController
+  // No code duplication - just route aliasing for user-friendly terminology
+}

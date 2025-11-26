@@ -186,3 +186,21 @@ export class WorkflowsController {
     return this.templateParser.validateReferences(dto.instructions, dto.componentAssignments as any);
   }
 }
+
+/**
+ * TeamsController - User-friendly alias for WorkflowsController
+ *
+ * Part of ST-109: User-Friendly Terminology Rebrand
+ * "Team" is the user-facing term for "Workflow" (a team of agents working together)
+ *
+ * This controller provides the same endpoints at /api/projects/:projectId/teams
+ * while maintaining backwards compatibility with /api/projects/:projectId/workflows
+ */
+@ApiTags('teams')
+@Controller('projects/:projectId/teams')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class TeamsController extends WorkflowsController {
+  // Inherits all methods from WorkflowsController
+  // No code duplication - just route aliasing for user-friendly terminology
+}

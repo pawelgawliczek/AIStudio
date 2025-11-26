@@ -9,18 +9,18 @@ import { StoryDetailPage } from './pages/StoryDetailPage';
 import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
-import { ComponentLibraryView } from './pages/ComponentLibraryView';
-import { ComponentDetailPage } from './pages/ComponentDetailPage';
-import { CoordinatorLibraryView } from './pages/CoordinatorLibraryView';
-import { CoordinatorDetailPage } from './pages/CoordinatorDetailPage';
-import { WorkflowManagementView } from './pages/WorkflowManagementView';
+import { AgentLibraryView } from './pages/AgentLibraryView';
+import { AgentDetailPage } from './pages/AgentDetailPage';
+import { ProjectManagerLibraryView } from './pages/ProjectManagerLibraryView';
+import { ProjectManagerDetailPage } from './pages/ProjectManagerDetailPage';
+import { TeamManagementView } from './pages/TeamManagementView';
 import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { PerformanceDashboard } from './pages/PerformanceDashboard';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
 import ComponentCoverageView from './pages/ComponentCoverageView';
-import WorkflowDetailsPage from './pages/WorkflowDetailsPage';
+import TeamDetailsPage from './pages/TeamDetailsPage';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
 
@@ -45,15 +45,26 @@ function App() {
               <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
               <Route path="layers-components" element={<LayersComponentsPage />} />
-              <Route path="components" element={<ComponentLibraryView />} />
-              <Route path="components/:id" element={<ComponentDetailPage />} />
-              <Route path="coordinators" element={<CoordinatorLibraryView />} />
-              <Route path="coordinators/:id" element={<CoordinatorDetailPage />} />
-              <Route path="workflows" element={<WorkflowManagementView />} />
-              <Route path="workflow-runs/:runId/results" element={<WorkflowResultsView />} />
-              <Route path="workflow-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
+              {/* New user-friendly routes */}
+              <Route path="agents" element={<AgentLibraryView />} />
+              <Route path="agents/:id" element={<AgentDetailPage />} />
+              <Route path="project-managers" element={<ProjectManagerLibraryView />} />
+              <Route path="project-managers/:id" element={<ProjectManagerDetailPage />} />
+              <Route path="teams" element={<TeamManagementView />} />
+              <Route path="team-runs/:runId/results" element={<WorkflowResultsView />} />
+              <Route path="team-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />
-              <Route path="analytics/workflow-details" element={<WorkflowDetailsPage />} />
+              <Route path="analytics/team-details" element={<TeamDetailsPage />} />
+
+              {/* Backwards compatibility redirects (old routes → new routes) */}
+              <Route path="components" element={<Navigate to="/agents" replace />} />
+              <Route path="components/:id" element={<Navigate to="/agents/:id" replace />} />
+              <Route path="coordinators" element={<Navigate to="/project-managers" replace />} />
+              <Route path="coordinators/:id" element={<Navigate to="/project-managers/:id" replace />} />
+              <Route path="workflows" element={<Navigate to="/teams" replace />} />
+              <Route path="workflow-runs/:runId/results" element={<Navigate to="/team-runs/:runId/results" replace />} />
+              <Route path="workflow-runs/:runId/monitor" element={<Navigate to="/team-runs/:runId/monitor" replace />} />
+              <Route path="analytics/workflow-details" element={<Navigate to="/analytics/team-details" replace />} />
             </Route>
           </Routes>
         </ProjectProvider>
