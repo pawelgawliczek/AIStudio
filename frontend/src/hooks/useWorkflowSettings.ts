@@ -92,10 +92,17 @@ export function useWorkflowSettings() {
   }, []);
 
   const cleanupExpandedRuns = useCallback((activeRunIds: string[]) => {
-    setSettings((prev) => ({
-      ...prev,
-      expandedRuns: prev.expandedRuns.filter((id) => activeRunIds.includes(id)),
-    }));
+    setSettings((prev) => {
+      const newExpandedRuns = prev.expandedRuns.filter((id) => activeRunIds.includes(id));
+      // Only update if something actually changed to avoid infinite loops
+      if (newExpandedRuns.length === prev.expandedRuns.length) {
+        return prev; // Return same reference to prevent re-render
+      }
+      return {
+        ...prev,
+        expandedRuns: newExpandedRuns,
+      };
+    });
   }, []);
 
   const resetSettings = useCallback(() => {

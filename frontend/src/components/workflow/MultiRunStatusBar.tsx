@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
 import { useWorkflowWebSocket } from '../../hooks/useWorkflowWebSocket';
@@ -35,11 +35,21 @@ export const MultiRunStatusBar: React.FC = () => {
     throttleMs: 1000,
   });
 
-  // Cleanup expanded runs when runs change
+  // Memoize run IDs to prevent unnecessary effect triggers
+  const activeRunIds = useMemo(() => runs.map((r) => r.id), [runs]);
+  const prevRunIdsRef = useRef<string[]>([]);
+
+  // Cleanup expanded runs only when run IDs actually change
   useEffect(() => {
-    const activeRunIds = runs.map((r) => r.id);
-    cleanupExpandedRuns(activeRunIds);
-  }, [runs, cleanupExpandedRuns]);
+    const prevIds = prevRunIdsRef.current;
+    const idsChanged = activeRunIds.length !== prevIds.length ||
+      activeRunIds.some((id, i) => id !== prevIds[i]);
+
+    if (idsChanged) {
+      prevRunIdsRef.current = activeRunIds;
+      cleanupExpandedRuns(activeRunIds);
+    }
+  }, [activeRunIds, cleanupExpandedRuns]);
 
   // Determine visible runs
   const visibleRuns = showAll
