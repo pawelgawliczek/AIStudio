@@ -19,6 +19,33 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+/**
+ * Ensure a Docker buildx builder exists, creating it if necessary
+ * This provides isolated build caches for production deployments
+ */
+async function ensureBuilderExists(builderName: string): Promise<void> {
+  try {
+    // Check if builder already exists
+    execSync(`docker buildx inspect ${builderName}`, {
+      encoding: 'utf-8',
+      stdio: 'pipe'
+    });
+    console.log(`[DockerProductionUtils] Builder ${builderName} already exists, reusing...`);
+  } catch (error) {
+    // Builder doesn't exist, create it
+    console.log(`[DockerProductionUtils] Creating Docker buildx builder: ${builderName}...`);
+    try {
+      execSync(`docker buildx create --name ${builderName} --driver docker-container --use`, {
+        encoding: 'utf-8',
+        stdio: 'pipe'
+      });
+      console.log(`[DockerProductionUtils] ✓ Builder ${builderName} created successfully`);
+    } catch (createError: any) {
+      throw new Error(`Failed to create buildx builder ${builderName}: ${createError.message}`);
+    }
+  }
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -78,7 +105,10 @@ export class DockerProductionUtils {
     console.log(`[DockerProductionUtils] Building ${service} container...`);
 
     try {
-      // CRITICAL: Use production Dockerfile with --no-cache (per CLAUDE.md)
+      // Ensure vibestudio-prod builder exists for isolated production cache
+      await ensureBuilderExists('vibestudio-prod');
+
+      // CRITICAL: Use production Dockerfile with --no-cache and isolated builder (per CLAUDE.md)
       const buildCommand = `docker compose build ${service} --no-cache`;
 
       logs = execSync(buildCommand, {

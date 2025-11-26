@@ -76,5 +76,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Push schema and start server (use db push for fresh deployments, bypasses migrations)
-CMD ["sh", "-c", "cd backend && npx prisma db push --accept-data-loss && cd .. && node backend/dist/main.js"]
+# Deploy migrations safely (follows CLAUDE.md safe migration system)
+CMD ["sh", "-c", "cd backend && npx prisma migrate deploy && cd .. && node backend/dist/main.js"]

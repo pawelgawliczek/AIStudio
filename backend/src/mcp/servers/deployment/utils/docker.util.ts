@@ -16,6 +16,33 @@ import {
   ProductionSafetyError,
 } from '../../../../config/environments.js';
 
+/**
+ * Ensure a Docker buildx builder exists, creating it if necessary
+ * This provides isolated build caches for test and production environments
+ */
+async function ensureBuilderExists(builderName: string): Promise<void> {
+  try {
+    // Check if builder already exists
+    execSync(`docker buildx inspect ${builderName}`, {
+      encoding: 'utf-8',
+      stdio: 'pipe'
+    });
+    console.log(`Builder ${builderName} already exists, reusing...`);
+  } catch (error) {
+    // Builder doesn't exist, create it
+    console.log(`Creating Docker buildx builder: ${builderName}...`);
+    try {
+      execSync(`docker buildx create --name ${builderName} --driver docker-container --use`, {
+        encoding: 'utf-8',
+        stdio: 'pipe'
+      });
+      console.log(`✓ Builder ${builderName} created successfully`);
+    } catch (createError: any) {
+      throw new Error(`Failed to create buildx builder ${builderName}: ${createError.message}`);
+    }
+  }
+}
+
 export interface ContainerStatus {
   name: string;
   state: string; // running, stopped, restarting, unhealthy
@@ -73,8 +100,8 @@ export async function buildContainers(
   }
 
   if (rebuildBackend) {
-    console.log('Building backend (with cache)...');
-    buildCommands.push('build backend');
+    console.log('Building backend (no-cache)...');
+    buildCommands.push('build --no-cache backend');
   }
 
   // Execute builds sequentially
@@ -231,6 +258,9 @@ export async function buildTestContainers(
   console.log('Building test stack containers...');
   console.log(`Build context: ${worktreePath}`);
 
+  // Ensure vibestudio-test builder exists
+  await ensureBuilderExists('vibestudio-test');
+
   if (rebuildBackend) {
     console.log('Building test-backend from worktree...');
     try {
@@ -243,9 +273,10 @@ export async function buildTestContainers(
       }
 
       // Use Dockerfile from main worktree, but build context from story worktree
+      // Use vibestudio-test builder for isolated cache
       const dockerfilePath = `${mainWorktreePath}/backend/Dockerfile.test`;
       execSync(
-        `docker build --no-cache -t aistudio-test-backend -f ${dockerfilePath} ${worktreePath}`,
+        `docker buildx build --builder vibestudio-test --load --no-cache -t aistudio-test-backend -f ${dockerfilePath} ${worktreePath}`,
         {
           cwd: worktreePath,
           encoding: 'utf-8',
@@ -273,9 +304,10 @@ export async function buildTestContainers(
       }
 
       // Use Dockerfile from main worktree, but build context from story worktree
+      // Use vibestudio-test builder for isolated cache
       const dockerfilePath = `${mainWorktreePath}/frontend/Dockerfile`;
       execSync(
-        `docker build --no-cache -t aistudio-test-frontend -f ${dockerfilePath} --build-arg VITE_API_URL=/api --build-arg VITE_WS_URL=/socket.io --build-arg BACKEND_HOST=test-backend ${worktreePath}`,
+        `docker buildx build --builder vibestudio-test --load --no-cache -t aistudio-test-frontend -f ${dockerfilePath} --build-arg VITE_API_URL=/api --build-arg VITE_WS_URL=/socket.io --build-arg BACKEND_HOST=test-backend ${worktreePath}`,
         {
           cwd: worktreePath,
           encoding: 'utf-8',
