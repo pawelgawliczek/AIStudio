@@ -1,5 +1,5 @@
 /**
- * Get Component Tool
+ * Get Agent Tool
  * Get single component with version history and usage stats
  */
 
@@ -23,10 +23,12 @@ export interface GetComponentResponse {
   };
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'get_component',
-  description: 'Get single component with version history and usage stats',
-  inputSchema: {
+  name: 'get_agent',
+  description: 'Get single agent with version history and usage stats',
+    inputSchema: {
     type: 'object',
     properties: {
       componentId: {
@@ -39,21 +41,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'versioning',
-  domain: 'Version Management',
-  tags: ['component', 'get', 'version', 'history'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'get_agent',
-  description: 'Get single agent with version history and usage stats',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'versioning',
   domain: 'Version Management',
   tags: ['agent', 'get', 'version', 'history'],

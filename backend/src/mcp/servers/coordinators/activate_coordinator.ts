@@ -1,5 +1,5 @@
 /**
- * Activate Coordinator Tool
+ * Activate Project Manager Tool
  * Sets coordinator active=true and returns updated coordinator
  */
 
@@ -28,14 +28,14 @@ export interface CoordinatorResponse {
 }
 
 export const tool: Tool = {
-  name: 'activate_coordinator',
-  description: 'Activate a coordinator by setting active=true',
+  name: 'activate_project_manager',
+  description: 'Activate a project manager by setting active=true',
   inputSchema: {
     type: 'object',
     properties: {
       coordinatorId: {
         type: 'string',
-        description: 'Coordinator UUID to activate',
+        description: 'Project Manager UUID to activate',
       },
     },
     required: ['coordinatorId'],
@@ -43,9 +43,9 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'coordinators',
+  category: 'project_managers',
   domain: 'workflow',
-  tags: ['coordinator', 'lifecycle', 'activation'],
+  tags: ['project_manager', 'lifecycle', 'activation'],
   version: '1.0.0',
   since: '2025-11-21',
 };

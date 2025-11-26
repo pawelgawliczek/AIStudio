@@ -1,5 +1,5 @@
 /**
- * Get Component Instructions Tool
+ * Get Agent Instructions Tool
  * Retrieves work instructions for a component agent on-demand
  *
  * Purpose: Enables reference-based component architecture by allowing
@@ -29,11 +29,13 @@ export interface ComponentInstructionsResponse {
   onFailure: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'get_component_instructions',
+  name: 'get_agent_instructions',
   description:
-    'Retrieve work instructions for a component agent. Returns input/operation/output instructions, config, and tools. ' +
-    'Used by spawned component agents to get their instructions on-demand, enabling token-efficient workflow orchestration.',
+    'Retrieve work instructions for an agent. Returns input/operation/output instructions, config, and tools. ' +
+    'Used by spawned agents to get their instructions on-demand, enabling token-efficient team orchestration.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -43,27 +45,10 @@ export const tool: Tool = {
       },
     },
     required: ['componentId'],
-  },
+  }
 };
 
 export const metadata = {
-  category: 'components',
-  domain: 'workflow-execution',
-  tags: ['component', 'instructions', 'workflow', 'agent'],
-  version: '1.0.0',
-  since: '2025-11-24',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'get_agent_instructions',
-  description:
-    'Retrieve work instructions for an agent. Returns input/operation/output instructions, config, and tools. ' +
-    'Used by spawned agents to get their instructions on-demand, enabling token-efficient team orchestration.',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'components',
   domain: 'team-execution',
   tags: ['agent', 'instructions', 'team'],

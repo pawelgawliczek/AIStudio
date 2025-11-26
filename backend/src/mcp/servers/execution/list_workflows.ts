@@ -1,15 +1,15 @@
 /**
- * List Workflows Tool
- * Discover available workflows for a project
+ * List Teams Tool
+ * Discover available teams for a project
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
-  name: 'list_workflows',
+  name: 'list_teams',
   description:
-    'List all available workflows for a project. Use this to discover workflows that can be used to execute stories or epics.',
+    'List all available teams for a project. A team is a group of agents working together on stories or epics. Use this to discover teams that can be assigned to execute work.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -19,7 +19,7 @@ export const tool: Tool = {
       },
       active: {
         type: 'boolean',
-        description: 'Filter by active status (default: true, show only active workflows)',
+        description: 'Filter by active status (default: true, show only active teams)',
       },
       triggerType: {
         type: 'string',
@@ -32,27 +32,10 @@ export const tool: Tool = {
 
 export const metadata = {
   category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'discovery', 'list', 'query'],
-  version: '1.0.0',
-  since: '2025-11-14',
-};
-
-// ALIASING: Workflow → Team (ST-109)
-export const teamTool: Tool = {
-  name: 'list_teams',
-  description:
-    'List all available teams for a project. A team is a group of agents working together on stories or epics. Use this to discover teams that can be assigned to execute work.',
-  inputSchema: tool.inputSchema,
-};
-
-export const teamMetadata = {
-  category: 'execution',
   domain: 'Team Execution',
   tags: ['team', 'agents', 'discovery', 'list', 'query'],
   version: '1.0.0',
   since: '2025-11-26',
-  aliasOf: 'list_workflows',
 };
 
 export async function handler(prisma: PrismaClient, params: any) {

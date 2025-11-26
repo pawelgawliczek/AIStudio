@@ -1,21 +1,21 @@
 /**
- * Get Workflow Metrics Breakdown Tool
- * Aggregated metrics across all components in a workflow run with grouping options
+ * Get Team Metrics Breakdown Tool
+ * Aggregated metrics across all components in a team run with grouping options
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
-  name: 'get_workflow_metrics_breakdown',
+  name: 'get_team_metrics_breakdown',
   description:
-    'Get aggregated metrics across all components in a workflow run. Supports grouping by component, tool usage, or time slices.',
+    'Get aggregated metrics across all components in a team run. Supports grouping by component, tool usage, or time slices.',
   inputSchema: {
     type: 'object',
     properties: {
-      workflowRunId: {
+      teamRunId: {
         type: 'string',
-        description: 'Workflow run ID (UUID)',
+        description: 'Team run ID (UUID)',
       },
       groupBy: {
         type: 'string',
@@ -27,14 +27,14 @@ export const tool: Tool = {
         description: 'Include execution timeline (default: false)',
       },
     },
-    required: ['workflowRunId'],
+    required: ['teamRunId'],
   },
 };
 
 export const metadata = {
   category: 'metrics',
   domain: 'Agent Performance',
-  tags: ['workflow', 'metrics', 'aggregation', 'breakdown', 'ST-27'],
+  tags: ['team', 'metrics', 'aggregation', 'breakdown', 'ST-27'],
   version: '1.0.0',
   since: '2025-11-17',
 };

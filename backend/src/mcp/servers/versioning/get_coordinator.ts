@@ -1,5 +1,5 @@
 /**
- * Get Coordinator Tool
+ * Get Project Manager Tool
  * Get coordinator with workflow assignments
  */
 
@@ -19,10 +19,12 @@ export interface GetCoordinatorResponse {
   assignedWorkflows: Array<{ id: string; name: string; active: boolean }>;
 }
 
+
+// ALIASING: Coordinator → Project Manager (ST-109)
 export const tool: Tool = {
-  name: 'get_coordinator',
-  description: 'Get coordinator with version history and assigned workflows',
-  inputSchema: {
+  name: 'get_project_manager',
+  description: 'Get project manager with version history and assigned teams',
+    inputSchema: {
     type: 'object',
     properties: {
       coordinatorId: {
@@ -35,21 +37,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'versioning',
-  domain: 'Version Management',
-  tags: ['coordinator', 'get', 'version', 'history'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Coordinator → Project Manager (ST-109)
-export const projectManagerTool: Tool = {
-  name: 'get_project_manager',
-  description: 'Get project manager with version history and assigned teams',
-  inputSchema: tool.inputSchema,
-};
-
-export const projectManagerMetadata = {
   category: 'versioning',
   domain: 'Version Management',
   tags: ['project-manager', 'get', 'version', 'history'],

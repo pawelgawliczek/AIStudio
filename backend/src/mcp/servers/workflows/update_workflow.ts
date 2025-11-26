@@ -1,6 +1,5 @@
 /**
- * Update Workflow Tool
- * Updates an existing workflow with auto-versioning for structural changes
+ * Team Tool
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -49,81 +48,18 @@ export interface WorkflowResponse {
 }
 
 export const tool: Tool = {
-  name: 'update_workflow',
-  description: 'Update an existing workflow definition. Supports partial updates - only provided fields will be modified.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      workflowId: {
-        type: 'string',
-        description: 'Workflow UUID to update',
-      },
-      coordinatorId: {
-        type: 'string',
-        description: 'Coordinator UUID (optional)',
-      },
-      name: {
-        type: 'string',
-        description: 'Workflow name (optional)',
-      },
-      description: {
-        type: 'string',
-        description: 'Workflow description (optional)',
-      },
-      triggerConfig: {
-        type: 'object',
-        description: 'Trigger configuration (optional)',
-        properties: {
-          type: {
-            type: 'string',
-            description: 'Trigger type (e.g., manual, story_assigned, webhook)',
-          },
-          filters: {
-            type: 'object',
-            description: 'Filters for when to trigger (optional)',
-          },
-          notifications: {
-            type: 'object',
-            description: 'Notification settings (optional)',
-          },
-        },
-        required: ['type'],
-      },
-      active: {
-        type: 'boolean',
-        description: 'Whether workflow is active (optional)',
-      },
-      version: {
-        type: 'string',
-        description: 'Version (optional)',
-      },
-    },
-    required: ['workflowId'],
-  },
-};
-
-export const metadata = {
-  category: 'workflows',
-  domain: 'workflow',
-  tags: ['workflow', 'update'],
-  version: '1.0.0',
-  since: 'update-tools',
-};
-
-// ALIASING: Workflow → Team, Coordinator → Project Manager (ST-109)
-export const teamTool: Tool = {
   name: 'update_team',
   description: 'Update an existing team definition. Supports partial updates - only provided fields will be modified. Auto-versions on structural changes.',
   inputSchema: {
     type: 'object',
     properties: {
-      teamId: {
+      workflowId: {
         type: 'string',
-        description: 'Team UUID to update',
+        description: 'Team UUID (workflowId parameter) to update',
       },
-      projectManagerId: {
+      coordinatorId: {
         type: 'string',
-        description: 'Project Manager UUID (optional)',
+        description: 'Project Manager UUID (coordinatorId parameter) (optional)',
       },
       name: {
         type: 'string',
@@ -161,17 +97,16 @@ export const teamTool: Tool = {
         description: 'Version (optional)',
       },
     },
-    required: ['teamId'],
+    required: ['workflowId'],
   },
 };
 
-export const teamMetadata = {
+export const metadata = {
   category: 'teams',
   domain: 'team',
   tags: ['team', 'update', 'agents'],
   version: '1.0.0',
-  since: '2025-11-26',
-  aliasOf: 'update_workflow',
+  since: '2025-11-26'
 };
 
 export async function handler(

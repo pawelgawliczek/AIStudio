@@ -1,6 +1,5 @@
 /**
- * Execute Story with Workflow Tool
- * Trigger workflow execution for a specific story
+ * Team Tool
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -8,47 +7,6 @@ import { PrismaClient } from '@prisma/client';
 import { handler as startWorkflowRunHandler } from './start_workflow_run.js';
 
 export const tool: Tool = {
-  name: 'execute_story_with_workflow',
-  description:
-    'Execute a story using a workflow. Validates story and workflow, creates execution run, and returns runId for tracking.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      storyId: {
-        type: 'string',
-        description: 'Story UUID to execute',
-      },
-      workflowId: {
-        type: 'string',
-        description: 'Workflow UUID to use for execution',
-      },
-      triggeredBy: {
-        type: 'string',
-        description: 'User ID or identifier (defaults to "mcp-user")',
-      },
-      context: {
-        type: 'object',
-        description: 'Additional context data for workflow execution',
-      },
-      cwd: {
-        type: 'string',
-        description: 'Current working directory for transcript tracking (defaults to project localPath if not provided)',
-      },
-    },
-    required: ['storyId', 'workflowId'],
-  },
-};
-
-export const metadata = {
-  category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'story', 'execution', 'trigger'],
-  version: '1.0.0',
-  since: '2025-11-14',
-};
-
-// ALIASING: Workflow → Team (ST-109)
-export const teamTool: Tool = {
   name: 'execute_story_with_team',
   description:
     'Execute a story using a team. A team is a group of agents working together. Validates story and team, creates execution run, and returns runId for tracking.',
@@ -59,7 +17,7 @@ export const teamTool: Tool = {
         type: 'string',
         description: 'Story UUID to execute',
       },
-      teamId: {
+      workflowId: {
         type: 'string',
         description: 'Team UUID to use for execution (workflowId internally)',
       },
@@ -80,7 +38,7 @@ export const teamTool: Tool = {
   },
 };
 
-export const teamMetadata = {
+export const metadata = {
   category: 'execution',
   domain: 'Team Execution',
   tags: ['team', 'story', 'execution', 'trigger'],
@@ -237,7 +195,6 @@ export async function handler(prisma: PrismaClient, params: any) {
   };
 }
 
-// ALIASING: Team handler wrapper that maps teamId → workflowId (ST-109)
 export async function teamHandler(prisma: PrismaClient, params: any) {
   // Map teamId parameter to workflowId for internal use
   const mappedParams = {

@@ -1,5 +1,5 @@
 /**
- * Create Coordinator Tool
+ * Create Project Manager Tool
  * Creates a new coordinator agent for workflow orchestration
  */
 
@@ -54,10 +54,12 @@ export interface CoordinatorResponse {
   updatedAt: string;
 }
 
+
+// ALIASING: Coordinator → Project Manager (ST-109)
 export const tool: Tool = {
-  name: 'create_coordinator',
-  description: 'Create a new coordinator agent for workflow orchestration',
-  inputSchema: {
+  name: 'create_project_manager',
+  description: 'Create a new project manager for team orchestration',
+    inputSchema: {
     type: 'object',
     properties: {
       projectId: {
@@ -123,21 +125,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'coordinators',
-  domain: 'workflow',
-  tags: ['coordinator', 'create', 'workflow'],
-  version: '1.0.0',
-  since: 'workflow-mvp',
-};
-
-// ALIASING: Coordinator → Project Manager (ST-109)
-export const projectManagerTool: Tool = {
-  name: 'create_project_manager',
-  description: 'Create a new project manager for team orchestration',
-  inputSchema: tool.inputSchema,
-};
-
-export const projectManagerMetadata = {
   category: 'coordinators',
   domain: 'team',
   tags: ['project-manager', 'create', 'team'],

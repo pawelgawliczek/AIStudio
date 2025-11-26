@@ -1,5 +1,5 @@
 /**
- * Get Component Usage Tool
+ * Get Agent Usage Tool
  * Returns usage statistics for a component
  */
 
@@ -27,37 +27,24 @@ export interface ComponentUsageResponse {
   message: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'get_component_usage',
-  description: 'Get usage statistics for a component including workflow count, execution count, and last used date',
+  name: 'get_agent_usage',
+  description: 'Get usage statistics for an agent including team count, execution count, and last used date',
   inputSchema: {
     type: 'object',
     properties: {
       componentId: {
         type: 'string',
-        description: 'Component UUID to get usage for',
+        description: 'Agent UUID to get usage for',
       },
     },
     required: ['componentId'],
-  },
+  }
 };
 
 export const metadata = {
-  category: 'components',
-  domain: 'workflow',
-  tags: ['component', 'lifecycle', 'usage', 'metrics'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'get_agent_usage',
-  description: 'Get usage statistics for an agent including team count, execution count, and last used date',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'components',
   domain: 'team',
   tags: ['agent', 'lifecycle', 'usage', 'metrics'],

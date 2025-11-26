@@ -1,5 +1,5 @@
 /**
- * List Components Tool
+ * List Agents Tool
  * List components with filtering and pagination
  */
 
@@ -7,7 +7,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { PaginatedResponse } from '../../types';
 
-export interface ListComponentsParams {
+export interface ListAgentsParams {
   projectId?: string;
   active?: boolean;
   includeInactive?: boolean;
@@ -31,10 +31,12 @@ export interface ComponentWithVersionInfo {
   updatedAt: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'list_components',
-  description: 'List components with filtering (projectId, active, versionMajor) and pagination',
-  inputSchema: {
+  name: 'list_agents',
+  description: 'List agents with filtering (projectId, active, versionMajor) and pagination. Agents are AI workers that execute specific tasks within teams.',
+    inputSchema: {
     type: 'object',
     properties: {
       projectId: {
@@ -69,21 +71,6 @@ export const tool: Tool = {
 export const metadata = {
   category: 'versioning',
   domain: 'Version Management',
-  tags: ['component', 'list', 'version', 'query'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'list_agents',
-  description: 'List agents with filtering (projectId, active, versionMajor) and pagination. Agents are AI workers that execute specific tasks within teams.',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
-  category: 'versioning',
-  domain: 'Version Management',
   tags: ['agent', 'list', 'version', 'query'],
   version: '1.0.0',
   since: '2025-11-26',
@@ -91,7 +78,7 @@ export const agentMetadata = {
 
 export async function handler(
   prisma: PrismaClient,
-  params: ListComponentsParams,
+  params: ListAgentsParams,
 ): Promise<PaginatedResponse<ComponentWithVersionInfo>> {
   const page = Math.max(1, params.page || 1);
   const pageSize = Math.min(100, Math.max(1, params.pageSize || 20));

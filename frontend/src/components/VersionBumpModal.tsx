@@ -237,7 +237,7 @@ export function VersionBumpModal({
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Current Version
                         </label>
-                        <VersionBadge version={currentVersion} status="active" size="md" />
+                        <VersionBadge version={currentVersion} status="current" size="md" />
                       </div>
 
                       {/* Version Type Selection */}
@@ -286,11 +286,11 @@ export function VersionBumpModal({
                           aria-live="polite"
                           aria-label={`Version will be updated from ${currentVersion} to ${nextVersion}`}
                         >
-                          <VersionBadge version={currentVersion} status="inactive" size="md" />
+                          <VersionBadge version={currentVersion} status="previous" size="md" />
                           <span className="text-gray-400" aria-hidden="true">→</span>
                           <VersionBadge
                             version={nextVersion}
-                            status={formData.versionType === 'major' ? 'major' : 'active'}
+                            status={formData.versionType === 'major' ? 'major' : 'current'}
                             size="md"
                           />
                         </div>

@@ -1,5 +1,5 @@
 /**
- * Create Coordinator Version Tool
+ * Create Project Manager Version Tool
  * Create minor/major version of a coordinator
  */
 
@@ -15,10 +15,12 @@ export interface CreateCoordinatorVersionParams {
   changeDescription?: string;
 }
 
+
+// ALIASING: Coordinator → Project Manager (ST-109)
 export const tool: Tool = {
-  name: 'create_coordinator_version',
-  description: 'Create minor/major version of a coordinator',
-  inputSchema: {
+  name: 'create_project_manager_version',
+  description: 'Create minor/major version of a project manager',
+    inputSchema: {
     type: 'object',
     properties: {
       coordinatorId: {
@@ -39,21 +41,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'versioning',
-  domain: 'Version Management',
-  tags: ['coordinator', 'create', 'version'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Coordinator → Project Manager (ST-109)
-export const projectManagerTool: Tool = {
-  name: 'create_project_manager_version',
-  description: 'Create minor/major version of a project manager',
-  inputSchema: tool.inputSchema,
-};
-
-export const projectManagerMetadata = {
   category: 'versioning',
   domain: 'Version Management',
   tags: ['project-manager', 'create', 'version'],

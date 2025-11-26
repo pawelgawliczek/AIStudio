@@ -10,6 +10,7 @@ import { useProject } from '../context/ProjectContext';
 import { useComponentFilters } from '../hooks/useComponentFilters';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
+import { terminology } from '../utils/terminology';
 
 export function AgentLibraryView() {
   const [searchParams] = useSearchParams();
@@ -119,7 +120,7 @@ export function AgentLibraryView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-fg">Please select a project to view components.</p>
+        <p className="text-fg">Please select a project to view {terminology.components.toLowerCase()}.</p>
       </div>
     );
   }
@@ -155,9 +156,9 @@ export function AgentLibraryView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-fg">Component Library</h1>
+          <h1 className="text-3xl font-bold text-fg">{terminology.component} Library</h1>
           <p className="mt-1 text-sm text-fg">
-            Reusable building blocks configured via 3 instruction sets
+            Reusable AI {terminology.components.toLowerCase()} configured via 3 instruction sets
           </p>
         </div>
         <button
@@ -165,7 +166,7 @@ export function AgentLibraryView() {
           onClick={() => setIsCreateModalOpen(true)}
           className="px-4 py-2 bg-accent text-accent-fg rounded-lg hover:bg-accent-dark transition-colors"
         >
-          + Create Component
+          {terminology.createComponent}
         </button>
       </div>
 
@@ -173,7 +174,7 @@ export function AgentLibraryView() {
       <FilterBar
         searchQuery={filters.searchQuery}
         onSearchChange={filters.setSearchQuery}
-        searchPlaceholder="Search components..."
+        searchPlaceholder={`Search ${terminology.components.toLowerCase()}...`}
         filters={[
           {
             label: 'Tag',
@@ -186,11 +187,11 @@ export function AgentLibraryView() {
             visible: tags.length > 0,
           },
           {
-            label: 'Workflow',
+            label: terminology.workflow,
             value: filters.selectedWorkflowFilter,
             onChange: filters.setSelectedWorkflowFilter,
             options: [
-              { value: 'all', label: 'All Workflows' },
+              { value: 'all', label: `All ${terminology.workflows}` },
               ...workflows.map((w) => ({ value: w.id, label: w.name })),
             ],
             visible: workflows.length > 0,
@@ -206,8 +207,7 @@ export function AgentLibraryView() {
           <span>Loading...</span>
         ) : (
           <span>
-            Found {filteredComponents.length} component
-            {filteredComponents.length !== 1 ? 's' : ''}
+            Found {filteredComponents.length} {filteredComponents.length === 1 ? terminology.component.toLowerCase() : terminology.components.toLowerCase()}
             {filters.searchQuery && ` matching "${filters.searchQuery}"`}
           </span>
         )}
@@ -219,13 +219,13 @@ export function AgentLibraryView() {
       ) : filteredComponents.length === 0 ? (
         <EmptyState
           icon={emptyIcon}
-          title="No components found"
+          title={`No ${terminology.components.toLowerCase()} found`}
           description={
             filters.searchQuery
               ? 'Try adjusting your search query or filters.'
-              : 'Get started by creating a new component.'
+              : `Get started by creating a new ${terminology.component.toLowerCase()}.`
           }
-          actionLabel={!filters.searchQuery ? '+ Create Component' : undefined}
+          actionLabel={!filters.searchQuery ? terminology.createComponent : undefined}
           onAction={!filters.searchQuery ? () => setIsCreateModalOpen(true) : undefined}
           testId="create-component-empty-state"
         />

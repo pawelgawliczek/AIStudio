@@ -1,5 +1,5 @@
 /**
- * Update Component Tool
+ * Update Agent Tool
  * Updates an existing workflow component
  */
 
@@ -61,10 +61,12 @@ export interface ComponentResponse {
   updatedAt: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'update_component',
-  description: 'Update an existing workflow component definition. Supports partial updates - only provided fields will be modified.',
-  inputSchema: {
+  name: 'update_agent',
+  description: 'Update an existing agent definition. Supports partial updates - only provided fields will be modified.',
+    inputSchema: {
     type: 'object',
     properties: {
       componentId: {
@@ -142,21 +144,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'components',
-  domain: 'workflow',
-  tags: ['component', 'update', 'workflow'],
-  version: '1.0.0',
-  since: 'update-tools',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'update_agent',
-  description: 'Update an existing agent definition. Supports partial updates - only provided fields will be modified.',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'components',
   domain: 'workflow',
   tags: ['agent', 'update', 'team'],

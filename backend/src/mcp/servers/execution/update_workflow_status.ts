@@ -6,19 +6,19 @@ import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types';
 
 export const tool: Tool = {
-  name: 'update_workflow_status',
-  description: 'Update workflow execution status. Use this to mark workflow as completed, failed, paused, or cancelled.',
+  name: 'update_team_status',
+  description: 'Update team execution status. Use this to mark team as completed, failed, paused, or cancelled.',
   inputSchema: {
     type: 'object',
     properties: {
       runId: {
         type: 'string',
-        description: 'Workflow run ID (required)',
+        description: 'Team run ID (required)',
       },
       status: {
         type: 'string',
         enum: ['running', 'paused', 'completed', 'failed', 'cancelled'],
-        description: 'New workflow status (required)',
+        description: 'New team status (required)',
       },
       errorMessage: {
         type: 'string',
@@ -26,7 +26,7 @@ export const tool: Tool = {
       },
       summary: {
         type: 'string',
-        description: 'Summary of workflow results (recommended for completed status)',
+        description: 'Summary of team results (recommended for completed status)',
       },
     },
     required: ['runId', 'status'],
@@ -35,8 +35,8 @@ export const tool: Tool = {
 
 export const metadata = {
   category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'status', 'tracking'],
+  domain: 'Team Execution',
+  tags: ['team', 'status', 'tracking'],
   version: '1.0.0',
   since: '2025-11-13',
 };

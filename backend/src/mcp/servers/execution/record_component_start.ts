@@ -1,10 +1,12 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'record_component_start',
-  description: 'Log the start of a component execution within a workflow run. Call this before executing component logic.',
-  inputSchema: {
+  name: 'record_agent_start',
+  description: 'Log the start of an agent execution within a team run. Call this before executing agent logic.',
+    inputSchema: {
     type: 'object',
     properties: {
       runId: {
@@ -25,21 +27,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['component', 'execution', 'tracking'],
-  version: '1.0.0',
-  since: '2025-11-13',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'record_agent_start',
-  description: 'Log the start of an agent execution within a team run. Call this before executing agent logic.',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'execution',
   domain: 'Team Execution',
   tags: ['agent', 'execution', 'tracking'],

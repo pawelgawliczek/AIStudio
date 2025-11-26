@@ -1,5 +1,5 @@
 /**
- * Create Component Tool
+ * Create Agent Tool
  * Creates a new workflow component with 3 instruction sets
  */
 
@@ -61,10 +61,12 @@ export interface ComponentResponse {
   updatedAt: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'create_component',
-  description: 'Create a new workflow component with 3 instruction sets (input, operation, output)',
-  inputSchema: {
+  name: 'create_agent',
+  description: 'Create a new agent with 3 instruction sets (input, operation, output). Agents are AI workers that execute specific tasks within teams.',
+    inputSchema: {
     type: 'object',
     properties: {
       projectId: {
@@ -143,21 +145,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'components',
-  domain: 'workflow',
-  tags: ['component', 'create', 'workflow'],
-  version: '1.0.0',
-  since: 'workflow-mvp',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'create_agent',
-  description: 'Create a new agent with 3 instruction sets (input, operation, output). Agents are AI workers that execute specific tasks within teams.',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'components',
   domain: 'workflow',
   tags: ['agent', 'create', 'team'],

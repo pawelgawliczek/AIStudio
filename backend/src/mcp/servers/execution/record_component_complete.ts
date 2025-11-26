@@ -10,11 +10,12 @@ import { ValidationError } from '../../types';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
 import { TranscriptParserService } from './services/transcript-parser.service';
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'record_component_complete',
-  description:
-    'Log the completion of a component execution with output and metrics. Call this after component logic finishes.',
-  inputSchema: {
+  name: 'record_agent_complete',
+  description: 'Log the completion of an agent execution with output and metrics. Call this after agent logic finishes.',
+    inputSchema: {
     type: 'object',
     properties: {
       runId: {
@@ -67,21 +68,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['component', 'execution', 'tracking', 'metrics'],
-  version: '2.0.0', // ST-110: Major version bump for breaking changes
-  since: '2025-11-25',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'record_agent_complete',
-  description: 'Log the completion of an agent execution with output and metrics. Call this after agent logic finishes.',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'execution',
   domain: 'Team Execution',
   tags: ['agent', 'execution', 'tracking', 'metrics'],

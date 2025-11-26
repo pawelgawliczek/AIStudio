@@ -9,6 +9,7 @@ import { useCoordinatorFilters } from '../hooks/useCoordinatorFilters';
 import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
 import { ProjectManagerCard } from '../components/ProjectManagerCard';
+import { terminology } from '../utils/terminology';
 
 export function ProjectManagerLibraryView() {
   const [searchParams] = useSearchParams();
@@ -89,7 +90,7 @@ export function ProjectManagerLibraryView() {
   if (!projectId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Please select a project to view coordinators.</p>
+        <p className="text-gray-500">Please select a project to view {terminology.coordinators.toLowerCase()}.</p>
       </div>
     );
   }
@@ -125,9 +126,9 @@ export function ProjectManagerLibraryView() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Coordinator Library</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{terminology.coordinator} Library</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Intelligent orchestrators that decide workflow execution
+            Intelligent orchestrators that manage {terminology.workflow.toLowerCase()} execution
           </p>
         </div>
       </div>
@@ -136,7 +137,7 @@ export function ProjectManagerLibraryView() {
       <FilterBar
         searchQuery={filters.searchQuery}
         onSearchChange={filters.setSearchQuery}
-        searchPlaceholder="Search coordinators..."
+        searchPlaceholder={`Search ${terminology.coordinators.toLowerCase()}...`}
         filters={[
           {
             label: 'Domain',
@@ -149,11 +150,11 @@ export function ProjectManagerLibraryView() {
             visible: domains.length > 0,
           },
           {
-            label: 'Workflow',
+            label: terminology.workflow,
             value: filters.selectedWorkflowFilter,
             onChange: filters.setSelectedWorkflowFilter,
             options: [
-              { value: 'all', label: 'All Workflows' },
+              { value: 'all', label: `All ${terminology.workflows}` },
               ...workflows.map((w) => ({ value: w.id, label: w.name })),
             ],
             visible: workflows.length > 0,
@@ -169,8 +170,7 @@ export function ProjectManagerLibraryView() {
           <span>Loading...</span>
         ) : (
           <span>
-            Found {filteredCoordinators.length} coordinator
-            {filteredCoordinators.length !== 1 ? 's' : ''}
+            Found {filteredCoordinators.length} {filteredCoordinators.length === 1 ? terminology.coordinator.toLowerCase() : terminology.coordinators.toLowerCase()}
             {filters.searchQuery && ` matching "${filters.searchQuery}"`}
           </span>
         )}
@@ -182,11 +182,11 @@ export function ProjectManagerLibraryView() {
       ) : filteredCoordinators.length === 0 ? (
         <EmptyState
           icon={emptyIcon}
-          title="No coordinators found"
+          title={`No ${terminology.coordinators.toLowerCase()} found`}
           description={
             filters.searchQuery
               ? 'Try adjusting your search query or filters.'
-              : 'Get started by creating a new coordinator.'
+              : `Get started by creating a new ${terminology.coordinator.toLowerCase()}.`
           }
         />
       ) : (

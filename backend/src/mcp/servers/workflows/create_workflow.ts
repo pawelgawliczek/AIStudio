@@ -1,6 +1,6 @@
 /**
- * Create Workflow Tool
- * Creates a new workflow linking a coordinator with trigger configuration
+ * Create Team Tool
+ * Creates a new team linking a project manager with trigger configuration
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -42,69 +42,6 @@ export interface WorkflowResponse {
 }
 
 export const tool: Tool = {
-  name: 'create_workflow',
-  description: 'Create a new workflow linking a coordinator with trigger configuration',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      projectId: {
-        type: 'string',
-        description: 'Project UUID',
-      },
-      coordinatorId: {
-        type: 'string',
-        description: 'Coordinator UUID',
-      },
-      name: {
-        type: 'string',
-        description: 'Workflow name',
-      },
-      description: {
-        type: 'string',
-        description: 'Workflow description (optional)',
-      },
-      triggerConfig: {
-        type: 'object',
-        description: 'Trigger configuration (type, filters, notifications)',
-        properties: {
-          type: {
-            type: 'string',
-            description: 'Trigger type (e.g., manual, story_assigned, webhook)',
-          },
-          filters: {
-            type: 'object',
-            description: 'Filters for when to trigger (optional)',
-          },
-          notifications: {
-            type: 'object',
-            description: 'Notification settings (optional)',
-          },
-        },
-        required: ['type'],
-      },
-      active: {
-        type: 'boolean',
-        description: 'Whether workflow is active (default: true)',
-      },
-      version: {
-        type: 'string',
-        description: 'Version (default: v1.0)',
-      },
-    },
-    required: ['projectId', 'coordinatorId', 'name', 'triggerConfig'],
-  },
-};
-
-export const metadata = {
-  category: 'workflows',
-  domain: 'workflow',
-  tags: ['workflow', 'create'],
-  version: '1.0.0',
-  since: 'workflow-mvp',
-};
-
-// ALIASING: Workflow → Team, Coordinator → Project Manager (ST-109)
-export const teamTool: Tool = {
   name: 'create_team',
   description: 'Create a new team linking a project manager with trigger configuration. A team is a group of agents working together.',
   inputSchema: {
@@ -114,7 +51,7 @@ export const teamTool: Tool = {
         type: 'string',
         description: 'Project UUID',
       },
-      projectManagerId: {
+      coordinatorId: {
         type: 'string',
         description: 'Project Manager UUID (coordinator that orchestrates the team)',
       },
@@ -154,17 +91,16 @@ export const teamTool: Tool = {
         description: 'Version (default: v1.0)',
       },
     },
-    required: ['projectId', 'projectManagerId', 'name', 'triggerConfig'],
+    required: ['projectId', 'coordinatorId', 'name', 'triggerConfig'],
   },
 };
 
-export const teamMetadata = {
+export const metadata = {
   category: 'teams',
   domain: 'team',
   tags: ['team', 'create', 'agents'],
   version: '1.0.0',
   since: '2025-11-26',
-  aliasOf: 'create_workflow',
 };
 
 export async function handler(

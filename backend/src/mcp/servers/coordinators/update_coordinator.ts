@@ -1,5 +1,5 @@
 /**
- * Update Coordinator Tool
+ * Update Project Manager Tool
  * Updates an existing coordinator agent
  */
 
@@ -54,10 +54,12 @@ export interface CoordinatorResponse {
   updatedAt: string;
 }
 
+
+// ALIASING: Coordinator → Project Manager (ST-109)
 export const tool: Tool = {
-  name: 'update_coordinator',
-  description: 'Update an existing coordinator agent definition. Supports partial updates - only provided fields will be modified.',
-  inputSchema: {
+  name: 'update_project_manager',
+  description: 'Update an existing project manager definition. Supports partial updates - only provided fields will be modified.',
+    inputSchema: {
     type: 'object',
     properties: {
       coordinatorId: {
@@ -122,21 +124,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'coordinators',
-  domain: 'workflow',
-  tags: ['coordinator', 'update', 'workflow'],
-  version: '1.0.0',
-  since: 'update-tools',
-};
-
-// ALIASING: Coordinator → Project Manager (ST-109)
-export const projectManagerTool: Tool = {
-  name: 'update_project_manager',
-  description: 'Update an existing project manager definition. Supports partial updates - only provided fields will be modified.',
-  inputSchema: tool.inputSchema,
-};
-
-export const projectManagerMetadata = {
   category: 'coordinators',
   domain: 'team',
   tags: ['project-manager', 'update', 'team'],

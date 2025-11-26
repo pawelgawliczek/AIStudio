@@ -1,5 +1,5 @@
 /**
- * Deactivate Coordinator Tool
+ * Deactivate Project Manager Tool
  * Sets coordinator active=false and returns coordinator with affected workflows
  */
 
@@ -34,14 +34,14 @@ export interface DeactivateCoordinatorResponse {
 }
 
 export const tool: Tool = {
-  name: 'deactivate_coordinator',
-  description: 'Deactivate a coordinator by setting active=false. Returns list of affected workflows.',
+  name: 'deactivate_project_manager',
+  description: 'Deactivate a project manager by setting active=false. Returns list of affected workflows.',
   inputSchema: {
     type: 'object',
     properties: {
       coordinatorId: {
         type: 'string',
-        description: 'Coordinator UUID to deactivate',
+        description: 'Project Manager UUID to deactivate',
       },
       force: {
         type: 'boolean',
@@ -53,9 +53,9 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'coordinators',
+  category: 'project_managers',
   domain: 'workflow',
-  tags: ['coordinator', 'lifecycle', 'deactivation'],
+  tags: ['project_manager', 'lifecycle', 'deactivation'],
   version: '1.0.0',
   since: '2025-11-21',
 };

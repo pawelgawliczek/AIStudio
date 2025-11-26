@@ -1,5 +1,5 @@
 /**
- * List Workflow Runs Tool
+ * List Team Runs Tool
  * Query execution history with filtering and pagination
  */
 
@@ -7,9 +7,9 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
-  name: 'list_workflow_runs',
+  name: 'list_team_runs',
   description:
-    'List workflow execution runs with optional filtering by project, workflow, story, or status. Returns paginated results.',
+    'List team execution runs with optional filtering by project, team, story, or status. Returns paginated results.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -17,9 +17,9 @@ export const tool: Tool = {
         type: 'string',
         description: 'Filter by project UUID',
       },
-      workflowId: {
+      teamId: {
         type: 'string',
-        description: 'Filter by workflow UUID',
+        description: 'Filter by team UUID',
       },
       storyId: {
         type: 'string',
@@ -45,8 +45,8 @@ export const tool: Tool = {
 
 export const metadata = {
   category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'history', 'query', 'list'],
+  domain: 'Team Execution',
+  tags: ['team', 'history', 'query', 'list'],
   version: '1.0.0',
   since: '2025-11-14',
 };

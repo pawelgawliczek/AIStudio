@@ -1,5 +1,5 @@
 /**
- * Get Coordinator Usage Tool
+ * Get Project Manager Usage Tool
  * Returns usage statistics for a coordinator
  */
 
@@ -27,10 +27,12 @@ export interface CoordinatorUsageResponse {
   message: string;
 }
 
+
+// ALIASING: Coordinator → Project Manager (ST-109)
 export const tool: Tool = {
-  name: 'get_coordinator_usage',
-  description: 'Get usage statistics for a coordinator including workflow count, execution count, and last used date',
-  inputSchema: {
+  name: 'get_project_manager_usage',
+  description: 'Get usage statistics for a project manager including team count, execution count, and last used date',
+    inputSchema: {
     type: 'object',
     properties: {
       coordinatorId: {
@@ -43,21 +45,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'coordinators',
-  domain: 'workflow',
-  tags: ['coordinator', 'lifecycle', 'usage', 'metrics'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Coordinator → Project Manager (ST-109)
-export const projectManagerTool: Tool = {
-  name: 'get_project_manager_usage',
-  description: 'Get usage statistics for a project manager including team count, execution count, and last used date',
-  inputSchema: tool.inputSchema,
-};
-
-export const projectManagerMetadata = {
   category: 'coordinators',
   domain: 'team',
   tags: ['project-manager', 'lifecycle', 'usage', 'metrics'],

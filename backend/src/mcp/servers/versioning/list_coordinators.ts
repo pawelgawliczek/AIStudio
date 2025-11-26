@@ -1,5 +1,5 @@
 /**
- * List Coordinators Tool
+ * List Project Managers Tool
  * List coordinators (components with 'coordinator' tag)
  */
 
@@ -32,10 +32,12 @@ export interface CoordinatorWithVersionInfo {
   updatedAt: string;
 }
 
+
+// ALIASING: Coordinator → Project Manager (ST-109)
 export const tool: Tool = {
-  name: 'list_coordinators',
-  description: 'List coordinators (components with coordinator tag) with filtering and pagination',
-  inputSchema: {
+  name: 'list_project_managers',
+  description: 'List project managers with filtering and pagination. Project managers orchestrate agents and manage team execution.',
+    inputSchema: {
     type: 'object',
     properties: {
       projectId: {
@@ -68,21 +70,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'versioning',
-  domain: 'Version Management',
-  tags: ['coordinator', 'list', 'version', 'query'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Coordinator → Project Manager (ST-109)
-export const projectManagerTool: Tool = {
-  name: 'list_project_managers',
-  description: 'List project managers with filtering and pagination. Project managers orchestrate agents and manage team execution.',
-  inputSchema: tool.inputSchema,
-};
-
-export const projectManagerMetadata = {
   category: 'versioning',
   domain: 'Version Management',
   tags: ['project-manager', 'list', 'version', 'query'],

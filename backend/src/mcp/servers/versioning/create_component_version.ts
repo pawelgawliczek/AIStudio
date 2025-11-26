@@ -1,5 +1,5 @@
 /**
- * Create Component Version Tool
+ * Create Agent Version Tool
  * Create minor/major version using VersioningService
  */
 
@@ -15,10 +15,12 @@ export interface CreateComponentVersionParams {
   changeDescription?: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'create_component_version',
-  description: 'Create minor/major version of a component using VersioningService',
-  inputSchema: {
+  name: 'create_agent_version',
+  description: 'Create minor/major version of an agent using VersioningService',
+    inputSchema: {
     type: 'object',
     properties: {
       componentId: {
@@ -39,21 +41,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'versioning',
-  domain: 'Version Management',
-  tags: ['component', 'create', 'version'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'create_agent_version',
-  description: 'Create minor/major version of an agent using VersioningService',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'versioning',
   domain: 'Version Management',
   tags: ['agent', 'create', 'version'],

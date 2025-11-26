@@ -2,14 +2,14 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
-  name: 'get_workflow_context',
-  description: 'Retrieve workflow state, coordinator instructions, component instructions, and previous component outputs for coordinator decision-making. Returns all information needed to orchestrate the workflow and spawn component agents using the Task tool.',
+  name: 'get_team_context',
+  description: 'Retrieve team state, project manager instructions, agent instructions, and previous agent outputs for project manager decision-making. Returns all information needed to orchestrate the team and spawn agent tasks using the Task tool.',
   inputSchema: {
     type: 'object',
     properties: {
       runId: {
         type: 'string',
-        description: 'Workflow run ID (required)',
+        description: 'Team run ID (required)',
       },
     },
     required: ['runId'],
@@ -17,21 +17,6 @@ export const tool: Tool = {
 };
 
 export const metadata = {
-  category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'context', 'coordinator', 'decision'],
-  version: '1.0.0',
-  since: '2025-11-13',
-};
-
-// ALIASING: Workflow → Team, Coordinator → Project Manager (ST-109)
-export const teamTool: Tool = {
-  name: 'get_team_context',
-  description: 'Retrieve team state, project manager instructions, agent instructions, and previous agent outputs for project manager decision-making. Returns all information needed to orchestrate the team and spawn agent tasks using the Task tool.',
-  inputSchema: tool.inputSchema,
-};
-
-export const teamMetadata = {
   category: 'execution',
   domain: 'Team Execution',
   tags: ['team', 'context', 'project-manager', 'decision'],

@@ -1,15 +1,14 @@
 /**
- * Assign Workflow to Story Tool
- * Pre-configure workflow for a story
+ * Assign Team to Story Tool
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
-  name: 'assign_workflow_to_story',
+  name: 'assign_team_to_story',
   description:
-    'Assign a workflow to a story for future execution. Pass null as workflowId to clear the assignment.',
+    'Assign a team to a story for future execution. A team is a group of agents working together. Pass null as workflowId to clear the assignment.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -19,7 +18,7 @@ export const tool: Tool = {
       },
       workflowId: {
         type: ['string', 'null'],
-        description: 'Workflow UUID to assign, or null to clear assignment',
+        description: 'Team UUID to assign (workflowId parameter), or null to clear assignment',
       },
     },
     required: ['storyId'],
@@ -28,40 +27,10 @@ export const tool: Tool = {
 
 export const metadata = {
   category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'story', 'assignment', 'configuration'],
-  version: '1.0.0',
-  since: '2025-11-14',
-};
-
-// ALIASING: Workflow → Team (ST-109)
-export const teamTool: Tool = {
-  name: 'assign_team_to_story',
-  description:
-    'Assign a team to a story for future execution. A team is a group of agents working together. Pass null as teamId to clear the assignment.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      storyId: {
-        type: 'string',
-        description: 'Story UUID (required)',
-      },
-      teamId: {
-        type: ['string', 'null'],
-        description: 'Team UUID to assign, or null to clear assignment',
-      },
-    },
-    required: ['storyId'],
-  },
-};
-
-export const teamMetadata = {
-  category: 'execution',
   domain: 'Team Execution',
   tags: ['team', 'story', 'assignment', 'agents'],
   version: '1.0.0',
   since: '2025-11-26',
-  aliasOf: 'assign_workflow_to_story',
 };
 
 export async function handler(prisma: PrismaClient, params: any) {

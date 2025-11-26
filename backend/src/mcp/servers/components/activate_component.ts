@@ -1,5 +1,5 @@
 /**
- * Activate Component Tool
+ * Activate Agent Tool
  * Sets component active=true and returns updated component
  */
 
@@ -27,37 +27,24 @@ export interface ComponentResponse {
   message: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'activate_component',
-  description: 'Activate a component by setting active=true',
+  name: 'activate_agent',
+  description: 'Activate an agent by setting active=true',
   inputSchema: {
     type: 'object',
     properties: {
       componentId: {
         type: 'string',
-        description: 'Component UUID to activate',
+        description: 'Agent UUID to activate',
       },
     },
     required: ['componentId'],
-  },
+  }
 };
 
 export const metadata = {
-  category: 'components',
-  domain: 'workflow',
-  tags: ['component', 'lifecycle', 'activation'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'activate_agent',
-  description: 'Activate an agent by setting active=true',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'components',
   domain: 'team',
   tags: ['agent', 'lifecycle', 'activation'],

@@ -1,5 +1,5 @@
 /**
- * Get Workflow Run Results Tool
+ * Get Team Run Results Tool
  * Query comprehensive execution results with metrics, components, and artifacts
  */
 
@@ -7,15 +7,15 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
-  name: 'get_workflow_run_results',
+  name: 'get_team_run_results',
   description:
-    'Retrieve complete execution results for a workflow run, including all component outputs, metrics, and artifacts.',
+    'Retrieve complete execution results for a team run, including all component outputs, metrics, and artifacts.',
   inputSchema: {
     type: 'object',
     properties: {
       runId: {
         type: 'string',
-        description: 'Workflow run ID (required)',
+        description: 'Team run ID (required)',
       },
       includeArtifacts: {
         type: 'boolean',
@@ -32,8 +32,8 @@ export const tool: Tool = {
 
 export const metadata = {
   category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'results', 'query', 'metrics'],
+  domain: 'Team Execution',
+  tags: ['team', 'results', 'query', 'metrics'],
   version: '1.0.0',
   since: '2025-11-14',
 };

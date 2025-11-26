@@ -4,36 +4,36 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
-  name: 'start_workflow_run',
-  description: 'Initialize a new workflow execution run. Returns a runId for tracking component executions. Use this at the start of every workflow execution. Automatically configures transcript tracking for metrics collection.',
+  name: 'start_team_run',
+  description: 'Initialize a new team execution run. Returns a runId for tracking component executions. Use this at the start of every team execution. Automatically configures transcript tracking for metrics collection.',
   inputSchema: {
     type: 'object',
     properties: {
-      workflowId: {
+      teamId: {
         type: 'string',
-        description: 'Workflow ID from database (required)',
+        description: 'Team ID from database (required)',
       },
       triggeredBy: {
         type: 'string',
-        description: 'User ID or system identifier that triggered the workflow (required)',
+        description: 'User ID or system identifier that triggered the team (required)',
       },
       context: {
         type: 'object',
-        description: 'Workflow context data (e.g., prNumber, storyId, branch, etc.)',
+        description: 'Team context data (e.g., prNumber, storyId, branch, etc.)',
       },
       cwd: {
         type: 'string',
         description: 'Current working directory of the orchestrator session. Used to auto-detect transcript location. If not provided, will use project localPath.',
       },
     },
-    required: ['workflowId', 'triggeredBy'],
+    required: ['teamId', 'triggeredBy'],
   },
 };
 
 export const metadata = {
   category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'execution', 'tracking', 'coordinator'],
+  domain: 'Team Execution',
+  tags: ['team', 'execution', 'tracking', 'coordinator'],
   version: '1.0.0',
   since: '2025-11-13',
 };

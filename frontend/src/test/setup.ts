@@ -11,4 +11,5 @@ afterEach(() => {
 expect.extend({});
 
 // Make jest available globally for compatibility with jest-style tests
+// @ts-expect-error - Vitest's vi is compatible enough for our test needs
 global.jest = vi;

@@ -1,5 +1,5 @@
 /**
- * Create Workflow Version Tool
+ * Create Team Version Tool
  * Create minor/major version using VersioningService
  */
 
@@ -16,14 +16,14 @@ export interface CreateWorkflowVersionParams {
 }
 
 export const tool: Tool = {
-  name: 'create_workflow_version',
-  description: 'Create minor/major version of a workflow using VersioningService',
+  name: 'create_team_version',
+  description: 'Create minor/major version of a team using VersioningService',
   inputSchema: {
     type: 'object',
     properties: {
-      workflowId: {
+      teamId: {
         type: 'string',
-        description: 'Source workflow UUID (required)',
+        description: 'Source team UUID (required)',
       },
       majorVersion: {
         type: 'number',
@@ -34,14 +34,14 @@ export const tool: Tool = {
         description: 'Optional change notes',
       },
     },
-    required: ['workflowId'],
+    required: ['teamId'],
   },
 };
 
 export const metadata = {
   category: 'versioning',
   domain: 'Version Management',
-  tags: ['workflow', 'create', 'version'],
+  tags: ['team', 'create', 'version'],
   version: '1.0.0',
   since: '2025-11-21',
 };

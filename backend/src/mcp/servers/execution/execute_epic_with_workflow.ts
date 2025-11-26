@@ -1,5 +1,5 @@
 /**
- * Execute Epic with Workflow Tool
+ * Execute Epic with Team Tool
  * Batch execution of all stories in an epic
  */
 
@@ -8,9 +8,9 @@ import { PrismaClient } from '@prisma/client';
 import { handler as executeStoryHandler } from './execute_story_with_workflow.js';
 
 export const tool: Tool = {
-  name: 'execute_epic_with_workflow',
+  name: 'execute_epic_with_team',
   description:
-    'Execute all stories in an epic using a workflow. Supports sequential or parallel execution modes.',
+    'Execute all stories in an epic using a team. Supports sequential or parallel execution modes.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -18,9 +18,9 @@ export const tool: Tool = {
         type: 'string',
         description: 'Epic UUID (required)',
       },
-      workflowId: {
+      teamId: {
         type: 'string',
-        description: 'Workflow UUID to use for all stories (required)',
+        description: 'Team UUID to use for all stories (required)',
       },
       mode: {
         type: 'string',
@@ -41,14 +41,14 @@ export const tool: Tool = {
         description: 'User ID or identifier (defaults to "mcp-user")',
       },
     },
-    required: ['epicId', 'workflowId'],
+    required: ['epicId', 'teamId'],
   },
 };
 
 export const metadata = {
   category: 'execution',
-  domain: 'Workflow Execution',
-  tags: ['workflow', 'epic', 'batch', 'execution'],
+  domain: 'Team Execution',
+  tags: ['team', 'epic', 'batch', 'execution'],
   version: '1.0.0',
   since: '2025-11-14',
 };

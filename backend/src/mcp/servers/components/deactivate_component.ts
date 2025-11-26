@@ -1,5 +1,5 @@
 /**
- * Deactivate Component Tool
+ * Deactivate Agent Tool
  * Sets component active=false and returns component with affected workflows
  */
 
@@ -33,41 +33,24 @@ export interface DeactivateComponentResponse {
   message: string;
 }
 
+
+// ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
-  name: 'deactivate_component',
-  description: 'Deactivate a component by setting active=false. Returns list of affected workflows.',
+  name: 'deactivate_agent',
+  description: 'Deactivate an agent by setting active=false. Returns list of affected teams.',
   inputSchema: {
     type: 'object',
     properties: {
       componentId: {
         type: 'string',
-        description: 'Component UUID to deactivate',
-      },
-      force: {
-        type: 'boolean',
-        description: 'Force deactivation even if workflows exist (default: false)',
+        description: 'Agent UUID to deactivate',
       },
     },
     required: ['componentId'],
-  },
+  }
 };
 
 export const metadata = {
-  category: 'components',
-  domain: 'workflow',
-  tags: ['component', 'lifecycle', 'deactivation'],
-  version: '1.0.0',
-  since: '2025-11-21',
-};
-
-// ALIASING: Component → Agent (ST-109)
-export const agentTool: Tool = {
-  name: 'deactivate_agent',
-  description: 'Deactivate an agent by setting active=false. Returns list of affected teams.',
-  inputSchema: tool.inputSchema,
-};
-
-export const agentMetadata = {
   category: 'components',
   domain: 'team',
   tags: ['agent', 'lifecycle', 'deactivation'],
