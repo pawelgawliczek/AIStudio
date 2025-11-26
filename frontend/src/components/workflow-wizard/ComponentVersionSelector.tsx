@@ -21,6 +21,7 @@ import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
 import { Component, ComponentVersion, ComponentAssignment } from '../../types/workflow-wizard';
 import { apiClient } from '../../services/api.client';
+import { terminology } from '../../utils/terminology';
 
 export const ComponentVersionSelector: React.FC = () => {
   const {
@@ -74,7 +75,7 @@ export const ComponentVersionSelector: React.FC = () => {
     );
 
     if (isDuplicate) {
-      setDuplicateError(`Component "${component.name}" is already assigned to this workflow`);
+      setDuplicateError(`${terminology.agent} "${component.name}" is already assigned to this ${terminology.team.toLowerCase()}`);
       return;
     }
 
@@ -131,10 +132,10 @@ export const ComponentVersionSelector: React.FC = () => {
   return (
     <Paper elevation={0} sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Step 2: Select Components & Versions
+        Step 2: Select {terminology.agents} & Versions
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Choose which components this workflow can use and their specific versions. Component names must be unique within a workflow.
+        Choose which {terminology.agents.toLowerCase()} this {terminology.team.toLowerCase()} can use and their specific versions. {terminology.agent} names must be unique within a {terminology.team.toLowerCase()}.
       </Typography>
 
       {error && (
@@ -147,17 +148,17 @@ export const ComponentVersionSelector: React.FC = () => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="subtitle2" gutterBottom>
-              Add Component
+              Add {terminology.agent}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               <FormControl sx={{ minWidth: 250 }} size="small">
-                <InputLabel>Component</InputLabel>
+                <InputLabel>{terminology.agent}</InputLabel>
                 <Select
                   data-testid="available-components-list"
                   value={selectedComponent?.id || ''}
                   onChange={(e) => handleComponentSelect(e.target.value)}
-                  label="Component"
+                  label={terminology.agent}
                   disabled={loading}
                 >
                   {components
@@ -194,7 +195,7 @@ export const ComponentVersionSelector: React.FC = () => {
                 onClick={handleAddComponent}
                 disabled={!selectedComponent || !selectedVersion || !!duplicateError}
               >
-                Add Component
+                Add {terminology.agent}
               </Button>
             </Box>
 
@@ -211,12 +212,12 @@ export const ComponentVersionSelector: React.FC = () => {
 
       <Box>
         <Typography variant="subtitle1" gutterBottom>
-          Selected Components ({state.componentAssignments.length})
+          Selected {terminology.agents} ({state.componentAssignments.length})
         </Typography>
 
         {state.componentAssignments.length === 0 ? (
           <Alert severity="info">
-            No components added yet. Add at least one component to proceed to the next step.
+            No {terminology.agents.toLowerCase()} added yet. Add at least one {terminology.agent.toLowerCase()} to proceed to the next step.
           </Alert>
         ) : (
           <Stack spacing={2} data-testid="selected-components-list">
@@ -231,7 +232,7 @@ export const ComponentVersionSelector: React.FC = () => {
                     <IconButton
                       color="error"
                       onClick={() => handleRemoveComponent(index)}
-                      aria-label="Remove component"
+                      aria-label={`Remove ${terminology.agent.toLowerCase()}`}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -245,13 +246,13 @@ export const ComponentVersionSelector: React.FC = () => {
 
       {isValid && (
         <Alert severity="success" sx={{ mt: 3 }}>
-          Ready to proceed to coordinator selection!
+          Ready to proceed to {terminology.projectManager.toLowerCase()} selection!
         </Alert>
       )}
 
       {!isValid && state.componentAssignments.length === 0 && (
         <Alert severity="warning" sx={{ mt: 3 }}>
-          Please add at least one component to proceed.
+          Please add at least one {terminology.agent.toLowerCase()} to proceed.
         </Alert>
       )}
     </Paper>

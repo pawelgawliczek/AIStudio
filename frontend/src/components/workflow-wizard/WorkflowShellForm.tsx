@@ -7,6 +7,7 @@ import {
   Alert,
 } from '@mui/material';
 import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
+import { terminology } from '../../utils/terminology';
 
 interface WorkflowShellFormProps {
   projects: Array<{ id: string; name: string }>;
@@ -31,22 +32,22 @@ export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }
   return (
     <Paper elevation={0} sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Step 1: Workflow Information
+        Step 1: {terminology.team} Information
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Provide basic information about your workflow. This will help identify and organize your automation.
+        Provide basic information about your {terminology.team.toLowerCase()}. This will help identify and organize your automation.
       </Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <TextField
-          label="Workflow Name"
+          label={`${terminology.team} Name`}
           name="name"
           value={state.name}
           onChange={handleNameChange}
           required
           fullWidth
-          placeholder="e.g., Story Implementation Workflow"
-          helperText="A descriptive name for your workflow"
+          placeholder={`e.g., Story Implementation ${terminology.team}`}
+          helperText={`A descriptive name for your ${terminology.team.toLowerCase()}`}
           error={state.name.trim().length === 0}
         />
 
@@ -58,8 +59,8 @@ export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }
           fullWidth
           multiline
           rows={3}
-          placeholder="Describe the purpose and scope of this workflow..."
-          helperText="Optional: Explain what this workflow does and when it should be used"
+          placeholder={`Describe the purpose and scope of this ${terminology.team.toLowerCase()}...`}
+          helperText={`Optional: Explain what this ${terminology.team.toLowerCase()} does and when it should be used`}
         />
 
         <TextField
@@ -67,7 +68,7 @@ export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }
           value={currentProject?.name || 'Loading project...'}
           fullWidth
           disabled
-          helperText="Workflow will be created for this project"
+          helperText={`${terminology.team} will be created for this project`}
           InputProps={{
             readOnly: true,
           }}
@@ -75,12 +76,12 @@ export const WorkflowShellForm: React.FC<WorkflowShellFormProps> = ({ projects }
 
         {!isValid && (
           <Alert severity="warning">
-            Please fill in the workflow name to proceed to the next step.
+            Please fill in the {terminology.team.toLowerCase()} name to proceed to the next step.
           </Alert>
         )}
 
         {isValid && (
-          <Alert severity="success">Ready to proceed to component selection!</Alert>
+          <Alert severity="success">Ready to proceed to {terminology.agent.toLowerCase()} selection!</Alert>
         )}
       </Box>
     </Paper>

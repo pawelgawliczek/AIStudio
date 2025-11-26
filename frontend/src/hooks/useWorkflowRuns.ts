@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from '../lib/axios';
 import { WorkflowRun, WorkflowRunStatus, ComponentRun } from '../types/workflow-tracking';
+import { terminology } from '../utils/terminology';
 
 interface UseWorkflowRunsOptions {
   projectId?: string;
@@ -86,7 +87,7 @@ function transformApiResponse(apiRun: ApiWorkflowRun): WorkflowRun {
   // Extract story info - handle both nested story object and flat fields
   // If no story is linked, use "No story" instead of cryptic run ID
   const storyKey = apiRun.story?.key || null;
-  const storyTitle = apiRun.story?.title || apiRun.workflow?.name || 'Workflow Run';
+  const storyTitle = apiRun.story?.title || apiRun.workflow?.name || `${terminology.team} Run`;
 
   return {
     id: apiRun.id,

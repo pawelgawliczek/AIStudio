@@ -18,6 +18,7 @@ import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
 import { Coordinator, ComponentVersion } from '../../types/workflow-wizard';
 import { apiClient } from '../../services/api.client';
 import { CoordinatorInstructionsEditor } from './CoordinatorInstructionsEditor';
+import { terminology } from '../../utils/terminology';
 
 const MODELS = [
   { value: 'claude-sonnet-4.5', label: 'Claude Sonnet 4.5' },
@@ -27,9 +28,9 @@ const MODELS = [
 ];
 
 const DECISION_STRATEGIES = [
-  { value: 'sequential', label: 'Sequential', description: 'Execute components one at a time in order' },
-  { value: 'adaptive', label: 'Adaptive', description: 'Dynamically choose next component based on results' },
-  { value: 'parallel', label: 'Parallel', description: 'Execute multiple components simultaneously' },
+  { value: 'sequential', label: 'Sequential', description: 'Execute agents one at a time in order' },
+  { value: 'adaptive', label: 'Adaptive', description: 'Dynamically choose next agent based on results' },
+  { value: 'parallel', label: 'Parallel', description: 'Execute multiple agents simultaneously' },
   { value: 'conditional', label: 'Conditional', description: 'Use conditional logic to decide execution flow' },
 ];
 
@@ -58,7 +59,7 @@ export const CoordinatorSelector: React.FC = () => {
       const response = await apiClient.get(`/projects/${state.projectId}/coordinators`);
       setCoordinators(response.data || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to load coordinators');
+      setError(err.message || `Failed to load ${terminology.projectManagers.toLowerCase()}`);
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ export const CoordinatorSelector: React.FC = () => {
         setSelectedVersion(versionList[0]);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load coordinator versions');
+      setError(err.message || `Failed to load ${terminology.projectManager.toLowerCase()} versions`);
     } finally {
       setLoading(false);
     }
@@ -130,10 +131,10 @@ export const CoordinatorSelector: React.FC = () => {
   return (
     <Paper elevation={0} sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Step 3: Select or Create Coordinator
+        Step 3: Select or Create {terminology.projectManager}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Choose an existing coordinator or create a new one. The coordinator orchestrates how components are executed.
+        Choose an existing {terminology.projectManager.toLowerCase()} or create a new one. The {terminology.projectManager.toLowerCase()} orchestrates how {terminology.agents.toLowerCase()} are executed.
       </Typography>
 
       {error && (
@@ -150,19 +151,19 @@ export const CoordinatorSelector: React.FC = () => {
           aria-label="coordinator mode"
           fullWidth
         >
-          <ToggleButton value="existing">Use Existing Coordinator</ToggleButton>
-          <ToggleButton value="new">Create New Coordinator</ToggleButton>
+          <ToggleButton value="existing">Use Existing {terminology.projectManager}</ToggleButton>
+          <ToggleButton value="new">Create New {terminology.projectManager}</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {state.coordinatorMode === 'existing' && (
         <Box>
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Coordinator</InputLabel>
+            <InputLabel>{terminology.projectManager}</InputLabel>
             <Select
               value={state.coordinatorId || ''}
               onChange={(e) => handleCoordinatorSelect(e.target.value)}
-              label="Coordinator"
+              label={terminology.projectManager}
               disabled={loading}
             >
               {coordinators.map((coordinator) => (
@@ -193,7 +194,7 @@ export const CoordinatorSelector: React.FC = () => {
           {selectedCoordinator && (
             <Box sx={{ mt: 3 }}>
               <Typography variant="subtitle2" gutterBottom>
-                Coordinator Instructions Preview
+                {terminology.projectManager} Instructions Preview
               </Typography>
               <Paper
                 variant="outlined"
@@ -212,13 +213,13 @@ export const CoordinatorSelector: React.FC = () => {
       {state.coordinatorMode === 'new' && state.newCoordinator && (
         <Box>
           <TextField
-            label="Coordinator Name"
+            label={`${terminology.projectManager} Name`}
             value={state.newCoordinator.name}
             onChange={(e) => handleNewCoordinatorChange('name', e.target.value)}
             required
             fullWidth
             sx={{ mb: 3 }}
-            placeholder="e.g., Story Implementation Coordinator"
+            placeholder={`e.g., Story Implementation ${terminology.projectManager}`}
           />
 
           <CoordinatorInstructionsEditor

@@ -17,8 +17,9 @@ import { WorkflowShellForm } from './WorkflowShellForm';
 import { ComponentVersionSelector } from './ComponentVersionSelector';
 import { CoordinatorSelector } from './CoordinatorSelector';
 import { apiClient } from '../../services/api.client';
+import { terminology } from '../../utils/terminology';
 
-const STEPS = ['Workflow Information', 'Select Components', 'Choose Coordinator'];
+const STEPS = [`${terminology.team} Information`, `Select ${terminology.agents}`, `Choose ${terminology.projectManager}`];
 
 interface WorkflowCreationWizardProps {
   open: boolean;
@@ -88,7 +89,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
       }
 
       if (!coordinatorId) {
-        throw new Error('No coordinator selected or created');
+        throw new Error(`No ${terminology.projectManager.toLowerCase()} selected or created`);
       }
 
       // Create workflow
@@ -108,7 +109,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to create workflow');
+      setError(err.response?.data?.message || err.message || `Failed to create ${terminology.team.toLowerCase()}`);
     } finally {
       setLoading(false);
     }
@@ -128,7 +129,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth data-testid="workflow-wizard-modal">
-      <DialogTitle>Create New Workflow</DialogTitle>
+      <DialogTitle>Create New {terminology.team}</DialogTitle>
 
       <DialogContent>
         <Box sx={{ width: '100%', pt: 2 }}>
@@ -178,7 +179,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
             disabled={!canSubmit() || loading}
             startIcon={loading ? <CircularProgress size={16} /> : null}
           >
-            {loading ? 'Creating...' : 'Create Workflow'}
+            {loading ? 'Creating...' : `Create ${terminology.team}`}
           </Button>
         )}
       </DialogActions>

@@ -1,4 +1,5 @@
 import { PencilIcon } from '@heroicons/react/24/outline';
+import { terminology } from '../../utils/terminology';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
@@ -94,11 +95,11 @@ export function InstructionSetsDisplay({
   const isCoordinator = coordinatorInstructions !== undefined;
 
   if (isCoordinator) {
-    // Coordinator: Single instruction field
+    // Project Manager: Single instruction field
     return (
       <div className="space-y-4">
         <InstructionField
-          label="Coordinator Instructions"
+          label={`${terminology.projectManager} Instructions`}
           field="coordinatorInstructions"
           value={coordinatorInstructions || ''}
           isEditing={isEditing}
@@ -110,7 +111,7 @@ export function InstructionSetsDisplay({
     );
   }
 
-  // Component: Three instruction sets
+  // Agent: Three instruction sets
   return (
     <div className="space-y-4">
       <InstructionField

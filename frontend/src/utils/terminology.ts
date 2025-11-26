@@ -16,15 +16,25 @@
  */
 
 export const terminology = {
-  // Singular forms
+  // Singular forms (technical → user-friendly)
   workflow: 'Team',
   component: 'Agent',
   coordinator: 'Project Manager',
 
-  // Plural forms
+  // User-friendly singular forms (for direct access)
+  team: 'Team',
+  agent: 'Agent',
+  projectManager: 'Project Manager',
+
+  // Plural forms (technical → user-friendly)
   workflows: 'Teams',
   components: 'Agents',
   coordinators: 'Project Managers',
+
+  // User-friendly plural forms (for direct access)
+  teams: 'Teams',
+  agents: 'Agents',
+  projectManagers: 'Project Managers',
 
   // Action verbs (Create/Edit/Delete patterns)
   createWorkflow: 'Create Team',

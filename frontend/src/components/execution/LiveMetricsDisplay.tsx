@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Paper, Typography, Chip, LinearProgress, Grid } from '@mui/material';
+import { terminology } from '../../utils/terminology';
 import {
   AccessTime,
   Token,
@@ -112,7 +113,7 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
               Overall Progress
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {metrics.componentsCompleted} / {metrics.componentsTotal} components (
+              {metrics.componentsCompleted} / {metrics.componentsTotal} {terminology.agents.toLowerCase()} (
               {metrics.percentComplete}%)
             </Typography>
           </Box>
@@ -265,7 +266,7 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
         <div>
           <MetricCard
             icon={<CheckCircle />}
-            label="Components"
+            label={terminology.agents}
             value={`${metrics.componentsCompleted}/${metrics.componentsTotal}`}
             color="success"
           />
@@ -276,7 +277,7 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
             label="Human Prompts"
             value={formatNumber(metrics.totalUserPrompts)}
             color="secondary"
-            tooltip="Live count of human interventions during workflow execution"
+            tooltip={`Live count of human interventions during ${terminology.team.toLowerCase()} execution`}
           />
         </div>
         <div>
