@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { componentsService } from '../services/components.service';
 import { Component, CreateComponentDto, ExecutionConfig } from '../types';
 import { MarkdownEditor } from './MarkdownEditor';
+import { terminology } from '../utils/terminology';
 
 interface CreateComponentModalProps {
   isOpen: boolean;
@@ -124,7 +125,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
       <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" role="dialog">
         <div className="p-6">
           <h2 className="text-2xl font-bold text-fg mb-4">
-            {editingComponent ? 'Edit Component' : 'Create Component'}
+            {editingComponent ? terminology.editComponent : terminology.createComponent}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -151,7 +152,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
                 <MarkdownEditor
                   value={formData.description}
                   onChange={(val) => setFormData({ ...formData, description: val })}
-                  placeholder="Brief description of the component..."
+                  placeholder={`Brief description of the ${terminology.component.toLowerCase()}...`}
                   height={120}
                   name="description"
                 />
