@@ -1,4 +1,5 @@
 import { Component } from '../types';
+import { VersionBadge } from './VersionBadge';
 
 interface ComponentCardProps {
   component: Component;
@@ -22,12 +23,12 @@ export function ComponentCard({ component, onClick, onEdit, onDelete, onToggleAc
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-fg">{component.name}</h3>
               {component.version && (
-                <span
+                <VersionBadge
+                  version={component.version}
+                  status={component.active ? 'active' : 'inactive'}
+                  size="sm"
                   data-testid="component-version"
-                  className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded font-medium"
-                >
-                  {component.version}
-                </span>
+                />
               )}
             </div>
             {component.description && (
