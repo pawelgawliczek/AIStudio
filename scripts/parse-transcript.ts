@@ -5,11 +5,15 @@
  * Usage:
  *   npx tsx scripts/parse-transcript.ts <transcript-path>
  *   npx tsx scripts/parse-transcript.ts --latest [project-path]
+ *   npx tsx scripts/parse-transcript.ts --latest-agent [project-path]
+ *   npx tsx scripts/parse-transcript.ts --agent <agent-id> [project-path]
  *
  * Examples:
  *   npx tsx scripts/parse-transcript.ts ~/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/abc123.jsonl
  *   npx tsx scripts/parse-transcript.ts --latest /Users/pawelgawliczek/projects/AIStudio
  *   npx tsx scripts/parse-transcript.ts --latest  # uses current directory
+ *   npx tsx scripts/parse-transcript.ts --latest-agent /Users/pawelgawliczek/projects/AIStudio  # find latest agent transcript
+ *   npx tsx scripts/parse-transcript.ts --agent 7527b7d9 /Users/pawelgawliczek/projects/AIStudio  # find specific agent
  *
  * Output (JSON):
  *   {
@@ -133,7 +137,7 @@ function findLatestTranscript(transcriptDir: string): string | null {
   }
 
   const files = fsSync.readdirSync(transcriptDir)
-    .filter(f => f.endsWith('.jsonl'))
+    .filter(f => f.endsWith('.jsonl') && !f.startsWith('agent-'))
     .map(f => ({
       name: f,
       path: path.join(transcriptDir, f),
@@ -144,12 +148,64 @@ function findLatestTranscript(transcriptDir: string): string | null {
   return files.length > 0 ? files[0].path : null;
 }
 
+function findLatestAgentTranscript(transcriptDir: string): string | null {
+  if (!fsSync.existsSync(transcriptDir)) {
+    return null;
+  }
+
+  const files = fsSync.readdirSync(transcriptDir)
+    .filter(f => f.endsWith('.jsonl') && f.startsWith('agent-'))
+    .map(f => ({
+      name: f,
+      path: path.join(transcriptDir, f),
+      mtime: fsSync.statSync(path.join(transcriptDir, f)).mtime,
+    }))
+    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+  return files.length > 0 ? files[0].path : null;
+}
+
+function findAgentTranscript(transcriptDir: string, agentId: string): string | null {
+  if (!fsSync.existsSync(transcriptDir)) {
+    return null;
+  }
+
+  // Agent transcripts are named agent-{uuid}.jsonl
+  // agentId can be full UUID or partial (first 8 chars)
+  const files = fsSync.readdirSync(transcriptDir)
+    .filter(f => f.endsWith('.jsonl') && f.startsWith('agent-'))
+    .filter(f => {
+      const fileAgentId = f.replace('agent-', '').replace('.jsonl', '');
+      return fileAgentId === agentId || fileAgentId.startsWith(agentId);
+    });
+
+  if (files.length === 0) {
+    return null;
+  }
+
+  // If multiple matches (unlikely), return most recent
+  if (files.length > 1) {
+    const sorted = files
+      .map(f => ({
+        name: f,
+        path: path.join(transcriptDir, f),
+        mtime: fsSync.statSync(path.join(transcriptDir, f)).mtime,
+      }))
+      .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    return sorted[0].path;
+  }
+
+  return path.join(transcriptDir, files[0]);
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
     console.error('Usage: npx tsx scripts/parse-transcript.ts <transcript-path>');
     console.error('       npx tsx scripts/parse-transcript.ts --latest [project-path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --latest-agent [project-path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --agent <agent-id> [project-path]');
     process.exit(1);
   }
 
@@ -165,6 +221,31 @@ async function main() {
       process.exit(1);
     }
     transcriptPath = latest;
+  } else if (args[0] === '--latest-agent') {
+    const projectPath = args[1] || process.cwd();
+    const transcriptDir = findTranscriptDirectory(projectPath);
+    const latest = findLatestAgentTranscript(transcriptDir);
+
+    if (!latest) {
+      console.error(JSON.stringify({ error: `No agent transcripts found in ${transcriptDir}`, hint: 'Agent transcripts are named agent-{uuid}.jsonl' }));
+      process.exit(1);
+    }
+    transcriptPath = latest;
+  } else if (args[0] === '--agent') {
+    if (!args[1]) {
+      console.error(JSON.stringify({ error: 'Agent ID required. Usage: --agent <agent-id> [project-path]' }));
+      process.exit(1);
+    }
+    const agentId = args[1];
+    const projectPath = args[2] || process.cwd();
+    const transcriptDir = findTranscriptDirectory(projectPath);
+    const agentTranscript = findAgentTranscript(transcriptDir, agentId);
+
+    if (!agentTranscript) {
+      console.error(JSON.stringify({ error: `No agent transcript found for ID ${agentId} in ${transcriptDir}`, hint: 'Use --latest-agent to find the most recent agent transcript' }));
+      process.exit(1);
+    }
+    transcriptPath = agentTranscript;
   } else {
     transcriptPath = args[0];
     // Expand ~ to home directory

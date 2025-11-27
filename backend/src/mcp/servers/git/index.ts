@@ -9,3 +9,4 @@ export * as detectSchemaChanges from './detect_schema_changes.js';
 export * as checkForConflicts from './check_for_conflicts.js';
 export * as rebaseOnMain from './rebase_on_main.js';
 export * as getDiskUsage from './get_disk_usage.js';
+export * as recordWorktreeCreated from './record_worktree_created.js';

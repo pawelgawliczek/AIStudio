@@ -953,14 +953,16 @@ model ActiveWorkflow {
 
 // Worktree - Git worktree tracking for parallel development
 model Worktree {
-  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  storyId      String         @map("story_id") @db.Uuid
-  branchName   String         @map("branch_name")
-  worktreePath String         @map("worktree_path")
-  baseBranch   String         @default("main") @map("base_branch")
-  status       WorktreeStatus @default(active)
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
+  id           String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  storyId      String           @map("story_id") @db.Uuid
+  branchName   String           @map("branch_name")
+  worktreePath String           @map("worktree_path")
+  baseBranch   String           @default("main") @map("base_branch")
+  status       WorktreeStatus   @default(active)
+  hostType     WorktreeHostType @default(remote) @map("host_type") // Where worktree was created (ST-125)
+  hostName     String?          @map("host_name") // Hostname where worktree exists (ST-125)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
 
   // Relations
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -1261,6 +1263,11 @@ enum WorktreeStatus {
   idle // Worktree exists but not actively used
   cleaning // Worktree being cleaned up
   removed // Worktree removed
+}
+
+enum WorktreeHostType {
+  local // Worktree created on local machine (where Claude Code runs)
+  remote // Worktree created on remote host (where MCP server runs)
 }
 
 enum QueueStatus {

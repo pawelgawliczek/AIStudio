@@ -45,6 +45,11 @@ Example flow:
         description:
           'Specific transcript filename (e.g., "abc123.jsonl"). If not provided, uses most recently modified transcript.',
       },
+      agentId: {
+        type: 'string',
+        description:
+          'Agent ID to find agent transcript (agent-{id}.jsonl). Use "latest" to find most recent agent transcript.',
+      },
     },
     required: [],
   },
@@ -164,7 +169,7 @@ function findLatestTranscript(transcriptDir: string): string | null {
 
   const files = fs
     .readdirSync(transcriptDir)
-    .filter((f) => f.endsWith('.jsonl'))
+    .filter((f) => f.endsWith('.jsonl') && !f.startsWith('agent-'))
     .map((f) => ({
       name: f,
       path: path.join(transcriptDir, f),
@@ -173,6 +178,55 @@ function findLatestTranscript(transcriptDir: string): string | null {
     .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 
   return files.length > 0 ? files[0].path : null;
+}
+
+function findLatestAgentTranscript(transcriptDir: string): string | null {
+  if (!fs.existsSync(transcriptDir)) {
+    return null;
+  }
+
+  const files = fs
+    .readdirSync(transcriptDir)
+    .filter((f) => f.endsWith('.jsonl') && f.startsWith('agent-'))
+    .map((f) => ({
+      name: f,
+      path: path.join(transcriptDir, f),
+      mtime: fs.statSync(path.join(transcriptDir, f)).mtime,
+    }))
+    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+  return files.length > 0 ? files[0].path : null;
+}
+
+function findAgentTranscript(transcriptDir: string, agentId: string): string | null {
+  if (!fs.existsSync(transcriptDir)) {
+    return null;
+  }
+
+  const files = fs
+    .readdirSync(transcriptDir)
+    .filter((f) => f.endsWith('.jsonl') && f.startsWith('agent-'))
+    .filter((f) => {
+      const fileAgentId = f.replace('agent-', '').replace('.jsonl', '');
+      return fileAgentId === agentId || fileAgentId.startsWith(agentId);
+    });
+
+  if (files.length === 0) {
+    return null;
+  }
+
+  if (files.length > 1) {
+    const sorted = files
+      .map((f) => ({
+        name: f,
+        path: path.join(transcriptDir, f),
+        mtime: fs.statSync(path.join(transcriptDir, f)).mtime,
+      }))
+      .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    return sorted[0].path;
+  }
+
+  return path.join(transcriptDir, files[0]);
 }
 
 export async function handler(_prisma: PrismaClient, params: any) {
@@ -193,9 +247,16 @@ export async function handler(_prisma: PrismaClient, params: any) {
     // The command uses PROJECT_HOST_PATH which is the correct path on the host machine
     // where Claude Code runs and stores transcripts in ~/.claude/projects/
 
-    const command = params.transcriptFile
-      ? `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts "${params.transcriptFile}"`
-      : `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest "${projectPath}"`;
+    let command: string;
+    if (params.transcriptFile) {
+      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts "${params.transcriptFile}"`;
+    } else if (params.agentId === 'latest') {
+      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest-agent "${projectPath}"`;
+    } else if (params.agentId) {
+      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --agent "${params.agentId}" "${projectPath}"`;
+    } else {
+      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest "${projectPath}"`;
+    }
 
     return {
       success: true,
@@ -235,18 +296,30 @@ After running the command, parse the JSON output and pass it to record_component
     transcriptPath = params.transcriptFile.startsWith('/')
       ? params.transcriptFile
       : path.join(transcriptDir, params.transcriptFile);
+  } else if (params.agentId === 'latest') {
+    // Find most recent agent transcript
+    transcriptPath = findLatestAgentTranscript(transcriptDir);
+  } else if (params.agentId) {
+    // Find specific agent transcript
+    transcriptPath = findAgentTranscript(transcriptDir, params.agentId);
   } else {
-    // Find most recent transcript
+    // Find most recent main session transcript
     transcriptPath = findLatestTranscript(transcriptDir);
   }
 
   if (!transcriptPath) {
+    const errorMessage = params.agentId
+      ? params.agentId === 'latest'
+        ? `No agent transcripts found in ${transcriptDir}. Agent transcripts are named agent-{uuid}.jsonl`
+        : `No agent transcript found for ID ${params.agentId} in ${transcriptDir}`
+      : `No transcript files found in ${transcriptDir}`;
     return {
       success: false,
       runLocally: false,
-      error: `No transcript files found in ${transcriptDir}`,
+      error: errorMessage,
       projectPath,
       transcriptDir,
+      hint: params.agentId ? 'Use agentId: "latest" to find the most recent agent transcript' : undefined,
     };
   }
 

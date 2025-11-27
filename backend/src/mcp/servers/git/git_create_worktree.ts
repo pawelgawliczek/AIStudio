@@ -111,9 +111,44 @@ function execGit(command: string, cwd?: string): string {
 export async function handler(
   prisma: PrismaClient,
   params: CreateWorktreeParams,
-): Promise<CreateWorktreeResponse> {
+): Promise<CreateWorktreeResponse | { runLocally: true; slashCommand: string; params: CreateWorktreeParams; instructions: string; story: { key: string; title: string } }> {
   try {
     validateRequired(params, ['storyId']);
+
+    // Detect if running remotely via SSH or in Docker (ST-125)
+    const isRunningRemotely = !!process.env.SSH_CONNECTION || process.env.VIBESTUDIO_REMOTE === 'true';
+
+    if (isRunningRemotely) {
+      // Get story info for the slash command
+      const story = await prisma.story.findUnique({
+        where: { id: params.storyId },
+        select: { key: true, title: true },
+      });
+
+      if (!story) {
+        throw new NotFoundError('Story', params.storyId);
+      }
+
+      return {
+        runLocally: true,
+        slashCommand: '/git_create_worktree',
+        params: {
+          storyId: params.storyId,
+          branchName: params.branchName,
+          baseBranch: params.baseBranch || 'main',
+        },
+        instructions: `MCP server is running remotely. Use the slash command to create worktree locally:
+
+/git_create_worktree ${params.storyId}
+
+This will:
+1. Create the git worktree on your LOCAL machine
+2. Record the worktree in the database via record_worktree_created MCP tool
+
+After creating the worktree locally, call record_worktree_created to update the database.`,
+        story: { key: story.key, title: story.title },
+      };
+    }
 
     const baseBranch = params.baseBranch || 'main';
     const repoPath = '/opt/stack/AIStudio';

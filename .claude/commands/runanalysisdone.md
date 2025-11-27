@@ -16,8 +16,8 @@ Before running this command, ensure you have:
 
 ## Team Details
 
-**Team ID:** `f2279312-e340-409a-b317-0d4886a868ea`
-**PM:** Software Development PM
+**Team ID:** `81ed11d4-26a0-420e-8f47-54ea5e019668`
+**PM:** Post-Analysis Execution Coordinator
 **Target:** Production deployment (https://vibestudio.example.com)
 **Mode:** ANALYSIS_DONE - Skip research, format and store existing work
 
@@ -26,7 +26,7 @@ Before running this command, ensure you have:
 ```typescript
 mcp__vibestudio__execute_story_with_team({
   storyId: "{{arg1}}",
-  teamId: "f2279312-e340-409a-b317-0d4886a868ea",
+  teamId: "81ed11d4-26a0-420e-8f47-54ea5e019668",
   triggeredBy: "claude-orchestrator",
   cwd: "/opt/stack/AIStudio",
   context: {
@@ -39,15 +39,12 @@ mcp__vibestudio__execute_story_with_team({
 
 ## Agent Behavior in ANALYSIS_DONE Mode
 
-| Agent | Normal Mode | ANALYSIS_DONE Mode |
-|-------|-------------|-------------------|
-| **Context Explorer Agent** | Full codebase exploration | Extract file references from existing analysis |
-| **Business Analyst Agent** | Research and create use cases | Format existing requirements into baAnalysis |
-| **Software Architect Agent** | Full architecture analysis | Store existing architecture decisions to architectAnalysis |
-| **Designer Agent** | UI/UX research | Store existing design decisions to designerAnalysis |
-| **Developer Agent** | TDD implementation | Proceed directly with implementation using existing plan |
-| **QA Automation Agent** | Full test planning | Use existing test strategy from analysis |
-| **DevOps Agent** | Normal deployment | Normal deployment |
+| Agent | Purpose | ANALYSIS_DONE Mode |
+|-------|---------|-------------------|
+| **DB Updater Agent** | Update story fields | Format and store existing analysis to baAnalysis, architectAnalysis, designerAnalysis, contextExploration fields |
+| **Architect Reviewer Agent** | Architecture review | Use architect MCP tools to suggest refactors only if touching complex code |
+| **Implementer Agent** | Code implementation | Write code based on completed analysis (Read, Write, Edit, Bash, Grep, Glob) |
+| **Test Runner Agent** | Validation | Run tests and validate implementation (npm test, vitest) |
 
 ## When to Use
 
