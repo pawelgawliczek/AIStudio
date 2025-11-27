@@ -32,6 +32,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
 import { VersioningModule } from './services/versioning.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { BackupsModule } from './backups/backups.module';
+import { InternalModule } from './internal/internal.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { BackupsModule } from './backups/backups.module';
     DiskMonitorModule, // Disk space monitoring and alerting (ST-54)
     DeploymentsModule, // Deployment history API (ST-127)
     BackupsModule, // Backup management API (ST-130)
+    InternalModule, // Internal API for MCP handlers (ST-129)
     // LayersModule, // Removed - layers deprecated
     // ComponentsModule, // Removed - old components deprecated
     ComponentsModule, // New Generic Component pattern
