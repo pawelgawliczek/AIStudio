@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { TestCaseStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { ReportTestExecutionDto } from './dto';
+import { ReportTestExecutionDto, FilterTestExecutionDto } from './dto';
 
 @Injectable()
 export class TestExecutionsService {
@@ -277,5 +277,81 @@ export class TestExecutionsService {
     }
 
     return this.transformExecution(execution);
+  }
+
+  /**
+   * Get paginated list of test executions with filters (ST-131)
+   */
+  async findAll(filters: FilterTestExecutionDto) {
+    const page = filters.page || 1;
+    const limit = Math.min(filters.limit || 20, 100);
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {};
+
+    if (filters.projectId) {
+      where.testCase = { projectId: filters.projectId };
+    }
+
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    if (filters.testLevel) {
+      where.testCase = { ...where.testCase, testLevel: filters.testLevel };
+    }
+
+    if (filters.dateFrom || filters.dateTo) {
+      where.executedAt = {};
+      if (filters.dateFrom) {
+        where.executedAt.gte = new Date(filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        where.executedAt.lte = new Date(filters.dateTo);
+      }
+    }
+
+    // Execute query with pagination
+    const [data, total] = await Promise.all([
+      this.prisma.testExecution.findMany({
+        where,
+        include: {
+          testCase: {
+            select: {
+              id: true,
+              key: true,
+              title: true,
+              testLevel: true,
+              projectId: true
+            }
+          },
+          story: {
+            select: {
+              id: true,
+              key: true,
+              title: true
+            }
+          }
+        },
+        orderBy: { executedAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      this.prisma.testExecution.count({ where })
+    ]);
+
+    // Transform executions
+    const transformedData = data.map(execution => this.transformExecution(execution));
+
+    return {
+      data: transformedData,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 }

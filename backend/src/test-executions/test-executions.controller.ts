@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { ReportTestExecutionDto, TestExecutionResponseDto } from './dto';
+import { ReportTestExecutionDto, TestExecutionResponseDto, FilterTestExecutionDto } from './dto';
 import { TestExecutionsService } from './test-executions.service';
 
 @ApiTags('Test Executions')
@@ -22,6 +22,14 @@ import { TestExecutionsService } from './test-executions.service';
 @Controller('test-executions')
 export class TestExecutionsController {
   constructor(private readonly testExecutionsService: TestExecutionsService) {}
+
+  @Get()
+  @Roles('admin', 'pm', 'ba', 'architect', 'dev', 'qa', 'viewer')
+  @ApiOperation({ summary: 'Get paginated list of test executions with filters (ST-131)' })
+  @ApiResponse({ status: 200, description: 'Paginated list of test executions' })
+  async findAll(@Query() filters: FilterTestExecutionDto) {
+    return this.testExecutionsService.findAll(filters);
+  }
 
   @Post('report')
   @Roles('admin', 'qa', 'dev')

@@ -10,55 +10,7 @@ import {
   useTestExecutionWebSocket,
   TestExecutionEvent,
 } from '../hooks/useTestExecutionWebSocket';
-
-// MOCK DATA - Backend GET endpoints not implemented yet
-const mockExecutions: Array<{
-  id: string;
-  testCaseKey: string;
-  testCaseTitle: string;
-  testLevel: string;
-  status: 'pass' | 'fail' | 'skip' | 'error';
-  durationMs: number;
-  executedAt: string;
-  environment: string;
-  coveragePercentage?: number;
-  errorMessage?: string;
-}> = [
-  {
-    id: 'exec-1',
-    testCaseKey: 'TC-AUTH-001',
-    testCaseTitle: 'User login with valid credentials',
-    testLevel: 'integration',
-    status: 'pass' as const,
-    durationMs: 1250,
-    executedAt: new Date().toISOString(),
-    environment: 'docker',
-    coveragePercentage: 85.4,
-  },
-  {
-    id: 'exec-2',
-    testCaseKey: 'TC-AUTH-002',
-    testCaseTitle: 'User login with invalid password',
-    testLevel: 'integration',
-    status: 'pass' as const,
-    durationMs: 980,
-    executedAt: new Date(Date.now() - 3600000).toISOString(),
-    environment: 'docker',
-    coveragePercentage: 82.1,
-  },
-  {
-    id: 'exec-3',
-    testCaseKey: 'TC-EXEC-001',
-    testCaseTitle: 'Execute story with valid workflow',
-    testLevel: 'unit',
-    status: 'fail' as const,
-    durationMs: 2340,
-    executedAt: new Date(Date.now() - 7200000).toISOString(),
-    environment: 'docker',
-    errorMessage: 'Expected workflowId to be defined',
-    coveragePercentage: 78.9,
-  },
-];
+import { testExecutionService } from '../services/test-execution.service';
 
 export function TestExecutionHistoryPage() {
   const navigate = useNavigate();
@@ -69,7 +21,7 @@ export function TestExecutionHistoryPage() {
   const [testLevelFilter, setTestLevelFilter] = useState<string>('all');
   const [liveActivity, setLiveActivity] = useState<TestExecutionEvent[]>([]);
 
-  // MOCK QUERY - Replace with real API call when backend is ready
+  // Fetch test executions using real API
   const {
     data: executionsResponse,
     isLoading,
@@ -78,30 +30,36 @@ export function TestExecutionHistoryPage() {
   } = useQuery({
     queryKey: ['test-executions', selectedProject?.id, statusFilter, testLevelFilter, page, rowsPerPage],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      let filtered = mockExecutions;
-
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter((e) => e.status === statusFilter);
+      if (!selectedProject?.id) {
+        return { data: [], pagination: { total: 0, page: 1, limit: rowsPerPage, totalPages: 0 } };
       }
 
-      if (testLevelFilter !== 'all') {
-        filtered = filtered.filter((e) => e.testLevel === testLevelFilter);
-      }
-
-      return {
-        data: filtered,
-        total: filtered.length,
-      };
+      return testExecutionService.list({
+        projectId: selectedProject.id,
+        status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
+        testLevel: testLevelFilter !== 'all' ? (testLevelFilter as any) : undefined,
+        page: page + 1, // Backend uses 1-based page numbers
+        limit: rowsPerPage,
+      });
     },
     enabled: !!selectedProject,
   });
 
-  const executions = executionsResponse?.data || [];
-  const total = executionsResponse?.total || 0;
-  const totalPages = Math.ceil(total / rowsPerPage);
+  // Transform backend response to match table expectations
+  const executions = (executionsResponse?.data || []).map((exec) => ({
+    id: exec.id,
+    testCaseKey: exec.testCase.key,
+    testCaseTitle: exec.testCase.title,
+    testLevel: exec.testCase.testLevel,
+    status: exec.status,
+    durationMs: exec.durationMs,
+    executedAt: exec.executedAt,
+    environment: exec.environment,
+    coveragePercentage: exec.coveragePercentage,
+    errorMessage: exec.errorMessage,
+  }));
+  const total = executionsResponse?.pagination?.total || 0;
+  const totalPages = executionsResponse?.pagination?.totalPages || 0;
 
   // WebSocket handlers
   const handleTestStarted = useCallback((event: TestExecutionEvent) => {

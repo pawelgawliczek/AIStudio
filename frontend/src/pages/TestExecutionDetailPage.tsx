@@ -2,50 +2,31 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowBack } from '@mui/icons-material';
 import { format } from 'date-fns';
-
-// Mock service - replace with actual implementation
-const testExecutionsService = {
-  getById: async (id: string) => {
-    // This would call your backend API
-    return {
-      id,
-      testCaseKey: 'TC-E2E-015',
-      testCaseTitle: 'Checkout flow end-to-end',
-      testLevel: 'e2e',
-      status: 'fail',
-      durationMs: 12800,
-      executedAt: new Date().toISOString(),
-      errorMessage: 'Element not found: #submit-button',
-      stackTrace: 'at Object.<anonymous> (/app/tests/checkout.e2e.test.ts:45:12)',
-      coveragePercentage: 85.5,
-      linesCovered: 342,
-      linesTotal: 400,
-      environment: 'docker',
-      story: {
-        key: 'ST-125',
-        title: 'Checkout improvements',
-      },
-      commit: {
-        hash: '58d6a19',
-        message: 'fix: checkout button visibility',
-      },
-    };
-  },
-};
+import { testExecutionService } from '../services/test-execution.service';
 
 export function TestExecutionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const {
-    data: execution,
+    data: executionData,
     isLoading,
     error,
   } = useQuery({
     queryKey: ['test-execution', id],
-    queryFn: () => testExecutionsService.getById(id!),
+    queryFn: () => testExecutionService.getById(id!),
     enabled: !!id,
   });
+
+  // Transform backend response to match component expectations
+  const execution = executionData
+    ? {
+        ...executionData,
+        testCaseKey: executionData.testCase.key,
+        testCaseTitle: executionData.testCase.title,
+        testLevel: executionData.testCase.testLevel,
+      }
+    : null;
 
   const getStatusBadge = (status?: string) => {
     const badges = {
