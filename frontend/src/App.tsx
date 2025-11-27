@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
@@ -25,6 +25,17 @@ import TeamDetailsPage from './pages/TeamDetailsPage';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { useWorkflowToastNotifications } from './hooks/useWorkflowToastNotifications';
+
+// Redirect components that preserve URL params (React Router v6 <Navigate> doesn't auto-substitute params)
+const RedirectWithId = ({ to }: { to: string }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={to.replace(':id', id || '')} replace />;
+};
+
+const RedirectWithRunId = ({ to }: { to: string }) => {
+  const { runId } = useParams<{ runId: string }>();
+  return <Navigate to={to.replace(':runId', runId || '')} replace />;
+};
 
 function AppContent() {
   // ST-108: Initialize toast notifications for workflow events
@@ -60,12 +71,12 @@ function AppContent() {
 
               {/* Backwards compatibility redirects (old routes → new routes) */}
               <Route path="components" element={<Navigate to="/agents" replace />} />
-              <Route path="components/:id" element={<Navigate to="/agents/:id" replace />} />
+              <Route path="components/:id" element={<RedirectWithId to="/agents/:id" />} />
               <Route path="coordinators" element={<Navigate to="/project-managers" replace />} />
-              <Route path="coordinators/:id" element={<Navigate to="/project-managers/:id" replace />} />
+              <Route path="coordinators/:id" element={<RedirectWithId to="/project-managers/:id" />} />
               <Route path="workflows" element={<Navigate to="/teams" replace />} />
-              <Route path="workflow-runs/:runId/results" element={<Navigate to="/team-runs/:runId/results" replace />} />
-              <Route path="workflow-runs/:runId/monitor" element={<Navigate to="/team-runs/:runId/monitor" replace />} />
+              <Route path="workflow-runs/:runId/results" element={<RedirectWithRunId to="/team-runs/:runId/results" />} />
+              <Route path="workflow-runs/:runId/monitor" element={<RedirectWithRunId to="/team-runs/:runId/monitor" />} />
               <Route path="analytics/workflow-details" element={<Navigate to="/analytics/team-details" replace />} />
             </Route>
           </Routes>
