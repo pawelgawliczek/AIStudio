@@ -1,44 +1,39 @@
 /**
  * Shared WebSocket Gateway Instance for MCP Handlers (ST-129)
  *
- * This singleton provides access to the WebSocket gateway from MCP handlers
+ * This singleton provides access to the NestJS WebSocket gateway from MCP handlers
  * which run outside the NestJS dependency injection context.
  *
- * Pattern: Lazy initialization - gateway is created on first access
+ * The gateway is set during NestJS bootstrap via setSharedWebSocketGateway().
  */
 
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
-import { JwtService } from '@nestjs/jwt';
-import { Server } from 'socket.io';
 
-let gatewayInstance: AppWebSocketGateway | null = null;
+let sharedGateway: AppWebSocketGateway | null = null;
 
 /**
- * Get or create the shared WebSocket gateway instance
+ * Set the shared WebSocket gateway instance (called from main.ts after NestJS bootstrap)
  */
-export function getWebSocketGateway(): AppWebSocketGateway {
-  if (!gatewayInstance) {
-    // Initialize JWT service with same config as WebSocketModule
-    const jwtService = new JwtService({
-      secret: process.env.JWT_SECRET || 'development-secret-change-in-production',
-      signOptions: { expiresIn: '24h' },
-    });
-
-    // Create gateway instance
-    gatewayInstance = new AppWebSocketGateway(jwtService);
-
-    console.log('[WebSocketGateway] Created shared instance for MCP handlers');
-  }
-
-  return gatewayInstance;
+export function setSharedWebSocketGateway(gateway: AppWebSocketGateway): void {
+  sharedGateway = gateway;
+  console.log('[ST-129] Shared WebSocket gateway initialized for MCP handlers');
 }
 
 /**
- * Set the WebSocket server instance (called by NestJS app after bootstrap)
- * This is needed because the Socket.IO server is created by NestJS WebSocket adapter
+ * Get the shared WebSocket gateway instance
+ * @throws Error if gateway not initialized (app not bootstrapped yet)
  */
-export function setWebSocketServer(server: Server): void {
-  const gateway = getWebSocketGateway();
-  gateway.server = server;
-  console.log('[WebSocketGateway] Server instance attached to shared gateway');
+export function getWebSocketGateway(): AppWebSocketGateway {
+  if (!sharedGateway) {
+    console.warn('[ST-129] WebSocket gateway not yet initialized - broadcasts will be skipped');
+    // Return a no-op gateway to prevent crashes during startup
+    return {
+      broadcastComponentStarted: () => {},
+      broadcastComponentCompleted: () => {},
+      broadcastDeploymentStarted: () => {},
+      broadcastDeploymentCompleted: () => {},
+    } as unknown as AppWebSocketGateway;
+  }
+
+  return sharedGateway;
 }

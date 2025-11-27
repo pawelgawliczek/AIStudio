@@ -3,6 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { WinstonLoggerService, AllExceptionsFilter, LoggingInterceptor } from './common';
+import { AppWebSocketGateway } from './websocket/websocket.gateway';
+import { setSharedWebSocketGateway } from './mcp/services/websocket-gateway.instance';
 
 async function bootstrap() {
   // Fix BigInt serialization issue
@@ -77,6 +79,12 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
+
+  // ST-129: Share the NestJS WebSocket gateway with MCP handlers
+  const wsGateway = app.get(AppWebSocketGateway);
+  setSharedWebSocketGateway(wsGateway);
+  logger.log('📡 WebSocket gateway shared with MCP handlers', 'Bootstrap');
+
   logger.log(`🚀 Application is running on: http://localhost:${port}`, 'Bootstrap');
   logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`, 'Bootstrap');
 }
