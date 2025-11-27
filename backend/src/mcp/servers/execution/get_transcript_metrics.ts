@@ -50,6 +50,11 @@ Example flow:
         description:
           'Agent ID to find agent transcript (agent-{id}.jsonl). Use "latest" to find most recent agent transcript.',
       },
+      searchContent: {
+        type: 'string',
+        description:
+          'Search for a transcript containing this content (e.g., runId, componentId, storyId). Useful when multiple agents are running in parallel.',
+      },
     },
     required: [],
   },
@@ -67,6 +72,7 @@ interface TranscriptRecord {
   agentId?: string;
   sessionId?: string;
   message?: {
+    id?: string;
     model?: string;
     usage?: {
       input_tokens?: number;
@@ -75,6 +81,13 @@ interface TranscriptRecord {
       cache_read_input_tokens?: number;
     };
   };
+}
+
+interface MessageUsage {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens: number;
+  cache_read_input_tokens: number;
 }
 
 interface TranscriptMetrics {
@@ -127,11 +140,10 @@ async function parseTranscript(transcriptPath: string): Promise<TranscriptMetric
     return null;
   }
 
-  let totalInput = 0;
-  let totalOutput = 0;
-  let totalCacheCreation = 0;
-  let totalCacheRead = 0;
   let model = 'unknown';
+
+  // Deduplicate by message ID - keep LAST occurrence (has final token counts after streaming)
+  const messageUsageMap = new Map<string, MessageUsage>();
 
   for (const record of records) {
     if (record.message?.model) {
@@ -139,11 +151,41 @@ async function parseTranscript(transcriptPath: string): Promise<TranscriptMetric
     }
     if (record.message?.usage) {
       const usage = record.message.usage;
-      totalInput += usage.input_tokens ?? 0;
-      totalOutput += usage.output_tokens ?? 0;
-      totalCacheCreation += usage.cache_creation_input_tokens ?? 0;
-      totalCacheRead += usage.cache_read_input_tokens ?? 0;
+      const messageId = record.message.id;
+
+      if (messageId) {
+        // Overwrite with latest occurrence (streaming updates have increasing output tokens)
+        messageUsageMap.set(messageId, {
+          input_tokens: usage.input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+        });
+      } else {
+        // No message ID - add directly (shouldn't happen but handle gracefully)
+        messageUsageMap.set(`no-id-${messageUsageMap.size}`, {
+          input_tokens: usage.input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+        });
+      }
     }
+  }
+
+  // Sum usage from deduplicated messages
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheCreation = 0;
+  let totalCacheRead = 0;
+
+  // Use Array.from() for ES5 compatibility
+  const usageEntries = Array.from(messageUsageMap.values());
+  for (const usage of usageEntries) {
+    totalInput += usage.input_tokens;
+    totalOutput += usage.output_tokens;
+    totalCacheCreation += usage.cache_creation_input_tokens;
+    totalCacheRead += usage.cache_read_input_tokens;
   }
 
   return {
@@ -229,6 +271,45 @@ function findAgentTranscript(transcriptDir: string, agentId: string): string | n
   return path.join(transcriptDir, files[0]);
 }
 
+/**
+ * Find a transcript file containing specific content (e.g., runId, componentId, storyId).
+ * Useful when multiple agents are running in parallel to find the correct one.
+ * Searches only recent agent transcripts (modified in last hour) for efficiency.
+ */
+function findTranscriptByContent(transcriptDir: string, searchContent: string): string | null {
+  if (!fs.existsSync(transcriptDir)) {
+    return null;
+  }
+
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+  // Get recent agent transcripts (modified in last hour)
+  const recentAgentFiles = fs
+    .readdirSync(transcriptDir)
+    .filter((f) => f.endsWith('.jsonl') && f.startsWith('agent-'))
+    .map((f) => ({
+      name: f,
+      path: path.join(transcriptDir, f),
+      mtime: fs.statSync(path.join(transcriptDir, f)).mtime,
+    }))
+    .filter((f) => f.mtime.getTime() > oneHourAgo)
+    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // newest first
+
+  // Search each file for the content
+  for (const file of recentAgentFiles) {
+    try {
+      const content = fs.readFileSync(file.path, 'utf-8');
+      if (content.includes(searchContent)) {
+        return file.path;
+      }
+    } catch {
+      // Skip files we can't read
+    }
+  }
+
+  return null;
+}
+
 export async function handler(_prisma: PrismaClient, params: any) {
   // Detect if running remotely via SSH or in Docker
   const isRunningRemotely = !!process.env.SSH_CONNECTION;
@@ -250,6 +331,9 @@ export async function handler(_prisma: PrismaClient, params: any) {
     let command: string;
     if (params.transcriptFile) {
       command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts "${params.transcriptFile}"`;
+    } else if (params.searchContent) {
+      // Search for transcript containing specific content (runId, componentId, storyId)
+      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --search "${params.searchContent}" "${projectPath}"`;
     } else if (params.agentId === 'latest') {
       command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest-agent "${projectPath}"`;
     } else if (params.agentId) {
@@ -296,6 +380,9 @@ After running the command, parse the JSON output and pass it to record_component
     transcriptPath = params.transcriptFile.startsWith('/')
       ? params.transcriptFile
       : path.join(transcriptDir, params.transcriptFile);
+  } else if (params.searchContent) {
+    // Search for transcript containing specific content (runId, componentId, storyId)
+    transcriptPath = findTranscriptByContent(transcriptDir, params.searchContent);
   } else if (params.agentId === 'latest') {
     // Find most recent agent transcript
     transcriptPath = findLatestAgentTranscript(transcriptDir);
@@ -308,18 +395,29 @@ After running the command, parse the JSON output and pass it to record_component
   }
 
   if (!transcriptPath) {
-    const errorMessage = params.agentId
-      ? params.agentId === 'latest'
-        ? `No agent transcripts found in ${transcriptDir}. Agent transcripts are named agent-{uuid}.jsonl`
-        : `No agent transcript found for ID ${params.agentId} in ${transcriptDir}`
-      : `No transcript files found in ${transcriptDir}`;
+    let errorMessage: string;
+    let hint: string | undefined;
+
+    if (params.searchContent) {
+      errorMessage = `No agent transcript found containing "${params.searchContent}" in ${transcriptDir} (searched recent files from last hour)`;
+      hint = 'Ensure the searchContent (runId, componentId, storyId) was included in the agent task';
+    } else if (params.agentId) {
+      errorMessage =
+        params.agentId === 'latest'
+          ? `No agent transcripts found in ${transcriptDir}. Agent transcripts are named agent-{uuid}.jsonl`
+          : `No agent transcript found for ID ${params.agentId} in ${transcriptDir}`;
+      hint = 'Use agentId: "latest" to find the most recent agent transcript';
+    } else {
+      errorMessage = `No transcript files found in ${transcriptDir}`;
+    }
+
     return {
       success: false,
       runLocally: false,
       error: errorMessage,
       projectPath,
       transcriptDir,
-      hint: params.agentId ? 'Use agentId: "latest" to find the most recent agent transcript' : undefined,
+      hint,
     };
   }
 

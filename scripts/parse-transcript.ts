@@ -7,6 +7,7 @@
  *   npx tsx scripts/parse-transcript.ts --latest [project-path]
  *   npx tsx scripts/parse-transcript.ts --latest-agent [project-path]
  *   npx tsx scripts/parse-transcript.ts --agent <agent-id> [project-path]
+ *   npx tsx scripts/parse-transcript.ts --search <content> [project-path]
  *
  * Examples:
  *   npx tsx scripts/parse-transcript.ts ~/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/abc123.jsonl
@@ -14,6 +15,7 @@
  *   npx tsx scripts/parse-transcript.ts --latest  # uses current directory
  *   npx tsx scripts/parse-transcript.ts --latest-agent /Users/pawelgawliczek/projects/AIStudio  # find latest agent transcript
  *   npx tsx scripts/parse-transcript.ts --agent 7527b7d9 /Users/pawelgawliczek/projects/AIStudio  # find specific agent
+ *   npx tsx scripts/parse-transcript.ts --search "runId-abc123" /Users/pawelgawliczek/projects/AIStudio  # find by content
  *
  * Output (JSON):
  *   {
@@ -94,35 +96,55 @@ async function parseTranscript(transcriptPath: string): Promise<TranscriptMetric
     return null;
   }
 
-  let totalInput = 0;
-  let totalOutput = 0;
-  let totalCacheCreation = 0;
-  let totalCacheRead = 0;
   let model = 'unknown';
 
-  // Track seen message IDs to avoid double-counting from streaming updates
-  const seenMessageIds = new Set<string>();
+  // Deduplicate by message ID - keep LAST occurrence (has final token counts after streaming)
+  const messageUsageMap = new Map<string, {
+    input_tokens: number;
+    output_tokens: number;
+    cache_creation_input_tokens: number;
+    cache_read_input_tokens: number;
+  }>();
 
   for (const record of records) {
     if (record.message?.model) {
       model = record.message.model;
     }
     if (record.message?.usage) {
-      // Deduplicate by message ID - transcripts contain multiple entries for same message during streaming
-      const messageId = record.message?.id;
-      if (messageId && seenMessageIds.has(messageId)) {
-        continue; // Skip duplicate message
-      }
-      if (messageId) {
-        seenMessageIds.add(messageId);
-      }
-
       const usage = record.message.usage;
-      totalInput += usage.input_tokens ?? 0;
-      totalOutput += usage.output_tokens ?? 0;
-      totalCacheCreation += usage.cache_creation_input_tokens ?? 0;
-      totalCacheRead += usage.cache_read_input_tokens ?? 0;
+      const messageId = record.message?.id;
+
+      if (messageId) {
+        // Overwrite with latest occurrence (streaming updates have increasing output tokens)
+        messageUsageMap.set(messageId, {
+          input_tokens: usage.input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+        });
+      } else {
+        // No message ID - add directly (shouldn't happen but handle gracefully)
+        messageUsageMap.set(`no-id-${messageUsageMap.size}`, {
+          input_tokens: usage.input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+        });
+      }
     }
+  }
+
+  // Sum usage from deduplicated messages
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheCreation = 0;
+  let totalCacheRead = 0;
+
+  for (const usage of messageUsageMap.values()) {
+    totalInput += usage.input_tokens;
+    totalOutput += usage.output_tokens;
+    totalCacheCreation += usage.cache_creation_input_tokens;
+    totalCacheRead += usage.cache_read_input_tokens;
   }
 
   return {
@@ -210,6 +232,43 @@ function findAgentTranscript(transcriptDir: string, agentId: string): string | n
   return path.join(transcriptDir, files[0]);
 }
 
+/**
+ * Find a transcript file containing specific content (e.g., runId, componentId, storyId).
+ * Searches only recent agent transcripts (modified in last hour) for efficiency.
+ */
+function findTranscriptByContent(transcriptDir: string, searchContent: string): string | null {
+  if (!fsSync.existsSync(transcriptDir)) {
+    return null;
+  }
+
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+  // Get recent agent transcripts (modified in last hour)
+  const recentAgentFiles = fsSync.readdirSync(transcriptDir)
+    .filter(f => f.endsWith('.jsonl') && f.startsWith('agent-'))
+    .map(f => ({
+      name: f,
+      path: path.join(transcriptDir, f),
+      mtime: fsSync.statSync(path.join(transcriptDir, f)).mtime,
+    }))
+    .filter(f => f.mtime.getTime() > oneHourAgo)
+    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // newest first
+
+  // Search each file for the content
+  for (const file of recentAgentFiles) {
+    try {
+      const content = fsSync.readFileSync(file.path, 'utf-8');
+      if (content.includes(searchContent)) {
+        return file.path;
+      }
+    } catch {
+      // Skip files we can't read
+    }
+  }
+
+  return null;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -218,6 +277,7 @@ async function main() {
     console.error('       npx tsx scripts/parse-transcript.ts --latest [project-path]');
     console.error('       npx tsx scripts/parse-transcript.ts --latest-agent [project-path]');
     console.error('       npx tsx scripts/parse-transcript.ts --agent <agent-id> [project-path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --search <content> [project-path]');
     process.exit(1);
   }
 
@@ -258,6 +318,24 @@ async function main() {
       process.exit(1);
     }
     transcriptPath = agentTranscript;
+  } else if (args[0] === '--search') {
+    if (!args[1]) {
+      console.error(JSON.stringify({ error: 'Search content required. Usage: --search <content> [project-path]' }));
+      process.exit(1);
+    }
+    const searchContent = args[1];
+    const projectPath = args[2] || process.cwd();
+    const transcriptDir = findTranscriptDirectory(projectPath);
+    const foundTranscript = findTranscriptByContent(transcriptDir, searchContent);
+
+    if (!foundTranscript) {
+      console.error(JSON.stringify({
+        error: `No agent transcript found containing "${searchContent}" in ${transcriptDir}`,
+        hint: 'Searched recent files from last hour. Ensure the content was included in the agent task.'
+      }));
+      process.exit(1);
+    }
+    transcriptPath = foundTranscript;
   } else {
     transcriptPath = args[0];
     // Expand ~ to home directory
