@@ -106,6 +106,8 @@ export function Layout() {
                       icon="⚙️"
                       items={[
                         { label: 'Deployments', icon: '🚀', path: '/deployments' },
+                        { label: 'Test Executions', icon: '🧪', path: '/test-executions' },
+                        { label: 'Backups', icon: '💾', path: '/backups' },
                       ]}
                     />
                   </>
