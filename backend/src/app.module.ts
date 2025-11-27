@@ -19,6 +19,7 @@ import { StoriesModule } from './stories/stories.module';
 import { SubtasksModule } from './subtasks/subtasks.module';
 import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
+import { TestExecutionModule } from './test-execution/test-execution.module';
 import { UseCasesModule } from './use-cases/use-cases.module';
 import { UsersModule } from './users/users.module';
 import { WebSocketModule } from './websocket/websocket.module';
@@ -54,6 +55,7 @@ import { BackupsModule } from './backups/backups.module';
     AgentMetricsModule,
     TestCasesModule,
     TestExecutionsModule,
+    TestExecutionModule, // ST-128: Test execution reporting with WebSocket
     WorkersModule,
     QueueProcessorModule, // Queue processor background worker
     DiskMonitorModule, // Disk space monitoring and alerting (ST-54)

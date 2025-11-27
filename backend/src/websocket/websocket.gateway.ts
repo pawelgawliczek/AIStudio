@@ -313,4 +313,24 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
     this.server.emit('review:ready', { ...data, storyId, projectId });
     this.logger.log(`Broadcasted review ready globally`);
   }
+
+  // ============================================================================
+  // Test Execution Events (ST-128)
+  // ============================================================================
+
+  /**
+   * Broadcast test execution started
+   */
+  broadcastTestExecutionStarted(executionId: string, projectId: string, data: any) {
+    this.server.emit('test:started', { ...data, executionId, projectId });
+    this.logger.log(`Broadcasted test execution started: ${executionId}`);
+  }
+
+  /**
+   * Broadcast test execution completed
+   */
+  broadcastTestExecutionCompleted(executionId: string, projectId: string, data: any) {
+    this.server.emit('test:completed', { ...data, executionId, projectId });
+    this.logger.log(`Broadcasted test execution completed: ${executionId} - ${data.status}`);
+  }
 }
