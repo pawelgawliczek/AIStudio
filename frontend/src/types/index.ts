@@ -441,22 +441,6 @@ export interface SubtaskUpdatedEvent {
   subtask: Subtask;
 }
 
-export interface UserJoinedEvent {
-  userId: string;
-  userName: string;
-}
-
-export interface UserLeftEvent {
-  userId: string;
-}
-
-export interface TypingEvent {
-  userId: string;
-  userName: string;
-  entityId: string;
-  entityType: string;
-}
-
 // Test Case types
 export enum TestLevel {
   unit = 'unit',

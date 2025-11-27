@@ -19,8 +19,6 @@ vi.mock('../services/websocket.service', () => ({
   useWebSocket: () => ({
     isConnected: true,
     socket: null,
-    joinRoom: vi.fn(),
-    leaveRoom: vi.fn(),
   }),
   useStoryEvents: vi.fn(),
   useEpicEvents: vi.fn(),

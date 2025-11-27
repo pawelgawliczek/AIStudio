@@ -127,7 +127,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
     queryKey: ['workflow-run-status', runId],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/projects/${projectId}/workflow-runs/${runId}/status`,
+        `${import.meta.env.VITE_API_URL || '/api'}/projects/${projectId}/workflow-runs/${runId}/status`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,

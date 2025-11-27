@@ -13,7 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 
 /**
  * WebSocket Gateway for real-time updates
- * Handles real-time events for projects, stories, and subtasks
+ * Broadcasts events globally to all authenticated clients
  */
 @WebSocketGateway({
   cors: {
@@ -33,10 +33,14 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
   private readonly logger = new Logger(AppWebSocketGateway.name);
 
-  // Track active users per room
-  private activeUsers = new Map<string, Set<string>>();
-
   constructor(private jwtService: JwtService) {}
+
+  /**
+   * Get the Socket.IO server instance for global broadcasts
+   */
+  getServer(): Server {
+    return this.server;
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -76,274 +80,115 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
-
-    // Remove user from all rooms
-    this.activeUsers.forEach((users, room) => {
-      users.delete(client.id);
-      if (users.size === 0) {
-        this.activeUsers.delete(room);
-      } else {
-        // Notify remaining users
-        this.server.to(room).emit('active-users-updated', {
-          room,
-          count: users.size,
-          users: Array.from(users),
-        });
-      }
-    });
-  }
-
-  /**
-   * Join a room (project or story)
-   */
-  @SubscribeMessage('join-room')
-  handleJoinRoom(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { room: string; userId?: string; userName?: string }
-  ) {
-    client.join(data.room);
-
-    // Track active users
-    if (!this.activeUsers.has(data.room)) {
-      this.activeUsers.set(data.room, new Set());
-    }
-    this.activeUsers.get(data.room)!.add(client.id);
-
-    this.logger.log(`Client ${client.id} joined room: ${data.room}`);
-
-    // Notify others in the room
-    client.to(data.room).emit('user-joined', {
-      userId: data.userId,
-      userName: data.userName,
-      socketId: client.id,
-    });
-
-    // Send active users count to the joining user
-    const activeUserCount = this.activeUsers.get(data.room)!.size;
-    client.emit('active-users-updated', {
-      room: data.room,
-      count: activeUserCount,
-    });
-
-    return { success: true, room: data.room, activeUsers: activeUserCount };
-  }
-
-  /**
-   * Leave a room
-   */
-  @SubscribeMessage('leave-room')
-  handleLeaveRoom(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { room: string; userId?: string; userName?: string }
-  ) {
-    client.leave(data.room);
-
-    // Remove from active users
-    if (this.activeUsers.has(data.room)) {
-      this.activeUsers.get(data.room)!.delete(client.id);
-      const remainingUsers = this.activeUsers.get(data.room)!.size;
-
-      if (remainingUsers === 0) {
-        this.activeUsers.delete(data.room);
-      } else {
-        // Notify remaining users
-        this.server.to(data.room).emit('active-users-updated', {
-          room: data.room,
-          count: remainingUsers,
-        });
-      }
-    }
-
-    this.logger.log(`Client ${client.id} left room: ${data.room}`);
-
-    // Notify others in the room
-    client.to(data.room).emit('user-left', {
-      userId: data.userId,
-      userName: data.userName,
-      socketId: client.id,
-    });
-
-    return { success: true, room: data.room };
-  }
-
-  /**
-   * User is typing indicator
-   */
-  @SubscribeMessage('typing')
-  handleTyping(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { room: string; userId: string; userName: string; isTyping: boolean }
-  ) {
-    client.to(data.room).emit('user-typing', {
-      userId: data.userId,
-      userName: data.userName,
-      isTyping: data.isTyping,
-    });
-
-    return { success: true };
   }
 
   // ============================================================================
   // Event Broadcasting Methods (called by services)
+  // All broadcasts are global - sent to all connected authenticated clients
   // ============================================================================
 
   /**
    * Broadcast project update
    */
   broadcastProjectUpdated(projectId: string, data: any) {
-    const room = `project:${projectId}`;
-    this.server.to(room).emit('project:updated', data);
-    this.logger.log(`Broadcasted project update to room: ${room}`);
+    this.server.emit('project:updated', { ...data, projectId });
+    this.logger.log(`Broadcasted project update globally`);
   }
 
   /**
    * Broadcast story created
    */
   broadcastStoryCreated(projectId: string, story: any) {
-    const room = `project:${projectId}`;
-    this.server.to(room).emit('story:created', story);
-    this.logger.log(`Broadcasted story created to room: ${room}`);
+    this.server.emit('story:created', { ...story, projectId });
+    this.logger.log(`Broadcasted story created globally`);
   }
 
   /**
    * Broadcast story updated
    */
   broadcastStoryUpdated(storyId: string, projectId: string, story: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('story:updated', story);
-    this.server.to(projectRoom).emit('story:updated', story);
-
-    this.logger.log(`Broadcasted story update to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('story:updated', { ...story, storyId, projectId });
+    this.logger.log(`Broadcasted story update globally`);
   }
 
   /**
    * Broadcast story status changed
    */
   broadcastStoryStatusChanged(storyId: string, projectId: string, data: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('story:status:changed', data);
-    this.server.to(projectRoom).emit('story:status:changed', data);
-
-    this.logger.log(`Broadcasted story status change to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('story:status:changed', { ...data, storyId, projectId });
+    this.logger.log(`Broadcasted story status change globally`);
   }
 
   /**
    * Broadcast subtask created
    */
   broadcastSubtaskCreated(storyId: string, projectId: string, subtask: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('subtask:created', subtask);
-    this.server.to(projectRoom).emit('subtask:created', subtask);
-
-    this.logger.log(`Broadcasted subtask created to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('subtask:created', { ...subtask, storyId, projectId });
+    this.logger.log(`Broadcasted subtask created globally`);
   }
 
   /**
    * Broadcast subtask updated
    */
   broadcastSubtaskUpdated(subtaskId: string, storyId: string, projectId: string, subtask: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('subtask:updated', subtask);
-    this.server.to(projectRoom).emit('subtask:updated', subtask);
-
-    this.logger.log(`Broadcasted subtask update to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('subtask:updated', { ...subtask, subtaskId, storyId, projectId });
+    this.logger.log(`Broadcasted subtask update globally`);
   }
 
   /**
    * Broadcast epic created
    */
   broadcastEpicCreated(projectId: string, epic: any) {
-    const room = `project:${projectId}`;
-    this.server.to(room).emit('epic:created', epic);
-    this.logger.log(`Broadcasted epic created to room: ${room}`);
+    this.server.emit('epic:created', { ...epic, projectId });
+    this.logger.log(`Broadcasted epic created globally`);
   }
 
   /**
    * Broadcast epic updated
    */
   broadcastEpicUpdated(epicId: string, projectId: string, epic: any) {
-    const room = `project:${projectId}`;
-    this.server.to(room).emit('epic:updated', epic);
-    this.logger.log(`Broadcasted epic update to room: ${room}`);
+    this.server.emit('epic:updated', { ...epic, epicId, projectId });
+    this.logger.log(`Broadcasted epic update globally`);
   }
 
   /**
    * Broadcast story deleted
    */
   broadcastStoryDeleted(storyId: string, projectId: string, data: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('story:deleted', data);
-    this.server.to(projectRoom).emit('story:deleted', data);
-
-    this.logger.log(`Broadcasted story deletion to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('story:deleted', { ...data, storyId, projectId });
+    this.logger.log(`Broadcasted story deletion globally`);
   }
 
   /**
    * Broadcast commit linked
    */
   broadcastCommitLinked(storyId: string | null, projectId: string, commit: any) {
-    const projectRoom = `project:${projectId}`;
-    this.server.to(projectRoom).emit('commit:linked', commit);
-
-    if (storyId) {
-      const storyRoom = `story:${storyId}`;
-      this.server.to(storyRoom).emit('commit:linked', commit);
-      this.logger.log(`Broadcasted commit linked to rooms: ${storyRoom}, ${projectRoom}`);
-    } else {
-      this.logger.log(`Broadcasted commit linked to room: ${projectRoom}`);
-    }
+    this.server.emit('commit:linked', { ...commit, storyId, projectId });
+    this.logger.log(`Broadcasted commit linked globally`);
   }
 
   /**
    * Broadcast run logged
    */
   broadcastRunLogged(storyId: string | null, projectId: string, run: any) {
-    const projectRoom = `project:${projectId}`;
-    this.server.to(projectRoom).emit('run:logged', run);
-
-    if (storyId) {
-      const storyRoom = `story:${storyId}`;
-      this.server.to(storyRoom).emit('run:logged', run);
-      this.logger.log(`Broadcasted run logged to rooms: ${storyRoom}, ${projectRoom}`);
-    } else {
-      this.logger.log(`Broadcasted run logged to room: ${projectRoom}`);
-    }
+    this.server.emit('run:logged', { ...run, storyId, projectId });
+    this.logger.log(`Broadcasted run logged globally`);
   }
 
   /**
    * Broadcast comment added (for story detail drawer)
    */
   broadcastCommentAdded(storyId: string, projectId: string, comment: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('comment:added', comment);
-    this.server.to(projectRoom).emit('comment:added', comment);
-
-    this.logger.log(`Broadcasted comment added to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('comment:added', { ...comment, storyId, projectId });
+    this.logger.log(`Broadcasted comment added globally`);
   }
 
   /**
    * Broadcast use case linked
    */
   broadcastUseCaseLinked(storyId: string, projectId: string, useCaseLink: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('usecase:linked', useCaseLink);
-    this.server.to(projectRoom).emit('usecase:linked', useCaseLink);
-
-    this.logger.log(`Broadcasted use case linked to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('usecase:linked', { ...useCaseLink, storyId, projectId });
+    this.logger.log(`Broadcasted use case linked globally`);
   }
 
   // ============================================================================
@@ -354,85 +199,56 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Broadcast workflow run started
    */
   broadcastWorkflowStarted(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(runRoom).emit('workflow:started', data);
-    this.server.to(projectRoom).emit('workflow:started', data);
-
-    this.logger.log(`Broadcasted workflow started to rooms: ${runRoom}, ${projectRoom}`);
+    this.server.emit('workflow:started', { ...data, runId, projectId });
+    this.logger.log(`Broadcasted workflow started globally`);
   }
 
   /**
    * Broadcast workflow status updated
    */
   broadcastWorkflowStatusUpdated(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(runRoom).emit('workflow:status', data);
-    this.server.to(projectRoom).emit('workflow:status', data);
-
-    this.logger.log(`Broadcasted workflow status to rooms: ${runRoom}, ${projectRoom}`);
+    this.server.emit('workflow:status', { ...data, runId, projectId });
+    this.logger.log(`Broadcasted workflow status globally`);
   }
 
   /**
    * Broadcast component execution started
    */
   broadcastComponentStarted(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(runRoom).emit('component:started', data);
-    this.server.to(projectRoom).emit('component:started', data);
-
-    this.logger.log(`Broadcasted component started to room: ${runRoom}`);
+    this.server.emit('component:started', { ...data, runId, projectId });
+    this.logger.log(`Broadcasted component started globally`);
   }
 
   /**
    * Broadcast component execution progress
    */
   broadcastComponentProgress(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-
-    this.server.to(runRoom).emit('component:progress', data);
-
-    this.logger.debug(`Broadcasted component progress to room: ${runRoom}`);
+    this.server.emit('component:progress', { ...data, runId, projectId });
+    this.logger.debug(`Broadcasted component progress globally`);
   }
 
   /**
    * Broadcast component execution completed
    */
   broadcastComponentCompleted(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(runRoom).emit('component:completed', data);
-    this.server.to(projectRoom).emit('component:completed', data);
-
-    this.logger.log(`Broadcasted component completed to room: ${runRoom}`);
+    this.server.emit('component:completed', { ...data, runId, projectId });
+    this.logger.log(`Broadcasted component completed globally`);
   }
 
   /**
    * Broadcast artifact stored
    */
   broadcastArtifactStored(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-
-    this.server.to(runRoom).emit('artifact:stored', data);
-
-    this.logger.log(`Broadcasted artifact stored to room: ${runRoom}`);
+    this.server.emit('artifact:stored', { ...data, runId, projectId });
+    this.logger.log(`Broadcasted artifact stored globally`);
   }
 
   /**
    * Broadcast aggregated metrics updated
    */
   broadcastMetricsUpdated(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-
-    this.server.to(runRoom).emit('metrics:updated', data);
-
-    this.logger.debug(`Broadcasted metrics updated to room: ${runRoom}`);
+    this.server.emit('metrics:updated', { ...data, runId, projectId });
+    this.logger.debug(`Broadcasted metrics updated globally`);
   }
 
   /**
@@ -440,13 +256,8 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Notifies clients of queue position, priority, wait time, and lock status changes
    */
   broadcastQueueUpdated(runId: string, projectId: string, data: any) {
-    const runRoom = `workflow-run:${runId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(runRoom).emit('queue:updated', data);
-    this.server.to(projectRoom).emit('queue:updated', data);
-
-    this.logger.log(`Broadcasted queue updated to rooms: ${runRoom}, ${projectRoom}`);
+    this.server.emit('queue:updated', { ...data, runId, projectId });
+    this.logger.log(`Broadcasted queue updated globally`);
   }
 
   /**
@@ -483,38 +294,23 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Broadcast deployment started
    */
   broadcastDeploymentStarted(storyId: string, projectId: string, data: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('deployment:started', data);
-    this.server.to(projectRoom).emit('deployment:started', data);
-
-    this.logger.log(`Broadcasted deployment started to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('deployment:started', { ...data, storyId, projectId });
+    this.logger.log(`Broadcasted deployment started globally`);
   }
 
   /**
    * Broadcast deployment completed
    */
   broadcastDeploymentCompleted(storyId: string, projectId: string, data: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('deployment:completed', data);
-    this.server.to(projectRoom).emit('deployment:completed', data);
-
-    this.logger.log(`Broadcasted deployment completed to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('deployment:completed', { ...data, storyId, projectId });
+    this.logger.log(`Broadcasted deployment completed globally`);
   }
 
   /**
    * Broadcast review ready (ST-108)
    */
   broadcastReviewReady(storyId: string, projectId: string, data: any) {
-    const storyRoom = `story:${storyId}`;
-    const projectRoom = `project:${projectId}`;
-
-    this.server.to(storyRoom).emit('review:ready', data);
-    this.server.to(projectRoom).emit('review:ready', data);
-
-    this.logger.log(`Broadcasted review ready to rooms: ${storyRoom}, ${projectRoom}`);
+    this.server.emit('review:ready', { ...data, storyId, projectId });
+    this.logger.log(`Broadcasted review ready globally`);
   }
 }

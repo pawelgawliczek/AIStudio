@@ -67,7 +67,7 @@ export function EpicPlanningView() {
   const [activeDragItem, setActiveDragItem] = useState<Story | Epic | null>(null);
 
   const queryClient = useQueryClient();
-  const { isConnected, joinRoom, leaveRoom } = useWebSocket();
+  const { isConnected } = useWebSocket();
 
   // Configure drag sensors
   const sensors = useSensors(
@@ -77,18 +77,6 @@ export function EpicPlanningView() {
       },
     })
   );
-
-  // Join project room for real-time updates
-  useEffect(() => {
-    if (projectId && isConnected) {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      joinRoom(`project:${projectId}`, user.id, user.name || 'User');
-
-      return () => {
-        leaveRoom(`project:${projectId}`);
-      };
-    }
-  }, [projectId, isConnected, joinRoom, leaveRoom]);
 
   // Fetch planning overview
   const { data: planningData, isLoading } = useQuery<PlanningOverview>({

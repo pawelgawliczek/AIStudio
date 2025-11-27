@@ -23,19 +23,7 @@ export function PlanningView() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const queryClient = useQueryClient();
-  const { isConnected, joinRoom, leaveRoom } = useWebSocket();
-
-  // Join project room for real-time updates
-  useEffect(() => {
-    if (projectId && isConnected) {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      joinRoom(`project:${projectId}`, user.id, user.name || 'User');
-
-      return () => {
-        leaveRoom(`project:${projectId}`);
-      };
-    }
-  }, [projectId, isConnected, joinRoom, leaveRoom]);
+  const { isConnected } = useWebSocket();
 
   // Fetch stories
   const { data: stories = [], isLoading: storiesLoading, error: storiesError } = useQuery({

@@ -51,7 +51,7 @@ const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ runId }) => {
     queryKey: ['workflow-artifacts', runId],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/projects/${localStorage.getItem('currentProjectId')}/workflow-runs/${runId}/artifacts`,
+        `${import.meta.env.VITE_API_URL || '/api'}/projects/${localStorage.getItem('currentProjectId')}/workflow-runs/${runId}/artifacts`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,

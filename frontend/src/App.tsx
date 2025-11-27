@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, ToastBar, toast } from 'react-hot-toast';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -88,29 +89,64 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <ProjectProvider>
-          {/* ST-108: Toast notification configuration */}
+          {/* ST-108: Toast notification configuration with theme support and close button */}
           <Toaster
             position="top-right"
             reverseOrder={false}
-            gutter={8}
+            gutter={12}
             toastOptions={{
-              duration: 5000, // Default 5s auto-dismiss
+              duration: 10000, // Default 10s for better readability
+              className: 'toast-theme-aware',
               style: {
-                maxWidth: '500px',
+                maxWidth: '420px',
+                padding: '16px',
+                borderRadius: '12px',
+                background: 'var(--card)',
+                color: 'var(--fg)',
+                border: '1px solid var(--border)',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+                fontSize: '14px',
+                lineHeight: '1.5',
               },
               success: {
-                duration: 5000,
-                iconTheme: { primary: '#10b981', secondary: 'white' },
+                duration: 12000, // 12s for success messages
+                iconTheme: { primary: '#10b981', secondary: 'var(--card)' },
+                style: {
+                  borderLeft: '4px solid #10b981',
+                },
               },
               error: {
-                duration: 8000, // Longer for errors (user needs time to read)
-                iconTheme: { primary: '#ef4444', secondary: 'white' },
+                duration: 15000, // 15s for errors (need time to read)
+                iconTheme: { primary: '#ef4444', secondary: 'var(--card)' },
+                style: {
+                  borderLeft: '4px solid #ef4444',
+                },
               },
             }}
             containerStyle={{
-              top: 70, // Below navbar
+              top: 80, // Below navbar
             }}
-          />
+          >
+            {(t) => (
+              <ToastBar toast={t}>
+                {({ icon, message }) => (
+                  <div className="flex items-start gap-3 w-full">
+                    {icon}
+                    <div className="flex-1 min-w-0">{message}</div>
+                    {t.type !== 'loading' && (
+                      <button
+                        onClick={() => toast.dismiss(t.id)}
+                        className="flex-shrink-0 p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                        aria-label="Dismiss notification"
+                      >
+                        <XMarkIcon className="h-4 w-4 text-muted" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </ToastBar>
+            )}
+          </Toaster>
           <AppContent />
         </ProjectProvider>
       </AuthProvider>

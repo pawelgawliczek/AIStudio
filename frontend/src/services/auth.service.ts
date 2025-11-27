@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { apiClient } from './api.client';
 
-// Use empty string as fallback - paths already include /api prefix
-const API_URL = import.meta.env.VITE_API_URL || '';
+// Use /api as fallback to match NestJS global prefix (same as api.client.ts)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export interface User {
   id: string;
@@ -31,7 +31,7 @@ export interface RegisterData {
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>(`${API_URL}/api/auth/login`, credentials);
+    const response = await axios.post<AuthResponse>(`${API_URL}/auth/login`, credentials);
 
     if (response.data.accessToken) {
       localStorage.setItem('accessToken', response.data.accessToken);
@@ -43,7 +43,7 @@ class AuthService {
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await axios.post<AuthResponse>(`${API_URL}/api/auth/register`, data);
+    const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, data);
 
     if (response.data.accessToken) {
       localStorage.setItem('accessToken', response.data.accessToken);
@@ -77,7 +77,7 @@ class AuthService {
 
     try {
       const response = await axios.post<{ accessToken: string; refreshToken: string }>(
-        `${API_URL}/api/auth/refresh`,
+        `${API_URL}/auth/refresh`,
         { refreshToken }
       );
 
