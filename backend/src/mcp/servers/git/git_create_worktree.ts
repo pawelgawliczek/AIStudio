@@ -116,7 +116,10 @@ export async function handler(
     validateRequired(params, ['storyId']);
 
     // Detect if running remotely via SSH or in Docker (ST-125)
-    const isRunningRemotely = !!process.env.SSH_CONNECTION || process.env.VIBESTUDIO_REMOTE === 'true';
+    const isRunningRemotely = !!process.env.SSH_CONNECTION ||
+      process.env.VIBESTUDIO_REMOTE === 'true' ||
+      !!process.env.DOCKER_CONTAINER ||
+      fs.existsSync('/.dockerenv');
 
     if (isRunningRemotely) {
       // Get story info for the slash command
