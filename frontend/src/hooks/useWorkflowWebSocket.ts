@@ -13,35 +13,55 @@ interface UseWorkflowWebSocketOptions {
 export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) {
   const { onUpdate, throttleMs = 1000 } = options;
   const [connected, setConnected] = useState(false);
+  const [authToken, setAuthToken] = useState<string | null>(() => localStorage.getItem('accessToken'));
   const socketRef = useRef<Socket | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Listen for auth changes (login/logout)
   useEffect(() => {
-    // Initialize socket connection
-    // Use VITE_WS_URL from build-time env vars, fallback to relative path for nginx proxy
-    const wsUrl = import.meta.env.VITE_WS_URL || '/socket.io';
-
-    // ST-108: Extract JWT token from localStorage for authentication
-    const getAccessToken = () => {
-      try {
-        const authData = localStorage.getItem('auth');
-        if (authData) {
-          const parsed = JSON.parse(authData);
-          return parsed.accessToken || parsed.token;
-        }
-      } catch (error) {
-        console.error('[WebSocket] Failed to get access token:', error);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'accessToken') {
+        setAuthToken(e.newValue);
       }
-      return null;
+      // Also handle auth_event which is used for cross-tab communication
+      if (e.key === 'auth_event') {
+        const token = localStorage.getItem('accessToken');
+        setAuthToken(token);
+      }
     };
 
+    // Check for token on mount (in case user is already logged in)
+    const currentToken = localStorage.getItem('accessToken');
+    if (currentToken !== authToken) {
+      setAuthToken(currentToken);
+    }
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [authToken]);
+
+  // Main WebSocket connection effect
+  useEffect(() => {
+    // ST-108: Don't connect without authentication - backend will reject anyway
+    if (!authToken) {
+      console.log('[WebSocket] No auth token available, skipping connection');
+      setConnected(false);
+      return;
+    }
+
+    // Initialize socket connection
+    // Use VITE_WS_URL from build-time env vars, fallback to window origin for production
+    const wsUrl = import.meta.env.VITE_WS_URL || window.location.origin;
+
+    console.log('[WebSocket] Connecting to:', wsUrl);
+
     const socket = io(wsUrl, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Allow fallback to polling if WebSocket fails
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,
       auth: {
-        token: getAccessToken(), // ST-108: Pass JWT token in handshake
+        token: authToken, // ST-108: Pass JWT token in handshake
       },
     });
 
@@ -57,16 +77,23 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
       }
     });
 
-    socket.on('disconnect', () => {
-      console.log('[WebSocket] Disconnected');
+    socket.on('connect_error', (error) => {
+      console.error('[WebSocket] Connection error:', error.message);
       setConnected(false);
-      // Attempt reconnection after delay
-      reconnectTimeoutRef.current = setTimeout(() => {
-        if (socketRef.current && !socketRef.current.connected) {
-          console.log('[WebSocket] Attempting reconnection...');
-          socketRef.current.connect();
-        }
-      }, 3000);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('[WebSocket] Disconnected:', reason);
+      setConnected(false);
+      // Only attempt reconnection if not intentionally disconnected
+      if (reason !== 'io client disconnect') {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (socketRef.current && !socketRef.current.connected) {
+            console.log('[WebSocket] Attempting reconnection...');
+            socketRef.current.connect();
+          }
+        }, 3000);
+      }
     });
 
     // Workflow run event handlers
@@ -91,7 +118,7 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
     socket.on('deployment:completed', handleUpdate);
     socket.on('review:ready', handleUpdate);
 
-    // Cleanup on unmount
+    // Cleanup on unmount or auth change
     return () => {
       socket.off('workflow:started');
       socket.off('workflow:status');
@@ -104,15 +131,18 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
       socket.off('deployment:completed');
       socket.off('review:ready');
       socket.off('connect');
+      socket.off('connect_error');
       socket.off('disconnect');
 
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
 
       socket.disconnect();
+      socketRef.current = null;
     };
-  }, [onUpdate, throttleMs]);
+  }, [authToken, onUpdate, throttleMs]);
 
   const pauseRun = useCallback((runId: string) => {
     if (socketRef.current?.connected) {
