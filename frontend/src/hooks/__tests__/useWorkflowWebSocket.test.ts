@@ -1,37 +1,60 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useWorkflowWebSocket } from '../useWorkflowWebSocket';
 import { WorkflowRunUpdate } from '../../types/workflow-tracking';
 
-// Mock socket.io-client
-vi.mock('socket.io-client', () => ({
-  io: vi.fn(),
-}));
+// Create mock socket
+let mockSocket: any;
+let mockWsService: any;
 
-import { io } from 'socket.io-client';
+// Mock the websocket service module
+vi.mock('../../services/websocket.service', () => {
+  return {
+    wsService: {
+      getSocket: vi.fn(),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      isConnected: vi.fn(),
+    },
+    useWebSocket: vi.fn(),
+  };
+});
+
+// Import after mock setup
+import { useWorkflowWebSocket } from '../useWorkflowWebSocket';
+import { wsService, useWebSocket } from '../../services/websocket.service';
 
 describe('useWorkflowWebSocket', () => {
-  let mockSocket: any;
-
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Create fresh mockSocket for each test
     mockSocket = {
       on: vi.fn(),
       off: vi.fn(),
       emit: vi.fn(),
-      connected: false,
+      connected: true,
       connect: vi.fn(),
       disconnect: vi.fn(),
     };
 
-    (io as any).mockReturnValue(mockSocket);
+    // Setup wsService mock
+    (wsService.getSocket as any).mockReturnValue(mockSocket);
+
+    // Setup useWebSocket mock to return socket and connection state
+    (useWebSocket as any).mockReturnValue({
+      isConnected: true,
+      socket: mockSocket,
+    });
   });
 
-  it('initializes socket connection', () => {
-    renderHook(() => useWorkflowWebSocket());
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
-    expect(io).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
+  it('returns connected state from useWebSocket', () => {
+    const { result } = renderHook(() => useWorkflowWebSocket());
+
+    expect(result.current.connected).toBe(true);
   });
 
   it('subscribes to workflow run events on mount', () => {
@@ -44,8 +67,10 @@ describe('useWorkflowWebSocket', () => {
     expect(mockSocket.on).toHaveBeenCalledWith('component:progress', expect.any(Function));
     expect(mockSocket.on).toHaveBeenCalledWith('component:completed', expect.any(Function));
     expect(mockSocket.on).toHaveBeenCalledWith('queue:updated', expect.any(Function));
-    expect(mockSocket.on).toHaveBeenCalledWith('connect', expect.any(Function));
-    expect(mockSocket.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
+    // ST-108: Deployment and review events
+    expect(mockSocket.on).toHaveBeenCalledWith('deployment:started', expect.any(Function));
+    expect(mockSocket.on).toHaveBeenCalledWith('deployment:completed', expect.any(Function));
+    expect(mockSocket.on).toHaveBeenCalledWith('review:ready', expect.any(Function));
   });
 
   it('unsubscribes from events on unmount', () => {
@@ -53,56 +78,28 @@ describe('useWorkflowWebSocket', () => {
 
     unmount();
 
-    expect(mockSocket.off).toHaveBeenCalledWith('workflow:started');
-    expect(mockSocket.off).toHaveBeenCalledWith('workflow:status');
-    expect(mockSocket.off).toHaveBeenCalledWith('workflow:progress');
-    expect(mockSocket.off).toHaveBeenCalledWith('component:started');
-    expect(mockSocket.off).toHaveBeenCalledWith('component:progress');
-    expect(mockSocket.off).toHaveBeenCalledWith('component:completed');
-    expect(mockSocket.off).toHaveBeenCalledWith('queue:updated');
+    expect(mockSocket.off).toHaveBeenCalledWith('workflow:started', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('workflow:status', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('workflow:progress', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('component:started', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('component:progress', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('component:completed', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('queue:updated', expect.any(Function));
+    // ST-108: Deployment and review events
+    expect(mockSocket.off).toHaveBeenCalledWith('deployment:started', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('deployment:completed', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith('review:ready', expect.any(Function));
   });
 
-  it('updates connected state on connect', () => {
-    const { result } = renderHook(() => useWorkflowWebSocket());
-
-    // Get the connect callback
-    const connectCallback = mockSocket.on.mock.calls.find(
-      (call: any[]) => call[0] === 'connect'
-    )?.[1];
-
-    // Simulate connection
-    act(() => {
-      mockSocket.connected = true;
-      connectCallback?.();
+  it('does not subscribe when socket is null', () => {
+    (useWebSocket as any).mockReturnValue({
+      isConnected: false,
+      socket: null,
     });
 
-    expect(result.current.connected).toBe(true);
-  });
+    renderHook(() => useWorkflowWebSocket());
 
-  it('updates connected state on disconnect', () => {
-    const { result } = renderHook(() => useWorkflowWebSocket());
-
-    // Simulate connection first
-    act(() => {
-      mockSocket.connected = true;
-      const connectCallback = mockSocket.on.mock.calls.find(
-        (call: any[]) => call[0] === 'connect'
-      )?.[1];
-      connectCallback?.();
-    });
-
-    // Get the disconnect callback
-    const disconnectCallback = mockSocket.on.mock.calls.find(
-      (call: any[]) => call[0] === 'disconnect'
-    )?.[1];
-
-    // Simulate disconnection
-    act(() => {
-      mockSocket.connected = false;
-      disconnectCallback?.();
-    });
-
-    expect(result.current.connected).toBe(false);
+    expect(mockSocket.on).not.toHaveBeenCalled();
   });
 
   it('handles workflow:started event', () => {
@@ -252,7 +249,8 @@ describe('useWorkflowWebSocket', () => {
     vi.useRealTimers();
   });
 
-  it('emits pause event', () => {
+  it('emits pause event when socket is connected', () => {
+    mockSocket.connected = true;
     const { result } = renderHook(() => useWorkflowWebSocket());
 
     act(() => {
@@ -262,7 +260,19 @@ describe('useWorkflowWebSocket', () => {
     expect(mockSocket.emit).toHaveBeenCalledWith('workflow:pause', { runId: 'run-1' });
   });
 
-  it('emits cancel event', () => {
+  it('does not emit pause event when socket is disconnected', () => {
+    mockSocket.connected = false;
+    const { result } = renderHook(() => useWorkflowWebSocket());
+
+    act(() => {
+      result.current.pauseRun('run-1');
+    });
+
+    expect(mockSocket.emit).not.toHaveBeenCalled();
+  });
+
+  it('emits cancel event when socket is connected', () => {
+    mockSocket.connected = true;
     const { result } = renderHook(() => useWorkflowWebSocket());
 
     act(() => {
@@ -272,25 +282,103 @@ describe('useWorkflowWebSocket', () => {
     expect(mockSocket.emit).toHaveBeenCalledWith('workflow:cancel', { runId: 'run-1' });
   });
 
-  it('reconnects on disconnect', () => {
-    vi.useFakeTimers();
-    renderHook(() => useWorkflowWebSocket());
-
-    const disconnectCallback = mockSocket.on.mock.calls.find(
-      (call: any[]) => call[0] === 'disconnect'
-    )?.[1];
+  it('does not emit cancel event when socket is disconnected', () => {
+    mockSocket.connected = false;
+    const { result } = renderHook(() => useWorkflowWebSocket());
 
     act(() => {
-      disconnectCallback?.();
+      result.current.cancelRun('run-1');
     });
 
-    // Should attempt reconnect after delay
-    act(() => {
-      vi.advanceTimersByTime(3000);
+    expect(mockSocket.emit).not.toHaveBeenCalled();
+  });
+
+  // ST-108: Deployment Event Tests
+  describe('ST-108: Deployment Events', () => {
+    it('handles deployment:started event', () => {
+      const onUpdate = vi.fn();
+      renderHook(() => useWorkflowWebSocket({ onUpdate }));
+
+      const callback = mockSocket.on.mock.calls.find(
+        (call: any[]) => call[0] === 'deployment:started'
+      )?.[1];
+
+      const update = {
+        storyKey: 'ST-123',
+        environment: 'test',
+        startedAt: new Date().toISOString(),
+      };
+
+      act(() => {
+        callback?.(update);
+      });
+
+      expect(onUpdate).toHaveBeenCalledWith(update);
     });
 
-    expect(mockSocket.connect).toHaveBeenCalled();
+    it('handles deployment:completed event with success', () => {
+      const onUpdate = vi.fn();
+      renderHook(() => useWorkflowWebSocket({ onUpdate }));
 
-    vi.useRealTimers();
+      const callback = mockSocket.on.mock.calls.find(
+        (call: any[]) => call[0] === 'deployment:completed'
+      )?.[1];
+
+      const update = {
+        storyKey: 'ST-123',
+        environment: 'production',
+        status: 'success',
+        completedAt: new Date().toISOString(),
+      };
+
+      act(() => {
+        callback?.(update);
+      });
+
+      expect(onUpdate).toHaveBeenCalledWith(update);
+    });
+
+    it('handles deployment:completed event with failure', () => {
+      const onUpdate = vi.fn();
+      renderHook(() => useWorkflowWebSocket({ onUpdate }));
+
+      const callback = mockSocket.on.mock.calls.find(
+        (call: any[]) => call[0] === 'deployment:completed'
+      )?.[1];
+
+      const update = {
+        storyKey: 'ST-123',
+        environment: 'production',
+        status: 'failed',
+        error: 'Health check failed',
+        completedAt: new Date().toISOString(),
+      };
+
+      act(() => {
+        callback?.(update);
+      });
+
+      expect(onUpdate).toHaveBeenCalledWith(update);
+    });
+
+    it('handles review:ready event', () => {
+      const onUpdate = vi.fn();
+      renderHook(() => useWorkflowWebSocket({ onUpdate }));
+
+      const callback = mockSocket.on.mock.calls.find(
+        (call: any[]) => call[0] === 'review:ready'
+      )?.[1];
+
+      const update = {
+        storyKey: 'ST-123',
+        readyAt: new Date().toISOString(),
+      };
+
+      act(() => {
+        callback?.(update);
+      });
+
+      expect(onUpdate).toHaveBeenCalledWith(update);
+    });
   });
 });
