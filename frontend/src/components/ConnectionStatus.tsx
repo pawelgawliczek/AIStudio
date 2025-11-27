@@ -19,11 +19,11 @@ export function ConnectionStatus() {
 
   return (
     <div
-      className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 border border-green-500/20"
+      className="inline-flex items-center p-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20"
       data-testid="connection-status"
+      title="WebSocket Connected"
     >
       <WifiIcon className="h-4 w-4" />
-      <span>Connected</span>
     </div>
   );
 }
