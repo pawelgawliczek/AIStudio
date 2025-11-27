@@ -80,6 +80,19 @@ export class WorkflowsController {
     return this.workflowsService.findAll(projectId, options);
   }
 
+  // NOTE: Static routes like 'active-claude-code' MUST be defined BEFORE dynamic ':id' routes
+  // Otherwise NestJS will match ':id' first and interpret 'active-claude-code' as an ID
+
+  @Get('active-claude-code')
+  @ApiOperation({ summary: 'Get the currently active workflow in Claude Code' })
+  @ApiResponse({ status: 200, description: 'Active workflow retrieved', type: ActiveWorkflowResponseDto })
+  async getActiveClaudeCode(
+    @Param('projectId') projectId: string,
+  ): Promise<ActiveWorkflowResponseDto> {
+    const activeWorkflow = await this.activationService.getActiveWorkflow(projectId);
+    return activeWorkflow || {};
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a workflow by ID' })
   @ApiQuery({ name: 'includeStats', required: false, type: Boolean })
@@ -165,16 +178,6 @@ export class WorkflowsController {
     @Param('projectId') projectId: string,
   ): Promise<SyncResponseDto> {
     return this.activationService.syncWorkflow(projectId);
-  }
-
-  @Get('active-claude-code')
-  @ApiOperation({ summary: 'Get the currently active workflow in Claude Code' })
-  @ApiResponse({ status: 200, description: 'Active workflow retrieved', type: ActiveWorkflowResponseDto })
-  async getActiveClaudeCode(
-    @Param('projectId') projectId: string,
-  ): Promise<ActiveWorkflowResponseDto> {
-    const activeWorkflow = await this.activationService.getActiveWorkflow(projectId);
-    return activeWorkflow || {};
   }
 
   @Post('validate-template')

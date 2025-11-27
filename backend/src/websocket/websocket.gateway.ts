@@ -17,7 +17,13 @@ import { JwtService } from '@nestjs/jwt';
  */
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'https://aistudio.example.com',
+      'https://vibestudio.example.com',
+      'https://test.vibestudio.example.com',
+    ],
     credentials: true,
   },
 })
