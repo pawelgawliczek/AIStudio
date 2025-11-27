@@ -56,6 +56,21 @@ export interface CoordinatorVersion {
   createdBy?: string;
 }
 
+export interface AutoDiff {
+  pmChanges?: {
+    type: 'added' | 'removed' | 'version_changed';
+    oldPM?: { id: string; name: string; version: string };
+    newPM?: { id: string; name: string; version: string };
+  };
+  agentChanges: Array<{
+    type: 'added' | 'removed' | 'version_changed';
+    agentId: string;
+    agentName: string;
+    oldVersion?: string;
+    newVersion?: string;
+  }>;
+}
+
 export interface WorkflowVersion {
   id: string;
   workflowId: string;
@@ -82,6 +97,19 @@ export interface WorkflowVersion {
     version: string;
     versionId: string;
   }>;
+  metadata?: {
+    autoDiff?: AutoDiff;
+  };
+  config?: {
+    modelId: string;
+    temperature: number;
+    maxInputTokens?: number;
+    maxOutputTokens?: number;
+    timeout?: number;
+    maxRetries?: number;
+    costLimit?: number;
+  };
+  tools?: string[];
 }
 
 export interface VersionComparison {

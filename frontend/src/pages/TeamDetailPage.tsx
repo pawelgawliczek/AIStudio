@@ -275,8 +275,8 @@ export function TeamDetailPage() {
             <WorkflowRunsTable
               projectId={projectId}
               workflows={[{ id: workflow.id, name: workflow.name }]}
-              versionFilter={workflowVersionFilter === 'latest' ? workflow.version : workflowVersionFilter === 'all' ? undefined : workflowVersionFilter}
             />
+            {/* TODO: Implement version filtering in WorkflowRunsTable - AC7 */}
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>

@@ -1,13 +1,13 @@
-import { ClockIcon } from '@heroicons/react/24/outline';
-import { ComponentVersion, CoordinatorVersion } from '../../services/versioning.service';
+import { ClockIcon, PlusIcon, MinusIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ComponentVersion, CoordinatorVersion, WorkflowVersion } from '../../services/versioning.service';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
 
 export interface VersionHistoryTimelineProps {
-  versions: (ComponentVersion | CoordinatorVersion)[];
-  entityType: 'component' | 'coordinator';
+  versions: (ComponentVersion | CoordinatorVersion | WorkflowVersion)[];
+  entityType: 'component' | 'coordinator' | 'workflow';
   selectedVersions: [string | null, string | null];
   onVersionSelect: (versionId: string, checked: boolean) => void;
   onCompare: () => void;
@@ -108,6 +108,74 @@ export function VersionHistoryTimeline({
                       </label>
                     </div>
                   </div>
+
+                  {/* Auto-diff display for workflow versions */}
+                  {entityType === 'workflow' && 'metadata' in version && version.metadata?.autoDiff && (
+                    <div className="mb-3 p-3 bg-bg-secondary rounded border border-border">
+                      <div className="text-xs font-semibold text-fg mb-2">Automatic Change Detection:</div>
+                      <div className="space-y-1">
+                        {/* PM Changes */}
+                        {version.metadata.autoDiff.pmChanges && (
+                          <div className="flex items-center gap-2 text-xs">
+                            {version.metadata.autoDiff.pmChanges.type === 'added' && (
+                              <>
+                                <PlusIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                <span className="text-fg">
+                                  PM added: {version.metadata.autoDiff.pmChanges.newPM?.name} {version.metadata.autoDiff.pmChanges.newPM?.version}
+                                </span>
+                              </>
+                            )}
+                            {version.metadata.autoDiff.pmChanges.type === 'removed' && (
+                              <>
+                                <MinusIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                <span className="text-fg">
+                                  PM removed: {version.metadata.autoDiff.pmChanges.oldPM?.name} {version.metadata.autoDiff.pmChanges.oldPM?.version}
+                                </span>
+                              </>
+                            )}
+                            {version.metadata.autoDiff.pmChanges.type === 'version_changed' && (
+                              <>
+                                <ArrowPathIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <span className="text-fg">
+                                  PM version: {version.metadata.autoDiff.pmChanges.oldPM?.version} → {version.metadata.autoDiff.pmChanges.newPM?.version}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Agent Changes */}
+                        {version.metadata.autoDiff.agentChanges.map((change, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs">
+                            {change.type === 'added' && (
+                              <>
+                                <PlusIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                <span className="text-fg">
+                                  Agent added: {change.agentName} {change.newVersion}
+                                </span>
+                              </>
+                            )}
+                            {change.type === 'removed' && (
+                              <>
+                                <MinusIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                <span className="text-fg">
+                                  Agent removed: {change.agentName} {change.oldVersion}
+                                </span>
+                              </>
+                            )}
+                            {change.type === 'version_changed' && (
+                              <>
+                                <ArrowPathIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <span className="text-fg">
+                                  {change.agentName}: {change.oldVersion} → {change.newVersion}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {version.changeDescription && (
                     <p className="text-sm text-fg mb-3 italic">{version.changeDescription}</p>
