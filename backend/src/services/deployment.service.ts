@@ -22,6 +22,7 @@ import { BackupService } from './backup.service.js';
 import { RestoreService } from './restore.service.js';
 import { BackupType } from '../types/migration.types.js';
 import { BuildDecisionService, ChangeAnalysis } from './build-decision.service.js';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 // ============================================================================
 // Types
@@ -104,6 +105,7 @@ export class DeploymentService {
   private backupService: BackupService;
   private restoreService: RestoreService;
   private buildDecisionService: BuildDecisionService;
+  private websocketGateway: AppWebSocketGateway | null;
   private projectRoot: string;
 
   constructor(
@@ -111,7 +113,8 @@ export class DeploymentService {
     lockService?: DeploymentLockService,
     backupService?: BackupService,
     restoreService?: RestoreService,
-    buildDecisionService?: BuildDecisionService
+    buildDecisionService?: BuildDecisionService,
+    websocketGateway?: AppWebSocketGateway
   ) {
     this.prisma = prismaClient || new PrismaClient();
     this.lockService = lockService || new DeploymentLockService(this.prisma);
@@ -119,6 +122,7 @@ export class DeploymentService {
     this.restoreService = restoreService || new RestoreService();
     this.projectRoot = path.resolve(__dirname, '../../../');
     this.buildDecisionService = buildDecisionService || new BuildDecisionService(this.prisma, this.projectRoot);
+    this.websocketGateway = websocketGateway || null;
   }
 
   /**
@@ -237,6 +241,20 @@ export class DeploymentService {
           deployedAt: new Date(),
         },
       });
+
+      // ST-129: Broadcast deployment started event via WebSocket
+      if (this.websocketGateway) {
+        try {
+          this.websocketGateway.broadcastDeploymentStarted(params.storyId, story.projectId, {
+            storyKey: storyKey,
+            environment: 'production',
+            startedAt: new Date().toISOString(),
+          });
+        } catch (wsError: any) {
+          // Non-fatal - log and continue
+          console.warn(`[ST-129] Failed to broadcast deployment started: ${wsError.message}`);
+        }
+      }
 
       // ========================================================================
       // PHASE 4: Pre-Deployment Backup (AC4)
@@ -502,6 +520,21 @@ export class DeploymentService {
         warnings.push(`⚠️  Failed to record deployment state: ${recordError.message}`);
       }
 
+      // ST-129: Broadcast deployment completed event via WebSocket (success)
+      if (this.websocketGateway) {
+        try {
+          this.websocketGateway.broadcastDeploymentCompleted(params.storyId, story.projectId, {
+            storyKey: storyKey,
+            environment: 'production',
+            status: 'success',
+            completedAt: new Date().toISOString(),
+          });
+        } catch (wsError: any) {
+          // Non-fatal - log and continue
+          console.warn(`[ST-129] Failed to broadcast deployment completed: ${wsError.message}`);
+        }
+      }
+
       return {
         success: true,
         deploymentLogId,
@@ -589,6 +622,28 @@ export class DeploymentService {
             } as any,
           },
         });
+      }
+
+      // ST-129: Broadcast deployment completed event via WebSocket (failure/rollback)
+      if (this.websocketGateway) {
+        try {
+          const story = await this.prisma.story.findUnique({
+            where: { id: params.storyId },
+            select: { projectId: true },
+          });
+
+          if (story) {
+            this.websocketGateway.broadcastDeploymentCompleted(params.storyId, story.projectId, {
+              storyKey: storyKey,
+              environment: 'production',
+              status: phases.rollback?.success ? 'rolled_back' : 'failed',
+              completedAt: new Date().toISOString(),
+            });
+          }
+        } catch (wsError: any) {
+          // Non-fatal - log and continue
+          console.warn(`[ST-129] Failed to broadcast deployment completed (failure): ${wsError.message}`);
+        }
       }
 
       return {

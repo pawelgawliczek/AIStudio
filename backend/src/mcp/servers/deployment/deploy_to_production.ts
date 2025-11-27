@@ -37,6 +37,7 @@ import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
 import { DeploymentService, DeploymentParams } from '../../../services/deployment.service.js';
+import { getWebSocketGateway } from '../../services/websocket-gateway.instance.js';
 
 // ============================================================================
 // Input/Output Types
@@ -320,7 +321,16 @@ export async function handler(
     // EXECUTE DEPLOYMENT
     // ========================================================================
 
-    const deploymentService = new DeploymentService();
+    // ST-129: Pass WebSocket gateway for real-time deployment notifications
+    const websocketGateway = getWebSocketGateway();
+    const deploymentService = new DeploymentService(
+      undefined, // prisma
+      undefined, // lockService
+      undefined, // backupService
+      undefined, // restoreService
+      undefined, // buildDecisionService
+      websocketGateway // ST-129: WebSocket gateway for notifications
+    );
 
     const deploymentParams: DeploymentParams = {
       storyId: params.storyId,

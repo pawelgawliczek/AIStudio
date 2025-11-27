@@ -1,5 +1,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { getWebSocketGateway } from '../../services/websocket-gateway.instance';
 
 
 // ALIASING: Component → Agent (ST-109)
@@ -99,6 +100,27 @@ export async function handler(prisma: PrismaClient, params: any) {
       iterationLog: [],
     },
   });
+
+  // ST-129: Broadcast component started event via WebSocket
+  try {
+    const story = await prisma.story.findUnique({
+      where: { id: workflowRun.storyId || '' },
+      select: { key: true, title: true },
+    });
+
+    if (story) {
+      const websocketGateway = getWebSocketGateway();
+      websocketGateway.broadcastComponentStarted(params.runId, workflowRun.projectId, {
+        componentName: component.name,
+        storyKey: story.key,
+        storyTitle: story.title,
+        startedAt: componentRun.startedAt.toISOString(),
+      });
+    }
+  } catch (wsError: any) {
+    // Non-fatal - log and continue
+    console.warn(`[ST-129] Failed to broadcast component started: ${wsError.message}`);
+  }
 
   return {
     success: true,

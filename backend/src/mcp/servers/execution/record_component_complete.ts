@@ -9,6 +9,7 @@ import { PrismaClient } from '@prisma/client';
 import { ValidationError } from '../../types';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
 import { TranscriptParserService } from './services/transcript-parser.service';
+import { getWebSocketGateway } from '../../services/websocket-gateway.instance';
 
 
 // ALIASING: Component → Agent (ST-109)
@@ -264,6 +265,38 @@ export async function handler(prisma: PrismaClient, params: any) {
       durationSeconds: aggregatedMetrics.durationSeconds || null,
     },
   });
+
+  // ST-129: Broadcast component completed event via WebSocket
+  try {
+    const workflowRun = await prisma.workflowRun.findUnique({
+      where: { id: params.runId },
+      select: {
+        projectId: true,
+        storyId: true,
+      },
+    });
+
+    const story = workflowRun?.storyId
+      ? await prisma.story.findUnique({
+          where: { id: workflowRun.storyId },
+          select: { key: true, title: true },
+        })
+      : null;
+
+    if (workflowRun && story) {
+      const websocketGateway = getWebSocketGateway();
+      websocketGateway.broadcastComponentCompleted(params.runId, workflowRun.projectId, {
+        componentName: componentName,
+        storyKey: story.key,
+        storyTitle: story.title,
+        status: status,
+        completedAt: completedAt.toISOString(),
+      });
+    }
+  } catch (wsError: any) {
+    // Non-fatal - log and continue
+    console.warn(`[ST-129] Failed to broadcast component completed: ${wsError.message}`);
+  }
 
   return {
     success: true,
