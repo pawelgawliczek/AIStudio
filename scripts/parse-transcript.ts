@@ -100,11 +100,23 @@ async function parseTranscript(transcriptPath: string): Promise<TranscriptMetric
   let totalCacheRead = 0;
   let model = 'unknown';
 
+  // Track seen message IDs to avoid double-counting from streaming updates
+  const seenMessageIds = new Set<string>();
+
   for (const record of records) {
     if (record.message?.model) {
       model = record.message.model;
     }
     if (record.message?.usage) {
+      // Deduplicate by message ID - transcripts contain multiple entries for same message during streaming
+      const messageId = record.message?.id;
+      if (messageId && seenMessageIds.has(messageId)) {
+        continue; // Skip duplicate message
+      }
+      if (messageId) {
+        seenMessageIds.add(messageId);
+      }
+
       const usage = record.message.usage;
       totalInput += usage.input_tokens ?? 0;
       totalOutput += usage.output_tokens ?? 0;
