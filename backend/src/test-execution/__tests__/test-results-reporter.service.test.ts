@@ -1,8 +1,8 @@
+import * as fs from 'fs';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TestResultsReporterService } from '../test-results-reporter.service';
 import { TestExecutionsService } from '../../test-executions/test-executions.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
-import * as fs from 'fs';
+import { TestResultsReporterService } from '../test-results-reporter.service';
 
 // Mock fs module
 jest.mock('fs');

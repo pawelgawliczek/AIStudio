@@ -10,10 +10,10 @@
  * - TC-VER-005: Component deactivation with workflow validation
  */
 
+import { randomUUID } from 'crypto';
 import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
 import { handler as activateHandler } from '../activate_component';
 import { handler as deactivateHandler } from '../deactivate_component';
-import { randomUUID } from 'crypto';
 
 describe('Component Lifecycle MCP Tools - Integration Tests', () => {
   let prisma: PrismaClient;

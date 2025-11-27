@@ -8,9 +8,9 @@
  * This enables universal transcript parsing regardless of where the MCP server runs.
  */
 
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as fs from 'fs';
 import * as readline from 'readline';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';

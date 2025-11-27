@@ -9,8 +9,8 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { PrismaClient } from '@prisma/client';
 import { mockDeep, mockReset, DeepMockProxy } from 'jest-mock-extended';
-import { handler } from '../update_workflow_status';
 import { ValidationError, NotFoundError } from '../../../types';
+import { handler } from '../update_workflow_status';
 import { fixtures, prismaMock } from './test-setup';
 
 // Mock fs module

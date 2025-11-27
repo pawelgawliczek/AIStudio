@@ -5,9 +5,9 @@
  * Used when MCP server runs remotely and worktree was created locally via slash command.
  */
 
+import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import * as os from 'os';
 import {
   NotFoundError,
   ValidationError,

@@ -11,10 +11,10 @@
  * - Support limit parameter
  */
 
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaClient } from '@prisma/client';
 import { readdir, readFile, stat } from 'fs/promises';
 import path from 'path';
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'mcp__vibestudio__list_backups',
@@ -207,7 +207,7 @@ export async function handler(
     // Base backup directory (absolute path to match BackupMonitorService)
     const backupBaseDir = '/opt/stack/AIStudio/backups';
 
-    let allBackups: BackupInfo[] = [];
+    const allBackups: BackupInfo[] = [];
 
     // Scan production backups
     if (environment === 'all' || environment === 'production') {

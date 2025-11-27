@@ -2,10 +2,10 @@
  * Unit tests for deploy_to_production MCP tool - ST-77, ST-84
  */
 
-import { handler, DeployToProductionParams } from '../deploy_to_production';
-import { ValidationError } from '../../../types';
-import { DeploymentService } from '../../../../services/deployment.service';
 import { PrismaClient } from '@prisma/client';
+import { DeploymentService } from '../../../../services/deployment.service';
+import { ValidationError } from '../../../types';
+import { handler, DeployToProductionParams } from '../deploy_to_production';
 
 // Mock the DeploymentService module
 jest.mock('../../../../services/deployment.service');

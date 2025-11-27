@@ -8,9 +8,9 @@
  * - Deployment state tracking
  */
 
-import { BuildDecisionService, ChangeType, ChangeAnalysis, BuildDecision } from '../build-decision.service';
-import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
+import { PrismaClient } from '@prisma/client';
+import { BuildDecisionService, ChangeType, ChangeAnalysis, BuildDecision } from '../build-decision.service';
 
 // Mock child_process for git commands
 jest.mock('child_process', () => ({

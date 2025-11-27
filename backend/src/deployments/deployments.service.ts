@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { DeploymentStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface DeploymentFilters {
   status?: DeploymentStatus;

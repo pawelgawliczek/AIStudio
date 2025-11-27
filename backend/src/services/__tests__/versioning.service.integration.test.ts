@@ -11,9 +11,9 @@
  * - AC-VS-06: Deprecated entity blocking
  */
 
+import { randomUUID } from 'crypto';
 import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
 import { VersioningService } from '../versioning.service';
-import { randomUUID } from 'crypto';
 
 describe('VersioningService - Integration Tests', () => {
   let prisma: PrismaClient;

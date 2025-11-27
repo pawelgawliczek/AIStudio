@@ -11,12 +11,12 @@
  * - Health check metrics
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bull';
-import { QueueProcessorService } from '../queue-processor.service';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../constants';
+import { QueueProcessorService } from '../queue-processor.service';
 
 // ============================================================================
 // Mocks

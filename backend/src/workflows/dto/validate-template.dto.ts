@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsString, IsArray, ValidateNested } from 'class-validator';
 
 export class ComponentAssignmentInput {
   @ApiProperty({ description: 'Component name', example: 'Fullstack Developer' })

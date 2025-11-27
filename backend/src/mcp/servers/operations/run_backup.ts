@@ -9,11 +9,11 @@
  * - Handle errors gracefully
  */
 
+import { exec } from 'child_process';
+import path from 'path';
+import { promisify } from 'util';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
 
 const execAsync = promisify(exec);
 

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { handler, tool } from '../get_component_instructions';
 import { NotFoundError, ValidationError } from '../../../types';
+import { handler, tool } from '../get_component_instructions';
 
 describe('get_component_instructions MCP tool', () => {
   let prisma: PrismaClient;

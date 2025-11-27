@@ -52,9 +52,9 @@ global.fetch = jest.fn() as jest.Mock;
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { validatePRForProduction } from '../../mcp/servers/deployment/utils/github-pr-validator.js';
-import { DeploymentService } from '../deployment.service';
-import { DeploymentLockService } from '../deployment-lock.service';
 import { BackupService } from '../backup.service';
+import { DeploymentLockService } from '../deployment-lock.service';
+import { DeploymentService } from '../deployment.service';
 import { RestoreService } from '../restore.service';
 
 describe('DeploymentService', () => {

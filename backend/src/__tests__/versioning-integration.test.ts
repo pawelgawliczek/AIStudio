@@ -14,14 +14,14 @@
  * - Error cases: 404 not found, 400 validation errors
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
-import { PrismaService } from '../prisma/prisma.service';
-import { VersioningController } from '../controllers/versioning.controller';
-import { VersioningService } from '../services/versioning.service';
-import { ChecksumService } from '../services/checksum.service';
 import { randomUUID } from 'crypto';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import * as request from 'supertest';
+import { VersioningController } from '../controllers/versioning.controller';
+import { PrismaService } from '../prisma/prisma.service';
+import { ChecksumService } from '../services/checksum.service';
+import { VersioningService } from '../services/versioning.service';
 
 describe('Versioning API - Integration Tests (ST-64)', () => {
   let app: INestApplication;

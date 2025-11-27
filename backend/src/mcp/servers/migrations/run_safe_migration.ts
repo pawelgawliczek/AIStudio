@@ -31,9 +31,9 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { SafeMigrationService } from '../../../services/safe-migration.service.js';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
-import { SafeMigrationService } from '../../../services/safe-migration.service.js';
 
 // ============================================================================
 // Input/Output Types

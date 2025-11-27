@@ -7,9 +7,9 @@
  * - TC-VER-004: MCP compare_versions field diff
  */
 
+import { randomUUID } from 'crypto';
 import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
 import { handler } from '../compare_versions';
-import { randomUUID } from 'crypto';
 
 describe('compare_versions MCP Tool - Integration Tests', () => {
   let prisma: PrismaClient;

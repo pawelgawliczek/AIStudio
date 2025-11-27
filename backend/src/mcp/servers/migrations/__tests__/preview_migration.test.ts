@@ -3,8 +3,8 @@
  * ST-85: Safe Migration MCP Tools & Permission Enforcement
  */
 
-import { handler, tool } from '../preview_migration';
 import { SafeMigrationService } from '../../../../services/safe-migration.service';
+import { handler, tool } from '../preview_migration';
 
 // Mock SafeMigrationService
 jest.mock('../../../../services/safe-migration.service');

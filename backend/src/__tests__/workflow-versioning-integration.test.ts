@@ -12,16 +12,16 @@
  * Total Coverage: ~50 tests
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
+import { randomUUID } from 'crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { PrismaService } from '../prisma/prisma.service';
-import { VersioningController } from '../controllers/versioning.controller';
 import { AnalyticsController } from '../controllers/analytics.controller';
-import { VersioningService } from '../services/versioning.service';
+import { VersioningController } from '../controllers/versioning.controller';
+import { PrismaService } from '../prisma/prisma.service';
 import { AnalyticsService } from '../services/analytics.service';
 import { ChecksumService } from '../services/checksum.service';
-import { randomUUID } from 'crypto';
+import { VersioningService } from '../services/versioning.service';
 
 describe('Workflow Versioning & Analytics API - Integration Tests (ST-64)', () => {
   let app: INestApplication;

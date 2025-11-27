@@ -9,8 +9,8 @@
  * - Edge cases and error handling
  */
 
-import { GitHubPRValidator, validatePRForProduction, isPRReadyForProduction } from '../github-pr-validator';
 import { execSync } from 'child_process';
+import { GitHubPRValidator, validatePRForProduction, isPRReadyForProduction } from '../github-pr-validator';
 
 // Mock child_process for GitHub CLI commands
 jest.mock('child_process', () => ({

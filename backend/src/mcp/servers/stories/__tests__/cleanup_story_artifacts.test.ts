@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler, tool } from '../cleanup_story_artifacts';
 import * as gitUtils from '../../git/git_utils';
+import { handler, tool } from '../cleanup_story_artifacts';
 
 jest.mock('../../git/git_utils');
 

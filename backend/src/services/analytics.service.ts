@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import {
   TimeRange,
   WorkflowUsage,
@@ -12,6 +11,7 @@ import {
   ComponentUsageDetail,
   ComponentBreakdown,
 } from '../dtos/analytics.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AnalyticsService {

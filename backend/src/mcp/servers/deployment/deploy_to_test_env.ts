@@ -19,15 +19,15 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { ValidationError, NotFoundError } from '../../types.js';
-import { validateRequired } from '../../utils.js';
-import { handler as checkForConflicts } from '../git/check_for_conflicts.js';
 import {
   enableAgentTestingMode,
   disableAgentTestingMode,
   assertNotProductionDb,
   TEST,
 } from '../../../config/environments.js';
+import { ValidationError, NotFoundError } from '../../types.js';
+import { validateRequired } from '../../utils.js';
+import { handler as checkForConflicts } from '../git/check_for_conflicts.js';
 import {
   detectAllChanges,
   DetectedChanges,

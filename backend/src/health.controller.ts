@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { QueueProcessorService } from './workers/queue-processor.service';
 import { AppWebSocketGateway } from './websocket/websocket.gateway';
+import { QueueProcessorService } from './workers/queue-processor.service';
 
 @ApiTags('health')
 @Controller('health')

@@ -20,11 +20,11 @@
  * - Identifies stale worktrees via database query
  */
 
+import { execSync } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { handlePrismaError } from '../../utils';
 import { getDiskUsageMB } from './git_utils';
-import { execSync } from 'child_process';
 
 export const tool: Tool = {
   name: 'get_disk_usage',

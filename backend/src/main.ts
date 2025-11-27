@@ -3,8 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { WinstonLoggerService, AllExceptionsFilter, LoggingInterceptor } from './common';
-import { AppWebSocketGateway } from './websocket/websocket.gateway';
 import { setSharedWebSocketGateway } from './mcp/services/websocket-gateway.instance';
+import { AppWebSocketGateway } from './websocket/websocket.gateway';
 
 async function bootstrap() {
   // Fix BigInt serialization issue

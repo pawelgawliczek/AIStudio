@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { VersioningService } from './versioning.service';
-import { ChecksumService } from './checksum.service';
 import { VersioningController } from '../controllers/versioning.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+import { ChecksumService } from './checksum.service';
+import { VersioningService } from './versioning.service';
 
 @Module({
   imports: [PrismaModule],

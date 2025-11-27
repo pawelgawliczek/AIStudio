@@ -25,8 +25,8 @@ import {
   ActiveWorkflowResponseDto,
 } from './dto/activate-workflow.dto';
 import { ValidateTemplateDto, ValidateTemplateResponseDto } from './dto/validate-template.dto';
-import { WorkflowsService } from './workflows.service';
 import { TemplateParserService } from './template-parser.service';
+import { WorkflowsService } from './workflows.service';
 
 @ApiTags('workflows')
 @Controller('projects/:projectId/workflows')

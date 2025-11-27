@@ -11,9 +11,9 @@
  * - TC-VER-006: Workflow auto-versioning on coordinator change
  */
 
+import { randomUUID } from 'crypto';
 import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
 import { handler } from '../update_workflow';
-import { randomUUID } from 'crypto';
 
 describe('update_workflow Auto-Versioning - Integration Tests', () => {
   let prisma: PrismaClient;

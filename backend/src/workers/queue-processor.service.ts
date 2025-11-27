@@ -17,15 +17,15 @@
  * - Health check metrics for monitoring
  */
 
+import { InjectQueue } from '@nestjs/bull';
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectQueue } from '@nestjs/bull';
+import { Prisma } from '@prisma/client';
 import { Queue } from 'bull';
 import { PrismaService } from '../prisma/prisma.service';
-import { McpToolClient } from './mcp-tool-client';
 import { QUEUE_NAMES } from './constants';
-import { Prisma } from '@prisma/client';
+import { McpToolClient } from './mcp-tool-client';
 
 // ============================================================================
 // Types and Interfaces

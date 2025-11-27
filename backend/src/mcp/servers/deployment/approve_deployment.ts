@@ -32,9 +32,9 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
-import { PrismaClient } from '@prisma/client';
 
 // ============================================================================
 // Input/Output Types

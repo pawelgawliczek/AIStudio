@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import { TestExecutionsService } from '../test-executions/test-executions.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
-import * as fs from 'fs';
-import * as path from 'path';
 
 export interface ParsedTestResult {
   testCaseKey: string;

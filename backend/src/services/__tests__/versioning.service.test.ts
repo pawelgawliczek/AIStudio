@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { VersioningService } from '../versioning.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma/prisma.service';
+import { VersioningService } from '../versioning.service';
 
 describe('VersioningService', () => {
   let service: VersioningService;

@@ -1,4 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+
+// Import MCP handlers directly
+import { handler as getBackupStatusHandler } from '../mcp/servers/operations/get_backup_status';
+import { handler as listBackupsHandler } from '../mcp/servers/operations/list_backups';
+import { handler as restoreBackupHandler } from '../mcp/servers/operations/restore_backup';
+import { handler as runBackupHandler } from '../mcp/servers/operations/run_backup';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   BackupStatusDto,
@@ -6,12 +12,6 @@ import {
   RunBackupDto,
   RestoreBackupDto,
 } from './dto/backup.dto';
-
-// Import MCP handlers directly
-import { handler as getBackupStatusHandler } from '../mcp/servers/operations/get_backup_status';
-import { handler as listBackupsHandler } from '../mcp/servers/operations/list_backups';
-import { handler as runBackupHandler } from '../mcp/servers/operations/run_backup';
-import { handler as restoreBackupHandler } from '../mcp/servers/operations/restore_backup';
 
 @Injectable()
 export class BackupsService {

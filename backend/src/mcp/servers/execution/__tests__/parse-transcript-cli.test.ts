@@ -4,11 +4,11 @@
  * Focus: JSONL parsing, path escaping, error handling, output format
  */
 
-import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import { spawn } from 'child_process';
+import * as fsSync from 'fs';
+import * as fs from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
 
 // Mock modules
 jest.mock('fs/promises');

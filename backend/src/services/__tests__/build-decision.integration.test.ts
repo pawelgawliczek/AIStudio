@@ -9,9 +9,9 @@
  * These tests use the test database (port 5434)
  */
 
+import { execSync } from 'child_process';
 import { PrismaClient } from '@prisma/client';
 import { BuildDecisionService, ChangeType } from '../build-decision.service';
-import { execSync } from 'child_process';
 
 // Skip these tests if not running in integration test environment
 const SKIP_INTEGRATION = process.env.SKIP_INTEGRATION_TESTS === 'true';

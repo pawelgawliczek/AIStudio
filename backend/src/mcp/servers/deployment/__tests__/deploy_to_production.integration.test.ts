@@ -54,9 +54,9 @@ jest.mock('@prisma/client', () => ({
   })),
 }));
 
-import { DeploymentService } from '../../../../services/deployment.service';
-import { DeploymentLockService } from '../../../../services/deployment-lock.service';
 import { BackupService } from '../../../../services/backup.service';
+import { DeploymentLockService } from '../../../../services/deployment-lock.service';
+import { DeploymentService } from '../../../../services/deployment.service';
 import { RestoreService } from '../../../../services/restore.service';
 
 // Mock child_process for Docker commands

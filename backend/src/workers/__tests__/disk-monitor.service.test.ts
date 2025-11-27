@@ -10,12 +10,12 @@
  * - Health check metrics
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-import { DiskMonitorService } from '../disk-monitor.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { WorkersService } from '../workers.service';
 import * as childProcess from 'child_process';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../../prisma/prisma.service';
+import { DiskMonitorService } from '../disk-monitor.service';
+import { WorkersService } from '../workers.service';
 
 // ============================================================================
 // Mocks

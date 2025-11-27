@@ -24,11 +24,11 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
-  runSafeMigrationTool,
-  handleRunSafeMigration,
-  RunSafeMigrationParams,
-  RunSafeMigrationResponse,
-} from './run_safe_migration.js';
+  createMigrationTool,
+  handleCreateMigration,
+  CreateMigrationParams,
+  CreateMigrationResponse,
+} from './create_migration.js';
 import {
   previewMigrationTool,
   handlePreviewMigration,
@@ -36,11 +36,11 @@ import {
   PreviewMigrationResponse,
 } from './preview_migration.js';
 import {
-  createMigrationTool,
-  handleCreateMigration,
-  CreateMigrationParams,
-  CreateMigrationResponse,
-} from './create_migration.js';
+  runSafeMigrationTool,
+  handleRunSafeMigration,
+  RunSafeMigrationParams,
+  RunSafeMigrationResponse,
+} from './run_safe_migration.js';
 
 // ============================================================================
 // Tool Exports

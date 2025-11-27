@@ -4,6 +4,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { VersioningService } from '../../../services/versioning.service';
 import {
   NotFoundError,
   ValidationError,
@@ -12,7 +13,6 @@ import {
   validateRequired,
   handlePrismaError,
 } from '../../utils';
-import { VersioningService } from '../../../services/versioning.service';
 
 export interface UpdateWorkflowParams {
   workflowId: string;

@@ -7,10 +7,10 @@
  * - TC-VER-007: Version history traversal
  */
 
-import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
-import { handler } from '../get_version_history';
-import { VersioningService } from '../../../../services/versioning.service';
 import { randomUUID } from 'crypto';
+import { PrismaClient, Component, Workflow, Project } from '@prisma/client';
+import { VersioningService } from '../../../../services/versioning.service';
+import { handler } from '../get_version_history';
 
 describe('get_version_history MCP Tool - Integration Tests', () => {
   let prisma: PrismaClient;

@@ -5,9 +5,9 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { VersioningService, VersionHistoryItem } from '../../../services/versioning.service';
 import { NotFoundError, ValidationError } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
-import { VersioningService, VersionHistoryItem } from '../../../services/versioning.service';
 
 export interface GetCoordinatorParams {
   coordinatorId: string;

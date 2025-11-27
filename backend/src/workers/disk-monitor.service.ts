@@ -18,13 +18,13 @@
  * @see Architecture Spec: ST-54
  */
 
+import { execSync } from 'child_process';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../prisma/prisma.service';
 import { WorkersService } from './workers.service';
-import { execSync } from 'child_process';
-import { Decimal } from '@prisma/client/runtime/library';
 
 // ============================================================================
 // Types and Interfaces

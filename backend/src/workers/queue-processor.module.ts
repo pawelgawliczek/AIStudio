@@ -8,13 +8,13 @@
  * - ConfigModule: Environment configuration
  */
 
-import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bull';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
-import { QueueProcessorService } from './queue-processor.service';
 import { QUEUE_NAMES } from './constants';
+import { QueueProcessorService } from './queue-processor.service';
 
 @Module({
   imports: [

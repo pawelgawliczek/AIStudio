@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TranscriptParserService } from '../services/transcript-parser.service';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { Test, TestingModule } from '@nestjs/testing';
+import { TranscriptParserService } from '../services/transcript-parser.service';
 
 describe('TranscriptParserService', () => {
   let service: TranscriptParserService;

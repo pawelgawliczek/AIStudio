@@ -10,14 +10,14 @@
  * - Test data seeded in database
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule, getQueueToken } from '@nestjs/bull';
-import { QueueProcessorService } from '../queue-processor.service';
-import { QueueProcessorModule } from '../queue-processor.module';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../constants';
+import { QueueProcessorModule } from '../queue-processor.module';
+import { QueueProcessorService } from '../queue-processor.service';
 
 // Mock MCP Tool Client to prevent actual deployments/tests
 jest.mock('../mcp-tool-client', () => {

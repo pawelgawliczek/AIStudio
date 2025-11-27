@@ -134,7 +134,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   // ST-110: cacheHitRateSum removed - cache metrics no longer tracked
   let tokensPerSecondSum = 0;
   let timeToFirstTokenSum = 0;
-  let metricsCount = 0;
+  const metricsCount = 0;
 
   for (const cr of workflowRun.componentRuns) {
     // Token aggregation (ST-110: Cache metrics removed)

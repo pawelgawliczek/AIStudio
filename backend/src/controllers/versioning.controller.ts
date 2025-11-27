@@ -9,9 +9,6 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { VersioningService } from '../services/versioning.service';
-import { ChecksumService } from '../services/checksum.service';
-import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateVersionDto,
   CompareVersionsQueryDto,
@@ -21,6 +18,9 @@ import {
   VersionComparisonResponse,
   ChecksumVerificationResponse,
 } from '../dtos/versioning.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { ChecksumService } from '../services/checksum.service';
+import { VersioningService } from '../services/versioning.service';
 
 @Controller('versioning')
 export class VersioningController {

@@ -4,12 +4,12 @@
  * Focus: End-to-end data flow, transcriptMetrics parameter handling
  */
 
-import { PrismaClient } from '@prisma/client';
-import { mockDeep, mockReset } from 'jest-mock-extended';
 import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import * as os from 'os';
 import * as readline from 'readline';
+import { PrismaClient } from '@prisma/client';
+import { mockDeep, mockReset } from 'jest-mock-extended';
 import { handler as getTranscriptMetricsHandler } from '../get_transcript_metrics';
 import { handler as recordComponentCompleteHandler } from '../record_component_complete';
 import { prismaMock, fixtures } from './test-setup';

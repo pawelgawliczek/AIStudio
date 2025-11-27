@@ -9,11 +9,11 @@
  */
 
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
-import { WorkersModule } from './workers.module';
 import { DiskMonitorService } from './disk-monitor.service';
+import { WorkersModule } from './workers.module';
 
 @Module({
   imports: [

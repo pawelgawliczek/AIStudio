@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { WorkflowsModule } from '../workflows.module';
-import { TemplateParserService } from '../template-parser.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { TemplateParserService } from '../template-parser.service';
+import { WorkflowsModule } from '../workflows.module';
 
 /**
  * Comprehensive Integration Tests for Template Validation (ST-90)

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
-import { WebSocketModule } from '../websocket/websocket.module';
 import { TestExecutionsModule } from '../test-executions/test-executions.module';
-import { TestResultsReporterService } from './test-results-reporter.service';
-import { TestAnalyticsService } from './test-analytics.service';
+import { WebSocketModule } from '../websocket/websocket.module';
 import { TestAnalyticsController } from './test-analytics.controller';
+import { TestAnalyticsService } from './test-analytics.service';
+import { TestResultsReporterService } from './test-results-reporter.service';
 
 /**
  * Test Execution Module (ST-128)

@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Component, Workflow } from '@prisma/client';
 import * as crypto from 'crypto';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Component, Workflow } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 // Types
 export type VersionableEntityType = 'component' | 'workflow';

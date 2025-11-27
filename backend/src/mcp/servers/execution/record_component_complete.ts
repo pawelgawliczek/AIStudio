@@ -6,10 +6,10 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { broadcastComponentCompleted } from '../../services/websocket-gateway.instance';
 import { ValidationError } from '../../types';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
 import { TranscriptParserService } from './services/transcript-parser.service';
-import { broadcastComponentCompleted } from '../../services/websocket-gateway.instance';
 
 
 // ALIASING: Component → Agent (ST-109)

@@ -10,9 +10,9 @@
  * - AC-CS-05: MD5 format validation
  */
 
+import { randomUUID } from 'crypto';
 import { PrismaClient, Component, Project } from '@prisma/client';
 import { ChecksumService } from '../checksum.service';
-import { randomUUID } from 'crypto';
 
 describe('ChecksumService - Integration Tests', () => {
   let prisma: PrismaClient;

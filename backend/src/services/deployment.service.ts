@@ -14,15 +14,15 @@
  * Based on deploy_to_test_env pattern (ST-76) and SafeMigration (ST-70)
  */
 
-import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
 import * as path from 'path';
-import { DeploymentLockService } from './deployment-lock.service.js';
-import { BackupService } from './backup.service.js';
-import { RestoreService } from './restore.service.js';
+import { PrismaClient } from '@prisma/client';
 import { BackupType } from '../types/migration.types.js';
-import { BuildDecisionService, ChangeAnalysis } from './build-decision.service.js';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
+import { BackupService } from './backup.service.js';
+import { BuildDecisionService, ChangeAnalysis } from './build-decision.service.js';
+import { DeploymentLockService } from './deployment-lock.service.js';
+import { RestoreService } from './restore.service.js';
 
 // ============================================================================
 // Types

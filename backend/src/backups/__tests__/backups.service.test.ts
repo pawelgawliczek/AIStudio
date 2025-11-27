@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BackupsService } from '../backups.service';
-import { PrismaService } from '../../prisma/prisma.service';
 
 // Mock the MCP handlers
 jest.mock('../../mcp/servers/operations/get_backup_status', () => ({
@@ -18,8 +17,9 @@ jest.mock('../../mcp/servers/operations/restore_backup', () => ({
 
 import { handler as getBackupStatusHandler } from '../../mcp/servers/operations/get_backup_status';
 import { handler as listBackupsHandler } from '../../mcp/servers/operations/list_backups';
-import { handler as runBackupHandler } from '../../mcp/servers/operations/run_backup';
 import { handler as restoreBackupHandler } from '../../mcp/servers/operations/restore_backup';
+import { handler as runBackupHandler } from '../../mcp/servers/operations/run_backup';
+import { PrismaService } from '../../prisma/prisma.service';
 
 describe('BackupsService', () => {
   let service: BackupsService;

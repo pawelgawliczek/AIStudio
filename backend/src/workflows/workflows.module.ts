@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ActivationService } from '../mcp/services/activation.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { TemplateParserService } from './template-parser.service';
 import { WorkflowsController, TeamsController } from './workflows.controller';
 import { WorkflowsService } from './workflows.service';
-import { TemplateParserService } from './template-parser.service';
 
 @Module({
   imports: [PrismaModule],

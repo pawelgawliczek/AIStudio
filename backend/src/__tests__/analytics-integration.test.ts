@@ -13,13 +13,13 @@
  * - Error cases: invalid time range, missing entities
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
-import { PrismaService } from '../prisma/prisma.service';
-import { AnalyticsController } from '../controllers/analytics.controller';
-import { AnalyticsService } from '../services/analytics.service';
 import { randomUUID } from 'crypto';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import * as request from 'supertest';
+import { AnalyticsController } from '../controllers/analytics.controller';
+import { PrismaService } from '../prisma/prisma.service';
+import { AnalyticsService } from '../services/analytics.service';
 
 describe('Analytics API - Integration Tests (ST-64)', () => {
   let app: INestApplication;

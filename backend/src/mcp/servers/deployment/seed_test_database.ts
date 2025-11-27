@@ -14,12 +14,12 @@ import { execSync } from 'child_process';
 import { join } from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { ValidationError } from '../../types.js';
-import { validateRequired } from '../../utils.js';
 import {
   assertNotProductionDb,
   TEST,
 } from '../../../config/environments.js';
+import { ValidationError } from '../../types.js';
+import { validateRequired } from '../../utils.js';
 
 // Input/Output Types
 export interface SeedTestDatabaseParams {

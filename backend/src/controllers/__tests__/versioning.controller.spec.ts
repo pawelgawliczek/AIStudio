@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { VersioningController } from '../versioning.controller';
-import { VersioningService } from '../../services/versioning.service';
-import { ChecksumService } from '../../services/checksum.service';
-import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../../prisma/prisma.service';
+import { ChecksumService } from '../../services/checksum.service';
+import { VersioningService } from '../../services/versioning.service';
+import { VersioningController } from '../versioning.controller';
 
 describe('VersioningController', () => {
   let controller: VersioningController;

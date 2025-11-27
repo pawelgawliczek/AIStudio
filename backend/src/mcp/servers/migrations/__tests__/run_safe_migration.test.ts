@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler, tool } from '../run_safe_migration';
 import { SafeMigrationService } from '../../../../services/safe-migration.service';
+import { handler, tool } from '../run_safe_migration';
 
 // Mock SafeMigrationService
 jest.mock('../../../../services/safe-migration.service');

@@ -20,10 +20,10 @@
  * - CRITICAL: Use status='removed' NOT deletedAt (field doesn't exist)
  */
 
-import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaClient } from '@prisma/client';
 import { readdirSync, rmdirSync } from 'fs';
 import { dirname } from 'path';
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 import { NotFoundError, ValidationError } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
 import { execGit, validateWorktreePath, validateBranchName } from './git_utils';

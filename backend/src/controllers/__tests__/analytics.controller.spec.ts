@@ -1,7 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AnalyticsController } from '../analytics.controller';
-import { AnalyticsService } from '../../services/analytics.service';
 import { StreamableFile } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AnalyticsService } from '../../services/analytics.service';
+import { AnalyticsController } from '../analytics.controller';
 
 describe('AnalyticsController', () => {
   let controller: AnalyticsController;

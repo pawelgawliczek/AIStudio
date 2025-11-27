@@ -8,9 +8,9 @@
  * - Error handling
  */
 
-import { handler, ApproveDeploymentParams } from '../approve_deployment';
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../../types';
+import { handler, ApproveDeploymentParams } from '../approve_deployment';
 
 // Mock PrismaClient
 const mockPrisma = {

@@ -13,13 +13,13 @@
  * - create_migration: Migration file generation
  */
 
+import { exec } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import { promisify } from 'util';
 import { PrismaClient } from '@prisma/client';
 import { handlePreviewMigration } from '../preview_migration';
 import { handleRunSafeMigration } from '../run_safe_migration';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import * as fs from 'fs';
-import * as path from 'path';
 
 const execAsync = promisify(exec);
 

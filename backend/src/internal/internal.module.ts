@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { InternalBroadcastController } from './internal-broadcast.controller';
 import { WebSocketModule } from '../websocket/websocket.module';
+import { InternalBroadcastController } from './internal-broadcast.controller';
 
 /**
  * Internal Module (ST-129)

@@ -1,3 +1,4 @@
+import { Readable } from 'stream';
 import {
   Controller,
   Get,
@@ -7,7 +8,6 @@ import {
   StreamableFile,
   Header,
 } from '@nestjs/common';
-import { AnalyticsService } from '../services/analytics.service';
 import {
   AnalyticsQueryDto,
   ExecutionHistoryQueryDto,
@@ -20,7 +20,7 @@ import {
   ComponentUsageDetail,
   ComponentBreakdown,
 } from '../dtos/analytics.dto';
-import { Readable } from 'stream';
+import { AnalyticsService } from '../services/analytics.service';
 
 @Controller('analytics')
 export class AnalyticsController {

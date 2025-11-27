@@ -8,9 +8,9 @@
  * - TC-VER-002: Major version creation
  */
 
+import { randomUUID } from 'crypto';
 import { PrismaClient, Component, Project } from '@prisma/client';
 import { handler } from '../create_component_version';
-import { randomUUID } from 'crypto';
 
 describe('create_component_version MCP Tool - Integration Tests', () => {
   let prisma: PrismaClient;

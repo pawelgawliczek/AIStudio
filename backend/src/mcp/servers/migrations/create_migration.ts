@@ -19,11 +19,11 @@
  * - ✅ Use this tool for safe migration creation only
  */
 
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { ValidationError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
