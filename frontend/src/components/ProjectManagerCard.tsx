@@ -80,7 +80,7 @@ export function ProjectManagerCard({
           {versionsCount} version{versionsCount !== 1 ? 's' : ''}
         </span>
         <Link
-          to={`/coordinators/${coordinator.id}`}
+          to={`/project-managers/${coordinator.id}`}
           className="text-sm text-accent hover:text-blue-800 hover:underline font-medium"
         >
           View Details
