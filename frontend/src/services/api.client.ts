@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Use empty string as fallback - paths already include /api prefix
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Event system for session expiration notifications
 type SessionExpiredCallback = (redirectPath?: string) => void;
@@ -129,7 +130,7 @@ class ApiClient {
 
     try {
       const response = await axios.post<{ accessToken: string; refreshToken: string }>(
-        `${API_BASE_URL}/auth/refresh`,
+        `${API_BASE_URL}/api/auth/refresh`,
         { refreshToken }
       );
 

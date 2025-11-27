@@ -127,7 +127,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
     queryKey: ['workflow-run-status', runId],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/projects/${projectId}/workflow-runs/${runId}/status`,
+        `${import.meta.env.VITE_API_URL || ''}/api/projects/${projectId}/workflow-runs/${runId}/status`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -146,8 +146,10 @@ const WorkflowExecutionMonitor: React.FC = () => {
 
   // Set up WebSocket connection
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
-      transports: ['websocket'],
+    // ST-108: Use VITE_WS_URL for WebSocket, fallback to window.location.origin
+    const wsUrl = import.meta.env.VITE_WS_URL || window.location.origin;
+    const newSocket = io(wsUrl, {
+      transports: ['websocket', 'polling'],
     });
 
     newSocket.on('connect', () => {

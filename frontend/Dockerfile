@@ -22,7 +22,7 @@ COPY shared ./shared
 COPY tsconfig.json ./
 
 # Build arguments for environment variables
-# VITE_API_URL: API base URL (default: empty, paths start with /api)
+# VITE_API_URL: API base URL (default: empty, frontend uses relative /api paths)
 # VITE_WS_URL: WebSocket URL (default: empty, falls back to window.location.origin)
 ARG VITE_API_URL=
 ARG VITE_WS_URL=
