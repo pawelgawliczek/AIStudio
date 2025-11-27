@@ -1,0 +1,47 @@
+{
+  "backups": [
+    {
+      "filename": "vibestudio_development_20251122_115533.sql.gz",
+      "timestamp": "20251122_115533",
+      "size": 819503,
+      "checksum": "737f1e4a88195e1aed74816d29f6ff38",
+      "environment": "development",
+      "created_at": "2025-11-22T09:55:33Z"
+    },
+    {
+      "filename": "vibestudio_development_20251123_084604.sql.gz",
+      "timestamp": "20251123_084604",
+      "size": 1175383,
+      "checksum": "55bb2000d3b8beaaa9b4c4b56e3c75a6",
+      "environment": "development",
+      "created_at": "2025-11-23T06:46:05Z"
+    },
+    {
+      "filename": "vibestudio_development_ST-78_20251123_090441.sql.gz",
+      "timestamp": "20251123_090441",
+      "size": 1190185,
+      "checksum": "467844ac54ce8ec7af5cf6a2e2d80dae",
+      "environment": "development",
+      "story_key": "ST-78",
+      "created_at": "2025-11-23T07:04:43Z"
+    },
+    {
+      "filename": "vibestudio_development_20251124_101921.sql.gz",
+      "timestamp": "20251124_101921",
+      "size": 1323269,
+      "checksum": "ad60e48e7bc61aad1fcd32bed9b33063",
+      "environment": "development",
+      "story_key": "",
+      "created_at": "2025-11-24T08:19:21Z"
+    },
+    {
+      "filename": "vibestudio_development_20251124_101953.sql.gz",
+      "timestamp": "20251124_101953",
+      "size": 1323270,
+      "checksum": "98aed8a612ada7999579288b89afbae9",
+      "environment": "development",
+      "story_key": "",
+      "created_at": "2025-11-24T08:19:53Z"
+    }
+  ]
+}

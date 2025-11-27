@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -23,13 +24,14 @@ import ComponentCoverageView from './pages/ComponentCoverageView';
 import TeamDetailsPage from './pages/TeamDetailsPage';
 import { AuthProvider } from './context/AuthContext';
 import { ProjectProvider } from './context/ProjectContext';
+import { useWorkflowToastNotifications } from './hooks/useWorkflowToastNotifications';
 
-function App() {
+function AppContent() {
+  // ST-108: Initialize toast notifications for workflow events
+  useWorkflowToastNotifications();
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ProjectProvider>
-          <Routes>
+    <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Layout />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
@@ -67,6 +69,38 @@ function App() {
               <Route path="analytics/workflow-details" element={<Navigate to="/analytics/team-details" replace />} />
             </Route>
           </Routes>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <ProjectProvider>
+          {/* ST-108: Toast notification configuration */}
+          <Toaster
+            position="top-right"
+            reverseOrder={false}
+            gutter={8}
+            toastOptions={{
+              duration: 5000, // Default 5s auto-dismiss
+              style: {
+                maxWidth: '500px',
+              },
+              success: {
+                duration: 5000,
+                iconTheme: { primary: '#10b981', secondary: 'white' },
+              },
+              error: {
+                duration: 8000, // Longer for errors (user needs time to read)
+                iconTheme: { primary: '#ef4444', secondary: 'white' },
+              },
+            }}
+            containerStyle={{
+              top: 70, // Below navbar
+            }}
+          />
+          <AppContent />
         </ProjectProvider>
       </AuthProvider>
     </BrowserRouter>

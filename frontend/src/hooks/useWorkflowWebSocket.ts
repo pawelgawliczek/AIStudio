@@ -21,10 +21,28 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
     // Initialize socket connection
     // Use VITE_WS_URL from build-time env vars, fallback to relative path for nginx proxy
     const wsUrl = import.meta.env.VITE_WS_URL || '/socket.io';
+
+    // ST-108: Extract JWT token from localStorage for authentication
+    const getAccessToken = () => {
+      try {
+        const authData = localStorage.getItem('auth');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          return parsed.accessToken || parsed.token;
+        }
+      } catch (error) {
+        console.error('[WebSocket] Failed to get access token:', error);
+      }
+      return null;
+    };
+
     const socket = io(wsUrl, {
       transports: ['websocket'],
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,
+      auth: {
+        token: getAccessToken(), // ST-108: Pass JWT token in handshake
+      },
     });
 
     socketRef.current = socket;
@@ -68,6 +86,10 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
     socket.on('component:progress', handleUpdate);
     socket.on('component:completed', handleUpdate);
     socket.on('queue:updated', handleUpdate);
+    // ST-108: New toast notification events
+    socket.on('deployment:started', handleUpdate);
+    socket.on('deployment:completed', handleUpdate);
+    socket.on('review:ready', handleUpdate);
 
     // Cleanup on unmount
     return () => {
@@ -78,6 +100,9 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
       socket.off('component:progress');
       socket.off('component:completed');
       socket.off('queue:updated');
+      socket.off('deployment:started');
+      socket.off('deployment:completed');
+      socket.off('review:ready');
       socket.off('connect');
       socket.off('disconnect');
 

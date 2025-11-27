@@ -9,6 +9,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
 
 /**
  * WebSocket Gateway for real-time updates
@@ -29,8 +30,42 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   // Track active users per room
   private activeUsers = new Map<string, Set<string>>();
 
-  handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+  constructor(private jwtService: JwtService) {}
+
+  async handleConnection(client: Socket) {
+    try {
+      // ST-108: Extract JWT token from handshake
+      const token = this.extractTokenFromHandshake(client);
+
+      if (!token) {
+        this.logger.warn(`Client ${client.id} rejected: No token provided`);
+        client.disconnect();
+        return;
+      }
+
+      // Verify JWT token
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET || 'development-secret-change-in-production',
+      });
+
+      // Store user data in socket context
+      client.data.user = {
+        userId: payload.sub,
+        email: payload.email,
+        role: payload.role,
+      };
+
+      this.logger.log(`Client ${client.id} authenticated as user: ${payload.sub}`);
+    } catch (error) {
+      this.logger.warn(`Client ${client.id} rejected: Invalid token - ${error.message}`);
+      client.disconnect();
+    }
+  }
+
+  private extractTokenFromHandshake(client: Socket): string | null {
+    // Extract from auth object (WebSocket doesn't support headers)
+    const token = client.handshake.auth?.token || client.handshake.query?.token;
+    return token as string | null;
   }
 
   handleDisconnect(client: Socket) {
@@ -432,5 +467,48 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
     this.logger.log(`Client ${client.id} requested cancel for workflow run: ${data.runId}`);
     // Implementation would be handled by WorkflowRunsService
     return { success: true, runId: data.runId, action: 'cancel' };
+  }
+
+  // ============================================================================
+  // Deployment Events (ST-108)
+  // ============================================================================
+
+  /**
+   * Broadcast deployment started
+   */
+  broadcastDeploymentStarted(storyId: string, projectId: string, data: any) {
+    const storyRoom = `story:${storyId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(storyRoom).emit('deployment:started', data);
+    this.server.to(projectRoom).emit('deployment:started', data);
+
+    this.logger.log(`Broadcasted deployment started to rooms: ${storyRoom}, ${projectRoom}`);
+  }
+
+  /**
+   * Broadcast deployment completed
+   */
+  broadcastDeploymentCompleted(storyId: string, projectId: string, data: any) {
+    const storyRoom = `story:${storyId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(storyRoom).emit('deployment:completed', data);
+    this.server.to(projectRoom).emit('deployment:completed', data);
+
+    this.logger.log(`Broadcasted deployment completed to rooms: ${storyRoom}, ${projectRoom}`);
+  }
+
+  /**
+   * Broadcast review ready (ST-108)
+   */
+  broadcastReviewReady(storyId: string, projectId: string, data: any) {
+    const storyRoom = `story:${storyId}`;
+    const projectRoom = `project:${projectId}`;
+
+    this.server.to(storyRoom).emit('review:ready', data);
+    this.server.to(projectRoom).emit('review:ready', data);
+
+    this.logger.log(`Broadcasted review ready to rooms: ${storyRoom}, ${projectRoom}`);
   }
 }

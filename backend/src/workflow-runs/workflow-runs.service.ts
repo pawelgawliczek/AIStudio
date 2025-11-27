@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { RunStatus } from '@prisma/client';
 import { WorkflowStateService } from '../execution/workflow-state.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import {
   CreateWorkflowRunDto,
   UpdateWorkflowRunDto,
@@ -14,6 +15,7 @@ export class WorkflowRunsService {
   constructor(
     private prisma: PrismaService,
     private workflowStateService: WorkflowStateService,
+    private websocketGateway: AppWebSocketGateway,
   ) {}
 
   async create(
@@ -72,6 +74,19 @@ export class WorkflowRunsService {
         },
       },
     });
+
+    // ST-108: Broadcast workflow started event
+    if (workflowRun.story) {
+      this.websocketGateway.broadcastWorkflowStarted(workflowRun.id, projectId, {
+        runId: workflowRun.id,
+        storyId: workflowRun.storyId,
+        storyKey: workflowRun.story.key,
+        storyTitle: workflowRun.story.title,
+        triggeredBy: createDto.status || 'system',
+        startedAt: workflowRun.startedAt.toISOString(),
+        projectId,
+      });
+    }
 
     return this.mapToResponseDto(workflowRun);
   }
@@ -235,6 +250,20 @@ export class WorkflowRunsService {
         },
       },
     });
+
+    // ST-108: Broadcast workflow status update (completed/failed)
+    if (updateDto.status && workflowRun.story &&
+        (updateDto.status === RunStatus.completed || updateDto.status === RunStatus.failed)) {
+      this.websocketGateway.broadcastWorkflowStatusUpdated(workflowRun.id, existingRun.projectId, {
+        runId: workflowRun.id,
+        storyId: workflowRun.storyId,
+        storyKey: workflowRun.story.key,
+        status: updateDto.status,
+        completedAt: workflowRun.finishedAt?.toISOString(),
+        error: updateDto.errorMessage,
+        projectId: existingRun.projectId,
+      });
+    }
 
     return this.mapToResponseDto(workflowRun);
   }
