@@ -66,7 +66,7 @@ export const testExecutionService = {
       }
     });
 
-    const response = await apiClient.get(`/api/test-executions?${params.toString()}`);
+    const response = await apiClient.get(`/test-executions?${params.toString()}`);
     return response.data;
   },
 
@@ -74,7 +74,7 @@ export const testExecutionService = {
    * Get detailed test execution by ID
    */
   async getById(id: string): Promise<TestExecution> {
-    const response = await apiClient.get(`/api/test-executions/${id}`);
+    const response = await apiClient.get(`/test-executions/${id}`);
     return response.data;
   },
 };
