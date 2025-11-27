@@ -9,7 +9,7 @@ import { PrismaClient } from '@prisma/client';
 import { ValidationError } from '../../types';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
 import { TranscriptParserService } from './services/transcript-parser.service';
-import { getWebSocketGateway } from '../../services/websocket-gateway.instance';
+import { broadcastComponentCompleted } from '../../services/websocket-gateway.instance';
 
 
 // ALIASING: Component → Agent (ST-109)
@@ -266,7 +266,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     },
   });
 
-  // ST-129: Broadcast component completed event via WebSocket
+  // ST-129: Broadcast component completed event via HTTP to backend
+  // (MCP runs in separate process, cannot share memory with NestJS WebSocket gateway)
   try {
     const workflowRun = await prisma.workflowRun.findUnique({
       where: { id: params.runId },
@@ -284,8 +285,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       : null;
 
     if (workflowRun && story) {
-      const websocketGateway = getWebSocketGateway();
-      websocketGateway.broadcastComponentCompleted(params.runId, workflowRun.projectId, {
+      await broadcastComponentCompleted(params.runId, workflowRun.projectId, {
         componentName: componentName,
         storyKey: story.key,
         storyTitle: story.title,

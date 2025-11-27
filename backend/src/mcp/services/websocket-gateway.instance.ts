@@ -1,44 +1,133 @@
 /**
- * Shared WebSocket Gateway Instance for MCP Handlers (ST-129)
+ * WebSocket Broadcast Helper for MCP Handlers (ST-129)
  *
- * This singleton provides access to the WebSocket gateway from MCP handlers
- * which run outside the NestJS dependency injection context.
+ * MCP tools run via stdio transport in a separate process from NestJS.
+ * They cannot share memory with the NestJS WebSocket gateway.
  *
- * Pattern: Lazy initialization - gateway is created on first access
+ * Solution: Call HTTP endpoint on the backend to trigger broadcasts.
+ * Security: Uses INTERNAL_API_SECRET for authentication.
  */
 
-import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
-import { JwtService } from '@nestjs/jwt';
-import { Server } from 'socket.io';
-
-let gatewayInstance: AppWebSocketGateway | null = null;
+const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:3000';
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || '';
 
 /**
- * Get or create the shared WebSocket gateway instance
+ * Broadcast component started event via HTTP to backend
  */
-export function getWebSocketGateway(): AppWebSocketGateway {
-  if (!gatewayInstance) {
-    // Initialize JWT service with same config as WebSocketModule
-    const jwtService = new JwtService({
-      secret: process.env.JWT_SECRET || 'development-secret-change-in-production',
-      signOptions: { expiresIn: '24h' },
+export async function broadcastComponentStarted(
+  runId: string,
+  projectId: string,
+  data: { componentName: string; storyKey: string; storyTitle: string; startedAt: string }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'component:started',
+        runId,
+        projectId,
+        data,
+      }),
     });
-
-    // Create gateway instance
-    gatewayInstance = new AppWebSocketGateway(jwtService);
-
-    console.log('[WebSocketGateway] Created shared instance for MCP handlers');
+  } catch (error: any) {
+    console.warn(`[ST-129] Failed to broadcast component:started: ${error.message}`);
   }
-
-  return gatewayInstance;
 }
 
 /**
- * Set the WebSocket server instance (called by NestJS app after bootstrap)
- * This is needed because the Socket.IO server is created by NestJS WebSocket adapter
+ * Broadcast component completed event via HTTP to backend
  */
-export function setWebSocketServer(server: Server): void {
-  const gateway = getWebSocketGateway();
-  gateway.server = server;
-  console.log('[WebSocketGateway] Server instance attached to shared gateway');
+export async function broadcastComponentCompleted(
+  runId: string,
+  projectId: string,
+  data: { componentName: string; storyKey: string; storyTitle: string; status: string; completedAt: string }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'component:completed',
+        runId,
+        projectId,
+        data,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-129] Failed to broadcast component:completed: ${error.message}`);
+  }
+}
+
+/**
+ * Broadcast deployment started event via HTTP to backend
+ */
+export async function broadcastDeploymentStarted(
+  storyId: string,
+  projectId: string,
+  data: { storyKey: string; environment: string; startedAt: string }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'deployment:started',
+        storyId,
+        projectId,
+        data,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-129] Failed to broadcast deployment:started: ${error.message}`);
+  }
+}
+
+/**
+ * Broadcast deployment completed event via HTTP to backend
+ */
+export async function broadcastDeploymentCompleted(
+  storyId: string,
+  projectId: string,
+  data: { storyKey: string; environment: string; status: string; completedAt: string }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'deployment:completed',
+        storyId,
+        projectId,
+        data,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-129] Failed to broadcast deployment:completed: ${error.message}`);
+  }
+}
+
+// Keep old exports for NestJS-side code (main.ts)
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
+let sharedGateway: AppWebSocketGateway | null = null;
+
+export function setSharedWebSocketGateway(gateway: AppWebSocketGateway): void {
+  sharedGateway = gateway;
+  console.log('[ST-129] Shared WebSocket gateway initialized for MCP handlers');
+}
+
+export function getWebSocketGateway(): AppWebSocketGateway | null {
+  return sharedGateway;
 }
