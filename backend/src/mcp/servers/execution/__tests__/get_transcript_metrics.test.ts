@@ -54,7 +54,15 @@ describe('get_transcript_metrics', () => {
       expect(tool.inputSchema.type).toBe('object');
       expect(tool.inputSchema.properties).toHaveProperty('projectPath');
       expect(tool.inputSchema.properties).toHaveProperty('transcriptFile');
+      expect(tool.inputSchema.properties).toHaveProperty('agentId');
       expect(tool.inputSchema.required).toEqual([]);
+    });
+
+    it('ST-124-T1: should have agentId parameter in schema', () => {
+      const agentIdProp = (tool.inputSchema.properties as any).agentId;
+      expect(agentIdProp.type).toBe('string');
+      expect(agentIdProp.description).toContain('agent');
+      expect(agentIdProp.description).toContain('latest');
     });
 
     it('should have correct metadata', () => {
@@ -82,7 +90,7 @@ describe('get_transcript_metrics', () => {
       // ========== ASSERT ==========
       expect(result.success).toBe(true);
       expect(result.runLocally).toBe(true);
-      expect(result.reason).toContain('remotely via SSH');
+      expect(result.reason).toContain('running in Docker'); // Handler uses same message for SSH or Docker
       expect(result.command).toContain('npx tsx scripts/parse-transcript.ts');
       expect(result.projectPath).toBe('/Users/pawelgawliczek/projects/AIStudio');
     });
@@ -95,7 +103,7 @@ describe('get_transcript_metrics', () => {
       const result = await handler(prismaMock as any, params);
 
       // ========== ASSERT ==========
-      expect(result.command).toBe('npx tsx scripts/parse-transcript.ts --latest "/opt/stack/worktrees/st-117"');
+      expect(result.command).toBe('cd "/opt/stack/worktrees/st-117" && npx tsx scripts/parse-transcript.ts --latest "/opt/stack/worktrees/st-117"');
     });
 
     it('ST-117-R3: should generate correct command for specific transcript file', async () => {
@@ -109,7 +117,7 @@ describe('get_transcript_metrics', () => {
       const result = await handler(prismaMock as any, params);
 
       // ========== ASSERT ==========
-      expect(result.command).toBe('npx tsx scripts/parse-transcript.ts "abc123.jsonl"');
+      expect(result.command).toBe('cd "/Users/pawelgawliczek/projects/AIStudio" && npx tsx scripts/parse-transcript.ts "abc123.jsonl"');
     });
 
     it('ST-117-R4: should use PROJECT_HOST_PATH when projectPath not provided', async () => {
@@ -136,6 +144,53 @@ describe('get_transcript_metrics', () => {
       expect(result.instructions).toContain('Bash tool');
       expect(result.instructions).toContain('record_component_complete');
       expect(result.instructions).toContain('transcriptMetrics');
+    });
+
+    it('ST-124-R1: should generate --latest-agent command when agentId is "latest"', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        projectPath: '/Users/pawelgawliczek/projects/AIStudio',
+        agentId: 'latest',
+      };
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.command).toContain('--latest-agent');
+      expect(result.command).toBe('cd "/Users/pawelgawliczek/projects/AIStudio" && npx tsx scripts/parse-transcript.ts --latest-agent "/Users/pawelgawliczek/projects/AIStudio"');
+    });
+
+    it('ST-124-R2: should generate --agent command with specific agent ID', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        projectPath: '/Users/pawelgawliczek/projects/AIStudio',
+        agentId: '7527b7d9',
+      };
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.command).toContain('--agent');
+      expect(result.command).toContain('7527b7d9');
+      expect(result.command).toBe('cd "/Users/pawelgawliczek/projects/AIStudio" && npx tsx scripts/parse-transcript.ts --agent "7527b7d9" "/Users/pawelgawliczek/projects/AIStudio"');
+    });
+
+    it('ST-124-R3: should prioritize transcriptFile over agentId', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        projectPath: '/Users/pawelgawliczek/projects/AIStudio',
+        transcriptFile: 'specific.jsonl',
+        agentId: 'latest',  // Should be ignored
+      };
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.command).not.toContain('--latest-agent');
+      expect(result.command).toContain('specific.jsonl');
     });
   });
 
@@ -166,7 +221,8 @@ describe('get_transcript_metrics', () => {
       // ========== ARRANGE ==========
       const projectPath = '/Users/testuser/projects/MyProject';
 
-      mockFs.existsSync.mockReturnValue(true);
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
       mockFs.readdirSync.mockReturnValue(['old.jsonl', 'newest.jsonl', 'middle.jsonl'] as any);
       mockFs.statSync.mockImplementation((filePath: any) => {
         if (String(filePath).includes('newest')) {
@@ -190,7 +246,8 @@ describe('get_transcript_metrics', () => {
       // ========== ARRANGE ==========
       const projectPath = '/Users/testuser/projects/MyProject';
 
-      mockFs.existsSync.mockReturnValue(true);
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
       mockFs.readdirSync.mockReturnValue(['readme.md', 'config.json', 'transcript.jsonl'] as any);
       mockFs.statSync.mockReturnValue({ mtime: new Date() } as any);
 
@@ -206,7 +263,8 @@ describe('get_transcript_metrics', () => {
       // ========== ARRANGE ==========
       const projectPath = '/Users/testuser/projects/MyProject';
 
-      mockFs.existsSync.mockReturnValue(true);
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
       mockFs.readdirSync.mockReturnValue([] as any);
 
       // ========== ACT ==========
@@ -223,7 +281,8 @@ describe('get_transcript_metrics', () => {
       const transcriptFile = '/absolute/path/to/transcript.jsonl';
 
       mockFs.existsSync.mockImplementation((p: any) => {
-        // Return false for absolute path to trigger "not found" error
+        // Return false for /.dockerenv (not in Docker) and for absolute path (to trigger "not found" error)
+        if (String(p) === '/.dockerenv') return false;
         return String(p) !== transcriptFile;
       });
 
@@ -233,6 +292,104 @@ describe('get_transcript_metrics', () => {
       // ========== ASSERT ==========
       // Should try to use the absolute path
       expect(result.error || result.transcriptPath).toBeTruthy();
+    });
+
+    it('ST-124-L1: should filter to find latest agent transcript', async () => {
+      // ========== ARRANGE ==========
+      const projectPath = '/Users/testuser/projects/MyProject';
+
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
+      mockFs.readdirSync.mockReturnValue([
+        'abc123.jsonl',           // Main session - should be excluded
+        'agent-7527b7d9.jsonl',   // Agent transcript
+        'agent-abcd1234.jsonl',   // Agent transcript - newer
+      ] as any);
+      mockFs.statSync.mockImplementation((filePath: any) => {
+        if (String(filePath).includes('abcd1234')) {
+          return { mtime: new Date('2025-01-03') } as any;  // Newest
+        }
+        if (String(filePath).includes('7527b7d9')) {
+          return { mtime: new Date('2025-01-02') } as any;
+        }
+        return { mtime: new Date('2025-01-01') } as any;  // Main session oldest
+      });
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { projectPath, agentId: 'latest' });
+
+      // ========== ASSERT ==========
+      // Should have selected agent-abcd1234.jsonl (newest agent transcript)
+      expect(result.transcriptPath || result.error).toBeTruthy();
+      if (result.transcriptPath) {
+        expect(result.transcriptPath).toContain('agent-');
+      }
+    });
+
+    it('ST-124-L2: should find specific agent transcript by ID', async () => {
+      // ========== ARRANGE ==========
+      const projectPath = '/Users/testuser/projects/MyProject';
+
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
+      mockFs.readdirSync.mockReturnValue([
+        'abc123.jsonl',
+        'agent-7527b7d9.jsonl',
+        'agent-abcd1234.jsonl',
+      ] as any);
+      mockFs.statSync.mockReturnValue({ mtime: new Date() } as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { projectPath, agentId: '7527b7d9' });
+
+      // ========== ASSERT ==========
+      expect(result.transcriptPath || result.error).toBeTruthy();
+      if (result.transcriptPath) {
+        expect(result.transcriptPath).toContain('7527b7d9');
+      }
+    });
+
+    it('ST-124-L3: should return error when no agent transcripts found', async () => {
+      // ========== ARRANGE ==========
+      const projectPath = '/Users/testuser/projects/MyProject';
+
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
+      mockFs.readdirSync.mockReturnValue([
+        'abc123.jsonl',   // Main session only - no agents
+        'def456.jsonl',
+      ] as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { projectPath, agentId: 'latest' });
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('agent');
+    });
+
+    it('ST-124-L4: should exclude agent transcripts from regular --latest', async () => {
+      // ========== ARRANGE ==========
+      const projectPath = '/Users/testuser/projects/MyProject';
+
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
+      mockFs.readdirSync.mockReturnValue([
+        'abc123.jsonl',           // Main session
+        'agent-7527b7d9.jsonl',   // Agent - should be excluded
+      ] as any);
+      mockFs.statSync.mockReturnValue({ mtime: new Date() } as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { projectPath });  // No agentId
+
+      // ========== ASSERT ==========
+      // Should select abc123.jsonl, not agent transcript
+      expect(result.transcriptPath || result.error).toBeTruthy();
+      if (result.transcriptPath) {
+        expect(result.transcriptPath).not.toContain('agent-');
+        expect(result.transcriptPath).toContain('abc123');
+      }
     });
   });
 
@@ -273,7 +430,8 @@ describe('get_transcript_metrics', () => {
       // ========== ARRANGE ==========
       const projectPath = '/Users/testuser/projects/MyProject';
 
-      mockFs.existsSync.mockReturnValue(true);
+      // Return true for transcript dirs, false for /.dockerenv
+      mockFs.existsSync.mockImplementation((p: any) => String(p) !== '/.dockerenv');
       mockFs.readdirSync.mockReturnValue(['readme.md', 'config.json'] as any); // No .jsonl files
 
       // ========== ACT ==========

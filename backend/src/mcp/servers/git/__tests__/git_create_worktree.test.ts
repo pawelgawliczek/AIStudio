@@ -5,33 +5,40 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PrismaClient } from '@prisma/client';
+import { mockReset } from 'jest-mock-extended';
 import { handler, tool } from '../git_create_worktree';
+import { prismaMock } from './test-setup';
 
-// Mock child_process
+// Mock modules
 jest.mock('child_process');
+jest.mock('fs');
 
 const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
+const mockFs = fs as jest.Mocked<typeof fs>;
 
 describe('git_create_worktree', () => {
-  let prisma: PrismaClient;
   const testStoryId = 'test-story-id-123';
   const testProjectId = 'test-project-id-456';
+  const originalEnv = process.env;
 
   beforeEach(() => {
-    prisma = new PrismaClient();
+    mockReset(prismaMock);
     jest.clearAllMocks();
+    process.env = { ...originalEnv };
+    delete process.env.SSH_CONNECTION;
+    delete process.env.VIBESTUDIO_REMOTE;
+    delete process.env.DOCKER_CONTAINER;
 
     // Default mock implementations
     mockExecSync.mockReturnValue('');
-    jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-    jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-    jest.spyOn(fs, 'symlinkSync').mockImplementation(() => undefined);
-    jest.spyOn(fs, 'rmSync').mockImplementation(() => undefined);
+    mockFs.existsSync.mockReturnValue(false);
+    mockFs.mkdirSync.mockImplementation(() => undefined);
+    mockFs.symlinkSync.mockImplementation(() => undefined);
+    mockFs.rmSync.mockImplementation(() => undefined);
   });
 
-  afterEach(async () => {
-    await prisma.$disconnect();
+  afterEach(() => {
+    process.env = originalEnv;
   });
 
   describe('Tool Definition', () => {
@@ -54,48 +61,48 @@ describe('git_create_worktree', () => {
     describe('Validation', () => {
       it('should throw NotFoundError when story does not exist', async () => {
         // Mock Prisma to return null for story
-        prisma.story.findUnique = jest.fn().mockResolvedValue(null);
+        prismaMock.story.findUnique.mockResolvedValue(null as any);
 
         await expect(
-          handler(prisma, { storyId: testStoryId })
-        ).rejects.toThrow('Story not found');
+          handler(prismaMock as any, { storyId: testStoryId })
+        ).rejects.toThrow('not found');
       });
 
       it('should throw ValidationError when worktree already exists for story', async () => {
         // Mock story exists
-        prisma.story.findUnique = jest.fn().mockResolvedValue({
+        prismaMock.story.findUnique.mockResolvedValue({
           id: testStoryId,
           key: 'ST-1',
           title: 'Test Story',
           projectId: testProjectId,
           project: { id: testProjectId },
-        });
+        } as any);
 
         // Mock existing worktree
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue({
+        prismaMock.worktree.findFirst.mockResolvedValue({
           id: 'worktree-id',
           storyId: testStoryId,
           status: 'active',
           worktreePath: '/opt/stack/worktrees/st-1-test-story',
-        });
+        } as any);
 
         await expect(
-          handler(prisma, { storyId: testStoryId })
+          handler(prismaMock as any, { storyId: testStoryId })
         ).rejects.toThrow('Worktree already exists');
       });
 
       it('should throw ValidationError when branch already exists', async () => {
         // Mock story exists
-        prisma.story.findUnique = jest.fn().mockResolvedValue({
+        prismaMock.story.findUnique.mockResolvedValue({
           id: testStoryId,
           key: 'ST-1',
           title: 'Test Story',
           projectId: testProjectId,
           project: { id: testProjectId },
-        });
+        } as any);
 
         // Mock no existing worktree
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
 
         // Mock branch exists (git rev-parse succeeds)
         mockExecSync.mockImplementation((cmd) => {
@@ -106,21 +113,21 @@ describe('git_create_worktree', () => {
         });
 
         await expect(
-          handler(prisma, { storyId: testStoryId })
+          handler(prismaMock as any, { storyId: testStoryId })
         ).rejects.toThrow('Branch');
       });
 
       it('should throw ValidationError when insufficient disk space', async () => {
         // Mock story exists
-        prisma.story.findUnique = jest.fn().mockResolvedValue({
+        prismaMock.story.findUnique.mockResolvedValue({
           id: testStoryId,
           key: 'ST-1',
           title: 'Test Story',
           projectId: testProjectId,
           project: { id: testProjectId },
-        });
+        } as any);
 
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
 
         // Mock git commands
         mockExecSync.mockImplementation((cmd) => {
@@ -134,7 +141,7 @@ describe('git_create_worktree', () => {
         });
 
         await expect(
-          handler(prisma, { storyId: testStoryId })
+          handler(prismaMock as any, { storyId: testStoryId })
         ).rejects.toThrow('Insufficient disk space');
       });
     });
@@ -149,17 +156,17 @@ describe('git_create_worktree', () => {
           project: { id: testProjectId },
         };
 
-        prisma.story.findUnique = jest.fn().mockResolvedValue(story);
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
-        prisma.worktree.create = jest.fn().mockResolvedValue({
+        prismaMock.story.findUnique.mockResolvedValue(story as any);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
+        prismaMock.worktree.create.mockResolvedValue({
           id: 'worktree-id',
           storyId: testStoryId,
           branchName: 'st-42-implement-user-authentication',
           worktreePath: '/opt/stack/worktrees/st-42-implement-user-authentication',
           baseBranch: 'main',
           status: 'active',
-        });
-        prisma.story.update = jest.fn().mockResolvedValue(story);
+        } as any);
+        prismaMock.story.update.mockResolvedValue(story as any);
 
         mockExecSync.mockImplementation((cmd) => {
           if (cmd.toString().includes('rev-parse')) {
@@ -171,9 +178,9 @@ describe('git_create_worktree', () => {
           return '';
         });
 
-        const result = await handler(prisma, { storyId: testStoryId });
+        const result = await handler(prismaMock as any, { storyId: testStoryId });
 
-        expect(result.branchName).toBe('st-42-implement-user-authentication');
+        expect('branchName' in result && result.branchName).toBe('st-42-implement-user-authentication');
       });
 
       it('should use provided branch name', async () => {
@@ -186,17 +193,17 @@ describe('git_create_worktree', () => {
           project: { id: testProjectId },
         };
 
-        prisma.story.findUnique = jest.fn().mockResolvedValue(story);
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
-        prisma.worktree.create = jest.fn().mockResolvedValue({
+        prismaMock.story.findUnique.mockResolvedValue(story as any);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
+        prismaMock.worktree.create.mockResolvedValue({
           id: 'worktree-id',
           storyId: testStoryId,
           branchName: customBranchName,
           worktreePath: `/opt/stack/worktrees/${customBranchName}`,
           baseBranch: 'main',
           status: 'active',
-        });
-        prisma.story.update = jest.fn().mockResolvedValue(story);
+        } as any);
+        prismaMock.story.update.mockResolvedValue(story as any);
 
         mockExecSync.mockImplementation((cmd) => {
           if (cmd.toString().includes('rev-parse')) {
@@ -208,12 +215,12 @@ describe('git_create_worktree', () => {
           return '';
         });
 
-        const result = await handler(prisma, {
+        const result = await handler(prismaMock as any, {
           storyId: testStoryId,
           branchName: customBranchName,
         });
 
-        expect(result.branchName).toBe(customBranchName);
+        expect('branchName' in result && result.branchName).toBe(customBranchName);
       });
 
       it('should sanitize special characters in generated branch name', async () => {
@@ -225,17 +232,17 @@ describe('git_create_worktree', () => {
           project: { id: testProjectId },
         };
 
-        prisma.story.findUnique = jest.fn().mockResolvedValue(story);
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
-        prisma.worktree.create = jest.fn().mockResolvedValue({
+        prismaMock.story.findUnique.mockResolvedValue(story as any);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
+        prismaMock.worktree.create.mockResolvedValue({
           id: 'worktree-id',
           storyId: testStoryId,
           branchName: 'st-99-fix-bug-useremailcom-password',
           worktreePath: '/opt/stack/worktrees/st-99-fix-bug-useremailcom-password',
           baseBranch: 'main',
           status: 'active',
-        });
-        prisma.story.update = jest.fn().mockResolvedValue(story);
+        } as any);
+        prismaMock.story.update.mockResolvedValue(story as any);
 
         mockExecSync.mockImplementation((cmd) => {
           if (cmd.toString().includes('rev-parse')) {
@@ -247,10 +254,13 @@ describe('git_create_worktree', () => {
           return '';
         });
 
-        const result = await handler(prisma, { storyId: testStoryId });
+        const result = await handler(prismaMock as any, { storyId: testStoryId });
 
         // Should not contain special characters
-        expect(result.branchName).not.toMatch(/[@!:]/);
+        expect('branchName' in result && result.branchName).toBeTruthy();
+        if ('branchName' in result) {
+          expect(result.branchName).not.toMatch(/[@!:]/);
+        }
       });
     });
 
@@ -264,17 +274,17 @@ describe('git_create_worktree', () => {
           project: { id: testProjectId },
         };
 
-        prisma.story.findUnique = jest.fn().mockResolvedValue(story);
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
-        prisma.worktree.create = jest.fn().mockResolvedValue({
+        prismaMock.story.findUnique.mockResolvedValue(story as any);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
+        prismaMock.worktree.create.mockResolvedValue({
           id: 'worktree-id',
           storyId: testStoryId,
           branchName: 'st-1-test-story',
           worktreePath: '/opt/stack/worktrees/st-1-test-story',
           baseBranch: 'main',
           status: 'active',
-        });
-        prisma.story.update = jest.fn().mockResolvedValue(story);
+        } as any);
+        prismaMock.story.update.mockResolvedValue(story as any);
 
         mockExecSync.mockImplementation((cmd) => {
           if (cmd.toString().includes('rev-parse')) {
@@ -286,9 +296,9 @@ describe('git_create_worktree', () => {
           return '';
         });
 
-        jest.spyOn(fs, 'existsSync').mockImplementation((path) => {
+        mockFs.existsSync.mockImplementation((path) => {
           // Simulate node_modules exists in main repo
-          if (path.toString().includes('/opt/stack/AIStudio/node_modules')) {
+          if (String(path).includes('/opt/stack/AIStudio/node_modules')) {
             return true;
           }
           return false;
@@ -296,7 +306,7 @@ describe('git_create_worktree', () => {
       });
 
       it('should create worktree with all required steps', async () => {
-        const result = await handler(prisma, { storyId: testStoryId });
+        const result = await handler(prismaMock as any, { storyId: testStoryId });
 
         // Verify git commands were called
         expect(mockExecSync).toHaveBeenCalledWith(
@@ -313,7 +323,7 @@ describe('git_create_worktree', () => {
         );
 
         // Verify database records were created
-        expect(prisma.worktree.create).toHaveBeenCalledWith(
+        expect(prismaMock.worktree.create).toHaveBeenCalledWith(
           expect.objectContaining({
             data: expect.objectContaining({
               storyId: testStoryId,
@@ -323,7 +333,7 @@ describe('git_create_worktree', () => {
         );
 
         // Verify story phase was updated
-        expect(prisma.story.update).toHaveBeenCalledWith(
+        expect(prismaMock.story.update).toHaveBeenCalledWith(
           expect.objectContaining({
             where: { id: testStoryId },
             data: { currentPhase: 'implementation' },
@@ -339,7 +349,7 @@ describe('git_create_worktree', () => {
       });
 
       it('should use custom base branch when provided', async () => {
-        await handler(prisma, {
+        await handler(prismaMock as any, {
           storyId: testStoryId,
           baseBranch: 'develop',
         });
@@ -355,10 +365,10 @@ describe('git_create_worktree', () => {
       });
 
       it('should create symlinks for node_modules', async () => {
-        await handler(prisma, { storyId: testStoryId });
+        await handler(prismaMock as any, { storyId: testStoryId });
 
         // Verify symlink was created
-        expect(fs.symlinkSync).toHaveBeenCalledWith(
+        expect(mockFs.symlinkSync).toHaveBeenCalledWith(
           expect.stringContaining('/opt/stack/AIStudio/node_modules'),
           expect.stringContaining('/opt/stack/worktrees'),
           'dir'
@@ -366,7 +376,7 @@ describe('git_create_worktree', () => {
       });
 
       it('should return worktree information', async () => {
-        const result = await handler(prisma, { storyId: testStoryId });
+        const result = await handler(prismaMock as any, { storyId: testStoryId });
 
         expect(result).toHaveProperty('worktreeId');
         expect(result).toHaveProperty('storyId', testStoryId);
@@ -387,8 +397,8 @@ describe('git_create_worktree', () => {
           project: { id: testProjectId },
         };
 
-        prisma.story.findUnique = jest.fn().mockResolvedValue(story);
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
+        prismaMock.story.findUnique.mockResolvedValue(story as any);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
 
         mockExecSync.mockImplementation((cmd) => {
           if (cmd.toString().includes('rev-parse')) {
@@ -400,11 +410,14 @@ describe('git_create_worktree', () => {
           return '';
         });
 
-        // Simulate worktree path already exists
-        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        // Simulate worktree path already exists (but NOT /.dockerenv)
+        mockFs.existsSync.mockImplementation((p) => {
+          if (p === '/.dockerenv') return false;
+          return true; // All other paths exist (worktree path)
+        });
 
         await expect(
-          handler(prisma, { storyId: testStoryId })
+          handler(prismaMock as any, { storyId: testStoryId })
         ).rejects.toThrow('Worktree path already exists');
 
         // Verify branch cleanup was attempted
@@ -423,8 +436,8 @@ describe('git_create_worktree', () => {
           project: { id: testProjectId },
         };
 
-        prisma.story.findUnique = jest.fn().mockResolvedValue(story);
-        prisma.worktree.findFirst = jest.fn().mockResolvedValue(null);
+        prismaMock.story.findUnique.mockResolvedValue(story as any);
+        prismaMock.worktree.findFirst.mockResolvedValue(null as any);
 
         mockExecSync.mockImplementation((cmd) => {
           if (cmd.toString().includes('git fetch')) {
@@ -440,9 +453,148 @@ describe('git_create_worktree', () => {
         });
 
         await expect(
-          handler(prisma, { storyId: testStoryId })
+          handler(prismaMock as any, { storyId: testStoryId })
         ).rejects.toThrow('Git command failed');
       });
+    });
+  });
+
+  // ========== REMOTE DETECTION TESTS (ST-125) ==========
+
+  describe('Remote Detection (ST-125)', () => {
+    const story = {
+      id: testStoryId,
+      key: 'ST-42',
+      title: 'Test Story for Remote',
+      projectId: testProjectId,
+      project: { id: testProjectId },
+    };
+
+    beforeEach(() => {
+      prismaMock.story.findUnique.mockResolvedValue(story as any);
+    });
+
+    it('ST-125-R1: should return runLocally=true when SSH_CONNECTION is set', async () => {
+      // ========== ARRANGE ==========
+      process.env.SSH_CONNECTION = '192.168.1.1 12345 192.168.1.2 22';
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { storyId: testStoryId });
+
+      // ========== ASSERT ==========
+      expect(result).toHaveProperty('runLocally', true);
+      expect(result).toHaveProperty('slashCommand', '/git_create_worktree');
+      expect(result).toHaveProperty('story');
+      expect((result as any).story.key).toBe('ST-42');
+    });
+
+    it('ST-125-R2: should return runLocally=true when VIBESTUDIO_REMOTE is set', async () => {
+      // ========== ARRANGE ==========
+      process.env.VIBESTUDIO_REMOTE = 'true';
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { storyId: testStoryId });
+
+      // ========== ASSERT ==========
+      expect(result).toHaveProperty('runLocally', true);
+      expect(result).toHaveProperty('slashCommand', '/git_create_worktree');
+    });
+
+    it('ST-125-R3: should return runLocally=true when DOCKER_CONTAINER is set', async () => {
+      // ========== ARRANGE ==========
+      process.env.DOCKER_CONTAINER = 'true';
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { storyId: testStoryId });
+
+      // ========== ASSERT ==========
+      expect(result).toHaveProperty('runLocally', true);
+    });
+
+    it('ST-125-R4: should return runLocally=true when /.dockerenv exists', async () => {
+      // ========== ARRANGE ==========
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === '/.dockerenv') {
+          return true;
+        }
+        return false;
+      });
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { storyId: testStoryId });
+
+      // ========== ASSERT ==========
+      expect(result).toHaveProperty('runLocally', true);
+    });
+
+    it('ST-125-R5: should include params in response for local execution', async () => {
+      // ========== ARRANGE ==========
+      process.env.SSH_CONNECTION = '192.168.1.1 12345 192.168.1.2 22';
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, {
+        storyId: testStoryId,
+        branchName: 'custom-branch',
+        baseBranch: 'develop',
+      });
+
+      // ========== ASSERT ==========
+      expect(result).toHaveProperty('params');
+      expect((result as any).params.storyId).toBe(testStoryId);
+      expect((result as any).params.branchName).toBe('custom-branch');
+      expect((result as any).params.baseBranch).toBe('develop');
+    });
+
+    it('ST-125-R6: should include instructions for local execution', async () => {
+      // ========== ARRANGE ==========
+      process.env.SSH_CONNECTION = '192.168.1.1 12345 192.168.1.2 22';
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { storyId: testStoryId });
+
+      // ========== ASSERT ==========
+      expect(result).toHaveProperty('instructions');
+      expect((result as any).instructions).toContain('/git_create_worktree');
+      expect((result as any).instructions).toContain('record_worktree_created');
+    });
+
+    it('ST-125-R7: should throw NotFoundError for invalid story even in remote mode', async () => {
+      // ========== ARRANGE ==========
+      process.env.SSH_CONNECTION = '192.168.1.1 12345 192.168.1.2 22';
+      prismaMock.story.findUnique.mockResolvedValue(null as any);
+
+      // ========== ACT & ASSERT ==========
+      await expect(
+        handler(prismaMock as any, { storyId: 'nonexistent-story' })
+      ).rejects.toThrow('not found');
+    });
+
+    it('ST-125-R8: should NOT return runLocally when no remote indicators', async () => {
+      // ========== ARRANGE ==========
+      // No SSH_CONNECTION, VIBESTUDIO_REMOTE, DOCKER_CONTAINER, or /.dockerenv
+      mockFs.existsSync.mockReturnValue(false);
+      prismaMock.worktree.findFirst.mockResolvedValue(null as any);
+      prismaMock.worktree.create.mockResolvedValue({
+        id: 'worktree-id',
+        storyId: testStoryId,
+        branchName: 'st-42-test-story',
+        worktreePath: '/opt/stack/worktrees/st-42-test-story',
+        baseBranch: 'main',
+        status: 'active',
+      } as any);
+      prismaMock.story.update.mockResolvedValue(story as any);
+      mockExecSync.mockImplementation((cmd) => {
+        if (cmd.toString().includes('rev-parse')) throw new Error('not found');
+        if (cmd.toString().includes('df -BG')) return '10G\n';
+        return '';
+      });
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, { storyId: testStoryId });
+
+      // ========== ASSERT ==========
+      expect(result).not.toHaveProperty('runLocally');
+      expect(result).toHaveProperty('worktreeId');
     });
   });
 });

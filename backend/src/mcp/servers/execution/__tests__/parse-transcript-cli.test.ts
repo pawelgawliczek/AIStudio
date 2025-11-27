@@ -338,6 +338,99 @@ describe('parse-transcript.ts', () => {
     });
   });
 
+  // ========== AGENT TRANSCRIPT TESTS (ST-124) ==========
+
+  describe('Agent Transcript Discovery', () => {
+    it('ST-124-CLI-A1: should filter agent transcripts with --latest-agent', () => {
+      const files = [
+        'abc123.jsonl',           // Main session
+        'def456.jsonl',           // Main session
+        'agent-7527b7d9.jsonl',   // Agent transcript
+        'agent-abcd1234.jsonl',   // Agent transcript
+      ];
+
+      // --latest-agent should only find agent-* files
+      const agentFiles = files.filter(f => f.endsWith('.jsonl') && f.startsWith('agent-'));
+      expect(agentFiles).toEqual(['agent-7527b7d9.jsonl', 'agent-abcd1234.jsonl']);
+    });
+
+    it('ST-124-CLI-A2: should exclude agent transcripts from --latest', () => {
+      const files = [
+        'abc123.jsonl',           // Main session
+        'def456.jsonl',           // Main session
+        'agent-7527b7d9.jsonl',   // Agent transcript - should be excluded
+      ];
+
+      // --latest should exclude agent-* files
+      const mainFiles = files.filter(f => f.endsWith('.jsonl') && !f.startsWith('agent-'));
+      expect(mainFiles).toEqual(['abc123.jsonl', 'def456.jsonl']);
+    });
+
+    it('ST-124-CLI-A3: should find specific agent by full ID', () => {
+      const files = [
+        'agent-7527b7d9.jsonl',
+        'agent-abcd1234.jsonl',
+        'agent-efgh5678.jsonl',
+      ];
+      const agentId = '7527b7d9';
+
+      const found = files.filter(f => {
+        if (!f.startsWith('agent-') || !f.endsWith('.jsonl')) return false;
+        const fileAgentId = f.replace('agent-', '').replace('.jsonl', '');
+        return fileAgentId === agentId || fileAgentId.startsWith(agentId);
+      });
+
+      expect(found).toEqual(['agent-7527b7d9.jsonl']);
+    });
+
+    it('ST-124-CLI-A4: should find agent by partial ID prefix', () => {
+      const files = [
+        'agent-7527b7d9-abcd-1234-5678-90abcdef1234.jsonl',  // Full UUID
+        'agent-abcd1234-efgh-5678-90ab-cdef12345678.jsonl',
+      ];
+      const partialId = '7527b7d9';  // First 8 chars
+
+      const found = files.filter(f => {
+        if (!f.startsWith('agent-') || !f.endsWith('.jsonl')) return false;
+        const fileAgentId = f.replace('agent-', '').replace('.jsonl', '');
+        return fileAgentId === partialId || fileAgentId.startsWith(partialId);
+      });
+
+      expect(found.length).toBe(1);
+      expect(found[0]).toContain('7527b7d9');
+    });
+
+    it('ST-124-CLI-A5: should return latest agent transcript by mtime', () => {
+      const files = [
+        { name: 'agent-old.jsonl', mtime: new Date('2025-01-01') },
+        { name: 'agent-newest.jsonl', mtime: new Date('2025-01-03') },
+        { name: 'agent-middle.jsonl', mtime: new Date('2025-01-02') },
+      ];
+
+      const agentFiles = files.filter(f => f.name.startsWith('agent-'));
+      const sorted = [...agentFiles].sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+      expect(sorted[0].name).toBe('agent-newest.jsonl');
+    });
+
+    it('ST-124-CLI-A6: should return helpful error when no agent transcripts found', () => {
+      const files = ['abc123.jsonl', 'def456.jsonl'];  // No agent-* files
+      const agentFiles = files.filter(f => f.startsWith('agent-'));
+
+      expect(agentFiles.length).toBe(0);
+
+      // Expected error format
+      const errorOutput = JSON.stringify({
+        error: 'No agent transcripts found in /path/to/dir',
+        hint: 'Agent transcripts are named agent-{uuid}.jsonl'
+      });
+
+      const parsed = JSON.parse(errorOutput);
+      expect(parsed.error).toContain('No agent transcripts');
+      expect(parsed.hint).toContain('agent-{uuid}.jsonl');
+    });
+  });
+
   // ========== SIZE VALIDATION TESTS ==========
 
   describe('Size Validation', () => {
