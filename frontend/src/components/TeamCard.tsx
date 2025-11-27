@@ -7,16 +7,12 @@ export interface TeamCardProps {
   workflow: Workflow;
   projectId: string;
   onClick: () => void;
-  onToggleActive: () => void;
-  onDelete: () => void;
 }
 
 export function TeamCard({
   workflow,
   projectId,
   onClick,
-  onToggleActive,
-  onDelete,
 }: TeamCardProps) {
   const navigate = useNavigate();
 
@@ -60,18 +56,17 @@ export function TeamCard({
       {/* PM Info */}
       {workflow.coordinator && (
         <div className="mb-2">
-          <span className="text-xs font-medium text-fg">PM: </span>
+          <div className="text-xs font-medium text-fg mb-1">PM:</div>
           <button
             onClick={handlePMClick}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+            className="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors inline-flex items-center gap-1"
           >
             {workflow.coordinator.name}
             {workflow.coordinator.version && (
-              <span className="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
-                v{workflow.coordinator.version}
+              <span className="text-[10px] px-1 py-0 bg-purple-200 dark:bg-purple-800/50 rounded">
+                {workflow.coordinator.version}
               </span>
             )}
-            <span aria-hidden="true">→</span>
           </button>
         </div>
       )}
@@ -89,10 +84,7 @@ export function TeamCard({
               >
                 {assignment.componentName}
                 <span className="text-[10px] px-1 py-0 bg-blue-200 dark:bg-blue-800/50 rounded">
-                  v{assignment.version}
-                </span>
-                <span className="text-[10px]" aria-hidden="true">
-                  →
+                  {assignment.version}
                 </span>
               </button>
             ))}
@@ -124,35 +116,13 @@ export function TeamCard({
       )}
 
       {/* Actions */}
-      <div className="mt-3 space-y-2">
-        <div className="flex items-center justify-between gap-2 text-sm">
-          <button
-            onClick={handleViewDetails}
-            className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition-colors font-medium"
-          >
-            View Details
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleActive();
-              }}
-              className="text-muted hover:text-fg transition-colors"
-            >
-              {workflow.active ? 'Deactivate' : 'Activate'}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+      <div className="mt-3">
+        <button
+          onClick={handleViewDetails}
+          className="w-full px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition-colors font-medium text-sm"
+        >
+          View Details
+        </button>
       </div>
     </div>
   );

@@ -181,27 +181,29 @@ export function VersionHistoryTimeline({
                     <p className="text-sm text-fg mb-3 italic">{version.changeDescription}</p>
                   )}
 
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="bg-bg-secondary p-2 rounded">
-                      <div className="text-fg">Model</div>
-                      <div className="font-medium text-fg">{version.config.modelId}</div>
-                    </div>
-                    <div className="bg-bg-secondary p-2 rounded">
-                      <div className="text-fg">Temp</div>
-                      <div className="font-medium text-fg">{version.config.temperature}</div>
-                    </div>
-                    {decisionStrategy ? (
+                  {version.config && (
+                    <div className="grid grid-cols-3 gap-2 text-xs">
                       <div className="bg-bg-secondary p-2 rounded">
-                        <div className="text-fg">Strategy</div>
-                        <div className="font-medium text-fg capitalize">{decisionStrategy}</div>
+                        <div className="text-fg">Model</div>
+                        <div className="font-medium text-fg">{version.config.modelId}</div>
                       </div>
-                    ) : (
                       <div className="bg-bg-secondary p-2 rounded">
-                        <div className="text-fg">Tools</div>
-                        <div className="font-medium text-fg">{version.tools.length}</div>
+                        <div className="text-fg">Temp</div>
+                        <div className="font-medium text-fg">{version.config.temperature}</div>
                       </div>
-                    )}
-                  </div>
+                      {decisionStrategy ? (
+                        <div className="bg-bg-secondary p-2 rounded">
+                          <div className="text-fg">Strategy</div>
+                          <div className="font-medium text-fg capitalize">{decisionStrategy}</div>
+                        </div>
+                      ) : (
+                        <div className="bg-bg-secondary p-2 rounded">
+                          <div className="text-fg">Tools</div>
+                          <div className="font-medium text-fg">{version.tools?.length || 0}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

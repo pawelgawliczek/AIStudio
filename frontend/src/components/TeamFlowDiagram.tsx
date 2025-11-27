@@ -92,7 +92,7 @@ export const TeamFlowDiagram: FC<TeamFlowDiagramProps> = ({ workflow }) => {
                 textAnchor="middle"
                 className="text-xs fill-purple-600 dark:fill-purple-400"
               >
-                v{workflow.coordinator.version}
+                {workflow.coordinator.version}
               </text>
             )}
           </g>
@@ -161,7 +161,7 @@ export const TeamFlowDiagram: FC<TeamFlowDiagramProps> = ({ workflow }) => {
                     textAnchor="middle"
                     className="text-xs fill-blue-600 dark:fill-blue-400"
                   >
-                    v{agent.version}
+                    {agent.version}
                   </text>
                 </g>
               </g>

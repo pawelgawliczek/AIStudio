@@ -81,6 +81,12 @@ export class VersioningService {
         ...checksums,
       });
 
+      // Debug logging for componentAssignments
+      if (entityType === 'workflow' && newData.componentAssignments) {
+        console.log('[VERSIONING] Creating minor version with componentAssignments:',
+          JSON.stringify(newData.componentAssignments, null, 2));
+      }
+
       if (entityType === 'component') {
         return tx.component.create({ data: newData });
       } else {
@@ -336,7 +342,35 @@ export class VersioningService {
     // Copy all fields except excluded ones
     for (const [key, value] of Object.entries(source)) {
       if (!excludeFields.includes(key)) {
-        data[key] = value;
+        // Sanitize componentAssignments for workflows
+        if (key === 'componentAssignments' && entityType === 'workflow' && Array.isArray(value)) {
+          // Keep only valid fields per ComponentAssignmentDto schema
+          // Also handle legacy data format that may have 'role' field and missing version fields
+          data[key] = value.map((assignment: any) => {
+            // Parse version string to extract major/minor if not present
+            let versionMajor = assignment.versionMajor;
+            let versionMinor = assignment.versionMinor;
+
+            if (assignment.version && (versionMajor === undefined || versionMinor === undefined)) {
+              const match = assignment.version.match(/^v?(\d+)\.(\d+)$/);
+              if (match) {
+                versionMajor = parseInt(match[1], 10);
+                versionMinor = parseInt(match[2], 10);
+              }
+            }
+
+            return {
+              componentName: assignment.componentName,
+              componentId: assignment.componentId,
+              versionId: assignment.versionId || assignment.componentId, // Fallback to componentId if versionId missing
+              version: assignment.version,
+              versionMajor: versionMajor || 1,
+              versionMinor: versionMinor || 0,
+            };
+          });
+        } else {
+          data[key] = value;
+        }
       }
     }
 

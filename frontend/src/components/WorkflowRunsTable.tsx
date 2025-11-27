@@ -90,12 +90,12 @@ export function WorkflowRunsTable({ projectId, workflows, versionFilter }: Workf
 
   return (
     <div className="mt-8">
-      <h2 className="text-2xl font-bold text-fg mb-4">All Workflow Runs</h2>
+      <h2 className="text-2xl font-bold text-fg mb-4">All Team Runs</h2>
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-fg">Workflow:</label>
+          <label className="text-sm font-medium text-fg">Team:</label>
           <select
             value={selectedWorkflow}
             onChange={(e) => {
@@ -104,7 +104,7 @@ export function WorkflowRunsTable({ projectId, workflows, versionFilter }: Workf
             }}
             className="px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-accent"
           >
-            <option value="all">All Workflows</option>
+            <option value="all">All Teams</option>
             {workflows.map((workflow) => (
               <option key={workflow.id} value={workflow.id}>
                 {workflow.name}
@@ -192,7 +192,7 @@ export function WorkflowRunsTable({ projectId, workflows, versionFilter }: Workf
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-fg">No workflow runs found</h3>
+            <h3 className="mt-2 text-sm font-medium text-fg">No team runs found</h3>
             <p className="mt-1 text-sm text-muted">
               {selectedWorkflow !== 'all' || selectedStatus !== 'all' || dateFilter
                 ? 'Try adjusting your filters.'
@@ -209,7 +209,7 @@ export function WorkflowRunsTable({ projectId, workflows, versionFilter }: Workf
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                      Workflow
+                      Team
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                       Started

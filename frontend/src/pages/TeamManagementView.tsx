@@ -25,24 +25,18 @@ export function TeamManagementView() {
 
   // Use extracted hooks
   const filters = useWorkflowFilters();
-  const { handleDelete, handleToggleActive } = useWorkflowActions(projectId);
 
   // Local state for modals
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(!!editTeamId); // AC8: Open wizard if edit param present
 
-  // Fetch workflows
+  // Fetch workflows - always show all workflows (latest versions)
   const { data: workflows = [], isLoading } = useQuery({
-    queryKey: ['workflows', projectId, filters.searchQuery, filters.selectedActiveFilter],
+    queryKey: ['workflows', projectId, filters.searchQuery],
     queryFn: async () => {
       if (!projectId) return [];
-      const activeFilter =
-        filters.selectedActiveFilter === 'all'
-          ? undefined
-          : filters.selectedActiveFilter === 'active';
       return workflowsService.getAll(projectId, {
-        active: activeFilter,
         search: filters.searchQuery || undefined,
       });
     },
@@ -124,18 +118,7 @@ export function TeamManagementView() {
         searchQuery={filters.searchQuery}
         onSearchChange={filters.setSearchQuery}
         searchPlaceholder="Search teams..."
-        filters={[
-          {
-            label: 'Status',
-            value: filters.selectedActiveFilter,
-            onChange: filters.setSelectedActiveFilter,
-            options: [
-              { value: 'all', label: 'All' },
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-            ],
-          },
-        ]}
+        filters={[]}
         hasActiveFilters={filters.hasActiveFilters}
         onClearFilters={filters.clearFilters}
       />
@@ -146,7 +129,7 @@ export function TeamManagementView() {
           <span>Loading...</span>
         ) : (
           <span>
-            Found {workflows.length} workflow{workflows.length !== 1 ? 's' : ''}
+            Found {workflows.length} team{workflows.length !== 1 ? 's' : ''}
             {filters.searchQuery && ` matching "${filters.searchQuery}"`}
           </span>
         )}
@@ -176,14 +159,12 @@ export function TeamManagementView() {
                 setSelectedWorkflow(workflow);
                 setIsDetailModalOpen(true);
               }}
-              onToggleActive={() => handleToggleActive(workflow.id, workflow.active)}
-              onDelete={() => handleDelete(workflow.id)}
             />
           ))}
         </div>
       )}
 
-      {/* All Workflow Runs Table */}
+      {/* All Team Runs Table */}
       <WorkflowRunsTable
         projectId={projectId}
         workflows={workflows.map((w) => ({ id: w.id, name: w.name }))}

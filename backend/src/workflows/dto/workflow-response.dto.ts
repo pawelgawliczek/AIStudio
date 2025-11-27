@@ -19,6 +19,12 @@ export class WorkflowResponseDto {
   @ApiProperty({ description: 'Version' })
   version: string;
 
+  @ApiProperty({ description: 'Version major number' })
+  versionMajor: number;
+
+  @ApiProperty({ description: 'Version minor number' })
+  versionMinor: number;
+
   @ApiProperty({ description: 'Trigger configuration' })
   triggerConfig: any;
 

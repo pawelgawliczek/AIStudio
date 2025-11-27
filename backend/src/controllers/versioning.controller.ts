@@ -117,34 +117,6 @@ export class VersioningController {
     return this.mapComponentToVersionResponse(newVersion);
   }
 
-  @Post('components/versions/:versionId/activate')
-  async activateComponentVersion(
-    @Param('versionId') versionId: string,
-  ): Promise<ComponentVersionResponse> {
-    this.logger.log(`Activating component version ${versionId}`);
-
-    const component = await this.prisma.component.update({
-      where: { id: versionId },
-      data: { active: true },
-    });
-
-    return this.mapComponentToVersionResponse(component);
-  }
-
-  @Post('components/versions/:versionId/deactivate')
-  async deactivateComponentVersion(
-    @Param('versionId') versionId: string,
-  ): Promise<ComponentVersionResponse> {
-    this.logger.log(`Deactivating component version ${versionId}`);
-
-    const component = await this.prisma.component.update({
-      where: { id: versionId },
-      data: { active: false },
-    });
-
-    return this.mapComponentToVersionResponse(component);
-  }
-
   @Get('components/versions/compare')
   async compareComponentVersions(
     @Query() query: CompareVersionsQueryDto,
@@ -250,34 +222,6 @@ export class VersioningController {
     return this.mapCoordinatorToVersionResponse(newVersion);
   }
 
-  @Post('coordinators/versions/:versionId/activate')
-  async activateCoordinatorVersion(
-    @Param('versionId') versionId: string,
-  ): Promise<CoordinatorVersionResponse> {
-    this.logger.log(`Activating coordinator version ${versionId}`);
-
-    const component = await this.prisma.component.update({
-      where: { id: versionId },
-      data: { active: true },
-    });
-
-    return this.mapCoordinatorToVersionResponse(component);
-  }
-
-  @Post('coordinators/versions/:versionId/deactivate')
-  async deactivateCoordinatorVersion(
-    @Param('versionId') versionId: string,
-  ): Promise<CoordinatorVersionResponse> {
-    this.logger.log(`Deactivating coordinator version ${versionId}`);
-
-    const component = await this.prisma.component.update({
-      where: { id: versionId },
-      data: { active: false },
-    });
-
-    return this.mapCoordinatorToVersionResponse(component);
-  }
-
   @Get('coordinators/versions/compare')
   async compareCoordinatorVersions(
     @Query() query: CompareVersionsQueryDto,
@@ -341,6 +285,31 @@ export class VersioningController {
     return versions;
   }
 
+  // IMPORTANT: Compare endpoint must come BEFORE /:versionId to avoid route matching issues
+  @Get('workflows/versions/compare')
+  async compareWorkflowVersions(
+    @Query() query: CompareVersionsQueryDto,
+  ): Promise<VersionComparisonResponse> {
+    this.logger.log(`Comparing workflow versions ${query.versionId1} vs ${query.versionId2}`);
+
+    const [version1, version2] = await Promise.all([
+      this.prisma.workflow.findUnique({
+        where: { id: query.versionId1 },
+        include: { coordinator: true },
+      }),
+      this.prisma.workflow.findUnique({
+        where: { id: query.versionId2 },
+        include: { coordinator: true },
+      }),
+    ]);
+
+    if (!version1 || !version2) {
+      throw new NotFoundException('One or both workflow versions not found');
+    }
+
+    return this.compareVersions('workflow', version1, version2);
+  }
+
   @Get('workflows/versions/:versionId')
   async getWorkflowVersion(
     @Param('versionId') versionId: string,
@@ -388,60 +357,6 @@ export class VersioningController {
     });
 
     return this.mapWorkflowToVersionResponse(workflow!);
-  }
-
-  @Post('workflows/versions/:versionId/activate')
-  async activateWorkflowVersion(
-    @Param('versionId') versionId: string,
-  ): Promise<WorkflowVersionResponse> {
-    this.logger.log(`Activating workflow version ${versionId}`);
-
-    const workflow = await this.prisma.workflow.update({
-      where: { id: versionId },
-      data: { active: true },
-      include: { coordinator: true },
-    });
-
-    return this.mapWorkflowToVersionResponse(workflow);
-  }
-
-  @Post('workflows/versions/:versionId/deactivate')
-  async deactivateWorkflowVersion(
-    @Param('versionId') versionId: string,
-  ): Promise<WorkflowVersionResponse> {
-    this.logger.log(`Deactivating workflow version ${versionId}`);
-
-    const workflow = await this.prisma.workflow.update({
-      where: { id: versionId },
-      data: { active: false },
-      include: { coordinator: true },
-    });
-
-    return this.mapWorkflowToVersionResponse(workflow);
-  }
-
-  @Get('workflows/versions/compare')
-  async compareWorkflowVersions(
-    @Query() query: CompareVersionsQueryDto,
-  ): Promise<VersionComparisonResponse> {
-    this.logger.log(`Comparing workflow versions ${query.versionId1} vs ${query.versionId2}`);
-
-    const [version1, version2] = await Promise.all([
-      this.prisma.workflow.findUnique({
-        where: { id: query.versionId1 },
-        include: { coordinator: true },
-      }),
-      this.prisma.workflow.findUnique({
-        where: { id: query.versionId2 },
-        include: { coordinator: true },
-      }),
-    ]);
-
-    if (!version1 || !version2) {
-      throw new NotFoundException('One or both workflow versions not found');
-    }
-
-    return this.compareVersions('workflow', version1, version2);
   }
 
   @Post('workflows/versions/:versionId/verify-checksum')

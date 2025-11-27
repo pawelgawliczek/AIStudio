@@ -17,6 +17,7 @@ import { ProjectManagerLibraryView } from './pages/ProjectManagerLibraryView';
 import { ProjectManagerDetailPage } from './pages/ProjectManagerDetailPage';
 import { TeamManagementView } from './pages/TeamManagementView';
 import { TeamDetailPage } from './pages/TeamDetailPage';
+import { TeamComparisonPage } from './pages/TeamComparisonPage';
 import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { PerformanceDashboard } from './pages/PerformanceDashboard';
@@ -67,6 +68,7 @@ function AppContent() {
               <Route path="project-managers/:id" element={<ProjectManagerDetailPage />} />
               <Route path="teams" element={<TeamManagementView />} />
               <Route path="teams/:id" element={<TeamDetailPage />} />
+              <Route path="teams/:id/compare" element={<TeamComparisonPage />} />
               <Route path="team-runs/:runId/results" element={<WorkflowResultsView />} />
               <Route path="team-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />

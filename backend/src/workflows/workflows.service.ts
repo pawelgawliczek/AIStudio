@@ -107,7 +107,10 @@ export class WorkflowsService {
       search?: string;
     },
   ): Promise<WorkflowResponseDto[]> {
-    const where: any = { projectId };
+    const where: any = {
+      projectId,
+      isDeprecated: false, // Only show non-deprecated versions
+    };
 
     if (options?.active !== undefined) {
       where.active = options.active;
@@ -124,13 +127,30 @@ export class WorkflowsService {
       ];
     }
 
-    const workflows = await this.prisma.workflow.findMany({
+    // Get all workflows and group by base name to find latest versions
+    const allWorkflows = await this.prisma.workflow.findMany({
       where,
       include: {
         coordinator: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { versionMajor: 'desc' },
+        { versionMinor: 'desc' },
+      ],
     });
+
+    // Group by name and take only the latest version (highest versionMajor.versionMinor)
+    const workflowsByName = new Map<string, any>();
+    for (const workflow of allWorkflows) {
+      const existing = workflowsByName.get(workflow.name);
+      if (!existing ||
+          workflow.versionMajor > existing.versionMajor ||
+          (workflow.versionMajor === existing.versionMajor && workflow.versionMinor > existing.versionMinor)) {
+        workflowsByName.set(workflow.name, workflow);
+      }
+    }
+
+    const workflows = Array.from(workflowsByName.values());
 
     // Fetch component names for coordinators
     const workflowsWithComponents = await Promise.all(
@@ -340,8 +360,11 @@ export class WorkflowsService {
       coordinatorId: workflow.coordinatorId,
       name: workflow.name,
       description: workflow.description,
-      version: workflow.version,
+      version: `v${workflow.versionMajor}.${workflow.versionMinor}`, // Construct version from versionMajor/versionMinor
+      versionMajor: workflow.versionMajor,
+      versionMinor: workflow.versionMinor,
       triggerConfig: workflow.triggerConfig,
+      componentAssignments: workflow.componentAssignments || [],
       active: workflow.active,
       createdAt: workflow.createdAt,
       updatedAt: workflow.updatedAt,
@@ -349,6 +372,7 @@ export class WorkflowsService {
         ? {
             id: workflow.coordinator.id,
             name: workflow.coordinator.name,
+            version: `v${workflow.coordinator.versionMajor}.${workflow.coordinator.versionMinor}`,
             domain: coordinatorConfig.domain,
             flowDiagram: coordinatorConfig.flowDiagram,
             componentIds: componentIds,

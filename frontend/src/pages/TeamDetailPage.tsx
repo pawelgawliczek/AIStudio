@@ -245,7 +245,12 @@ export function TeamDetailPage() {
               entityType="workflow"
               selectedVersions={[selectedVersion1, selectedVersion2]}
               onVersionSelect={handleVersionSelect}
-              onCompare={() => {}}
+              onCompare={() => {
+                // Navigate to version comparison view
+                if (selectedVersion1 && selectedVersion2) {
+                  navigate(`/teams/${id}/compare?v1=${selectedVersion1}&v2=${selectedVersion2}`);
+                }
+              }}
               isLoading={versionsLoading}
             />
           </Tab.Panel>
@@ -289,13 +294,6 @@ export function TeamDetailPage() {
         >
           <TrashIcon className="w-5 h-5" />
           Delete
-        </button>
-        <button
-          onClick={handleToggleActive}
-          disabled={toggleActiveMutation.isPending}
-          className="inline-flex items-center gap-2 px-4 py-2 text-fg hover:text-accent transition-colors disabled:opacity-50"
-        >
-          {workflow.active ? 'Deactivate' : 'Activate'}
         </button>
         <button
           onClick={handleEdit}
