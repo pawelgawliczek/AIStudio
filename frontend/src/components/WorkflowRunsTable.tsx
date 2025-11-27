@@ -6,9 +6,10 @@ import { workflowRunsService, WorkflowRun } from '../services/workflow-runs.serv
 interface WorkflowRunsTableProps {
   projectId: string;
   workflows: Array<{ id: string; name: string }>;
+  versionFilter?: string; // 'latest', 'all', or specific version like 'v1.2'
 }
 
-export function WorkflowRunsTable({ projectId, workflows }: WorkflowRunsTableProps) {
+export function WorkflowRunsTable({ projectId, workflows, versionFilter }: WorkflowRunsTableProps) {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -31,6 +32,22 @@ export function WorkflowRunsTable({ projectId, workflows }: WorkflowRunsTablePro
     if (dateFilter) {
       const runDate = new Date(run.startedAt).toISOString().split('T')[0];
       if (runDate !== dateFilter) return false;
+    }
+    // Version filter (AC7)
+    if (versionFilter && versionFilter !== 'all') {
+      if (versionFilter === 'latest') {
+        // Filter to latest version only - need to determine latest version per workflow
+        // For single workflow detail page, this works. For multi-workflow, might need refinement
+        const latestVersion = run.workflow?.version;
+        // Find the highest version in all runs for this workflow
+        const workflowRuns = allRuns.filter(r => r.workflowId === run.workflowId);
+        const versions = workflowRuns.map(r => r.workflow?.version).filter(Boolean);
+        const maxVersion = versions.sort().reverse()[0];
+        if (latestVersion !== maxVersion) return false;
+      } else {
+        // Filter by specific version
+        if (run.workflow?.version !== versionFilter) return false;
+      }
     }
     return true;
   });

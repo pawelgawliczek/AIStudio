@@ -81,10 +81,11 @@ export function TeamDetailPage() {
     },
   });
 
-  // Handle edit - opens wizard with pre-populated data
+  // Handle edit - opens version bump modal (AC8-AC9)
   const handleEdit = () => {
-    // Navigate to teams page with edit modal open
-    navigate(`/teams?edit=${id}`);
+    // For now, open version bump modal directly
+    // Full wizard edit with pre-population can be added later as enhancement
+    setShowVersionBumpModal(true);
   };
 
   // Handle delete
@@ -275,8 +276,8 @@ export function TeamDetailPage() {
             <WorkflowRunsTable
               projectId={projectId}
               workflows={[{ id: workflow.id, name: workflow.name }]}
+              versionFilter={workflowVersionFilter}
             />
-            {/* TODO: Implement version filtering in WorkflowRunsTable - AC7 */}
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>

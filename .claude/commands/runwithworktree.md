@@ -1,32 +1,32 @@
-Execute story {{arg1}} using the Worktree-Aware Development Workflow (test environment deployment).
+Execute story {{arg1}} using the Worktree-Aware Development Team (test environment deployment).
 
-## Workflow Details
+## Team Details
 
-**Workflow ID:** `5159f6c8-0979-458b-bb1e-d67adfb48269`
-**Coordinator:** Worktree-Aware PM
+**Team ID:** `5159f6c8-0979-458b-bb1e-d67adfb48269`
+**PM:** Worktree-Aware PM
 **Target:** Test environment deployment (http://127.0.0.1:3001 / http://127.0.0.1:5174)
 
 ## Execution
 
 ```typescript
-mcp__vibestudio__execute_story_with_workflow({
+mcp__vibestudio__execute_story_with_team({
   storyId: "{{arg1}}",
-  workflowId: "5159f6c8-0979-458b-bb1e-d67adfb48269",
+  teamId: "5159f6c8-0979-458b-bb1e-d67adfb48269",
   triggeredBy: "claude-orchestrator",
   cwd: "/opt/stack/AIStudio"
 })
 ```
 
-## Workflow Flow
+## Team Flow
 
 1. **Worktree Setup** - PM creates/validates git worktree for isolated development
 2. **Conflict Detection** - Checks for merge conflicts with main
-3. **Context Explore** - Discovers files in worktree ONCE (150K tokens)
-4. **Business Analyst** - Creates use cases, maps files (5K tokens)
-5. **Software Architect** - Health assessment + architecture plan (10K tokens)
-6. **Full-Stack Developer** - TDD implementation in worktree, all tests pass (20K tokens)
-7. **QA Automation** - Validates coverage ≥80%, readiness assessment (20K tokens)
-8. **DevOps Build & Deploy** - Acquires test queue lock, deploys to test environment (5K tokens)
+3. **Context Explorer Agent** - Discovers files in worktree ONCE (150K tokens)
+4. **Business Analyst Agent** - Creates use cases, maps files (5K tokens)
+5. **Software Architect Agent** - Health assessment + architecture plan (10K tokens)
+6. **Full-Stack Developer Agent** - TDD implementation in worktree, all tests pass (20K tokens)
+7. **QA Automation Agent** - Validates coverage ≥80%, readiness assessment (20K tokens)
+8. **DevOps Build & Deploy Agent** - Acquires test queue lock, deploys to test environment (5K tokens)
 9. **PM Review** - Checks outstanding items, manages lock, initiates re-run if needed (10K tokens)
 
 **Total:** ~230K tokens (vs 795K = 71% reduction)
@@ -46,7 +46,7 @@ mcp__vibestudio__execute_story_with_workflow({
 
 ## Iterative Refinement
 
-- **Max 5 runs** - Workflow automatically re-runs if issues found
+- **Max 5 runs** - Team automatically re-runs if issues found
 - **Same worktree** - All refinement runs work in same worktree
 - **Outstanding items tracked** - TypeScript errors, test failures, coverage gaps
 

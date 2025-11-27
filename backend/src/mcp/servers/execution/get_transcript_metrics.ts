@@ -21,16 +21,17 @@ export const tool: Tool = {
 
 DUAL-MODE OPERATION:
 - If MCP server runs LOCALLY: Parses transcript and returns metrics directly
-- If MCP server runs REMOTELY (via SSH): Returns { runLocally: true, command: "..." }
+- If MCP server runs in DOCKER: Returns { runLocally: true, command: "..." }
 
-When runLocally=true, execute the returned command via Bash tool, then pass the
-JSON output to record_component_complete as transcriptMetrics parameter.
+IMPORTANT: When runLocally=true, you MUST execute the command via Bash tool.
+The Bash tool runs on the HOST machine (where Claude Code runs), so it CAN access transcripts.
+The command uses the correct HOST path (PROJECT_HOST_PATH), not the Docker path.
 
 Example flow:
-1. Call get_transcript_metrics({ projectPath: "/path/to/project" })
-2. If runLocally=true: Run the command locally via Bash
-3. Parse JSON output
-4. Call record_component_complete({ ..., transcriptMetrics: parsedOutput })`,
+1. Call get_transcript_metrics()
+2. If runLocally=true: Execute the returned command via Bash tool
+3. Parse the JSON output from Bash
+4. Pass metrics to record_component_complete as transcriptMetrics parameter`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -175,31 +176,52 @@ function findLatestTranscript(transcriptDir: string): string | null {
 }
 
 export async function handler(_prisma: PrismaClient, params: any) {
-  // Detect if running remotely via SSH
+  // Detect if running remotely via SSH or in Docker
   const isRunningRemotely = !!process.env.SSH_CONNECTION;
+  const isRunningInDocker = !!process.env.DOCKER_CONTAINER || fs.existsSync('/.dockerenv');
 
-  // Determine project path
-  const projectPath =
-    params.projectPath || process.env.PROJECT_HOST_PATH || process.cwd();
+  // Determine project path - use PROJECT_HOST_PATH which contains the LOCAL machine path
+  // where Claude Code runs and stores transcripts
+  // CRITICAL: This must be the HOST path (e.g., /Users/pawelgawliczek/projects/AIStudio)
+  // NOT the Docker path (e.g., /app or /opt/stack/AIStudio)
+  const projectPath = process.env.PROJECT_HOST_PATH || params.projectPath || process.cwd();
 
-  if (isRunningRemotely) {
-    // Running remotely - return command for local execution
+  if (isRunningRemotely || isRunningInDocker) {
+    // MCP server is running in Docker, but the Bash tool runs on the HOST machine
+    // So we return a command that the agent can execute via Bash to parse transcripts
+    //
+    // The command uses PROJECT_HOST_PATH which is the correct path on the host machine
+    // where Claude Code runs and stores transcripts in ~/.claude/projects/
+
     const command = params.transcriptFile
-      ? `npx tsx scripts/parse-transcript.ts "${params.transcriptFile}"`
-      : `npx tsx scripts/parse-transcript.ts --latest "${projectPath}"`;
+      ? `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts "${params.transcriptFile}"`
+      : `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest "${projectPath}"`;
 
     return {
       success: true,
       runLocally: true,
-      reason: 'MCP server is running remotely via SSH. Transcript files are on your local machine.',
-      command,
+      reason: 'MCP server is running in Docker. Execute the command via Bash tool to parse transcripts on the host machine.',
       projectPath,
-      instructions: `Execute the command above using the Bash tool, then pass the JSON output to record_component_complete as the transcriptMetrics parameter.
+      transcriptDir: `~/.claude/projects/${projectPath.replace(/^\//, '-').replace(/\//g, '-')}/`,
+      command,
+      instructions: `Execute this command via Bash tool to get transcript metrics:
 
-Example:
-1. Run: ${command}
-2. Parse the JSON output
-3. Call record_component_complete with transcriptMetrics: { inputTokens, outputTokens, cacheCreationTokens, cacheReadTokens, totalTokens }`,
+${command}
+
+The Bash tool runs on the HOST machine where Claude Code runs, so it CAN access:
+- The parse-transcript.ts script at ${projectPath}/scripts/
+- The transcript files at ~/.claude/projects/${projectPath.replace(/^\//, '-').replace(/\//g, '-')}/
+
+After running the command, parse the JSON output and pass it to record_component_complete:
+{
+  transcriptMetrics: {
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    cacheCreationTokens: result.cacheCreationTokens,
+    cacheReadTokens: result.cacheReadTokens,
+    totalTokens: result.totalTokens
+  }
+}`,
     };
   }
 
