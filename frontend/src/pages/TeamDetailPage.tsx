@@ -81,11 +81,9 @@ export function TeamDetailPage() {
     },
   });
 
-  // Handle edit - opens version bump modal (AC8-AC9)
+  // Handle edit - opens wizard with pre-populated data (AC8)
   const handleEdit = () => {
-    // For now, open version bump modal directly
-    // Full wizard edit with pre-population can be added later as enhancement
-    setShowVersionBumpModal(true);
+    navigate(`/teams?edit=${id}`);
   };
 
   // Handle delete

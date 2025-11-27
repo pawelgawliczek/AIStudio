@@ -16,6 +16,7 @@ import { WorkflowWizardProvider, useWorkflowWizard } from '../../contexts/Workfl
 import { WorkflowShellForm } from './WorkflowShellForm';
 import { ComponentVersionSelector } from './ComponentVersionSelector';
 import { CoordinatorSelector } from './CoordinatorSelector';
+import { VersionBumpModal } from '../VersionBumpModal';
 import { apiClient } from '../../services/api.client';
 import { terminology } from '../../utils/terminology';
 
@@ -27,6 +28,8 @@ interface WorkflowCreationWizardProps {
   projectId: string;
   projects: Array<{ id: string; name: string }>;
   onSuccess: () => void;
+  editMode?: boolean; // AC8: Edit mode flag
+  teamId?: string; // AC8: Team ID for editing
 }
 
 const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = ({
@@ -34,10 +37,44 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   onClose,
   projects,
   onSuccess,
+  editMode,
+  teamId,
 }) => {
-  const { state, currentStep, nextStep, previousStep, canProceedToStep, resetWizard } = useWorkflowWizard();
+  const { state, currentStep, nextStep, previousStep, canProceedToStep, resetWizard, updateState } = useWorkflowWizard();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showVersionBumpModal, setShowVersionBumpModal] = useState(false);
+  const [existingTeam, setExistingTeam] = useState<any>(null);
+
+  // AC8: Fetch existing team data when in edit mode
+  React.useEffect(() => {
+    if (editMode && teamId && open) {
+      const fetchTeamData = async () => {
+        try {
+          setLoading(true);
+          const response = await apiClient.get(`/projects/${state.projectId}/workflows/${teamId}`);
+          const team = response.data;
+          setExistingTeam(team);
+
+          // Pre-populate wizard state
+          updateState({
+            name: team.name,
+            description: team.description || '',
+            coordinatorId: team.coordinatorId,
+            coordinatorMode: 'existing',
+            componentAssignments: team.componentAssignments || [],
+          });
+
+          setLoading(false);
+        } catch (err: any) {
+          setError(err.response?.data?.message || 'Failed to load team data');
+          setLoading(false);
+        }
+      };
+
+      fetchTeamData();
+    }
+  }, [editMode, teamId, open, state.projectId, updateState]);
 
   const handleNext = () => {
     if (currentStep < 3) {
@@ -55,6 +92,12 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   };
 
   const handleSubmit = async () => {
+    // AC9: In edit mode, open version bump modal instead of direct update
+    if (editMode && teamId) {
+      setShowVersionBumpModal(true);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -115,6 +158,31 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
     }
   };
 
+  // AC9: Handle version bump success - update workflow and close
+  const handleVersionBumpSuccess = async (newVersionId: string) => {
+    try {
+      setLoading(true);
+      // Update the new version with the modified data
+      const workflowData = {
+        name: state.name,
+        description: state.description,
+        coordinatorId: state.coordinatorId,
+        componentAssignments: state.componentAssignments,
+      };
+
+      await apiClient.put(`/projects/${state.projectId}/workflows/${newVersionId}`, workflowData);
+
+      setShowVersionBumpModal(false);
+      resetWizard();
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update team version');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const canSubmit = () => {
     if (state.coordinatorMode === 'existing') {
       return !!state.coordinatorId;
@@ -128,8 +196,9 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth data-testid="workflow-wizard-modal">
-      <DialogTitle>Create New {terminology.team}</DialogTitle>
+    <>
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth data-testid="workflow-wizard-modal">
+        <DialogTitle>{editMode ? 'Edit' : 'Create New'} {terminology.team}</DialogTitle>
 
       <DialogContent>
         <Box sx={{ width: '100%', pt: 2 }}>
@@ -179,11 +248,25 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
             disabled={!canSubmit() || loading}
             startIcon={loading ? <CircularProgress size={16} /> : null}
           >
-            {loading ? 'Creating...' : `Create ${terminology.team}`}
+            {loading ? (editMode ? 'Saving...' : 'Creating...') : (editMode ? 'Save Changes' : `Create ${terminology.team}`)}
           </Button>
         )}
       </DialogActions>
-    </Dialog>
+      </Dialog>
+
+      {/* AC9: Version Bump Modal */}
+      {editMode && teamId && existingTeam && (
+        <VersionBumpModal
+          isOpen={showVersionBumpModal}
+          onClose={() => setShowVersionBumpModal(false)}
+          entityType="workflow"
+          entityId={teamId}
+          entityName={existingTeam.name}
+          currentVersion={existingTeam.version}
+          onSuccess={handleVersionBumpSuccess}
+        />
+      )}
+    </>
   );
 };
 
@@ -193,10 +276,19 @@ export const WorkflowCreationWizard: React.FC<WorkflowCreationWizardProps> = ({
   projectId,
   projects,
   onSuccess,
+  editMode,
+  teamId,
 }) => {
   return (
     <WorkflowWizardProvider projectId={projectId}>
-      <WizardContent open={open} onClose={onClose} projects={projects} onSuccess={onSuccess} />
+      <WizardContent
+        open={open}
+        onClose={onClose}
+        projects={projects}
+        onSuccess={onSuccess}
+        editMode={editMode}
+        teamId={teamId}
+      />
     </WorkflowWizardProvider>
   );
 };

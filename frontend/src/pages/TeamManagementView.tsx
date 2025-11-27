@@ -17,9 +17,10 @@ import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCr
 import { terminology } from '../utils/terminology';
 
 export function TeamManagementView() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedProject, projects } = useProject();
   const projectId = searchParams.get('projectId') || selectedProject?.id || '';
+  const editTeamId = searchParams.get('edit'); // AC8: Handle ?edit=${id} param
   const queryClient = useQueryClient();
 
   // Use extracted hooks
@@ -29,7 +30,7 @@ export function TeamManagementView() {
   // Local state for modals
   const [selectedWorkflow, setSelectedWorkflow] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(!!editTeamId); // AC8: Open wizard if edit param present
 
   // Fetch workflows
   const { data: workflows = [], isLoading } = useQuery({
@@ -50,6 +51,16 @@ export function TeamManagementView() {
 
   const handleWizardSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['workflows'] });
+  };
+
+  // AC8: Handle wizard close to clear edit param
+  const handleWizardClose = () => {
+    setIsWizardOpen(false);
+    if (editTeamId) {
+      // Remove edit param from URL
+      searchParams.delete('edit');
+      setSearchParams(searchParams);
+    }
   };
 
   if (!projectId) {
@@ -190,10 +201,12 @@ export function TeamManagementView() {
 
       <WorkflowCreationWizard
         open={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
+        onClose={handleWizardClose}
         projectId={projectId}
         projects={projects}
         onSuccess={handleWizardSuccess}
+        editMode={!!editTeamId}
+        teamId={editTeamId || undefined}
       />
     </div>
   );
