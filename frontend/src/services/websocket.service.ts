@@ -26,13 +26,18 @@ class WebSocketService {
   private socket: Socket | null = null;
   private connected = false;
 
-  connect(): Socket {
+  connect(): Socket | null {
     if (this.socket && this.connected) {
       return this.socket;
     }
 
     const token = localStorage.getItem('accessToken');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // ST-108: Don't connect without a valid token (server will reject)
+    if (!token) {
+      console.log('[WebSocket] No access token available, skipping connection');
+      return null;
+    }
 
     this.socket = io(WS_URL, {
       auth: { token },
@@ -104,9 +109,14 @@ export function useWebSocket() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    socketRef.current = wsService.connect();
+    const socket = wsService.connect();
+    socketRef.current = socket;
 
-    const socket = socketRef.current;
+    // ST-108: Handle case when no token available (connect returns null)
+    if (!socket) {
+      setIsConnected(false);
+      return;
+    }
 
     const handleConnect = () => setIsConnected(true);
     const handleDisconnect = () => setIsConnected(false);
