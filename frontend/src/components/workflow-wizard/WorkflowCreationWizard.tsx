@@ -45,10 +45,11 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   const [error, setError] = useState<string | null>(null);
   const [showVersionBumpModal, setShowVersionBumpModal] = useState(false);
   const [existingTeam, setExistingTeam] = useState<any>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // AC8: Fetch existing team data when in edit mode
   React.useEffect(() => {
-    if (editMode && teamId && open) {
+    if (editMode && teamId && open && !dataLoaded) {
       const fetchTeamData = async () => {
         try {
           setLoading(true);
@@ -65,6 +66,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
             componentAssignments: team.componentAssignments || [],
           });
 
+          setDataLoaded(true);
           setLoading(false);
         } catch (err: any) {
           setError(err.response?.data?.message || 'Failed to load team data');
@@ -74,7 +76,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
 
       fetchTeamData();
     }
-  }, [editMode, teamId, open, state.projectId, updateState]);
+  }, [editMode, teamId, open, dataLoaded, state.projectId, updateState]);
 
   const handleNext = () => {
     if (currentStep < 3) {
@@ -88,6 +90,8 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
 
   const handleClose = () => {
     resetWizard();
+    setDataLoaded(false);
+    setExistingTeam(null);
     onClose();
   };
 
@@ -159,10 +163,10 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   };
 
   // AC9: Handle version bump success - update workflow and close
-  const handleVersionBumpSuccess = async (newVersionId: string) => {
+  const handleVersionBumpSuccess = async (newVersion: string) => {
     try {
       setLoading(true);
-      // Update the new version with the modified data
+      // Update the workflow with the modified data (using teamId, not the version tag)
       const workflowData = {
         name: state.name,
         description: state.description,
@@ -170,7 +174,8 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
         componentAssignments: state.componentAssignments,
       };
 
-      await apiClient.put(`/projects/${state.projectId}/workflows/${newVersionId}`, workflowData);
+      // BUGFIX: Use teamId (the actual workflow UUID), not newVersion (the version tag like "v2.0")
+      await apiClient.put(`/projects/${state.projectId}/workflows/${teamId}`, workflowData);
 
       setShowVersionBumpModal(false);
       resetWizard();
