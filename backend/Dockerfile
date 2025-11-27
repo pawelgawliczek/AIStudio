@@ -39,8 +39,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dumb-init, OpenSSL for Prisma, git for code analysis, and build tools for native modules
-RUN apk add --no-cache dumb-init openssl git python3 make g++
+# Install dumb-init, OpenSSL for Prisma, git for code analysis, build tools for native modules,
+# and postgresql-client for backup operations (ST-130)
+RUN apk add --no-cache dumb-init openssl git python3 make g++ postgresql-client
 
 # Copy package files
 COPY package*.json ./

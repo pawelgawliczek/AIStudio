@@ -1,11 +1,12 @@
 /**
- * Run Backup Tool - ST-78
+ * Run Backup Tool - ST-78, ST-130
  * Execute database backup for specified environment
  *
  * Features:
- * - Execute backup script for production or development
+ * - Execute pg_dump via postgres container for Docker environments
+ * - Fall back to backup script on host for MCP calls
  * - Capture backup results (filename, size, duration)
- * - Parse script output for structured data
+ * - MD5 checksum generation
  * - Handle errors gracefully
  */
 
@@ -14,6 +15,8 @@ import path from 'path';
 import { promisify } from 'util';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { stat, writeFile, readFile } from 'fs/promises';
+import crypto from 'crypto';
 
 const execAsync = promisify(exec);
 
@@ -66,66 +69,90 @@ export interface RunBackupResponse {
 }
 
 /**
- * Handler for running database backup
- *
- * Executes the backup-database.sh script and parses output:
- * 1. Run backup script with specified environment
- * 2. Capture stdout/stderr
- * 3. Parse output for backup filename, size, checksum
- * 4. Return structured results
+ * Detect if running inside Docker container
  */
-export async function handler(
-  prisma: PrismaClient,
-  params: RunBackupParams
-): Promise<RunBackupResponse> {
-  const { environment } = params;
+function isRunningInDocker(): boolean {
+  try {
+    // Check for Docker-specific files
+    const fs = require('fs');
+    return fs.existsSync('/.dockerenv') ||
+           (fs.existsSync('/proc/1/cgroup') &&
+            fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Run backup using pg_dump directly (for Docker environment)
+ * Connects to postgres container via network and uses pg_dump
+ *
+ * NOTE: This requires pg_dump to be available in the backend container.
+ * If not available, falls back to returning an error with instructions.
+ */
+async function runDockerBackup(environment: 'production' | 'development'): Promise<RunBackupResponse> {
+  const startTime = Date.now();
+
+  // Backup configuration
+  const backupBaseDir = '/opt/stack/AIStudio/backups';
+  const backupDir = path.join(backupBaseDir, environment);
+  const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15).replace(/(\d{8})(\d{6})/, '$1_$2');
+  const backupFile = `vibestudio_${environment}_${timestamp}.sql.gz`;
+  const backupPath = path.join(backupDir, backupFile);
+
+  // Database credentials - in Docker, connect to postgres container via hostname
+  const dbPassword = process.env.POSTGRES_PASSWORD || 'CHANGE_ME_POSTGRES_PASSWORD';
+  const dbName = 'vibestudio';
+  const dbUser = 'postgres';
+  const dbHost = 'postgres'; // Docker network hostname
+
+  console.log(`[run_backup] Running Docker backup for ${environment}`);
+  console.log(`[run_backup] Output: ${backupPath}`);
 
   try {
-    // Path to backup script (absolute path to match BackupMonitorService)
-    const scriptPath = '/opt/stack/AIStudio/scripts/backup-database.sh';
+    // Check if pg_dump is available
+    try {
+      await execAsync('which pg_dump');
+    } catch {
+      // pg_dump not available - this is expected in the current setup
+      // Return informative error
+      throw new Error(
+        'pg_dump not available in backend container. ' +
+        'Backups should be run from the host using: npm run db:backup or via MCP tool directly. ' +
+        'To enable backups from web UI, install postgresql-client in backend Dockerfile.'
+      );
+    }
 
-    console.log(`[run_backup] Executing backup script: ${scriptPath} ${environment}`);
+    // Run pg_dump directly, piping to gzip
+    const dumpCmd = `PGPASSWORD='${dbPassword}' pg_dump -U ${dbUser} -h ${dbHost} ${dbName} | gzip > ${backupPath}`;
 
-    // Execute backup script with timeout (5 minutes)
-    const startTime = Date.now();
-    const { stdout, stderr } = await execAsync(`${scriptPath} ${environment}`, {
-      timeout: 300000, // 5 minutes
-      cwd: '/opt/stack/AIStudio', // Run from project root
-    });
+    await execAsync(dumpCmd, { timeout: 300000 });
 
     const endTime = Date.now();
-    const duration = Math.round((endTime - startTime) / 1000); // seconds
+    const duration = Math.round((endTime - startTime) / 1000);
 
-    console.log(`[run_backup] Script completed in ${duration}s`);
+    // Get file stats
+    const stats = await stat(backupPath);
+    const size = stats.size;
+    const sizeMB = Math.round((size / 1024 / 1024) * 100) / 100;
 
-    // Parse output to extract backup details
-    // Strip ANSI color codes before parsing (e.g., [0;32m, [0m)
-    const output = (stdout + stderr).replace(/\x1b\[[0-9;]*m/g, '');
+    // Generate MD5 checksum
+    const fileContent = await readFile(backupPath);
+    const checksum = crypto.createHash('md5').update(fileContent).digest('hex');
 
-    // Extract backup filename (e.g., "vibestudio_production_20251122_115533.sql.gz")
-    const filenameMatch = output.match(/Backup File:\s*([^\s]+\.sql\.gz)/);
-    const backupFile = filenameMatch ? filenameMatch[1] : '';
+    // Write checksum file
+    await writeFile(`${backupPath}.md5`, `${checksum}  ${backupFile}\n`);
 
-    // Extract backup path
-    const pathMatch = output.match(/Location:\s*(.+\.sql\.gz)/);
-    const backupPath = pathMatch ? pathMatch[1].trim() : '';
+    // Update manifest
+    await updateManifest(backupDir, {
+      filename: backupFile,
+      checksum,
+      size,
+      created_at: new Date().toISOString(),
+      environment,
+    });
 
-    // Extract checksum
-    const checksumMatch = output.match(/Checksum:\s*([a-f0-9]{32})/i);
-    const checksum = checksumMatch ? checksumMatch[1] : '';
-
-    // Extract size from output (e.g., "Size: 5 MB")
-    const sizeMatch = output.match(/Size:\s*(\d+)\s*MB/);
-    const sizeMB = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
-    const size = sizeMB * 1024 * 1024; // Convert to bytes
-
-    // Extract timestamp from filename
-    const timestampMatch = backupFile.match(/_(\d{8}_\d{6})\./);
-    const timestamp = timestampMatch ? timestampMatch[1] : '';
-
-    if (!backupFile) {
-      throw new Error('Failed to parse backup filename from script output');
-    }
+    console.log(`[run_backup] Backup completed: ${backupFile} (${sizeMB}MB) in ${duration}s`);
 
     return {
       success: true,
@@ -138,6 +165,117 @@ export async function handler(
       environment,
       timestamp,
     };
+  } catch (error: any) {
+    console.error('[run_backup] Docker backup error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update manifest.json with new backup entry
+ */
+async function updateManifest(backupDir: string, entry: {
+  filename: string;
+  checksum: string;
+  size: number;
+  created_at: string;
+  environment: string;
+}): Promise<void> {
+  const manifestPath = path.join(backupDir, 'manifest.json');
+
+  let manifest: { backups: any[] } = { backups: [] };
+
+  try {
+    const content = await readFile(manifestPath, 'utf-8');
+    manifest = JSON.parse(content);
+  } catch {
+    // Manifest doesn't exist, use empty
+  }
+
+  // Add new entry at beginning
+  manifest.backups.unshift(entry);
+
+  // Keep only last 10 entries in manifest
+  manifest.backups = manifest.backups.slice(0, 10);
+
+  await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+}
+
+/**
+ * Run backup using shell script (for host/MCP environment)
+ */
+async function runScriptBackup(environment: 'production' | 'development'): Promise<RunBackupResponse> {
+  const scriptPath = '/opt/stack/AIStudio/scripts/backup-database.sh';
+
+  console.log(`[run_backup] Executing backup script: ${scriptPath} ${environment}`);
+
+  const startTime = Date.now();
+  const { stdout, stderr } = await execAsync(`${scriptPath} ${environment}`, {
+    timeout: 300000,
+    cwd: '/opt/stack/AIStudio',
+  });
+
+  const endTime = Date.now();
+  const duration = Math.round((endTime - startTime) / 1000);
+
+  console.log(`[run_backup] Script completed in ${duration}s`);
+
+  // Parse output (strip ANSI codes)
+  const output = (stdout + stderr).replace(/\x1b\[[0-9;]*m/g, '');
+
+  const filenameMatch = output.match(/Backup File:\s*([^\s]+\.sql\.gz)/);
+  const backupFile = filenameMatch ? filenameMatch[1] : '';
+
+  const pathMatch = output.match(/Location:\s*(.+\.sql\.gz)/);
+  const backupPath = pathMatch ? pathMatch[1].trim() : '';
+
+  const checksumMatch = output.match(/Checksum:\s*([a-f0-9]{32})/i);
+  const checksum = checksumMatch ? checksumMatch[1] : '';
+
+  const sizeMatch = output.match(/Size:\s*(\d+)\s*MB/);
+  const sizeMB = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
+  const size = sizeMB * 1024 * 1024;
+
+  const timestampMatch = backupFile.match(/_(\d{8}_\d{6})\./);
+  const timestamp = timestampMatch ? timestampMatch[1] : '';
+
+  if (!backupFile) {
+    throw new Error('Failed to parse backup filename from script output');
+  }
+
+  return {
+    success: true,
+    backupFile,
+    backupPath,
+    size,
+    sizeMB,
+    duration,
+    checksum,
+    environment,
+    timestamp,
+  };
+}
+
+/**
+ * Handler for running database backup
+ *
+ * Detects environment and uses appropriate method:
+ * - Docker: Uses docker exec with pg_dump via postgres container
+ * - Host: Uses backup-database.sh script
+ */
+export async function handler(
+  prisma: PrismaClient,
+  params: RunBackupParams
+): Promise<RunBackupResponse> {
+  const { environment } = params;
+
+  try {
+    // Detect if running in Docker and use appropriate method
+    if (isRunningInDocker()) {
+      return await runDockerBackup(environment);
+    } else {
+      return await runScriptBackup(environment);
+    }
   } catch (error: any) {
     console.error('[run_backup] Error:', error);
 

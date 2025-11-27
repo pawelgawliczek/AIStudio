@@ -88,6 +88,10 @@ services:
       # Mount coverage data for test coverage analysis
       - ./backend/coverage:/app/backend/coverage:ro
       - ./frontend/coverage:/app/frontend/coverage:ro
+      # Mount backups directory for BackupsService (ST-130)
+      - ./backups:/opt/stack/AIStudio/backups
+      # Mount scripts for backup operations (ST-130)
+      - ./scripts:/opt/stack/AIStudio/scripts:ro
     depends_on:
       postgres:
         condition: service_healthy
