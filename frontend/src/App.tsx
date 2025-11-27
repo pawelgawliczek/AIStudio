@@ -22,6 +22,7 @@ import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { PerformanceDashboard } from './pages/PerformanceDashboard';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
+import { DeploymentHistoryPage } from './pages/DeploymentHistoryPage';
 import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
 import ComponentCoverageView from './pages/ComponentCoverageView';
 import TeamDetailsPage from './pages/TeamDetailsPage';
@@ -73,6 +74,7 @@ function AppContent() {
               <Route path="team-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />
               <Route path="analytics/team-details" element={<TeamDetailsPage />} />
+              <Route path="deployments" element={<DeploymentHistoryPage />} />
 
               {/* Backwards compatibility redirects (old routes → new routes) */}
               <Route path="components" element={<Navigate to="/agents" replace />} />

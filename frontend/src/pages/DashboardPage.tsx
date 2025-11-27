@@ -11,6 +11,7 @@ import {
   CodeBracketIcon,
   CogIcon,
 } from '@heroicons/react/24/outline';
+import { DashboardDeploymentsWidget } from '../components/DashboardDeploymentsWidget';
 
 interface DashboardStats {
   totalStories: number;
@@ -349,6 +350,11 @@ export function DashboardPage() {
                 </dl>
               </div>
             </div>
+          </div>
+
+          {/* Recent Deployments Widget */}
+          <div className="mb-6">
+            <DashboardDeploymentsWidget />
           </div>
 
           {/* Info Panel */}

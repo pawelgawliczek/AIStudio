@@ -4,19 +4,22 @@ import { useSearchParams } from 'react-router-dom';
 import {
   DocumentTextIcon,
   PlayIcon,
+  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 
 interface StoryDetailTabsProps {
   storyContent: React.ReactNode;
   executionContent: React.ReactNode;
+  deploymentsContent?: React.ReactNode;
 }
 
 const tabs = [
   { id: 'story', label: 'Story', icon: DocumentTextIcon },
   { id: 'execution', label: 'Execution', icon: PlayIcon },
+  { id: 'deployments', label: 'Deployments', icon: CloudArrowUpIcon },
 ];
 
-export function StoryDetailTabs({ storyContent, executionContent }: StoryDetailTabsProps) {
+export function StoryDetailTabs({ storyContent, executionContent, deploymentsContent }: StoryDetailTabsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'story';
   const defaultIndex = tabs.findIndex(t => t.id === currentTab);
@@ -54,6 +57,7 @@ export function StoryDetailTabs({ storyContent, executionContent }: StoryDetailT
       <Tab.Panels>
         <Tab.Panel>{storyContent}</Tab.Panel>
         <Tab.Panel>{executionContent}</Tab.Panel>
+        <Tab.Panel>{deploymentsContent}</Tab.Panel>
       </Tab.Panels>
     </Tab.Group>
   );

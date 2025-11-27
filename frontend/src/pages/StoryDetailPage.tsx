@@ -10,6 +10,7 @@ import { StoryTraceabilityTabs } from '../components/story/StoryTraceabilityTabs
 import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
 import { ReviewDashboard } from '../components/story/ReviewDashboard';
 import { StoryDetailTabs } from '../components/story/StoryDetailTabs';
+import { StoryDeploymentsTab } from '../components/story/StoryDeploymentsTab';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -431,6 +432,9 @@ export function StoryDetailPage() {
               </div>
             )}
           </>
+        }
+        deploymentsContent={
+          story?.id && <StoryDeploymentsTab storyId={story.id} />
         }
       />
 
