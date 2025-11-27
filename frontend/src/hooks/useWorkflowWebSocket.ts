@@ -18,8 +18,9 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
   const lastUpdateTimeRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Listen for auth changes (login/logout)
+  // Listen for auth changes (login/logout) via storage events AND BroadcastChannel
   useEffect(() => {
+    // Storage events (cross-tab communication)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'accessToken') {
         setAuthToken(e.newValue);
@@ -31,6 +32,26 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
       }
     };
 
+    // BroadcastChannel (same-tab and cross-tab communication)
+    // This catches token refreshes from API client in the same tab
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('auth_channel');
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'TOKEN_UPDATED' && event.data?.accessToken) {
+          console.log('[WebSocket] Token updated via BroadcastChannel');
+          setAuthToken(event.data.accessToken);
+        }
+        if (event.data?.type === 'LOGOUT') {
+          console.log('[WebSocket] Logout received via BroadcastChannel');
+          setAuthToken(null);
+        }
+      };
+    } catch (error) {
+      // BroadcastChannel not supported, rely on storage events only
+      console.warn('[WebSocket] BroadcastChannel not supported, using storage events only');
+    }
+
     // Check for token on mount (in case user is already logged in)
     const currentToken = localStorage.getItem('accessToken');
     if (currentToken !== authToken) {
@@ -38,7 +59,10 @@ export function useWorkflowWebSocket(options: UseWorkflowWebSocketOptions = {}) 
     }
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      channel?.close();
+    };
   }, [authToken]);
 
   // Main WebSocket connection effect
