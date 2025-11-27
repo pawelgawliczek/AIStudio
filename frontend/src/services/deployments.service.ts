@@ -70,22 +70,22 @@ export const deploymentsService = {
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.offset) params.append('offset', filters.offset.toString());
 
-    const response = await api.get(`/api/deployments?${params.toString()}`);
+    const response = await api.get(`/deployments?${params.toString()}`);
     return response.data;
   },
 
   async getById(id: string): Promise<Deployment> {
-    const response = await api.get(`/api/deployments/${id}`);
+    const response = await api.get(`/deployments/${id}`);
     return response.data;
   },
 
   async getByStoryId(storyId: string): Promise<StoryDeploymentsResponse> {
-    const response = await api.get(`/api/deployments/story/${storyId}`);
+    const response = await api.get(`/deployments/story/${storyId}`);
     return response.data;
   },
 
   async getStats(): Promise<DeploymentStats> {
-    const response = await api.get('/api/deployments/stats');
+    const response = await api.get('/deployments/stats');
     return response.data;
   },
 };
