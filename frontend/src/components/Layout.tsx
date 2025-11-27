@@ -100,6 +100,14 @@ export function Layout() {
                         { label: 'Test Coverage', icon: '🧪', path: `/test-coverage/project/${selectedProject.id}` },
                       ]}
                     />
+
+                    <NavDropdown
+                      label="DevOps"
+                      icon="⚙️"
+                      items={[
+                        { label: 'Deployments', icon: '🚀', path: '/deployments' },
+                      ]}
+                    />
                   </>
                 )}
               </div>
