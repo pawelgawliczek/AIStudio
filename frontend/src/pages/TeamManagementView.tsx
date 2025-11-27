@@ -112,7 +112,7 @@ export function TeamManagementView() {
       <FilterBar
         searchQuery={filters.searchQuery}
         onSearchChange={filters.setSearchQuery}
-        searchPlaceholder="Search workflows..."
+        searchPlaceholder="Search teams..."
         filters={[
           {
             label: 'Status',
