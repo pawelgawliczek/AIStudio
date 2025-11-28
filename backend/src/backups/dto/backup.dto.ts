@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsString, IsBoolean, IsOptional } from 'class-validator';
 
 export class BackupStatusDto {
   @ApiProperty()
@@ -119,14 +120,18 @@ export class RestoreBackupDto {
 }
 
 export class CreateBackupRequestDto {
-  @ApiProperty({ default: 'production' })
-  environment: 'production' | 'development';
+  @ApiProperty({ default: 'production', enum: ['production', 'development'] })
+  @IsOptional()
+  @IsEnum(['production', 'development'])
+  environment?: 'production' | 'development';
 }
 
 export class RestoreBackupRequestDto {
   @ApiProperty()
+  @IsString()
   backupFile: string;
 
   @ApiProperty()
+  @IsBoolean()
   confirm: boolean;
 }
