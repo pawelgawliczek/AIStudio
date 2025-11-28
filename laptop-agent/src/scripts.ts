@@ -35,13 +35,16 @@ export async function executeScript(
   return new Promise((resolve) => {
     const args = [scriptPath, ...params];
 
-    console.log(`Executing: ts-node ${args.join(' ')}`);
+    console.log(`Executing: npx tsx ${args.join(' ')}`);
 
-    const proc = childProcess.spawn('ts-node', args, {
+    const proc = childProcess.spawn('npx', ['tsx', ...args], {
       cwd: projectPath,
       timeout,
+      shell: true, // Use shell to resolve npx in PATH
       env: {
         ...process.env,
+        // Add nvm node path for launchd context
+        PATH: `${process.env.HOME}/.nvm/versions/node/v20.17.0/bin:${process.env.PATH}`,
         // Ensure we can access project dependencies
         NODE_PATH: path.join(projectPath, 'node_modules'),
       },
