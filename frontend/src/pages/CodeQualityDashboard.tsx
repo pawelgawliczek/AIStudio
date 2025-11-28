@@ -24,7 +24,9 @@ import { ChurnVsComplexityChart } from '../components/CodeQuality/ChurnVsComplex
 import { HotspotDetailsPanel } from '../components/CodeQuality/HotspotDetailsPanel';
 import { TestLevelBreakdown } from '../components/CodeQuality/TestLevelBreakdown';
 import { TestRunnerControl } from '../components/CodeQuality/TestRunnerControl';
-import { DashboardIcon, FolderIcon, ShieldCheckIcon, BugIcon, FlameIcon } from '../components/CodeQuality/Icons';
+import { DashboardIcon, FolderIcon, ShieldCheckIcon, BugIcon, FlameIcon, AnalyticsIcon } from '../components/CodeQuality/Icons';
+import { FlakyTestsPanel } from '../components/FlakyTestsPanel';
+import { SlowTestsPanel } from '../components/SlowTestsPanel';
 import { CodeQualityFilters, FileHotspot } from '../types/codeQualityTypes';
 import { formatAnalysisTimestamp, getAnalysisStatusConfig, getCommitUrl, getTestStatusIcon } from '../utils/analysisFormatters';
 import { testExecutionService } from '../services/test-execution.service';
@@ -88,7 +90,7 @@ const CodeQualityDashboard: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
 
   // State
-  const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'coverage' | 'issues' | 'hotspots'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'coverage' | 'issues' | 'hotspots' | 'analytics'>('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filters, setFilters] = useState<CodeQualityFilters & { timeRange: number }>({
     severityFilter: 'all',
@@ -314,6 +316,7 @@ const CodeQualityDashboard: React.FC = () => {
             { id: 'coverage', label: 'Test Coverage', IconComponent: ShieldCheckIcon },
             { id: 'issues', label: 'Code Issues', IconComponent: BugIcon },
             { id: 'hotspots', label: 'Hotspots', IconComponent: FlameIcon },
+            { id: 'analytics', label: 'Test Analytics', IconComponent: AnalyticsIcon },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -2024,6 +2027,44 @@ const CodeQualityDashboard: React.FC = () => {
                     <p className="text-gray-500 dark:text-gray-400">No hotspots found</p>
                   </div>
                 )}
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="space-y-8">
+              {/* Header */}
+              <header>
+                <h1 className="text-gray-900 dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">
+                  Test Analytics
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400 text-base mt-2">
+                  Analyze flaky tests, slow tests, and test performance trends
+                </p>
+              </header>
+
+              {/* Flaky Tests Section */}
+              <section>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Flaky Tests</h2>
+                <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-lg p-6">
+                  {projectId ? (
+                    <FlakyTestsPanel projectId={projectId} days={30} threshold={0.1} />
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">Select a project to view flaky tests</p>
+                  )}
+                </div>
+              </section>
+
+              {/* Slow Tests Section */}
+              <section>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Slowest Tests</h2>
+                <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-lg p-6">
+                  {projectId ? (
+                    <SlowTestsPanel projectId={projectId} limit={10} />
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">Select a project to view slow tests</p>
+                  )}
+                </div>
               </section>
             </div>
           )}

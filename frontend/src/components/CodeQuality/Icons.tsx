@@ -110,3 +110,11 @@ export const RefreshIcon: React.FC<IconProps> = ({ className = '' }) => (
     <path d="M14 3V6H11M6 17V14H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
+
+export const AnalyticsIcon: React.FC<IconProps> = ({ className = '' }) => (
+  <svg className={className} width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="12" width="3" height="5" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+    <rect x="8.5" y="8" width="3" height="9" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+    <rect x="14" y="3" width="3" height="14" rx="0.5" stroke="currentColor" strokeWidth="1.5"/>
+  </svg>
+);
