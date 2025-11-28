@@ -72,14 +72,10 @@ export class CodeMetricsService {
     const avgComplexity = totalLoc > 0 ? weightedComplexity / totalLoc : 0;
     const avgMaintainability = totalLoc > 0 ? weightedMaintainability / totalLoc : 0;
 
-    // ST-37 Fix: Use snapshot coverage (correct total %) instead of file-level average
-    // The snapshot stores the accurate project-wide coverage from coverage-summary.json
-    const snapshot = await this.prisma.codeMetricsSnapshot.findFirst({
-      where: { projectId },
-      orderBy: { snapshotDate: 'desc' },
-      select: { avgCoverage: true },
-    });
-    const avgCoverage = snapshot?.avgCoverage || 0;
+    // ST-135 Fix: Use TestExecution table as single source of truth for coverage
+    // This ensures KPI matches the Test Summary section
+    const testSummary = await this.getTestSummaryUnified(projectId);
+    const avgCoverage = testSummary.coveragePercentage || 0;
 
     // LOC by language
     const locByLanguage: Record<string, number> = {};
@@ -225,7 +221,7 @@ export class CodeMetricsService {
 
   /**
    * ST-18: Get trend data from real historical snapshots
-   * Replaces previous mocked/interpolated implementation
+   * ST-135: Merge TestExecution coverage data with snapshot metrics
    */
   async getTrendData(
     projectId: string,
@@ -235,7 +231,7 @@ export class CodeMetricsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Query real historical snapshots from database
+    // Query real historical snapshots from database (for healthScore, complexity, techDebt)
     const snapshots = await this.prisma.codeMetricsSnapshot.findMany({
       where: {
         projectId,
@@ -248,14 +244,50 @@ export class CodeMetricsService {
       },
     });
 
-    // Transform snapshots to TrendDataPointDto format
-    return snapshots.map(snapshot => ({
-      date: snapshot.snapshotDate,
-      healthScore: snapshot.healthScore,
-      coverage: snapshot.avgCoverage,
-      complexity: snapshot.avgComplexity,
-      techDebt: snapshot.techDebtRatio,
-    }));
+    // ST-135: Get test execution coverage by day
+    const testExecutions = await this.prisma.testExecution.findMany({
+      where: {
+        testCase: { projectId },
+        executedAt: { gte: startDate },
+        coveragePercentage: { not: null },
+      },
+      orderBy: { executedAt: 'asc' },
+      select: {
+        executedAt: true,
+        coveragePercentage: true,
+      },
+    });
+
+    // Group test executions by date (round to day)
+    const coverageByDay = new Map<string, number[]>();
+    testExecutions.forEach(te => {
+      const dateKey = te.executedAt.toISOString().split('T')[0];
+      if (!coverageByDay.has(dateKey)) {
+        coverageByDay.set(dateKey, []);
+      }
+      coverageByDay.get(dateKey)!.push(Number(te.coveragePercentage));
+    });
+
+    // Calculate average coverage per day
+    const dailyAverages = new Map<string, number>();
+    coverageByDay.forEach((values, dateKey) => {
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      dailyAverages.set(dateKey, avg);
+    });
+
+    // Merge snapshot data with test execution coverage
+    return snapshots.map(snapshot => {
+      const dateKey = snapshot.snapshotDate.toISOString().split('T')[0];
+      const testCoverage = dailyAverages.get(dateKey);
+
+      return {
+        date: snapshot.snapshotDate,
+        healthScore: snapshot.healthScore,
+        coverage: testCoverage !== undefined ? testCoverage : snapshot.avgCoverage, // Fallback to snapshot
+        complexity: snapshot.avgComplexity,
+        techDebt: snapshot.techDebtRatio,
+      };
+    });
   }
 
   /**
@@ -769,7 +801,65 @@ export class CodeMetricsService {
     lastExecution?: Date;
     coveragePercentage?: number;
   }> {
-    // ST-37 Issue #1: Parse coverage file instead of database query
+    // ST-132: Try unified data source first (TestExecution table), fallback to coverage file
+    return this.getTestSummaryUnified(projectId);
+  }
+
+  /**
+   * ST-132: Unified test summary data source
+   * Primary: TestExecution table (accurate, historical)
+   * Fallback: Coverage file (real-time, latest run)
+   */
+  async getTestSummaryUnified(projectId: string): Promise<{
+    totalTests: number;
+    passing: number;
+    failing: number;
+    skipped: number;
+    lastExecution?: Date;
+    coveragePercentage?: number;
+  }> {
+    // Try TestExecution table first (most accurate)
+    const recentExecutions = await this.prisma.testExecution.findMany({
+      where: {
+        testCase: {
+          projectId: projectId,
+        },
+      },
+      orderBy: {
+        executedAt: 'desc',
+      },
+      take: 1000, // Last 1000 test executions
+    });
+
+    if (recentExecutions.length > 0) {
+      const summary = {
+        totalTests: recentExecutions.length,
+        passing: recentExecutions.filter(e => e.status === 'pass').length,
+        failing: recentExecutions.filter(e => e.status === 'fail').length,
+        skipped: recentExecutions.filter(e => e.status === 'skip').length,
+        lastExecution: recentExecutions[0]?.executedAt,
+        coveragePercentage: 0,
+      };
+
+      // Calculate average coverage
+      const coverages = recentExecutions
+        .filter(e => e.coveragePercentage !== null)
+        .map(e => Number(e.coveragePercentage));
+      if (coverages.length > 0) {
+        summary.coveragePercentage = Math.round(
+          (coverages.reduce((a, b) => a + b, 0) / coverages.length) * 10
+        ) / 10;
+      }
+
+      this.logger.log(
+        `Using TestExecution table for project ${projectId}: ${summary.totalTests} tests, ${summary.coveragePercentage}% coverage`
+      );
+
+      return summary;
+    }
+
+    // Fallback to coverage file
+    this.logger.log(`No test executions found for project ${projectId}, falling back to coverage file`);
     return this.getTestSummaryFromCoverage(projectId);
   }
 
