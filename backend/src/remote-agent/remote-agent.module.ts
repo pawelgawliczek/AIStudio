@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RemoteAgentGateway } from './remote-agent.gateway';
 import { RemoteExecutionService } from './remote-execution.service';
+import { RemoteAgentController } from './remote-agent.controller';
 
 /**
  * ST-133: Remote Agent Module
@@ -19,6 +20,7 @@ import { RemoteExecutionService } from './remote-execution.service';
       signOptions: { expiresIn: '30d' }, // Long-lived for remote agents
     }),
   ],
+  controllers: [RemoteAgentController],
   providers: [RemoteAgentGateway, RemoteExecutionService],
   exports: [RemoteExecutionService, RemoteAgentGateway],
 })
