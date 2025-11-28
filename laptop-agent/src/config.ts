@@ -39,7 +39,7 @@ function loadConfigFile(): Partial<AgentConfig> {
       return JSON.parse(fileContent);
     }
   } catch (error) {
-    console.warn(`Failed to load config file: ${error.message}`);
+    console.warn(`Failed to load config file: ${error instanceof Error ? error.message : error}`);
   }
 
   return {};

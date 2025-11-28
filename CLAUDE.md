@@ -481,3 +481,101 @@ curl http://127.0.0.1:3001/api/projects/{projectId}/components
 # Should be: /api/projects/...
 # NOT: /api/api/projects/...
 ```
+
+---
+
+## Remote Agent (Laptop ↔ KVM Communication) - ST-133
+
+The remote agent enables the KVM server to execute scripts on the developer's laptop (where Claude Code runs) via WebSocket.
+
+### Architecture
+
+```
+┌─────────────────┐     WebSocket (outbound)     ┌─────────────────┐
+│  Laptop Agent   │ ──────────────────────────▶  │   KVM Server    │
+│  (your machine) │                              │  (vibestudio)   │
+└─────────────────┘                              └─────────────────┘
+     Executes:                                        Sends:
+     - parse-transcript.ts                           - Job requests
+     - analyze-story-transcripts.ts                  - JWT tokens
+     - list-transcripts.ts
+```
+
+**Key Points:**
+- Laptop initiates outbound WebSocket connection (NAT-friendly, no public IP needed)
+- Pre-shared secret authentication with JWT token issuance
+- Whitelisted script execution only (security)
+- Auto-reconnect with exponential backoff
+
+### Laptop Setup (macOS)
+
+**1. Configuration file:** `~/.vibestudio/config.json`
+
+```json
+{
+  "serverUrl": "https://vibestudio.example.com",
+  "agentSecret": "<secret-from-kvm-.env>",
+  "hostname": "pawels-macbook",
+  "capabilities": ["parse-transcript", "analyze-story-transcripts", "list-transcripts"],
+  "projectPath": "/Users/pawelgawliczek/projects/AIStudio"
+}
+```
+
+**2. Build the agent:**
+
+```bash
+cd /Users/pawelgawliczek/projects/AIStudio/laptop-agent
+npm install && npm run build
+```
+
+**3. launchd auto-start:** `~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist`
+
+The agent is configured to auto-start on login via macOS launchd.
+
+**Useful commands:**
+
+```bash
+# Check status
+launchctl list | grep vibestudio
+
+# View logs
+tail -f ~/.vibestudio/agent.log
+tail -f ~/.vibestudio/agent.error.log
+
+# Stop agent
+launchctl unload ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist
+
+# Start agent
+launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist
+
+# Restart agent
+launchctl unload ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist && \
+launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist
+```
+
+### KVM Server Setup
+
+**1. Environment variable:** Add to `/opt/stack/AIStudio/.env`:
+
+```bash
+AGENT_SECRET=<same-secret-as-laptop-config>
+```
+
+**2. Restart backend** after adding the secret:
+
+```bash
+docker compose up -d --force-recreate backend
+```
+
+### Database Tables (ST-133)
+
+- `remote_agents` - Tracks connected agents (hostname, status, capabilities)
+- `remote_jobs` - Tracks job execution (script, params, status, result)
+
+### Security Model
+
+- **Pre-shared secret** for initial registration
+- **JWT tokens** for authenticated communication
+- **Whitelisted scripts** - Only approved scripts can execute (see `backend/src/remote-agent/approved-scripts.ts`)
+- **Whitelisted parameters** - Only approved parameters allowed
+- **WSS encryption** - All communication encrypted in production

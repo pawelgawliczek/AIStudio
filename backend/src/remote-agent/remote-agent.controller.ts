@@ -7,7 +7,7 @@ import { RemoteExecutionService } from './remote-execution.service';
  * Provides HTTP endpoints for testing remote execution.
  * In production, this would be integrated with MCP tools.
  */
-@Controller('api/remote-agent')
+@Controller('remote-agent')
 export class RemoteAgentController {
   private readonly logger = new Logger(RemoteAgentController.name);
 
