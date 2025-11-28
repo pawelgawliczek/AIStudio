@@ -354,4 +354,171 @@ export class TestExecutionsService {
       }
     };
   }
+
+  /**
+   * Get project summary - aggregate test executions by test level (ST-132)
+   */
+  async getProjectSummary(projectId: string) {
+    // Verify project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId }
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Get all test executions for the project
+    const executions = await this.prisma.testExecution.findMany({
+      where: {
+        testCase: {
+          projectId: projectId,
+        },
+      },
+      include: {
+        testCase: {
+          select: {
+            testLevel: true,
+          },
+        },
+      },
+      orderBy: {
+        executedAt: 'desc',
+      },
+      take: 1000, // Last 1000 executions
+    });
+
+    // Initialize summary structure
+    const summary = {
+      unit: { total: 0, passing: 0, failing: 0, skipped: 0, coverage: 0, avgDuration: 0 },
+      integration: { total: 0, passing: 0, failing: 0, skipped: 0, coverage: 0, avgDuration: 0 },
+      e2e: { total: 0, passing: 0, failing: 0, skipped: 0, coverage: 0, avgDuration: 0 },
+    };
+
+    // Group by test level
+    const byLevel = {
+      unit: executions.filter(e => e.testCase.testLevel === 'unit'),
+      integration: executions.filter(e => e.testCase.testLevel === 'integration'),
+      e2e: executions.filter(e => e.testCase.testLevel === 'e2e'),
+    };
+
+    // Calculate stats per level
+    for (const [level, execs] of Object.entries(byLevel)) {
+      if (execs.length === 0) continue;
+
+      const levelKey = level as 'unit' | 'integration' | 'e2e';
+      summary[levelKey].total = execs.length;
+      summary[levelKey].passing = execs.filter(e => e.status === 'pass').length;
+      summary[levelKey].failing = execs.filter(e => e.status === 'fail').length;
+      summary[levelKey].skipped = execs.filter(e => e.status === 'skip').length;
+
+      // Calculate average coverage
+      const coverages = execs
+        .filter(e => e.coveragePercentage !== null)
+        .map(e => Number(e.coveragePercentage));
+      summary[levelKey].coverage = coverages.length > 0
+        ? Math.round((coverages.reduce((a, b) => a + b, 0) / coverages.length) * 10) / 10
+        : 0;
+
+      // Calculate average duration
+      const durations = execs
+        .filter(e => e.durationMs !== null)
+        .map(e => e.durationMs);
+      summary[levelKey].avgDuration = durations.length > 0
+        ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+        : 0;
+    }
+
+    return summary;
+  }
+
+  /**
+   * Get project trends - historical test execution data (ST-132)
+   */
+  async getProjectTrends(projectId: string, days: number = 30) {
+    // Verify project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId }
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const executions = await this.prisma.testExecution.findMany({
+      where: {
+        testCase: {
+          projectId: projectId,
+        },
+        executedAt: {
+          gte: since,
+        },
+      },
+      include: {
+        testCase: {
+          select: {
+            testLevel: true,
+          },
+        },
+      },
+      orderBy: {
+        executedAt: 'asc',
+      },
+    });
+
+    // Group by day and test level
+    const dayMap = new Map<string, any>();
+
+    executions.forEach(exec => {
+      const day = exec.executedAt.toISOString().split('T')[0];
+      if (!dayMap.has(day)) {
+        dayMap.set(day, {
+          date: day,
+          unit: { passed: 0, failed: 0, coverage: [] },
+          integration: { passed: 0, failed: 0, coverage: [] },
+          e2e: { passed: 0, failed: 0, coverage: [] },
+        });
+      }
+
+      const level = exec.testCase.testLevel;
+      const data = dayMap.get(day)[level];
+
+      if (exec.status === 'pass') data.passed++;
+      if (exec.status === 'fail') data.failed++;
+      if (exec.coveragePercentage !== null) {
+        data.coverage.push(Number(exec.coveragePercentage));
+      }
+    });
+
+    // Calculate average coverage per day
+    const trendData = Array.from(dayMap.values()).map(day => ({
+      date: day.date,
+      unit: {
+        passed: day.unit.passed,
+        failed: day.unit.failed,
+        coverage: day.unit.coverage.length > 0
+          ? Math.round((day.unit.coverage.reduce((a: number, b: number) => a + b, 0) / day.unit.coverage.length) * 10) / 10
+          : 0,
+      },
+      integration: {
+        passed: day.integration.passed,
+        failed: day.integration.failed,
+        coverage: day.integration.coverage.length > 0
+          ? Math.round((day.integration.coverage.reduce((a: number, b: number) => a + b, 0) / day.integration.coverage.length) * 10) / 10
+          : 0,
+      },
+      e2e: {
+        passed: day.e2e.passed,
+        failed: day.e2e.failed,
+        coverage: day.e2e.coverage.length > 0
+          ? Math.round((day.e2e.coverage.reduce((a: number, b: number) => a + b, 0) / day.e2e.coverage.length) * 10) / 10
+          : 0,
+      },
+    }));
+
+    return trendData;
+  }
 }

@@ -20,6 +20,8 @@
     "test:cov:execution": "jest src/mcp/servers/execution --coverage --coverageReporters=text,html --maxWorkers=2",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:unit:report": "jest --testPathIgnorePatterns='integration|e2e' --json --outputFile=../test-results/jest-unit-results.json",
+    "test:integration:report": "jest --testPathPattern='integration' --json --outputFile=../test-results/jest-integration-results.json",
     "typecheck": "tsc --noEmit",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",

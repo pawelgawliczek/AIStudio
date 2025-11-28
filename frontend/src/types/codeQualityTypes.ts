@@ -139,6 +139,21 @@ export interface AnalysisComparison {
   lastAnalysis?: Date;
 }
 
+export interface TestLevelStats {
+  total: number;
+  passing: number;
+  failing: number;
+  skipped: number;
+  coverage: number;
+  avgDuration: number;
+}
+
+export interface TestSummaryByLevel {
+  unit: TestLevelStats;
+  integration: TestLevelStats;
+  e2e: TestLevelStats;
+}
+
 export interface TestSummary {
   totalTests: number;
   passing: number;
@@ -146,6 +161,7 @@ export interface TestSummary {
   skipped: number;
   lastExecution?: Date;
   coveragePercentage?: number;
+  testsByLevel?: TestSummaryByLevel; // ST-132: Optional test level breakdown
 }
 
 // BR-Analysis-1: Analysis status types (from baAnalysis)

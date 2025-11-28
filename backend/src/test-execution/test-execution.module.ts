@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TestExecutionsModule } from '../test-executions/test-executions.module';
+import { TestCasesModule } from '../test-cases/test-cases.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { TestAnalyticsController } from './test-analytics.controller';
 import { TestAnalyticsService } from './test-analytics.service';
@@ -23,7 +24,7 @@ import { TestResultsReporterService } from './test-results-reporter.service';
  * - Provides real-time test execution tracking in frontend
  */
 @Module({
-  imports: [PrismaModule, WebSocketModule, TestExecutionsModule],
+  imports: [PrismaModule, WebSocketModule, TestExecutionsModule, TestCasesModule],
   controllers: [TestAnalyticsController],
   providers: [TestResultsReporterService, TestAnalyticsService],
   exports: [TestResultsReporterService, TestAnalyticsService],

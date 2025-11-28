@@ -22,9 +22,12 @@ import { TrendChart } from '../components/CodeQuality/TrendChart';
 import { RiskDistributionChart } from '../components/CodeQuality/RiskDistributionChart';
 import { ChurnVsComplexityChart } from '../components/CodeQuality/ChurnVsComplexityChart';
 import { HotspotDetailsPanel } from '../components/CodeQuality/HotspotDetailsPanel';
+import { TestLevelBreakdown } from '../components/CodeQuality/TestLevelBreakdown';
+import { TestRunnerControl } from '../components/CodeQuality/TestRunnerControl';
 import { DashboardIcon, FolderIcon, ShieldCheckIcon, BugIcon, FlameIcon } from '../components/CodeQuality/Icons';
 import { CodeQualityFilters, FileHotspot } from '../types/codeQualityTypes';
 import { formatAnalysisTimestamp, getAnalysisStatusConfig, getCommitUrl, getTestStatusIcon } from '../utils/analysisFormatters';
+import { testExecutionService } from '../services/test-execution.service';
 
 // Helper functions to transform trend data for different chart needs
 const transformTrendDataForCoverage = (trendData: any[]) => {
@@ -100,6 +103,10 @@ const CodeQualityDashboard: React.FC = () => {
   const [useCasesLoading, setUseCasesLoading] = useState(false);
   const [projectRepoUrl, setProjectRepoUrl] = useState<string | undefined>();
 
+  // ST-132: Test level breakdown state
+  const [testLevelSummary, setTestLevelSummary] = useState<any>(null);
+  const [testLevelLoading, setTestLevelLoading] = useState(false);
+
   // Hotspots state
   const [hotspotSearchQuery, setHotspotSearchQuery] = useState('');
   const [hotspotRiskFilter, setHotspotRiskFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
@@ -126,6 +133,29 @@ const CodeQualityDashboard: React.FC = () => {
     };
     fetchProject();
   }, [projectId]);
+
+  // ST-132: Fetch test level summary when coverage tab is active
+  useEffect(() => {
+    const fetchTestLevelSummary = async () => {
+      if (!projectId || activeTab !== 'coverage') return;
+      setTestLevelLoading(true);
+      try {
+        const summary = await testExecutionService.getProjectSummary(projectId);
+        setTestLevelSummary(summary);
+      } catch (error) {
+        console.error('Failed to fetch test level summary:', error);
+        // Set empty summary on error
+        setTestLevelSummary({
+          unit: { total: 0, passing: 0, failing: 0, skipped: 0, coverage: 0, avgDuration: 0 },
+          integration: { total: 0, passing: 0, failing: 0, skipped: 0, coverage: 0, avgDuration: 0 },
+          e2e: { total: 0, passing: 0, failing: 0, skipped: 0, coverage: 0, avgDuration: 0 },
+        });
+      } finally {
+        setTestLevelLoading(false);
+      }
+    };
+    fetchTestLevelSummary();
+  }, [projectId, activeTab]);
 
   // Fetch use cases when Use Cases tab is active
   useEffect(() => {
@@ -325,11 +355,20 @@ const CodeQualityDashboard: React.FC = () => {
                       : 'Never'}
                   </p>
                 </div>
-                <AnalysisRefreshButton
-                  isAnalyzing={polling.isAnalyzing}
-                  analysisStatus={polling.analysisStatus}
-                  onRefresh={polling.startAnalysis}
-                />
+                {/* ST-132: Test runner control + Analysis refresh button */}
+                <div className="flex gap-2">
+                  <TestRunnerControl
+                    onRunTests={(level) => {
+                      console.log(`Running ${level} tests...`);
+                      // TODO: Integrate with test queue API
+                    }}
+                  />
+                  <AnalysisRefreshButton
+                    isAnalyzing={polling.isAnalyzing}
+                    analysisStatus={polling.analysisStatus}
+                    onRefresh={polling.startAnalysis}
+                  />
+                </div>
               </header>
 
               {/* Analysis Status Banner */}
@@ -944,6 +983,23 @@ const CodeQualityDashboard: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              {/* ST-132: Test Level Breakdown */}
+              {testLevelSummary && !testLevelLoading && (
+                <TestLevelBreakdown
+                  summary={testLevelSummary}
+                  onRunTests={(level) => {
+                    console.log(`Running ${level} tests...`);
+                    // TODO: Integrate with test queue API
+                  }}
+                />
+              )}
+
+              {testLevelLoading && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400">Loading test level breakdown...</p>
+                </div>
+              )}
 
               {/* Coverage Summary & Stats */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

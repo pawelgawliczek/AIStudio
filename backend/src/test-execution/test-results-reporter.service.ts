@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import { TestExecutionsService } from '../test-executions/test-executions.service';
+import { TestCasesService } from '../test-cases/test-cases.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 export interface ParsedTestResult {
@@ -55,6 +57,8 @@ export class TestResultsReporterService {
 
   constructor(
     private testExecutionsService: TestExecutionsService,
+    private testCasesService: TestCasesService,
+    private prisma: PrismaService,
     private websocketGateway: AppWebSocketGateway,
   ) {}
 
@@ -152,27 +156,31 @@ export class TestResultsReporterService {
     });
 
     try {
-      // 2. Store in database (via test-executions service)
-      // Note: This requires the test case to exist in the database
-      // For now, we'll just log and emit completed event
-      // In production, you'd look up the test case ID first
+      // 2. Find or create test case in database
+      const testCase = await this.findOrCreateTestCase(testData, projectId);
 
-      const execution = {
-        id: executionId,
-        testCaseKey: testData.testCaseKey,
-        testCaseTitle: testData.testCaseTitle,
-        testLevel: testData.testLevel,
-        status: testData.status,
+      // 3. Store test execution in database
+      const execution = await this.testExecutionsService.reportExecution({
+        testCaseId: testCase.id,
+        storyId: testData.storyId || null,
+        commitHash: testData.commitHash || null,
+        status: testData.status, // Already in correct format: 'pass', 'fail', 'skip', 'error'
         durationMs: testData.durationMs,
-        errorMessage: testData.errorMessage,
-        coveragePercentage: testData.coveragePercentage,
+        errorMessage: testData.errorMessage || null,
+        coveragePercentage: testData.coveragePercentage || null,
+        linesCovered: testData.linesCovered || null,
+        linesTotal: testData.linesTotal || null,
+        ciRunId: null,
         environment: testData.environment,
-        executedAt: new Date().toISOString(),
-      };
+      });
 
-      // 3. Emit test:completed event
+      this.logger.log(
+        `✅ Test execution saved to database: ${execution.id} - ${testData.testCaseKey} (${testData.status})`,
+      );
+
+      // 4. Emit test:completed event with database ID
       this.websocketGateway.broadcastTestExecutionCompleted(
-        executionId,
+        execution.id,
         projectId,
         {
           testCaseKey: testData.testCaseKey,
@@ -181,10 +189,12 @@ export class TestResultsReporterService {
           durationMs: testData.durationMs,
           errorMessage: testData.errorMessage,
           coveragePercentage: testData.coveragePercentage,
-          completedAt: new Date().toISOString(),
-          reportUrl: `/test-executions/${executionId}`,
+          completedAt: execution.executedAt.toISOString(),
+          reportUrl: `/test-executions/${execution.id}`,
         },
       );
+
+      return execution;
 
       this.logger.log(
         `Test execution reported: ${testData.testCaseKey} - ${testData.status}`,
@@ -198,6 +208,74 @@ export class TestResultsReporterService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Find or create test case by key (ST-132)
+   * Auto-creates test cases for automated tests without requiring a use case
+   */
+  private async findOrCreateTestCase(
+    testData: ParsedTestResult,
+    projectId: string,
+  ): Promise<any> {
+    // Try to find existing test case by key
+    let testCase = await this.prisma.testCase.findUnique({
+      where: {
+        projectId_key: {
+          projectId,
+          key: testData.testCaseKey,
+        },
+      },
+    });
+
+    if (!testCase) {
+      // Auto-create test case without requiring a use case
+      // Note: This requires a default use case for the project
+      // We'll use a "General" use case or create one if it doesn't exist
+      let generalUseCase = await this.prisma.useCase.findFirst({
+        where: {
+          projectId,
+          title: 'Automated Tests',
+        },
+      });
+
+      if (!generalUseCase) {
+        // Create a default use case for automated tests
+        generalUseCase = await this.prisma.useCase.create({
+          data: {
+            projectId,
+            key: `UC-AUTO-TESTS`,
+            title: 'Automated Tests',
+            area: 'Testing',
+          },
+        });
+
+        this.logger.log(`Created default use case for automated tests: ${generalUseCase.id}`);
+      }
+
+      // Create test case
+      const systemUser = await this.prisma.user.findFirst();
+      testCase = await this.prisma.testCase.create({
+        data: {
+          projectId,
+          useCaseId: generalUseCase.id,
+          key: testData.testCaseKey,
+          title: testData.testCaseTitle,
+          description: `Auto-generated from test execution`,
+          testLevel: testData.testLevel,
+          priority: 'medium',
+          status: 'automated',
+          testFilePath: null,
+          testSteps: null,
+          expectedResults: null,
+          createdById: systemUser?.id || '00000000-0000-0000-0000-000000000000',
+        },
+      });
+
+      this.logger.log(`Auto-created test case: ${testData.testCaseKey} (ID: ${testCase.id})`);
+    }
+
+    return testCase;
   }
 
   /**

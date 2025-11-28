@@ -53,6 +53,40 @@ export interface TestExecutionListResponse {
   };
 }
 
+export interface TestLevelStats {
+  total: number;
+  passing: number;
+  failing: number;
+  skipped: number;
+  coverage: number;
+  avgDuration: number;
+}
+
+export interface TestSummaryByLevel {
+  unit: TestLevelStats;
+  integration: TestLevelStats;
+  e2e: TestLevelStats;
+}
+
+export interface TestTrendDay {
+  date: string;
+  unit: {
+    passed: number;
+    failed: number;
+    coverage: number;
+  };
+  integration: {
+    passed: number;
+    failed: number;
+    coverage: number;
+  };
+  e2e: {
+    passed: number;
+    failed: number;
+    coverage: number;
+  };
+}
+
 export const testExecutionService = {
   /**
    * Get paginated list of test executions with filters
@@ -75,6 +109,22 @@ export const testExecutionService = {
    */
   async getById(id: string): Promise<TestExecution> {
     const response = await apiClient.get(`/test-executions/${id}`);
+    return response.data;
+  },
+
+  /**
+   * ST-132: Get project test execution summary by test level
+   */
+  async getProjectSummary(projectId: string): Promise<TestSummaryByLevel> {
+    const response = await apiClient.get(`/test-executions/project/${projectId}/summary`);
+    return response.data;
+  },
+
+  /**
+   * ST-132: Get project test execution trends over time
+   */
+  async getProjectTrends(projectId: string, days: number = 30): Promise<TestTrendDay[]> {
+    const response = await apiClient.get(`/test-executions/project/${projectId}/trends?days=${days}`);
     return response.data;
   },
 };

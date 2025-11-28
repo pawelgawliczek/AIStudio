@@ -76,6 +76,27 @@ export class TestExecutionsController {
     return this.testExecutionsService.getTestCaseStatistics(testCaseId);
   }
 
+  @Get('project/:projectId/summary')
+  @Roles('admin', 'pm', 'ba', 'architect', 'dev', 'qa', 'viewer')
+  @ApiOperation({ summary: 'Get project test execution summary by test level (ST-132)' })
+  @ApiResponse({ status: 200, description: 'Aggregated test execution summary' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  async getProjectSummary(@Param('projectId', ParseUUIDPipe) projectId: string) {
+    return this.testExecutionsService.getProjectSummary(projectId);
+  }
+
+  @Get('project/:projectId/trends')
+  @Roles('admin', 'pm', 'ba', 'architect', 'dev', 'qa', 'viewer')
+  @ApiOperation({ summary: 'Get project test execution trends over time (ST-132)' })
+  @ApiResponse({ status: 200, description: 'Historical test execution trends' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
+  async getProjectTrends(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Query('days', new ParseIntPipe({ optional: true })) days: number = 30
+  ) {
+    return this.testExecutionsService.getProjectTrends(projectId, days);
+  }
+
   @Get(':id')
   @Roles('admin', 'pm', 'ba', 'architect', 'dev', 'qa', 'viewer')
   @ApiOperation({ summary: 'Get a single test execution by ID' })

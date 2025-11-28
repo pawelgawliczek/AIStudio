@@ -12,6 +12,8 @@
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "test:coverage:force": "vitest --coverage --run || true",
+    "test:unit:report": "vitest --run --reporter=json --outputFile=../test-results/vitest-results.json || true",
+    "test:e2e:report": "playwright test --reporter=json --output=../test-results/playwright-results.json || true",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
