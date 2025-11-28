@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
-import { TestExecutionsModule } from '../test-executions/test-executions.module';
 import { TestCasesModule } from '../test-cases/test-cases.module';
+import { TestExecutionsModule } from '../test-executions/test-executions.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { TestAnalyticsController } from './test-analytics.controller';
 import { TestAnalyticsService } from './test-analytics.service';
+import { TestResultsController } from './test-results.controller';
 import { TestResultsReporterService } from './test-results-reporter.service';
 
 /**
@@ -25,7 +26,7 @@ import { TestResultsReporterService } from './test-results-reporter.service';
  */
 @Module({
   imports: [PrismaModule, WebSocketModule, TestExecutionsModule, TestCasesModule],
-  controllers: [TestAnalyticsController],
+  controllers: [TestAnalyticsController, TestResultsController],
   providers: [TestResultsReporterService, TestAnalyticsService],
   exports: [TestResultsReporterService, TestAnalyticsService],
 })

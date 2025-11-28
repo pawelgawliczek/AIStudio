@@ -1,13 +1,32 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TestExecutionStatus } from '@prisma/client';
+import { TestExecutionStatus, TestCaseType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsUUID, IsNotEmpty, IsEnum, IsInt, IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
 
 export class ReportTestExecutionDto {
-  @ApiProperty({ description: 'Test case ID' })
+  @ApiProperty({ description: 'Project ID (required for auto-creating test cases)' })
   @IsUUID()
   @IsNotEmpty()
-  testCaseId: string;
+  projectId: string;
+
+  @ApiProperty({ description: 'Test case key (e.g., TC-AUTH-001, TC-AUTO-XXX)' })
+  @IsString()
+  @IsNotEmpty()
+  testCaseKey: string;
+
+  @ApiProperty({ description: 'Test case title/name' })
+  @IsString()
+  @IsNotEmpty()
+  testCaseTitle: string;
+
+  @ApiProperty({
+    description: 'Test level (unit, integration, e2e)',
+    enum: TestCaseType,
+    example: 'unit'
+  })
+  @IsEnum(TestCaseType)
+  @IsNotEmpty()
+  testLevel: TestCaseType;
 
   @ApiPropertyOptional({ description: 'Story ID that triggered this test' })
   @IsUUID()
@@ -67,7 +86,7 @@ export class ReportTestExecutionDto {
   @IsOptional()
   ciRunId?: string;
 
-  @ApiPropertyOptional({ description: 'Environment (dev, staging, prod)' })
+  @ApiPropertyOptional({ description: 'Environment (dev, staging, prod, docker)' })
   @IsString()
   @IsOptional()
   environment?: string;

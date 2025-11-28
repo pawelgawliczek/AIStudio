@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
-import { TestExecutionsService } from '../test-executions/test-executions.service';
-import { TestCasesService } from '../test-cases/test-cases.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TestCasesService } from '../test-cases/test-cases.service';
+import { TestExecutionsService } from '../test-executions/test-executions.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 export interface ParsedTestResult {
@@ -161,7 +161,10 @@ export class TestResultsReporterService {
 
       // 3. Store test execution in database
       const execution = await this.testExecutionsService.reportExecution({
-        testCaseId: testCase.id,
+        projectId: projectId,
+        testCaseKey: testData.testCaseKey,
+        testCaseTitle: testData.testCaseTitle,
+        testLevel: testData.testLevel,
         storyId: testData.storyId || null,
         commitHash: testData.commitHash || null,
         status: testData.status, // Already in correct format: 'pass', 'fail', 'skip', 'error'

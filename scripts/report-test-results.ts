@@ -14,8 +14,8 @@ import * as path from 'path';
 import axios from 'axios';
 
 const TEST_RESULTS_DIR = path.join(__dirname, '../test-results');
-const API_BASE_URL = process.env.API_URL || 'http://localhost:3001';
-const PROJECT_ID = process.env.PROJECT_ID || '345a29ee-d6ab-477d-8079-c5dda0844d77'; // Default to AIStudio project
+const API_BASE_URL = process.env.API_URL || 'http://localhost:3000';
+const PROJECT_ID = process.env.PROJECT_ID || '6c15baf7-9fad-47e2-a0e8-ff4ea95e91e4'; // AI Studio MCP Control Plane
 
 interface TestResult {
   testCaseKey: string;
@@ -161,7 +161,7 @@ async function reportResults(results: TestResult[]): Promise<number> {
 
   for (const result of results) {
     try {
-      await axios.post(`${API_BASE_URL}/api/test-results/report`, {
+      await axios.post(`${API_BASE_URL}/api/test-executions/report`, {
         ...result,
         projectId: PROJECT_ID,
       });

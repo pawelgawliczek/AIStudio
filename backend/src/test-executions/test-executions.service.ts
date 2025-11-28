@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { TestCaseStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReportTestExecutionDto, FilterTestExecutionDto } from './dto';
+import { getSystemUserId } from '../mcp/utils';
 
 @Injectable()
 export class TestExecutionsService {
@@ -9,15 +10,72 @@ export class TestExecutionsService {
 
   /**
    * Report a new test execution (called by CI/CD)
+   * Auto-creates test case if it doesn't exist (ST-132)
    */
   async reportExecution(dto: ReportTestExecutionDto) {
-    // Validate test case exists
-    const testCase = await this.prisma.testCase.findUnique({
-      where: { id: dto.testCaseId }
+    // Validate project exists
+    const project = await this.prisma.project.findUnique({
+      where: { id: dto.projectId }
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${dto.projectId} not found`);
+    }
+
+    // Find or create test case by key
+    let testCase = await this.prisma.testCase.findFirst({
+      where: {
+        projectId: dto.projectId,
+        key: dto.testCaseKey
+      }
     });
 
     if (!testCase) {
-      throw new NotFoundException(`Test case with ID ${dto.testCaseId} not found`);
+      // Get system user ID
+      const systemUserId = await getSystemUserId(this.prisma);
+
+      // Find or create default "Auto-Generated Tests" use case for this project
+      let defaultUseCase = await this.prisma.useCase.findFirst({
+        where: {
+          projectId: dto.projectId,
+          key: 'UC-AUTO-TESTS'
+        }
+      });
+
+      if (!defaultUseCase) {
+        // Create use case with initial version
+        defaultUseCase = await this.prisma.useCase.create({
+          data: {
+            projectId: dto.projectId,
+            key: 'UC-AUTO-TESTS',
+            title: 'Auto-Generated Tests',
+            area: 'Testing',
+            versions: {
+              create: {
+                version: 1,
+                summary: 'Container for auto-generated test cases',
+                content: 'This use case contains test cases that were automatically generated from test execution reports.',
+                createdById: systemUserId
+              }
+            }
+          }
+        });
+      }
+
+      // Auto-create test case (ST-132 requirement)
+      testCase = await this.prisma.testCase.create({
+        data: {
+          projectId: dto.projectId,
+          useCaseId: defaultUseCase.id,
+          key: dto.testCaseKey,
+          title: dto.testCaseTitle,
+          testLevel: dto.testLevel,
+          status: TestCaseStatus.automated,
+          priority: 'medium',
+          description: `Auto-generated test case from test execution report`,
+          createdById: systemUserId
+        }
+      });
     }
 
     // Validate story if provided
@@ -34,7 +92,7 @@ export class TestExecutionsService {
     // Create test execution
     const execution = await this.prisma.testExecution.create({
       data: {
-        testCaseId: dto.testCaseId,
+        testCaseId: testCase.id,
         storyId: dto.storyId,
         commitHash: dto.commitHash,
         executedAt: new Date(),
@@ -69,7 +127,7 @@ export class TestExecutionsService {
     // Update test case status to 'automated' if it was 'pending' or 'implemented'
     if (testCase.status === 'pending' || testCase.status === 'implemented') {
       await this.prisma.testCase.update({
-        where: { id: dto.testCaseId },
+        where: { id: testCase.id },
         data: { status: TestCaseStatus.automated }
       });
     }

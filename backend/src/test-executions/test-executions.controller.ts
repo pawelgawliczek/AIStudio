@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { ReportTestExecutionDto, TestExecutionResponseDto, FilterTestExecutionDto } from './dto';
@@ -32,7 +33,7 @@ export class TestExecutionsController {
   }
 
   @Post('report')
-  @Roles('admin', 'qa', 'dev')
+  @Public() // Allow unauthenticated access for CI/CD scripts (ST-132)
   @ApiOperation({
     summary: 'Report a test execution result (called by CI/CD)',
     description: 'This endpoint is called by CI/CD pipelines to report test execution results'

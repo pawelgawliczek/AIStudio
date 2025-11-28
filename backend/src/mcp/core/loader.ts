@@ -67,6 +67,16 @@ export class ToolLoader {
           const module = await this.loadToolModule(toolPath);
           if (module) {
             tools.push(module);
+            // Check if alias tool was also cached
+            const fileUrl = pathToFileURL(toolPath).href;
+            const rawModule = await import(fileUrl);
+            if (rawModule.aliasTool) {
+              const aliasPath = `${toolPath}#${rawModule.aliasTool.name}`;
+              const aliasModule = this.cache.get(aliasPath);
+              if (aliasModule) {
+                tools.push(aliasModule);
+              }
+            }
           }
         }
       }
@@ -80,6 +90,7 @@ export class ToolLoader {
 
   /**
    * Load a single tool module from file path
+   * Returns array to support both primary tool and alias tool
    */
   async loadToolModule(filePath: string): Promise<ToolModule | null> {
     // Check cache first
@@ -104,6 +115,17 @@ export class ToolLoader {
 
       // Cache for future use
       this.cache.set(filePath, toolModule);
+
+      // Also cache alias tool if present (uses same handler)
+      if (module.aliasTool) {
+        const aliasModule: ToolModule = {
+          tool: module.aliasTool,
+          handler: module.handler,
+          metadata: module.metadata,
+        };
+        const aliasPath = `${filePath}#${module.aliasTool.name}`;
+        this.cache.set(aliasPath, aliasModule);
+      }
 
       return toolModule;
     } catch (error) {

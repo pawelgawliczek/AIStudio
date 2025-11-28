@@ -1458,3 +1458,39 @@ model DiskUsageReport {
   @@index([createdAt(sort: Desc)])
   @@map("disk_usage_reports")
 }
+
+// ============================================================================
+// REMOTE EXECUTION AGENT (ST-133)
+// ============================================================================
+
+// RemoteAgent - Track connected remote agents (laptop/local machines)
+model RemoteAgent {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  hostname     String    @unique
+  socketId     String?   @map("socket_id")
+  status       String    @default("offline") // online, offline
+  lastSeenAt   DateTime? @map("last_seen_at")
+  capabilities String[]  // ['parse-transcript', 'analyze-story-transcripts']
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("remote_agents")
+}
+
+// RemoteJob - Track remote script execution jobs
+model RemoteJob {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  script      String
+  params      Json
+  status      String    @default("pending") // pending, running, completed, failed, timeout
+  result      Json?
+  error       String?
+  agentId     String?   @map("agent_id")
+  requestedBy String?   @map("requested_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([status, createdAt])
+  @@map("remote_jobs")
+}

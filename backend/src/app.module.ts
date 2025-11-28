@@ -17,6 +17,7 @@ import { InternalModule } from './internal/internal.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
+import { RemoteAgentModule } from './remote-agent/remote-agent.module';
 import { RunsModule } from './runs/runs.module';
 import { VersioningModule } from './services/versioning.module';
 import { StoriesModule } from './stories/stories.module';
@@ -74,6 +75,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     DocsModule,
     VersioningModule,
     AnalyticsModule,
+    RemoteAgentModule, // ST-133: Remote execution agent
   ],
   controllers: [HealthController],
 })
