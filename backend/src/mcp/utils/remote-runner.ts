@@ -53,14 +53,18 @@ interface ExecuteOptions {
  *
  * Uses HTTP to communicate with the remote-agent controller.
  * No NestJS dependencies - can be used from any context.
+ *
+ * Authentication: Uses X-Agent-Secret header (same secret as WebSocket registration)
  */
 export class RemoteRunner {
   private readonly baseUrl: string;
+  private readonly agentSecret: string;
 
   constructor(baseUrl?: string) {
     // Use localhost when running in Docker (backend container)
     // The backend container can reach itself at localhost:3000
     this.baseUrl = baseUrl || process.env.REMOTE_AGENT_URL || 'http://localhost:3000';
+    this.agentSecret = process.env.AGENT_SECRET || 'development-secret-change-in-production';
   }
 
   /**
@@ -80,11 +84,12 @@ export class RemoteRunner {
     const { requestedBy = 'mcp-tool' } = options;
 
     try {
-      // Call the remote-agent execute endpoint
+      // Call the remote-agent execute endpoint with authentication
       const response = await fetch(`${this.baseUrl}/api/remote-agent/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Agent-Secret': this.agentSecret,
         },
         body: JSON.stringify({
           script: scriptName,
@@ -156,7 +161,11 @@ export class RemoteRunner {
    */
   async getOnlineAgents(): Promise<RemoteAgent[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/remote-agent/agents`);
+      const response = await fetch(`${this.baseUrl}/api/remote-agent/agents`, {
+        headers: {
+          'X-Agent-Secret': this.agentSecret,
+        },
+      });
 
       if (!response.ok) {
         return [];
