@@ -1,9 +1,10 @@
 /**
  * Get Transcript Metrics Tool
  *
- * Dual-mode tool for extracting token metrics from Claude Code transcripts:
+ * Tri-mode tool for extracting token metrics from Claude Code transcripts:
  * - LOCAL mode: Parses transcript files directly from ~/.claude/projects/
- * - REMOTE mode: Returns command for Claude to run locally
+ * - REMOTE AGENT mode: Executes via laptop agent (ST-133/ST-140)
+ * - FALLBACK mode: Returns command for manual execution if agent offline
  *
  * This enables universal transcript parsing regardless of where the MCP server runs.
  */
@@ -14,23 +15,24 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { RemoteRunner } from '../../utils/remote-runner';
 
 export const tool: Tool = {
   name: 'get_transcript_metrics',
   description: `Get token metrics from Claude Code transcript files.
 
-DUAL-MODE OPERATION:
+TRI-MODE OPERATION:
 - If MCP server runs LOCALLY: Parses transcript and returns metrics directly
-- If MCP server runs in DOCKER: Returns { runLocally: true, command: "..." }
+- If MCP server runs in DOCKER with laptop agent online: Executes via remote agent (ST-133)
+- If MCP server runs in DOCKER with agent offline: Returns { runLocally: true, command: "..." }
 
-IMPORTANT: When runLocally=true, you MUST execute the command via Bash tool.
-The Bash tool runs on the HOST machine (where Claude Code runs), so it CAN access transcripts.
-The command uses the correct HOST path (PROJECT_HOST_PATH), not the Docker path.
+The remote agent (laptop-agent) runs on your laptop where Claude Code runs.
+When online, transcripts are parsed automatically without manual intervention.
 
 Example flow:
 1. Call get_transcript_metrics()
-2. If runLocally=true: Execute the returned command via Bash tool
-3. Parse the JSON output from Bash
+2. If runLocally=false and success=true: Metrics returned directly
+3. If runLocally=true: Execute the returned command via Bash tool (fallback)
 4. Pass metrics to record_component_complete as transcriptMetrics parameter`,
   inputSchema: {
     type: 'object',
@@ -310,6 +312,44 @@ function findTranscriptByContent(transcriptDir: string, searchContent: string): 
   return null;
 }
 
+/**
+ * Build script parameters for remote agent execution
+ * Uses --param=value format to pass through the approved-scripts whitelist
+ */
+function buildScriptParams(projectPath: string, params: any): string[] {
+  // Use --path for project path to comply with approved-scripts whitelist
+  const pathParam = `--path=${projectPath}`;
+
+  if (params.transcriptFile) {
+    return [`--file=${params.transcriptFile}`, pathParam];
+  } else if (params.searchContent) {
+    return [`--search=${params.searchContent}`, pathParam];
+  } else if (params.agentId === 'latest') {
+    return ['--latest-agent', pathParam];
+  } else if (params.agentId) {
+    return [`--agent=${params.agentId}`, pathParam];
+  } else {
+    return ['--latest', pathParam];
+  }
+}
+
+/**
+ * Build fallback command for manual execution via Bash tool
+ */
+function buildFallbackCommand(projectPath: string, params: any): string {
+  if (params.transcriptFile) {
+    return `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts "${params.transcriptFile}"`;
+  } else if (params.searchContent) {
+    return `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --search "${params.searchContent}" "${projectPath}"`;
+  } else if (params.agentId === 'latest') {
+    return `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest-agent "${projectPath}"`;
+  } else if (params.agentId) {
+    return `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --agent "${params.agentId}" "${projectPath}"`;
+  } else {
+    return `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest "${projectPath}"`;
+  }
+}
+
 export async function handler(_prisma: PrismaClient, params: any) {
   // Detect if running remotely via SSH or in Docker
   const isRunningRemotely = !!process.env.SSH_CONNECTION;
@@ -322,30 +362,35 @@ export async function handler(_prisma: PrismaClient, params: any) {
   const projectPath = process.env.PROJECT_HOST_PATH || params.projectPath || process.cwd();
 
   if (isRunningRemotely || isRunningInDocker) {
-    // MCP server is running in Docker, but the Bash tool runs on the HOST machine
-    // So we return a command that the agent can execute via Bash to parse transcripts
-    //
-    // The command uses PROJECT_HOST_PATH which is the correct path on the host machine
-    // where Claude Code runs and stores transcripts in ~/.claude/projects/
+    // MCP server is running in Docker - try remote agent first (ST-133/ST-140)
+    const runner = new RemoteRunner();
 
-    let command: string;
-    if (params.transcriptFile) {
-      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts "${params.transcriptFile}"`;
-    } else if (params.searchContent) {
-      // Search for transcript containing specific content (runId, componentId, storyId)
-      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --search "${params.searchContent}" "${projectPath}"`;
-    } else if (params.agentId === 'latest') {
-      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest-agent "${projectPath}"`;
-    } else if (params.agentId) {
-      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --agent "${params.agentId}" "${projectPath}"`;
-    } else {
-      command = `cd "${projectPath}" && npx tsx scripts/parse-transcript.ts --latest "${projectPath}"`;
+    // Build script parameters
+    const scriptParams = buildScriptParams(projectPath, params);
+
+    // Try remote execution
+    const result = await runner.execute<TranscriptMetrics>('parse-transcript', scriptParams, {
+      requestedBy: 'get_transcript_metrics',
+    });
+
+    if (result.executed && result.success && result.result) {
+      // Remote agent executed successfully - return metrics directly
+      return {
+        success: true,
+        runLocally: false,
+        metrics: result.result,
+        message: `Parsed transcript via remote agent: ${result.result.totalTokens} total tokens (${result.result.inputTokens} in, ${result.result.outputTokens} out)`,
+        executionContext: result.context,
+      };
     }
+
+    // Remote agent failed or offline - fall back to manual instructions
+    const command = buildFallbackCommand(projectPath, params);
 
     return {
       success: true,
       runLocally: true,
-      reason: 'MCP server is running in Docker. Execute the command via Bash tool to parse transcripts on the host machine.',
+      reason: result.error || 'Remote agent offline or execution failed. Execute the command via Bash tool.',
       projectPath,
       transcriptDir: `~/.claude/projects/${projectPath.replace(/^\//, '-').replace(/\//g, '-')}/`,
       command,

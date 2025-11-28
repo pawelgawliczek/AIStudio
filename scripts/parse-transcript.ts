@@ -269,22 +269,79 @@ function findTranscriptByContent(transcriptDir: string, searchContent: string): 
   return null;
 }
 
+/**
+ * Parse command line arguments supporting both:
+ * - Positional args: --latest /path/to/project
+ * - Key=value args: --latest --path=/path/to/project (for remote agent)
+ */
+function parseArgs(args: string[]): {
+  latest?: boolean;
+  latestAgent?: boolean;
+  agent?: string;
+  search?: string;
+  file?: string;
+  path?: string;
+  positionalPath?: string;
+} {
+  const result: ReturnType<typeof parseArgs> = {};
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg === '--latest') {
+      result.latest = true;
+    } else if (arg === '--latest-agent') {
+      result.latestAgent = true;
+    } else if (arg.startsWith('--agent=')) {
+      result.agent = arg.split('=')[1];
+    } else if (arg === '--agent' && args[i + 1] && !args[i + 1].startsWith('-')) {
+      result.agent = args[++i];
+    } else if (arg.startsWith('--search=')) {
+      result.search = arg.split('=')[1];
+    } else if (arg === '--search' && args[i + 1] && !args[i + 1].startsWith('-')) {
+      result.search = args[++i];
+    } else if (arg.startsWith('--file=')) {
+      result.file = arg.split('=')[1];
+    } else if (arg.startsWith('--path=')) {
+      result.path = arg.split('=')[1];
+    } else if (!arg.startsWith('-')) {
+      // Positional argument (project path or transcript file)
+      result.positionalPath = arg;
+    }
+  }
+
+  return result;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
     console.error('Usage: npx tsx scripts/parse-transcript.ts <transcript-path>');
-    console.error('       npx tsx scripts/parse-transcript.ts --latest [project-path]');
-    console.error('       npx tsx scripts/parse-transcript.ts --latest-agent [project-path]');
-    console.error('       npx tsx scripts/parse-transcript.ts --agent <agent-id> [project-path]');
-    console.error('       npx tsx scripts/parse-transcript.ts --search <content> [project-path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --latest [--path=/project/path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --latest-agent [--path=/project/path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --agent=<id> [--path=/project/path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --search=<content> [--path=/project/path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --file=<filename> [--path=/project/path]');
     process.exit(1);
   }
 
+  const parsed = parseArgs(args);
+  const projectPath = parsed.path || parsed.positionalPath || process.cwd();
   let transcriptPath: string;
 
-  if (args[0] === '--latest') {
-    const projectPath = args[1] || process.cwd();
+  if (parsed.file) {
+    // Specific file requested
+    if (parsed.file.startsWith('/') || parsed.file.startsWith('~')) {
+      transcriptPath = parsed.file;
+      if (transcriptPath.startsWith('~')) {
+        transcriptPath = path.join(os.homedir(), transcriptPath.slice(1));
+      }
+    } else {
+      const transcriptDir = findTranscriptDirectory(projectPath);
+      transcriptPath = path.join(transcriptDir, parsed.file);
+    }
+  } else if (parsed.latest) {
     const transcriptDir = findTranscriptDirectory(projectPath);
     const latest = findLatestTranscript(transcriptDir);
 
@@ -293,8 +350,7 @@ async function main() {
       process.exit(1);
     }
     transcriptPath = latest;
-  } else if (args[0] === '--latest-agent') {
-    const projectPath = args[1] || process.cwd();
+  } else if (parsed.latestAgent) {
     const transcriptDir = findTranscriptDirectory(projectPath);
     const latest = findLatestAgentTranscript(transcriptDir);
 
@@ -303,45 +359,36 @@ async function main() {
       process.exit(1);
     }
     transcriptPath = latest;
-  } else if (args[0] === '--agent') {
-    if (!args[1]) {
-      console.error(JSON.stringify({ error: 'Agent ID required. Usage: --agent <agent-id> [project-path]' }));
-      process.exit(1);
-    }
-    const agentId = args[1];
-    const projectPath = args[2] || process.cwd();
+  } else if (parsed.agent) {
     const transcriptDir = findTranscriptDirectory(projectPath);
-    const agentTranscript = findAgentTranscript(transcriptDir, agentId);
+    const agentTranscript = findAgentTranscript(transcriptDir, parsed.agent);
 
     if (!agentTranscript) {
-      console.error(JSON.stringify({ error: `No agent transcript found for ID ${agentId} in ${transcriptDir}`, hint: 'Use --latest-agent to find the most recent agent transcript' }));
+      console.error(JSON.stringify({ error: `No agent transcript found for ID ${parsed.agent} in ${transcriptDir}`, hint: 'Use --latest-agent to find the most recent agent transcript' }));
       process.exit(1);
     }
     transcriptPath = agentTranscript;
-  } else if (args[0] === '--search') {
-    if (!args[1]) {
-      console.error(JSON.stringify({ error: 'Search content required. Usage: --search <content> [project-path]' }));
-      process.exit(1);
-    }
-    const searchContent = args[1];
-    const projectPath = args[2] || process.cwd();
+  } else if (parsed.search) {
     const transcriptDir = findTranscriptDirectory(projectPath);
-    const foundTranscript = findTranscriptByContent(transcriptDir, searchContent);
+    const foundTranscript = findTranscriptByContent(transcriptDir, parsed.search);
 
     if (!foundTranscript) {
       console.error(JSON.stringify({
-        error: `No agent transcript found containing "${searchContent}" in ${transcriptDir}`,
+        error: `No agent transcript found containing "${parsed.search}" in ${transcriptDir}`,
         hint: 'Searched recent files from last hour. Ensure the content was included in the agent task.'
       }));
       process.exit(1);
     }
     transcriptPath = foundTranscript;
-  } else {
-    transcriptPath = args[0];
-    // Expand ~ to home directory
+  } else if (parsed.positionalPath) {
+    // Assume it's a direct transcript path
+    transcriptPath = parsed.positionalPath;
     if (transcriptPath.startsWith('~')) {
       transcriptPath = path.join(os.homedir(), transcriptPath.slice(1));
     }
+  } else {
+    console.error(JSON.stringify({ error: 'No transcript path or search option provided' }));
+    process.exit(1);
   }
 
   try {

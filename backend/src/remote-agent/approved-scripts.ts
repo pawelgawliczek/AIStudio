@@ -22,7 +22,7 @@ export interface ApprovedScript {
 export const APPROVED_SCRIPTS: Record<string, ApprovedScript> = {
   'parse-transcript': {
     script: 'scripts/parse-transcript.ts',
-    allowedParams: ['--latest', '--latest-agent', '--agent', '--search', '--file'],
+    allowedParams: ['--latest', '--latest-agent', '--agent', '--search', '--file', '--path'],
     timeout: 30000, // 30 seconds
   },
   'analyze-story-transcripts': {
