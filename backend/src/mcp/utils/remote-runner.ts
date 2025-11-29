@@ -48,6 +48,17 @@ interface ExecuteOptions {
   requestedBy?: string;
 }
 
+/** Response from /api/remote-agent/execute endpoint */
+interface ExecuteResponse {
+  success: boolean;
+  result?: {
+    agentOffline?: boolean;
+    fallbackCommand?: string;
+    message?: string;
+    [key: string]: unknown;
+  };
+}
+
 /**
  * RemoteRunner - Execute scripts on remote laptop agent
  *
@@ -103,7 +114,7 @@ export class RemoteRunner {
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as ExecuteResponse;
 
       // Check if agent was offline
       if (data.result?.agentOffline) {
@@ -171,7 +182,7 @@ export class RemoteRunner {
         return [];
       }
 
-      const agents = await response.json();
+      const agents = (await response.json()) as RemoteAgent[];
       return agents.filter((a: RemoteAgent) => a.status === 'online');
     } catch {
       return [];
