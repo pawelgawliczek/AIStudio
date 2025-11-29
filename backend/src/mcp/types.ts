@@ -758,3 +758,75 @@ export interface PullRequestErrorResponse {
   retryable: boolean;
   errorCode: string;
 }
+
+// ============================================================================
+// WORKFLOW STATE MANAGEMENT TOOLS (ST-144)
+// ============================================================================
+
+export interface CreateWorkflowStateParams {
+  workflowId: string;
+  name: string;
+  order: number;
+  componentId?: string;
+  preExecutionInstructions?: string;
+  postExecutionInstructions?: string;
+  requiresApproval?: boolean;
+  mandatory?: boolean;
+}
+
+export interface UpdateWorkflowStateParams {
+  workflowStateId: string;
+  name?: string;
+  order?: number;
+  componentId?: string | null; // null to clear
+  preExecutionInstructions?: string | null;
+  postExecutionInstructions?: string | null;
+  requiresApproval?: boolean;
+  mandatory?: boolean;
+}
+
+export interface DeleteWorkflowStateParams {
+  workflowStateId: string;
+  confirm: boolean;
+}
+
+export interface DeleteWorkflowStateResponse {
+  id: string;
+  workflowId: string;
+  name: string;
+  order: number;
+  cascadeDeleted: {
+    breakpoints: number;
+  };
+  reorderedStates: number; // Number of states that had their order normalized
+  message: string;
+}
+
+export interface ListWorkflowStatesParams extends PaginationParams {
+  workflowId: string;
+  includeComponent?: boolean;
+}
+
+export interface ReorderWorkflowStatesParams {
+  workflowId: string;
+  stateOrder: Array<{ stateId: string; newOrder: number }>;
+}
+
+export interface WorkflowStateResponse {
+  id: string;
+  workflowId: string;
+  name: string;
+  order: number;
+  componentId?: string;
+  preExecutionInstructions?: string;
+  postExecutionInstructions?: string;
+  requiresApproval: boolean;
+  mandatory: boolean;
+  createdAt: string;
+  updatedAt: string;
+  component?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+}

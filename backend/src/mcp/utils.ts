@@ -11,6 +11,7 @@ import {
   ProjectResponse,
   EpicResponse,
   StoryResponse,
+  WorkflowStateResponse,
 } from './types';
 
 /**
@@ -426,4 +427,36 @@ export function formatError(error: any): EnhancedErrorResponse {
   }
 
   return response;
+}
+
+/**
+ * Format workflow state for MCP response
+ */
+export function formatWorkflowState(
+  state: any,
+  includeComponent = false,
+): WorkflowStateResponse {
+  const formatted: WorkflowStateResponse = {
+    id: state.id,
+    workflowId: state.workflowId,
+    name: state.name,
+    order: state.order,
+    componentId: state.componentId || undefined,
+    preExecutionInstructions: state.preExecutionInstructions || undefined,
+    postExecutionInstructions: state.postExecutionInstructions || undefined,
+    requiresApproval: state.requiresApproval,
+    mandatory: state.mandatory,
+    createdAt: state.createdAt.toISOString(),
+    updatedAt: state.updatedAt.toISOString(),
+  };
+
+  if (includeComponent && state.component) {
+    formatted.component = {
+      id: state.component.id,
+      name: state.component.name,
+      description: state.component.description || undefined,
+    };
+  }
+
+  return formatted;
 }
