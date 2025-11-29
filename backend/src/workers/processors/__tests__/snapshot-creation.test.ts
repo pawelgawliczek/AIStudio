@@ -77,7 +77,10 @@ describe('CodeAnalysisProcessor - Snapshot Creation (ST-18)', () => {
         },
       };
 
-      const expectedHealthScore = 75.0 - 0 - 5; // maintainability - complexityPenalty - smellPenalty
+      // complexityPenalty = Math.min(20, 8.5 - 10) = -1.5 (can be negative when complexity < 10)
+      // smellPenalty = Math.min(20, 50/10) = 5
+      // healthScore = 75 - (-1.5) - 5 = 71.5
+      const expectedHealthScore = 71.5;
       const expectedTechDebt = 100 - 75.0; // 100 - maintainability
 
       (prisma.codeMetrics.aggregate as jest.Mock).mockResolvedValue(mockStats);
@@ -163,6 +166,8 @@ describe('CodeAnalysisProcessor - Snapshot Creation (ST-18)', () => {
       await (processor as any).updateProjectHealth(mockProjectId);
 
       // Assert
+      // complexityPenalty = Math.min(20, 0 - 10) = -10 (negative when complexity < 10)
+      // healthScore = 0 - (-10) - 0 = 10
       expect(prisma.codeMetricsSnapshot.create).toHaveBeenCalledWith({
         data: {
           projectId: mockProjectId,
@@ -171,7 +176,7 @@ describe('CodeAnalysisProcessor - Snapshot Creation (ST-18)', () => {
           totalLOC: 0,
           avgComplexity: 0,
           avgCoverage: 0,
-          healthScore: 0,
+          healthScore: 10,
           techDebtRatio: 100, // 100 - 0
         },
       });
@@ -280,7 +285,7 @@ describe('CodeAnalysisProcessor - Snapshot Creation (ST-18)', () => {
       const mockStats = {
         _avg: {
           maintainabilityIndex: 75.0,
-          cyclomaticComplexity: 5.0, // Low complexity (no penalty)
+          cyclomaticComplexity: 5.0, // Low complexity (penalty = 5 - 10 = -5)
           testCoverage: 65.0,
         },
         _sum: {
@@ -303,8 +308,10 @@ describe('CodeAnalysisProcessor - Snapshot Creation (ST-18)', () => {
 
       // Assert
       const createCall = (prisma.codeMetricsSnapshot.create as jest.Mock).mock.calls[0][0];
-      // healthScore = 75 - 0 - 15 = 60
-      expect(createCall.data.healthScore).toBe(60.0);
+      // complexityPenalty = Math.min(20, 5 - 10) = -5 (negative bonus for low complexity)
+      // smellPenalty = Math.min(20, 150/10) = 15
+      // healthScore = 75 - (-5) - 15 = 65
+      expect(createCall.data.healthScore).toBe(65.0);
     });
 
     it('should never return negative health score', async () => {

@@ -16,7 +16,7 @@
 import { randomUUID } from 'crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AnalyticsController } from '../controllers/analytics.controller';
 import { PrismaService } from '../prisma/prisma.service';
 import { AnalyticsService } from '../services/analytics.service';

@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma, RunStatus } from '@prisma/client';
 
 /**
  * Checkpoint data structure
@@ -69,7 +70,7 @@ export class RunnerService {
         metadata: {
           checkpoint: checkpoint,
           lastCheckpointAt: new Date().toISOString(),
-        },
+        } as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -111,7 +112,7 @@ export class RunnerService {
 
     await this.prisma.workflowRun.update({
       where: { id: runId },
-      data: { metadata },
+      data: { metadata: metadata as Prisma.InputJsonValue },
     });
   }
 
@@ -129,7 +130,7 @@ export class RunnerService {
         metadata: {
           lastStatus: status,
           lastStatusAt: new Date().toISOString(),
-        },
+        } as unknown as Prisma.InputJsonValue,
       },
     });
   }
@@ -235,8 +236,8 @@ export class RunnerService {
   /**
    * Map runner state to DB status
    */
-  private mapStateToStatus(state: string): string {
-    const mapping: Record<string, string> = {
+  private mapStateToStatus(state: string): RunStatus {
+    const mapping: Record<string, RunStatus> = {
       created: 'pending',
       initializing: 'running',
       ready: 'running',

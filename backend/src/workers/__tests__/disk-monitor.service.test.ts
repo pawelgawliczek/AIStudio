@@ -10,7 +10,22 @@
  * - Health check metrics
  */
 
-import * as childProcess from 'child_process';
+// Create mock reference before any imports
+const mockExecSync = jest.fn();
+
+// Mock child_process at module level
+jest.mock('child_process', () => ({
+  execSync: mockExecSync,
+  exec: jest.fn(),
+  spawn: jest.fn(),
+}));
+
+// Skip Prisma mock from conditional-setup by not importing PrismaService from the actual module
+// Instead we'll mock PrismaService directly
+jest.mock('../../prisma/prisma.service', () => ({
+  PrismaService: jest.fn().mockImplementation(() => ({})),
+}));
+
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -79,7 +94,7 @@ describe('DiskMonitorService', () => {
     it('should successfully check disk space and return metrics', async () => {
       // Mock df output: 500GB total, 380GB used, 120GB available, 76% used
       const dfOutput = 'Filesystem     500G 380G 120G  76% /opt/stack\n';
-      jest.spyOn(childProcess, 'execSync').mockReturnValue(dfOutput);
+      mockExecSync.mockReturnValue(dfOutput);
 
       // Mock database worktrees
       const mockWorktrees = [
@@ -120,7 +135,7 @@ describe('DiskMonitorService', () => {
 
     it('should identify stalled worktrees (updatedAt > 14 days)', async () => {
       const dfOutput = 'Filesystem     500G 380G 120G  76% /opt/stack\n';
-      jest.spyOn(childProcess, 'execSync').mockReturnValue(dfOutput);
+      mockExecSync.mockReturnValue(dfOutput);
 
       const mockWorktrees = [
         {
@@ -153,7 +168,7 @@ describe('DiskMonitorService', () => {
     });
 
     it('should handle df command failure gracefully', async () => {
-      jest.spyOn(childProcess, 'execSync').mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error('df command failed');
       });
 
@@ -265,7 +280,7 @@ describe('DiskMonitorService', () => {
   describe('monitorDiskSpace', () => {
     it('should successfully complete monitoring cycle', async () => {
       const dfOutput = 'Filesystem     500G 380G 120G  76% /opt/stack\n';
-      jest.spyOn(childProcess, 'execSync').mockReturnValue(dfOutput);
+      mockExecSync.mockReturnValue(dfOutput);
       mockPrisma.worktree.findMany.mockResolvedValue([]);
 
       await service.monitorDiskSpace();
@@ -278,7 +293,7 @@ describe('DiskMonitorService', () => {
     });
 
     it('should implement circuit breaker after 5 consecutive failures', async () => {
-      jest.spyOn(childProcess, 'execSync').mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error('Command failed');
       });
 
@@ -297,7 +312,7 @@ describe('DiskMonitorService', () => {
     });
 
     it('should reset consecutive failures on successful check', async () => {
-      jest.spyOn(childProcess, 'execSync').mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error('Command failed');
       });
 
@@ -307,7 +322,7 @@ describe('DiskMonitorService', () => {
 
       // Then succeed
       const dfOutput = 'Filesystem     500G 380G 120G  76% /opt/stack\n';
-      jest.spyOn(childProcess, 'execSync').mockReturnValue(dfOutput);
+      mockExecSync.mockReturnValue(dfOutput);
       mockPrisma.worktree.findMany.mockResolvedValue([]);
 
       await service.monitorDiskSpace();
@@ -327,7 +342,7 @@ describe('DiskMonitorService', () => {
     });
 
     it('should return degraded status with some failures', async () => {
-      jest.spyOn(childProcess, 'execSync').mockImplementation(() => {
+      mockExecSync.mockImplementation(() => {
         throw new Error('Command failed');
       });
 

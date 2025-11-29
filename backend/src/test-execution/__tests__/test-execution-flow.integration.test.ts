@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as request from 'supertest';
+import request from 'supertest';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TestExecutionsService } from '../../test-executions/test-executions.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
