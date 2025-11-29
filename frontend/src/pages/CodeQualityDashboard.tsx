@@ -979,7 +979,7 @@ const CodeQualityDashboard: React.FC = () => {
                       Last run: {formatAnalysisTimestamp(metrics.testSummary.lastExecution)}
                     </p>
                   )}
-                  {metrics.testSummary?.coveragePercentage !== undefined && (
+                  {metrics.testSummary?.coveragePercentage != null && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Coverage: {metrics.testSummary.coveragePercentage.toFixed(2)}%
                     </p>

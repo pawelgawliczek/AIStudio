@@ -161,7 +161,7 @@ export function TestExecutionDetailPage() {
       )}
 
       {/* Coverage Metrics */}
-      {execution.coveragePercentage !== undefined && (
+      {execution.coveragePercentage != null && (
         <div className="bg-card rounded-lg shadow border border-border p-6 mb-6">
           <h3 className="text-lg font-semibold text-fg mb-4 border-b border-border pb-2">
             Coverage Metrics
