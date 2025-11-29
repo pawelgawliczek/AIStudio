@@ -18,6 +18,7 @@ import { MetricsModule } from './metrics/metrics.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
 import { RemoteAgentModule } from './remote-agent/remote-agent.module';
+import { RunnerModule } from './runner/runner.module';
 import { RunsModule } from './runs/runs.module';
 import { VersioningModule } from './services/versioning.module';
 import { StoriesModule } from './stories/stories.module';
@@ -76,6 +77,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     VersioningModule,
     AnalyticsModule,
     RemoteAgentModule, // ST-133: Remote execution agent
+    RunnerModule, // ST-145: Story Runner REST API endpoints
   ],
   controllers: [HealthController],
 })

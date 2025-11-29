@@ -1,6 +1,6 @@
-// Set DATABASE_URL before any tests run
+// Force override DATABASE_URL for tests - ignore root .env which uses Docker hostname (postgres:5432)
+// Tests must use localhost:5433 to connect to DEV database from host machine
 process.env.DATABASE_URL =
-  process.env.DATABASE_URL ||
   'postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5433/vibestudio?schema=public';
 
 module.exports = {

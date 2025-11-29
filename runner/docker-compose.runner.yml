@@ -1,0 +1,45 @@
+# Docker Compose for Story Runner
+# Use: docker compose -f docker-compose.runner.yml up
+
+version: '3.8'
+
+services:
+  runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: story-runner
+    environment:
+      - NODE_ENV=production
+      - RUNNER_BACKEND_URL=${RUNNER_BACKEND_URL:-http://host.docker.internal:3001}
+      - RUNNER_WORKING_DIRECTORY=/workspace
+      - RUNNER_MAX_TOKEN_BUDGET=${RUNNER_MAX_TOKEN_BUDGET:-500000}
+      - RUNNER_MAX_AGENT_SPAWNS=${RUNNER_MAX_AGENT_SPAWNS:-20}
+      - RUNNER_MAX_RUN_DURATION=${RUNNER_MAX_RUN_DURATION:-7200000}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      # Mount workspace for Claude Code access
+      - ${WORKSPACE_PATH:-./workspace}:/workspace:rw
+      # Mount checkpoints for persistence
+      - runner-checkpoints:/app/.runner/checkpoints
+      # Mount Claude Code config if needed
+      - ~/.claude:/home/runner/.claude:ro
+    networks:
+      - vibestudio
+    restart: unless-stopped
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+volumes:
+  runner-checkpoints:
+
+networks:
+  vibestudio:
+    external: true
