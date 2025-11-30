@@ -26,7 +26,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundError, ValidationError } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
-import { execGit, validateWorktreePath, validateBranchName } from './git_utils';
+import { execGit, execGitLocationAware, validateWorktreePath, validateBranchName } from './git_utils';
 
 const WORKTREES_ROOT = '/opt/stack/worktrees';
 
@@ -84,6 +84,11 @@ export const tool: Tool = {
         type: 'boolean',
         description: 'Keep database record with status=removed instead of deleting - default: true',
       },
+      target: {
+        type: 'string',
+        enum: ['auto', 'laptop', 'kvm'],
+        description: 'ST-153: Override target host for git execution (default: auto-detect from worktree hostType)',
+      },
     },
     required: ['storyId', 'confirm'],
   },
@@ -104,6 +109,7 @@ interface DeleteWorktreeParams {
   deleteBranch?: boolean;
   forceDelete?: boolean;
   preserveDatabase?: boolean;
+  target?: 'auto' | 'laptop' | 'kvm';
 }
 
 interface DeleteActions {
@@ -124,6 +130,7 @@ interface DeleteWorktreeResponse {
   actions: DeleteActions;
   warnings?: string[];
   message: string;
+  executedOn?: 'kvm' | 'laptop';
 }
 
 export async function handler(
@@ -149,6 +156,7 @@ export async function handler(
     const preserveDatabase = params.preserveDatabase !== false; // Default true
 
     const repoPath = '/opt/stack/AIStudio';
+    let executedOn: 'kvm' | 'laptop' | undefined;
 
     // Build where clause
     const whereClause: any = { storyId: params.storyId };
@@ -189,10 +197,23 @@ export async function handler(
     };
     const warnings: string[] = [];
 
-    // Step 1: Remove worktree from filesystem
+    // Step 1: Remove worktree from filesystem (ST-153: location-aware)
     try {
       const forceFlag = forceDelete ? '--force' : '';
-      execGit(`git worktree remove ${forceFlag} "${worktree.worktreePath}"`, repoPath);
+      const result = await execGitLocationAware(
+        `git worktree remove ${forceFlag} "${worktree.worktreePath}"`,
+        repoPath,
+        {
+          storyId: params.storyId,
+          worktreeId: worktree.id,
+          target: params.target || 'auto',
+          prisma,
+        }
+      );
+      executedOn = result.executedOn;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to remove worktree');
+      }
       actions.filesystemRemoved = true;
     } catch (error: any) {
       const errorMsg = error.message.toLowerCase();
@@ -216,10 +237,23 @@ export async function handler(
       actions.emptyDirsRemoved = cleanupEmptyParentDirs(worktree.worktreePath);
     }
 
-    // Step 2: Delete git branch (local only)
+    // Step 2: Delete git branch (local only) - ST-153: location-aware
     if (deleteBranch) {
       try {
-        execGit(`git branch -D ${worktree.branchName}`, repoPath);
+        const branchResult = await execGitLocationAware(
+          `git branch -D ${worktree.branchName}`,
+          repoPath,
+          {
+            storyId: params.storyId,
+            worktreeId: worktree.id,
+            target: params.target || 'auto',
+            prisma,
+          }
+        );
+        if (!executedOn) executedOn = branchResult.executedOn;
+        if (!branchResult.success) {
+          throw new Error(branchResult.error || 'Failed to delete branch');
+        }
         actions.branchDeleted = true;
       } catch (error: any) {
         const errorMsg = error.message.toLowerCase();
@@ -288,6 +322,7 @@ export async function handler(
       actions,
       warnings: warnings.length > 0 ? warnings : undefined,
       message,
+      executedOn,
     };
   } catch (error: any) {
     if (error.name === 'MCPError') {

@@ -15,7 +15,7 @@ import {
   validateRequired,
   handlePrismaError,
 } from '../../utils.js';
-import { execGit, validateWorktreePath } from './git_utils.js';
+import { execGit, execGitLocationAware, validateWorktreePath } from './git_utils.js';
 
 // Tool definition
 export const tool: Tool = {
@@ -36,6 +36,11 @@ Features:
         type: 'string',
         description: 'Story UUID (required)',
       },
+      target: {
+        type: 'string',
+        enum: ['auto', 'laptop', 'kvm'],
+        description: 'ST-153: Override target host for git execution (default: auto-detect from worktree hostType)',
+      },
     },
     required: ['storyId'],
   },
@@ -52,6 +57,7 @@ export const metadata = {
 // Types
 export interface CheckConflictsParams {
   storyId: string;
+  target?: 'auto' | 'laptop' | 'kvm';
 }
 
 export interface ConflictFile {
@@ -69,6 +75,7 @@ export interface CheckConflictsResult {
   baseCommit: string;
   headCommit: string;
   detectedAt: string;
+  executedOn?: 'kvm' | 'laptop';
 }
 
 /**
@@ -361,20 +368,34 @@ export async function handler(
     }
 
     const worktree = story.worktrees[0];
+    let executedOn: 'kvm' | 'laptop' | undefined;
+
+    // ST-153: Build location-aware options
+    const locationOptions = {
+      storyId: params.storyId,
+      worktreeId: worktree.id,
+      target: params.target || 'auto' as const,
+      prisma,
+    };
 
     // 2. Validate worktree path (security check)
     validateWorktreePath(worktree.worktreePath);
 
-    // 3. Fetch latest origin/main with retry logic (network resilience)
+    // 3. Fetch latest origin/main with retry logic (network resilience) - ST-153: location-aware
     console.log('Fetching latest from origin/main...');
     await retryWithBackoff(async () => {
-      execGit('git fetch origin main', mainRepoPath);
-      return Promise.resolve();
+      const fetchResult = await execGitLocationAware('git fetch origin main', mainRepoPath, locationOptions);
+      executedOn = fetchResult.executedOn;
+      if (!fetchResult.success) {
+        throw new Error(fetchResult.error || 'Failed to fetch');
+      }
     }, 3, 2000);
 
-    // 4. Get commit hashes for tracking
-    const baseCommit = execGit('git rev-parse origin/main', mainRepoPath).trim();
-    const headCommit = execGit(`git rev-parse ${worktree.branchName}`, mainRepoPath).trim();
+    // 4. Get commit hashes for tracking (ST-153: location-aware)
+    const baseResult = await execGitLocationAware('git rev-parse origin/main', mainRepoPath, locationOptions);
+    const baseCommit = (baseResult.output || '').trim();
+    const headResult = await execGitLocationAware(`git rev-parse ${worktree.branchName}`, mainRepoPath, locationOptions);
+    const headCommit = (headResult.output || '').trim();
 
     console.log(`Checking for conflicts: origin/main (${baseCommit.substring(0, 7)}) vs ${worktree.branchName} (${headCommit.substring(0, 7)})`);
 
@@ -428,6 +449,7 @@ export async function handler(
       baseCommit,
       headCommit,
       detectedAt,
+      executedOn,
     };
   } catch (error: any) {
     if (error.name === 'MCPError') {

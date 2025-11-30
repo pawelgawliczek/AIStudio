@@ -1,5 +1,6 @@
 /**
  * Unit Tests for rebase_on_main tool
+ * Updated for ST-153: Location-aware git execution
  */
 
 import * as fs from 'fs';
@@ -12,6 +13,7 @@ import { handler } from '../rebase_on_main';
 jest.mock('fs');
 jest.mock('../git_utils');
 const mockExecGit = gitUtils.execGit as jest.MockedFunction<typeof gitUtils.execGit>;
+const mockExecGitLocationAware = gitUtils.execGitLocationAware as jest.MockedFunction<typeof gitUtils.execGitLocationAware>;
 const mockValidateWorktreePath = gitUtils.validateWorktreePath as jest.MockedFunction<typeof gitUtils.validateWorktreePath>;
 const mockExistsSync = fs.existsSync as jest.MockedFunction<typeof fs.existsSync>;
 const mockStatSync = fs.statSync as jest.MockedFunction<typeof fs.statSync>;
@@ -63,19 +65,16 @@ describe('rebase_on_main', () => {
 
       mockExistsSync.mockReturnValue(false); // No rebase in progress
 
-      // Mock clean worktree check
+      // Mock clean worktree check (still uses execGit directly)
       mockExecGit.mockReturnValueOnce(''); // git status --porcelain (clean)
 
-      // Mock fetch
-      mockExecGit.mockReturnValueOnce(''); // git fetch origin main
+      // Mock location-aware operations (ST-153)
+      mockExecGitLocationAware
+        .mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }) // fetch
+        .mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }) // rebase
+        .mockResolvedValueOnce({ success: true, output: 'new-commit-hash', executedOn: 'kvm' }); // rev-parse HEAD
 
-      // Mock successful rebase
-      mockExecGit.mockReturnValueOnce(''); // git rebase origin/main
-
-      // Mock new HEAD commit
-      mockExecGit.mockReturnValueOnce('new-commit-hash\n'); // git rev-parse HEAD
-
-      // Mock commit count
+      // Mock commit count (still uses execGit directly)
       mockExecGit.mockReturnValueOnce('commit1\ncommit2\ncommit3\n'); // git log
 
       const result = await handler(mockPrisma, { storyId: 'story-123' });
@@ -86,6 +85,7 @@ describe('rebase_on_main', () => {
         newHeadCommit: 'new-commit-hash',
         rebasedCommits: 3,
         message: expect.stringContaining('Successfully rebased'),
+        executedOn: 'kvm',
       });
 
       // Verify Story.metadata was updated
@@ -115,19 +115,23 @@ describe('rebase_on_main', () => {
 
       mockExistsSync.mockReturnValue(false);
       mockExecGit.mockReturnValueOnce(''); // clean worktree
-      mockExecGit.mockReturnValueOnce(''); // fetch
 
-      // Mock rebase with conflicts
-      const rebaseError: any = new Error('Git command failed');
-      rebaseError.status = 1;
-      rebaseError.message = 'CONFLICT (content): Merge conflict in file.ts';
-      mockExecGit.mockImplementationOnce(() => {
-        throw rebaseError;
+      // Mock location-aware fetch (ST-153)
+      mockExecGitLocationAware.mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }); // fetch
+
+      // Mock rebase with conflicts (location-aware)
+      mockExecGitLocationAware.mockResolvedValueOnce({
+        success: false,
+        error: 'CONFLICT (content): Merge conflict in file.ts',
+        executedOn: 'kvm',
       });
 
-      // Mock git status to get conflict files
-      mockExecGit.mockReturnValueOnce(`UU file1.ts
-UU file2.ts`);
+      // Mock git status to get conflict files (location-aware)
+      mockExecGitLocationAware.mockResolvedValueOnce({
+        success: true,
+        output: 'UU file1.ts\nUU file2.ts',
+        executedOn: 'kvm',
+      });
 
       const result = await handler(mockPrisma, { storyId: 'story-123' });
 
@@ -137,6 +141,7 @@ UU file2.ts`);
         conflictFiles: ['file1.ts', 'file2.ts'],
         message: expect.stringContaining('paused due to conflicts'),
         actionRequired: expect.stringContaining('Resolve conflicts'),
+        executedOn: 'kvm',
       });
 
       // Verify Story.metadata was updated with paused status
@@ -180,20 +185,25 @@ UU file2.ts`);
 
       mockExistsSync.mockReturnValue(false);
       mockExecGit.mockReturnValueOnce(''); // clean worktree
-      mockExecGit.mockReturnValueOnce(''); // fetch
 
-      // Mock rebase with conflicts
-      const rebaseError: any = new Error('Git command failed');
-      rebaseError.status = 1;
-      rebaseError.message = 'CONFLICT';
-      mockExecGit.mockImplementationOnce(() => {
-        throw rebaseError;
+      // Mock location-aware fetch (ST-153)
+      mockExecGitLocationAware.mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }); // fetch
+
+      // Mock rebase with conflicts (location-aware)
+      mockExecGitLocationAware.mockResolvedValueOnce({
+        success: false,
+        error: 'CONFLICT',
+        executedOn: 'kvm',
       });
 
-      // Mock git status
-      mockExecGit.mockReturnValueOnce('UU file.ts');
+      // Mock git status (location-aware)
+      mockExecGitLocationAware.mockResolvedValueOnce({
+        success: true,
+        output: 'UU file.ts',
+        executedOn: 'kvm',
+      });
 
-      // Mock git rebase --abort
+      // Mock git rebase --abort (still uses execGit directly)
       mockExecGit.mockReturnValueOnce('');
 
       const result = await handler(mockPrisma, {
@@ -262,16 +272,19 @@ UU file2.ts`);
         mtimeMs: Date.now() - (2 * 60 * 60 * 1000), // 2 hours ago
       } as any);
 
-      // Mock abort
+      // Mock abort (still uses execGit directly)
       mockExecGit.mockReturnValueOnce(''); // git rebase --abort
 
       // Mock clean worktree check
       mockExecGit.mockReturnValueOnce('');
 
-      // Mock fetch and successful rebase
-      mockExecGit.mockReturnValueOnce('');
-      mockExecGit.mockReturnValueOnce('');
-      mockExecGit.mockReturnValueOnce('new-hash\n');
+      // Mock location-aware operations (ST-153)
+      mockExecGitLocationAware
+        .mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }) // fetch
+        .mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }) // rebase
+        .mockResolvedValueOnce({ success: true, output: 'new-hash', executedOn: 'kvm' }); // rev-parse
+
+      // Mock commit count (still uses execGit directly)
       mockExecGit.mockReturnValueOnce('commit1\n');
 
       const result = await handler(mockPrisma, { storyId: 'story-123' });
@@ -290,13 +303,12 @@ UU file2.ts`);
 
       mockExistsSync.mockReturnValue(false);
       mockExecGit.mockReturnValueOnce(''); // clean worktree
-      mockExecGit.mockReturnValueOnce(''); // fetch
 
-      // Mock unexpected rebase error
-      const unexpectedError = new Error('Unexpected git error');
-      mockExecGit.mockImplementationOnce(() => {
-        throw unexpectedError;
-      });
+      // Mock location-aware fetch (ST-153)
+      mockExecGitLocationAware.mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' });
+
+      // Mock unexpected rebase error (location-aware)
+      mockExecGitLocationAware.mockRejectedValueOnce(new Error('Unexpected git error'));
 
       // Mock abort (called in rollback)
       mockExecGit.mockReturnValueOnce(''); // git rebase --abort
@@ -317,34 +329,31 @@ UU file2.ts`);
       mockExistsSync.mockReturnValue(false);
       mockExecGit.mockReturnValueOnce(''); // clean worktree
 
-      // Fail fetch twice, succeed on third
+      // Mock location-aware operations with retry (ST-153)
       let fetchAttempts = 0;
-      mockExecGit.mockImplementation((command: string) => {
-        if (command.includes('git fetch')) {
-          fetchAttempts++;
-          if (fetchAttempts < 3) {
-            throw new Error('Network error');
-          }
-          return '';
+      mockExecGitLocationAware.mockImplementation(async () => {
+        fetchAttempts++;
+        if (fetchAttempts < 3) {
+          throw new Error('Network error');
         }
-        if (command.includes('rebase')) {
-          return '';
+        if (fetchAttempts === 3) {
+          return { success: true, output: '', executedOn: 'kvm' as const }; // fetch succeeds
         }
-        if (command.includes('rev-parse')) {
-          return 'hash\n';
+        if (fetchAttempts === 4) {
+          return { success: true, output: '', executedOn: 'kvm' as const }; // rebase
         }
-        if (command.includes('log')) {
-          return 'commit1\n';
-        }
-        return '';
+        return { success: true, output: 'hash', executedOn: 'kvm' as const }; // rev-parse
       });
+
+      // Mock commit count (still uses execGit directly)
+      mockExecGit.mockReturnValueOnce('commit1\n');
 
       const promise = handler(mockPrisma, { storyId: 'story-123' });
       await jest.runAllTimersAsync();
       const result = await promise;
 
       expect(result.status).toBe('completed');
-      expect(fetchAttempts).toBe(3);
+      expect(fetchAttempts).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -358,10 +367,15 @@ UU file2.ts`);
       (mockPrisma.story.update as jest.Mock).mockResolvedValue(storyWithMetadata);
 
       mockExistsSync.mockReturnValue(false);
-      mockExecGit.mockReturnValueOnce('');
-      mockExecGit.mockReturnValueOnce('');
-      mockExecGit.mockReturnValueOnce('');
-      mockExecGit.mockReturnValueOnce('hash\n');
+      mockExecGit.mockReturnValueOnce(''); // clean worktree
+
+      // Mock location-aware operations (ST-153)
+      mockExecGitLocationAware
+        .mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }) // fetch
+        .mockResolvedValueOnce({ success: true, output: '', executedOn: 'kvm' }) // rebase
+        .mockResolvedValueOnce({ success: true, output: 'hash', executedOn: 'kvm' }); // rev-parse
+
+      // Mock commit count (still uses execGit directly)
       mockExecGit.mockReturnValueOnce('commit1\n');
 
       await handler(mockPrisma, { storyId: 'story-123' });

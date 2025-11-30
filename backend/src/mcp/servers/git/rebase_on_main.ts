@@ -18,7 +18,7 @@ import {
   validateRequired,
   handlePrismaError,
 } from '../../utils.js';
-import { execGit, parseGitStatus, validateWorktreePath } from './git_utils.js';
+import { execGit, execGitLocationAware, parseGitStatus, validateWorktreePath } from './git_utils.js';
 
 // Tool definition
 export const tool: Tool = {
@@ -47,6 +47,11 @@ Features:
         type: 'boolean',
         description: 'Auto-abort if conflicts (default: false, leaves rebase paused for manual resolution)',
       },
+      target: {
+        type: 'string',
+        enum: ['auto', 'laptop', 'kvm'],
+        description: 'ST-153: Override target host for git execution (default: auto-detect from worktree hostType)',
+      },
     },
     required: ['storyId'],
   },
@@ -64,6 +69,7 @@ export const metadata = {
 export interface RebaseOnMainParams {
   storyId: string;
   autoAbortOnConflict?: boolean;
+  target?: 'auto' | 'laptop' | 'kvm';
 }
 
 export interface RebaseOnMainResult {
@@ -74,6 +80,7 @@ export interface RebaseOnMainResult {
   conflictFiles?: string[];
   message: string;
   actionRequired?: string;
+  executedOn?: 'kvm' | 'laptop';
 }
 
 /**
@@ -237,6 +244,15 @@ export async function handler(
 
     const worktree = story.worktrees[0];
     const worktreePath = worktree.worktreePath;
+    let executedOn: 'kvm' | 'laptop' | undefined;
+
+    // ST-153: Build location-aware options
+    const locationOptions = {
+      storyId: params.storyId,
+      worktreeId: worktree.id,
+      target: params.target || 'auto' as const,
+      prisma,
+    };
 
     // 2. Validate worktree path (security check)
     validateWorktreePath(worktreePath);
@@ -259,11 +275,14 @@ export async function handler(
 
     console.log(`Starting rebase for ${story.key} on origin/main...`);
 
-    // 5. Fetch latest main with retry logic (network resilience)
+    // 5. Fetch latest main with retry logic (network resilience) - ST-153: location-aware
     console.log('Fetching latest from origin/main...');
     await retryWithBackoff(async () => {
-      execGit('git fetch origin main', worktreePath, 30000);
-      return Promise.resolve();
+      const fetchResult = await execGitLocationAware('git fetch origin main', worktreePath, { ...locationOptions, timeout: 30000 });
+      executedOn = fetchResult.executedOn;
+      if (!fetchResult.success) {
+        throw new Error(fetchResult.error || 'Failed to fetch');
+      }
     }, 3, 2000);
 
     // 6. Execute rebase
@@ -271,10 +290,16 @@ export async function handler(
     rebaseStarted = true;
 
     try {
-      execGit('git rebase origin/main', worktreePath, 60000); // 60 second timeout
+      // ST-153: location-aware rebase
+      const rebaseResult = await execGitLocationAware('git rebase origin/main', worktreePath, { ...locationOptions, timeout: 60000 });
+      if (!executedOn) executedOn = rebaseResult.executedOn;
+      if (!rebaseResult.success) {
+        throw new Error(rebaseResult.error || 'Rebase failed');
+      }
 
       // **SUCCESS PATH**: Rebase completed without conflicts
-      const newHeadCommit = execGit('git rev-parse HEAD', worktreePath).trim();
+      const headResult = await execGitLocationAware('git rev-parse HEAD', worktreePath, locationOptions);
+      const newHeadCommit = (headResult.output || '').trim();
       const rebasedCommits = countRebasedCommits(worktreePath, 'origin/main');
 
       console.log(`✓ Rebase completed successfully`);
@@ -305,6 +330,7 @@ export async function handler(
         newHeadCommit,
         rebasedCommits,
         message: `Successfully rebased ${story.key} on origin/main. ${rebasedCommits} commit(s) rebased.`,
+        executedOn,
       };
 
     } catch (rebaseError: any) {
@@ -315,8 +341,9 @@ export async function handler(
         // **PAUSED PATH**: Conflicts detected during rebase
         console.log('✗ Conflicts detected during rebase');
 
-        // Parse conflict files from git status
-        const statusOutput = execGit('git status --porcelain', worktreePath);
+        // Parse conflict files from git status (ST-153: location-aware)
+        const statusResult = await execGitLocationAware('git status --porcelain', worktreePath, locationOptions);
+        const statusOutput = statusResult.output || '';
         const conflictFiles = parseConflictFiles(statusOutput);
 
         console.log(`Conflicts in ${conflictFiles.length} file(s):`);
@@ -351,6 +378,7 @@ export async function handler(
             conflictFiles,
             message: `Rebase aborted due to conflicts in ${conflictFiles.length} file(s).`,
             actionRequired: 'Resolve conflicts manually or use rebase tool without auto-abort flag',
+            executedOn,
           };
         }
 
@@ -408,6 +436,7 @@ export async function handler(
           conflictFiles,
           message: `Rebase paused due to conflicts in ${conflictFiles.length} file(s). Manual resolution required.`,
           actionRequired: `Resolve conflicts in worktree at ${worktreePath}, then continue or abort rebase`,
+          executedOn,
         };
       }
 

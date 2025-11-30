@@ -35,6 +35,11 @@ export const tool: Tool = {
         type: 'string',
         description: 'Base branch to create from (default: main)',
       },
+      target: {
+        type: 'string',
+        enum: ['auto', 'laptop', 'kvm'],
+        description: 'ST-153: Target host for worktree creation. Note: worktrees must be created where they will be used (laptop or kvm). Uses runLocally directive when remote execution detected.',
+      },
     },
     required: ['storyId'],
   },
@@ -52,6 +57,7 @@ interface CreateWorktreeParams {
   storyId: string;
   branchName?: string;
   baseBranch?: string;
+  target?: 'auto' | 'laptop' | 'kvm';
 }
 
 interface CreateWorktreeResponse {
@@ -61,6 +67,7 @@ interface CreateWorktreeResponse {
   worktreePath: string;
   baseBranch: string;
   message: string;
+  executedOn?: 'kvm' | 'laptop';
 }
 
 /**
@@ -306,6 +313,10 @@ After creating the worktree locally, call record_worktree_created to update the 
       },
     });
 
+    // ST-153: Note that worktree creation is always local since it involves filesystem operations.
+    // When running on KVM, we create worktrees on KVM. For laptop worktrees, use the runLocally directive.
+    const executedOn: 'kvm' | 'laptop' = 'kvm'; // Worktrees are created on KVM server
+
     return {
       worktreeId: worktree.id,
       storyId: params.storyId,
@@ -313,6 +324,7 @@ After creating the worktree locally, call record_worktree_created to update the 
       worktreePath,
       baseBranch,
       message: `Successfully created worktree for ${story.key} at ${worktreePath}`,
+      executedOn,
     };
   } catch (error: any) {
     if (error.name === 'MCPError') {
