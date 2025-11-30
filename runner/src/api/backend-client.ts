@@ -305,6 +305,54 @@ export class BackendClient {
     });
     return response.data;
   }
+
+  /**
+   * Create an approval request for a state
+   * ST-148: Approval Gates
+   */
+  async createApprovalRequest(payload: CreateApprovalPayload): Promise<ApprovalRequest> {
+    const response = await this.client.post<ApprovalRequest>(
+      '/api/runner/approvals',
+      payload
+    );
+    return response.data;
+  }
+
+  /**
+   * Get pending approval for a workflow run
+   * ST-148: Approval Gates
+   */
+  async getPendingApproval(runId: string): Promise<ApprovalRequest | null> {
+    try {
+      const response = await this.client.get<ApprovalRequest>(
+        `/api/runner/approvals/${runId}/pending`
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get the latest approval for a workflow run (for resume check)
+   * ST-148: Approval Gates
+   */
+  async getLatestApproval(runId: string): Promise<ApprovalRequest | null> {
+    try {
+      const response = await this.client.get<ApprovalRequest>(
+        `/api/runner/approvals/${runId}/latest`
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
 }
 
 /**
@@ -336,4 +384,46 @@ export interface BreakpointContext {
   currentStateIndex: number;
   totalStates: number;
   previousStateOutput?: Record<string, unknown>;
+}
+
+/**
+ * Approval request type
+ * ST-148: Approval Gates
+ */
+export interface ApprovalRequest {
+  id: string;
+  workflowRunId: string;
+  stateId: string;
+  projectId: string;
+  stateName: string;
+  stateOrder: number;
+  requestedBy: string;
+  requestedAt: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  contextSummary?: string;
+  artifactKeys: string[];
+  tokensUsed: number;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolution?: 'approved' | 'rejected' | 'cancelled';
+  reason?: string;
+  reExecutionMode?: 'feedback_injection' | 'artifact_edit' | 'both' | 'none';
+  feedback?: string;
+  editedArtifacts: string[];
+}
+
+/**
+ * Create approval request payload
+ * ST-148: Approval Gates
+ */
+export interface CreateApprovalPayload {
+  workflowRunId: string;
+  stateId: string;
+  projectId: string;
+  stateName: string;
+  stateOrder: number;
+  requestedBy: string;
+  contextSummary?: string;
+  artifactKeys?: string[];
+  tokensUsed?: number;
 }

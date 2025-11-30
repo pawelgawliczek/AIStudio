@@ -7,9 +7,11 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { RunnerService, RunnerCheckpoint, RunnerStatus } from './runner.service';
 import { BreakpointService, BreakpointContext, BreakpointData } from './breakpoint.service';
+import { ApprovalService, CreateApprovalParams, ApprovalRequestData } from './approval.service';
 
 /**
  * DTO for saving checkpoint
@@ -61,6 +63,22 @@ class RecordBreakpointHitDto {
 }
 
 /**
+ * DTO for creating approval request
+ * ST-148: Approval Gates
+ */
+class CreateApprovalDto {
+  workflowRunId: string;
+  stateId: string;
+  projectId: string;
+  stateName: string;
+  stateOrder: number;
+  requestedBy: string;
+  contextSummary?: string;
+  artifactKeys?: string[];
+  tokensUsed?: number;
+}
+
+/**
  * Runner Controller
  * REST API endpoints for Story Runner communication
  *
@@ -76,12 +94,18 @@ class RecordBreakpointHitDto {
  * - GET /api/runner/breakpoints/:runId - Get breakpoints for run
  * - POST /api/runner/breakpoints/:runId/check - Check if should pause
  * - POST /api/runner/breakpoints/:breakpointId/hit - Record breakpoint hit
+ *
+ * ST-148 Approval Endpoints:
+ * - POST /api/runner/approvals - Create approval request
+ * - GET /api/runner/approvals/:runId/pending - Get pending approval
+ * - GET /api/runner/approvals/:runId/latest - Get latest approval (for resume)
  */
 @Controller('runner')
 export class RunnerController {
   constructor(
     private readonly runnerService: RunnerService,
     private readonly breakpointService: BreakpointService,
+    private readonly approvalService: ApprovalService,
   ) {}
 
   /**
@@ -229,5 +253,51 @@ export class RunnerController {
     }
 
     return { success: true };
+  }
+
+  // ========================================
+  // ST-148: Approval Endpoints
+  // ========================================
+
+  /**
+   * Create approval request
+   * ST-148: Approval Gates
+   */
+  @Post('approvals')
+  @HttpCode(HttpStatus.CREATED)
+  async createApprovalRequest(
+    @Body() dto: CreateApprovalDto,
+  ): Promise<ApprovalRequestData> {
+    return await this.approvalService.createApprovalRequest(dto);
+  }
+
+  /**
+   * Get pending approval for a workflow run
+   * ST-148: Approval Gates
+   */
+  @Get('approvals/:runId/pending')
+  async getPendingApproval(
+    @Param('runId') runId: string,
+  ): Promise<ApprovalRequestData> {
+    const approval = await this.approvalService.getPendingApproval(runId);
+    if (!approval) {
+      throw new NotFoundException(`No pending approval found for run ${runId}`);
+    }
+    return approval;
+  }
+
+  /**
+   * Get latest approval for a workflow run (for resume check)
+   * ST-148: Approval Gates
+   */
+  @Get('approvals/:runId/latest')
+  async getLatestApproval(
+    @Param('runId') runId: string,
+  ): Promise<ApprovalRequestData> {
+    const approval = await this.approvalService.getLatestApproval(runId);
+    if (!approval) {
+      throw new NotFoundException(`No approval found for run ${runId}`);
+    }
+    return approval;
   }
 }

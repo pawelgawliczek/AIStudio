@@ -68,6 +68,7 @@ model Project {
   metricsAggregations  MetricsAggregation[]
   fileUseCaseLinks     FileUseCaseLink[]
   otelEvents           OtelEvent[]
+  approvalRequests     ApprovalRequest[]  // ST-148: Approval gates
 
   @@map("projects")
 }
@@ -762,6 +763,8 @@ model WorkflowRun {
   agentStreamEvents AgentStreamEvent[]
   // ST-151: Artifacts for this workflow run
   artifacts     Artifact[]
+  // ST-148: Approval gates
+  approvalRequests ApprovalRequest[]
 
   @@index([projectId])
   @@index([workflowId])
@@ -1437,6 +1440,30 @@ enum BreakpointPosition {
   after // Pause after state execution
 }
 
+// ============================================================================
+// ST-148: APPROVAL GATES - HUMAN-IN-THE-LOOP
+// ============================================================================
+
+enum ApprovalStatus {
+  pending   // Waiting for human decision
+  approved  // Approved, continue execution
+  rejected  // Rejected, workflow cancelled or paused
+  cancelled // Request cancelled (workflow cancelled)
+}
+
+enum ApprovalResolution {
+  approved  // Human approved the state output
+  rejected  // Human rejected the state output
+  cancelled // Request was cancelled
+}
+
+enum ReExecutionMode {
+  feedback_injection // Re-run state with feedback injected into prompt
+  artifact_edit      // Continue after manual artifact edits
+  both               // Both feedback injection and artifact edits
+  none               // Just continue (approved without changes)
+}
+
 // ServiceDeploymentState - Track last deployed commit per service (ST-115 Build Optimization)
 // Used for intelligent change detection to skip rebuilds when service hasn't changed
 model ServiceDeploymentState {
@@ -1559,6 +1586,7 @@ model WorkflowState {
   workflowRunsAtState   WorkflowRun[]      @relation("CurrentState")
   breakpointsAtState    RunnerBreakpoint[]
   artifactAccess        ArtifactAccess[]   // ST-151: Access rules for this state
+  approvalRequests      ApprovalRequest[]  // ST-148: Approval requests for this state
 
   @@unique([workflowId, name])
   @@unique([workflowId, order])
@@ -1590,6 +1618,55 @@ model RunnerBreakpoint {
   @@unique([workflowRunId, stateId, position])
   @@index([workflowRunId, isActive])
   @@map("runner_breakpoints")
+}
+
+// ApprovalRequest - Human-in-the-loop approval gates for story runner
+// Created when a state with requiresApproval=true completes execution
+model ApprovalRequest {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workflowRunId String @map("workflow_run_id") @db.Uuid
+  stateId       String @map("state_id") @db.Uuid
+  projectId     String @map("project_id") @db.Uuid
+
+  // Request metadata
+  stateName   String   @map("state_name")
+  stateOrder  Int      @map("state_order")
+  requestedBy String   @map("requested_by")
+  requestedAt DateTime @default(now()) @map("requested_at")
+
+  // Status tracking
+  status ApprovalStatus @default(pending)
+
+  // Context for reviewer
+  contextSummary String?  @map("context_summary") @db.Text
+  artifactKeys   String[] @default([]) @map("artifact_keys")
+  tokensUsed     Int      @default(0) @map("tokens_used")
+
+  // Resolution
+  resolvedAt DateTime?          @map("resolved_at")
+  resolvedBy String?            @map("resolved_by")
+  resolution ApprovalResolution?
+  reason     String?            @db.Text
+
+  // Re-execution configuration (for rerun action)
+  reExecutionMode ReExecutionMode? @map("re_execution_mode")
+  feedback        String?          @db.Text // Instructions for re-run
+  editedArtifacts String[]         @default([]) @map("edited_artifacts")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workflowRun WorkflowRun   @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  state       WorkflowState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowRunId, stateId])
+  @@index([workflowRunId, status])
+  @@index([projectId, status])
+  @@index([status, requestedAt])
+  @@map("approval_requests")
 }
 
 // ============================================================================

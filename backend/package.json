@@ -12,7 +12,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest --testPathPattern='\\.test\\.ts$'",
+    "test": "jest src --maxWorkers=4",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --maxWorkers=4",
     "test:cov:summary": "jest --coverage --coverageReporters=text-summary --maxWorkers=4",

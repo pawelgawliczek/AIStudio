@@ -22,7 +22,7 @@ import { MasterSession } from './cli/master-session';
 import { AgentSession } from './cli/agent-session';
 import { CheckpointService } from './checkpoint/checkpoint-service';
 import { ResourceManager } from './resources/resource-manager';
-import { BackendClient, Breakpoint, BreakpointContext } from './api/backend-client';
+import { BackendClient, Breakpoint, BreakpointContext, ApprovalRequest } from './api/backend-client';
 import { ResponseHandler } from './state-machine/response-handler';
 
 /**
@@ -50,6 +50,7 @@ export interface RunnerEvents {
   'agent:completed': (stateId: string, exitCode: number) => void;
   'checkpoint:saved': (checkpoint: RunnerCheckpoint) => void;
   'breakpoint:hit': (breakpoint: Breakpoint, position: 'before' | 'after', stateId: string) => void;
+  'approval:required': (approval: ApprovalRequest, stateId: string, stateName: string) => void;
   'error': (error: Error) => void;
 }
 
@@ -87,6 +88,10 @@ export class Runner extends EventEmitter {
   private breakpoints: Breakpoint[] = [];
   private breakpointsModifiedAt: string | null = null;
   private lastAgentOutput: Record<string, unknown> | undefined;
+
+  // ST-148: Approval state
+  private approvalFeedback: string | null = null;
+  private shouldRerunCurrentState: boolean = false;
 
   constructor(config: RunnerConfig) {
     super();
@@ -226,6 +231,9 @@ export class Runner extends EventEmitter {
       // Load workflow run
       this.workflowRun = await this.backendClient.getWorkflowRun(runId);
 
+      // ST-148: Check for approval feedback on resume
+      await this.checkApprovalFeedbackOnResume(runId);
+
       // Resume master session
       console.log(`[Runner] Resuming master session ${this.checkpoint.masterSessionId}...`);
       this.masterSession = new MasterSession({
@@ -248,6 +256,50 @@ export class Runner extends EventEmitter {
       this.emit('error', error as Error);
       this.setState('failed');
       throw error;
+    }
+  }
+
+  /**
+   * Check for approval feedback on resume
+   * ST-148: Approval Gates
+   */
+  private async checkApprovalFeedbackOnResume(runId: string): Promise<void> {
+    try {
+      const latestApproval = await this.backendClient.getLatestApproval(runId);
+
+      if (!latestApproval) {
+        console.log(`[Runner] No approval found for run ${runId}`);
+        return;
+      }
+
+      // Check if this was a rerun request with feedback
+      if (
+        latestApproval.status === 'approved' &&
+        latestApproval.reExecutionMode === 'feedback_injection' &&
+        latestApproval.feedback
+      ) {
+        console.log(`[Runner] Found approval feedback for rerun: ${latestApproval.feedback.substring(0, 100)}...`);
+        this.approvalFeedback = latestApproval.feedback;
+        this.shouldRerunCurrentState = true;
+
+        // Remove current state from completed states (so it reruns)
+        const currentStateId = this.checkpoint!.currentStateId;
+        if (this.checkpoint!.completedStates.includes(currentStateId)) {
+          this.checkpoint!.completedStates = this.checkpoint!.completedStates.filter(
+            id => id !== currentStateId
+          );
+          console.log(`[Runner] Removed state ${currentStateId} from completed states for rerun`);
+        }
+      } else if (latestApproval.status === 'approved') {
+        console.log(`[Runner] Approval approved, continuing to next state`);
+        // Clear any previous feedback
+        this.approvalFeedback = null;
+        this.shouldRerunCurrentState = false;
+      }
+    } catch (error) {
+      console.log(`[Runner] No approval feedback found:`, (error as Error).message);
+      this.approvalFeedback = null;
+      this.shouldRerunCurrentState = false;
     }
   }
 
@@ -319,6 +371,14 @@ export class Runner extends EventEmitter {
           this.emit('breakpoint:hit', afterCheck.breakpoint, 'after', currentState.id);
           await this.pauseForBreakpoint(afterCheck.breakpoint, 'after', currentState.name);
           return;
+        }
+
+        // ST-148: Check approval gate (handles requiresApproval flag + per-run overrides)
+        if (result.success && !result.skipped) {
+          const shouldPause = await this.checkApprovalGate(currentState, result);
+          if (shouldPause) {
+            return;
+          }
         }
 
         // Save checkpoint after each state
@@ -460,6 +520,72 @@ export class Runner extends EventEmitter {
 
     // Pause execution
     await this.pause(reason);
+  }
+
+  /**
+   * Check approval gate for a state
+   * ST-148: Approval Gates
+   * Returns true if runner should pause, false to continue
+   */
+  private async checkApprovalGate(
+    state: WorkflowState,
+    result: StateExecutionResult
+  ): Promise<boolean> {
+    if (!this.workflowRun) return false;
+
+    // ST-148: Check for approval overrides in workflow run metadata
+    const metadata = (this.workflowRun as any).metadata || {};
+    const approvalOverrides = metadata._approvalOverrides || { mode: 'default' };
+
+    // Determine if approval is required based on overrides
+    let requiresApproval = state.requiresApproval;
+
+    if (approvalOverrides.mode === 'none') {
+      console.log(`[Runner] Approval override: mode='none', skipping approval for ${state.name}`);
+      return false;
+    } else if (approvalOverrides.mode === 'all') {
+      console.log(`[Runner] Approval override: mode='all', requiring approval for ${state.name}`);
+      requiresApproval = true;
+    } else if (approvalOverrides.stateOverrides && approvalOverrides.stateOverrides[state.name] !== undefined) {
+      requiresApproval = approvalOverrides.stateOverrides[state.name];
+      console.log(`[Runner] Approval override: stateOverride for ${state.name} = ${requiresApproval}`);
+    }
+
+    if (!requiresApproval) {
+      return false;
+    }
+
+    try {
+      // Get project ID from workflow run
+      const projectId = (this.workflowRun as any).projectId;
+      if (!projectId) {
+        console.warn(`[Runner] Cannot create approval request: no project ID`);
+        return false;
+      }
+
+      // Create approval request
+      const approval = await this.backendClient.createApprovalRequest({
+        workflowRunId: this.workflowRun.id,
+        stateId: state.id,
+        projectId,
+        stateName: state.name,
+        stateOrder: state.order,
+        requestedBy: 'story-runner',
+        contextSummary: result.output ? JSON.stringify(result.output).substring(0, 500) : undefined,
+        tokensUsed: result.tokensUsed,
+      });
+
+      console.log(`[Runner] Created approval request: ${approval.id}`);
+      this.emit('approval:required', approval, state.id, state.name);
+
+      // Pause for approval
+      await this.pause(`Approval required after ${state.name}`);
+      return true;
+    } catch (error) {
+      console.error(`[Runner] Failed to create approval request:`, (error as Error).message);
+      // On error, continue without approval (fallback behavior)
+      return false;
+    }
   }
 
   /**
@@ -832,6 +958,22 @@ Description: ${this.storyContext.description || 'N/A'}
       if (this.storyContext.baAnalysis) {
         prompt += `\n### BA Analysis\n${this.storyContext.baAnalysis}\n`;
       }
+    }
+
+    // ST-148: Inject approval feedback if this is a rerun
+    if (this.approvalFeedback && this.shouldRerunCurrentState) {
+      prompt += `
+## ⚠️ IMPORTANT: Rerun with Feedback
+This state is being re-executed based on human review feedback.
+**You MUST address the following feedback:**
+
+${this.approvalFeedback}
+
+Please carefully review the feedback above and ensure your output addresses all concerns.
+`;
+      // Clear feedback after injecting (so it doesn't repeat on next state)
+      this.approvalFeedback = null;
+      this.shouldRerunCurrentState = false;
     }
 
     prompt += `\nBegin execution now.`;

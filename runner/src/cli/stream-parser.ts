@@ -49,6 +49,12 @@ export interface TokenMetrics {
   cacheReadTokens: number;
   totalTokens: number;
   model?: string;
+  // ST-147: Turn tracking metrics (optional - populated during session)
+  turns?: {
+    totalTurns: number;
+    manualPrompts: number;
+    autoContinues: number;
+  };
 }
 
 /**

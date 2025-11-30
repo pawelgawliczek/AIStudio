@@ -119,6 +119,76 @@ export async function broadcastDeploymentCompleted(
   }
 }
 
+/**
+ * Broadcast approval required event via HTTP to backend (ST-148)
+ * Emitted when a state with requiresApproval=true completes execution
+ */
+export async function broadcastApprovalRequired(
+  runId: string,
+  projectId: string,
+  data: {
+    requestId: string;
+    stateName: string;
+    stateOrder: number;
+    storyKey?: string;
+    contextSummary?: string;
+    artifactKeys?: string[];
+    tokensUsed?: number;
+  }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'approval:required',
+        runId,
+        projectId,
+        data,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-148] Failed to broadcast approval:required: ${error.message}`);
+  }
+}
+
+/**
+ * Broadcast approval resolved event via HTTP to backend (ST-148)
+ * Emitted when a pending approval is approved, rejected, or rerun requested
+ */
+export async function broadcastApprovalResolved(
+  runId: string,
+  projectId: string,
+  data: {
+    requestId: string;
+    resolution: string;
+    resolvedBy: string;
+    reExecutionMode?: string;
+    storyKey?: string;
+  }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'approval:resolved',
+        runId,
+        projectId,
+        data,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-148] Failed to broadcast approval:resolved: ${error.message}`);
+  }
+}
+
 // Keep old exports for NestJS-side code (main.ts)
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 let sharedGateway: AppWebSocketGateway | null = null;

@@ -2,6 +2,7 @@
  * Runner MCP Tools
  * ST-145: Story Runner - Terminal First Implementation
  * ST-146: Breakpoint System - Pause/Resume/Step Control
+ * ST-148: Approval Gates - Human-in-the-Loop
  *
  * Tools for managing Story Runner Docker containers:
  * - start_runner: Launch runner for a workflow run
@@ -16,6 +17,11 @@
  * - clear_breakpoint: Remove breakpoints
  * - list_breakpoints: List breakpoints for a run
  * - step_runner: Execute one state and pause
+ *
+ * Approval tools (ST-148):
+ * - respond_to_approval: Approve, rerun, or reject pending approval
+ * - get_pending_approvals: List pending approvals
+ * - get_approval_details: Get details for an approval request
  */
 
 export * as start_runner from './start_runner';
@@ -30,3 +36,8 @@ export * as set_breakpoint from './set_breakpoint';
 export * as clear_breakpoint from './clear_breakpoint';
 export * as list_breakpoints from './list_breakpoints';
 export * as step_runner from './step_runner';
+
+// ST-148: Approval tools
+export * as respond_to_approval from './respond_to_approval';
+export * as get_pending_approvals from './get_pending_approvals';
+export * as get_approval_details from './get_approval_details';

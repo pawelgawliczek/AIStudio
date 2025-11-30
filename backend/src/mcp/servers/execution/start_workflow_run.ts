@@ -25,6 +25,23 @@ export const tool: Tool = {
         type: 'string',
         description: 'Current working directory of the orchestrator session. Used to auto-detect transcript location. If not provided, will use project localPath.',
       },
+      // ST-148: Approval override options
+      approvalOverrides: {
+        type: 'object',
+        description: 'ST-148: Override approval settings for this run. Can enable/disable approvals globally or for specific states.',
+        properties: {
+          mode: {
+            type: 'string',
+            enum: ['default', 'all', 'none'],
+            description: '"default" uses workflow state settings, "all" requires approval for all states, "none" skips all approvals',
+          },
+          stateOverrides: {
+            type: 'object',
+            description: 'Per-state overrides. Keys are state names, values are booleans (true=require approval, false=skip)',
+            additionalProperties: { type: 'boolean' },
+          },
+        },
+      },
     },
     required: ['teamId', 'triggeredBy'],
   },
@@ -97,6 +114,9 @@ export async function handler(prisma: PrismaClient, params: any) {
     orchestratorTranscript = transcriptFiles.length > 0 ? transcriptFiles[0].name : null;
   }
 
+  // ST-148: Process approval overrides
+  const approvalOverrides = params.approvalOverrides || { mode: 'default' };
+
   // Create WorkflowRun record with transcript tracking info
   // ST-105: Removed existingTranscriptsAtStart - use orchestratorStartTime for timestamp-based filtering
   const workflowRun = await prisma.workflowRun.create({
@@ -114,6 +134,8 @@ export async function handler(prisma: PrismaClient, params: any) {
           orchestratorTranscript, // Specific filename (e.g., "8f9fc948-....jsonl")
           // ST-105: Use orchestratorStartTime for filtering instead of file list
         },
+        // ST-148: Store approval override settings for this run
+        _approvalOverrides: approvalOverrides,
       },
       triggeredBy: params.triggeredBy,
       startedAt: new Date(),
