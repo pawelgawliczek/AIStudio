@@ -54,6 +54,8 @@ module.exports = {
   moduleNameMapper: {
     // Auto-mock @prisma/client to prevent engine initialization CPU loops
     '^@prisma/client$': '<rootDir>/src/__mocks__/@prisma/client.ts',
+    // Mock runtime library to prevent Prisma engine initialization
+    '^@prisma/client/runtime/library$': '<rootDir>/src/__mocks__/@prisma/client/runtime/library.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^(\.{1,2}/.*)\\.js$': '$1',
   },

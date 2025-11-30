@@ -39,9 +39,12 @@ export const metadata = {
 };
 
 export async function handler(prisma: PrismaClient, params: any) {
+  // Support both teamId (user-facing) and workflowId (internal) naming
+  const workflowId = params.teamId || params.workflowId;
+
   // Validate required fields
-  if (!params.workflowId) {
-    throw new Error('workflowId is required');
+  if (!workflowId) {
+    throw new Error('teamId is required');
   }
   if (!params.triggeredBy) {
     throw new Error('triggeredBy is required');
@@ -49,7 +52,7 @@ export async function handler(prisma: PrismaClient, params: any) {
 
   // Verify workflow exists and get coordinator info
   const workflow = await prisma.workflow.findUnique({
-    where: { id: params.workflowId },
+    where: { id: workflowId },
     include: {
       coordinator: true,
       project: true,
@@ -57,7 +60,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   if (!workflow) {
-    throw new Error(`Workflow with ID ${params.workflowId} not found`);
+    throw new Error(`Workflow with ID ${workflowId} not found`);
   }
 
   if (!workflow.active) {
@@ -98,7 +101,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   // ST-105: Removed existingTranscriptsAtStart - use orchestratorStartTime for timestamp-based filtering
   const workflowRun = await prisma.workflowRun.create({
     data: {
-      workflowId: params.workflowId,
+      workflowId: workflowId,
       coordinatorId: workflow.coordinatorId,
       projectId: workflow.projectId,
       status: 'running',
