@@ -92,6 +92,11 @@ export interface WorkflowRunResults {
     totalLoc?: number;
     totalIterations?: number;
     estimatedCost?: number;
+    // ST-147: Session telemetry aggregates
+    totalTurns?: number;
+    totalManualPrompts?: number;
+    totalAutoContinues?: number;
+    automationRate?: number;
   };
   efficiency: {
     tokensPerLoc?: string;
@@ -135,6 +140,10 @@ export interface ComponentRunDetails {
   success: boolean;
   errorMessage?: string;
   output?: string;
+  // ST-147: Session telemetry per component
+  totalTurns?: number;
+  manualPrompts?: number;
+  autoContinues?: number;
 }
 
 export interface CreateWorkflowRunDto {

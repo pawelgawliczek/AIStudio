@@ -6,7 +6,15 @@ import { PrismaClient } from '@prisma/client';
 import { migrationConfig } from '../config/migration.config';
 import { Lock, LockStatus } from '../types/migration.types';
 
-const prisma = new PrismaClient();
+// Lazy-initialized PrismaClient to avoid initialization during module load
+// This prevents 100% CPU issues when Jest loads the module
+let _prisma: PrismaClient | null = null;
+function getPrisma(): PrismaClient {
+  if (!_prisma) {
+    _prisma = new PrismaClient();
+  }
+  return _prisma;
+}
 
 export class QueueLockService {
   private source: string;
@@ -43,7 +51,7 @@ export class QueueLockService {
       const expiresAt = new Date(Date.now() + duration * 60 * 1000);
 
       // Create lock in database
-      const lock = await prisma.testQueueLock.create({
+      const lock = await getPrisma().testQueueLock.create({
         data: {
           reason,
           lockedBy: this.source,
@@ -81,7 +89,7 @@ export class QueueLockService {
     try {
       if (lockId) {
         // Release specific lock
-        await prisma.testQueueLock.update({
+        await getPrisma().testQueueLock.update({
           where: { id: lockId },
           data: {
             active: false,
@@ -92,7 +100,7 @@ export class QueueLockService {
         });
       } else {
         // Release most recent active lock
-        const activeLock = await prisma.testQueueLock.findFirst({
+        const activeLock = await getPrisma().testQueueLock.findFirst({
           where: {
             active: true,
             lockedBy: this.source,
@@ -103,7 +111,7 @@ export class QueueLockService {
         });
 
         if (activeLock) {
-          await prisma.testQueueLock.update({
+          await getPrisma().testQueueLock.update({
             where: { id: activeLock.id },
             data: {
               active: false,
@@ -129,7 +137,7 @@ export class QueueLockService {
   async checkLockStatus(): Promise<LockStatus> {
     try {
       // Find most recent active lock
-      const activeLock = await prisma.testQueueLock.findFirst({
+      const activeLock = await getPrisma().testQueueLock.findFirst({
         where: {
           active: true,
           expiresAt: {
@@ -189,7 +197,7 @@ export class QueueLockService {
     console.log(`[QueueLockService] Renewing lock ${lockId} for ${additionalMinutes}m...`);
 
     try {
-      const lock = await prisma.testQueueLock.findUnique({
+      const lock = await getPrisma().testQueueLock.findUnique({
         where: { id: lockId },
       });
 
@@ -211,7 +219,7 @@ export class QueueLockService {
       const newExpiry = new Date(currentExpiry + additionalMinutes * 60 * 1000);
 
       // Update lock
-      await prisma.testQueueLock.update({
+      await getPrisma().testQueueLock.update({
         where: { id: lockId },
         data: {
           expiresAt: newExpiry,
@@ -234,7 +242,7 @@ export class QueueLockService {
    */
   async shouldRenewLock(lockId: string): Promise<boolean> {
     try {
-      const lock = await prisma.testQueueLock.findUnique({
+      const lock = await getPrisma().testQueueLock.findUnique({
         where: { id: lockId },
       });
 

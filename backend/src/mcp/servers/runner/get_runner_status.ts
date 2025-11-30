@@ -47,6 +47,36 @@ export const metadata = {
   since: '2025-11-29',
 };
 
+// ST-147: Turn counts for telemetry
+interface TurnCounts {
+  totalTurns: number;
+  manualPrompts: number;
+  autoContinues: number;
+}
+
+// ST-147: Decision record for audit trail
+interface DecisionRecord {
+  timestamp: string;
+  stateId: string;
+  stateName: string;
+  decisionType: string;
+  reason: string;
+  outcome: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ST-147: Session telemetry
+interface SessionTelemetry {
+  runnerTranscriptPath?: string;
+  runnerTokensInput: number;
+  runnerTokensOutput: number;
+  totalRunnerTokens: number;
+  turns: TurnCounts;
+  resumeSummary?: string;
+  artifacts: string[];
+  decisionHistory: DecisionRecord[];
+}
+
 interface RunnerCheckpoint {
   version: number;
   runId: string;
@@ -63,6 +93,8 @@ interface RunnerCheckpoint {
     stateTransitions: number;
     durationMs: number;
   };
+  // ST-147: Session telemetry
+  telemetry?: SessionTelemetry;
   lastError?: {
     message: string;
     stateId: string;
@@ -221,10 +253,48 @@ export async function handler(prisma: PrismaClient, params: {
       finishedAt: run.finishedAt?.toISOString(),
       lastCheckpoint: checkpoint?.checkpointedAt,
     },
+
+    // ST-147: Session telemetry summary (always included)
+    telemetry: checkpoint?.telemetry ? {
+      runnerTokens: {
+        input: checkpoint.telemetry.runnerTokensInput,
+        output: checkpoint.telemetry.runnerTokensOutput,
+        total: checkpoint.telemetry.totalRunnerTokens,
+      },
+      turns: checkpoint.telemetry.turns,
+      decisionCount: checkpoint.telemetry.decisionHistory.length,
+      artifactCount: checkpoint.telemetry.artifacts.length,
+      hasResumeSummary: !!checkpoint.telemetry.resumeSummary,
+    } : {
+      // Fallback to WorkflowRun fields if no checkpoint telemetry
+      runnerTokens: {
+        input: run.runnerTokensInput || 0,
+        output: run.runnerTokensOutput || 0,
+        total: run.totalRunnerTokens || 0,
+      },
+      turns: {
+        totalTurns: run.totalTurns || 0,
+        manualPrompts: run.totalManualPrompts || 0,
+        autoContinues: (run.totalTurns || 0) - (run.totalManualPrompts || 0),
+      },
+      decisionCount: 0,
+      artifactCount: 0,
+      hasResumeSummary: !!run.resumeSummary,
+    },
   };
 
   if (includeCheckpoint && checkpoint) {
     response.checkpoint = checkpoint;
+  }
+
+  // ST-147: Include full telemetry when includeCheckpoint is true
+  if (includeCheckpoint && checkpoint?.telemetry) {
+    response.fullTelemetry = {
+      runnerTranscriptPath: checkpoint.telemetry.runnerTranscriptPath,
+      resumeSummary: checkpoint.telemetry.resumeSummary,
+      artifacts: checkpoint.telemetry.artifacts,
+      decisionHistory: checkpoint.telemetry.decisionHistory,
+    };
   }
 
   // Add warnings if present

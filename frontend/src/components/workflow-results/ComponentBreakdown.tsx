@@ -31,6 +31,10 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
         totalDuration: 0,
         totalLoc: 0,
         successCount: 0,
+        // ST-147: Session telemetry per component
+        totalTurns: 0,
+        manualPrompts: 0,
+        autoContinues: 0,
       };
     }
     acc[run.componentName].runs++;
@@ -38,6 +42,10 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
     acc[run.componentName].totalDuration += run.durationSeconds || 0;
     acc[run.componentName].totalLoc += run.locGenerated || 0;
     if (run.success) acc[run.componentName].successCount++;
+    // ST-147: Aggregate session telemetry
+    acc[run.componentName].totalTurns += run.totalTurns || 0;
+    acc[run.componentName].manualPrompts += run.manualPrompts || 0;
+    acc[run.componentName].autoContinues += run.autoContinues || 0;
     return acc;
   }, {} as Record<string, any>);
 
@@ -66,6 +74,9 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">
                 LOC Gen
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">
+                Turns
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-muted uppercase tracking-wider">
                 Success Rate
@@ -117,6 +128,12 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
                     {orchestratorRun.toolCalls || 0} tool calls
                   </div>
                 </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="text-sm text-purple-900">{formatNumber(orchestratorRun.totalTurns)}</div>
+                  <div className="text-xs text-purple-600">
+                    {formatNumber(orchestratorRun.manualPrompts || 0)} manual
+                  </div>
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   <span className="text-sm font-medium text-green-600">
                     {orchestratorRun.success ? '✓' : '✗'}
@@ -148,6 +165,12 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-right">
                   <div className="text-sm text-fg">{formatNumber(group.totalLoc)}</div>
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-right">
+                  <div className="text-sm text-fg">{formatNumber(group.totalTurns)}</div>
+                  <div className="text-xs text-muted">
+                    {formatNumber(group.manualPrompts)} manual
+                  </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-center">
                   <div className="inline-flex items-center">
@@ -182,6 +205,16 @@ export function ComponentBreakdown({ componentRuns }: ComponentBreakdownProps) {
               </td>
               <td className="px-4 py-3 text-right text-sm text-fg">
                 {formatNumber(groupedData.reduce((sum, g) => sum + g.totalLoc, 0))}
+              </td>
+              <td className="px-4 py-3 text-right text-sm text-fg">
+                {formatNumber(
+                  (orchestratorRun?.totalTurns || 0) + groupedData.reduce((sum, g) => sum + g.totalTurns, 0)
+                )}
+                <div className="text-xs font-normal text-muted">
+                  {formatNumber(
+                    (orchestratorRun?.manualPrompts || 0) + groupedData.reduce((sum, g) => sum + g.manualPrompts, 0)
+                  )} manual
+                </div>
               </td>
               <td className="px-4 py-3 text-center text-sm text-fg">
                 {(orchestratorRun?.success ? 1 : 0) + groupedData.reduce((sum, g) => sum + g.successCount, 0)}/

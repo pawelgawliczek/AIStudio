@@ -23,6 +23,63 @@ export interface ResourceUsage {
 }
 
 /**
+ * ST-147: Turn tracking for session telemetry
+ */
+export interface TurnCounts {
+  /** All user messages (manual + auto) */
+  totalTurns: number;
+  /** Actual user-typed input requiring thought/decision */
+  manualPrompts: number;
+  /** Auto-continue/confirmation prompts */
+  autoContinues: number;
+}
+
+/**
+ * ST-147: Decision record for audit trail
+ */
+export interface DecisionRecord {
+  /** When the decision was made */
+  timestamp: string;
+  /** State ID where decision was made */
+  stateId: string;
+  /** Human-readable state name */
+  stateName: string;
+  /** Type of decision */
+  decisionType: 'state_transition' | 'agent_spawn' | 'skip' | 'retry' | 'pause' | 'approval';
+  /** Reason for the decision */
+  reason: string;
+  /** Outcome of the decision */
+  outcome: 'success' | 'failed' | 'pending';
+  /** Additional metadata */
+  metadata?: {
+    componentId?: string;
+    tokensUsed?: number;
+    durationMs?: number;
+    errorMessage?: string;
+  };
+}
+
+/**
+ * ST-147: Session telemetry for complete audit trail
+ */
+export interface SessionTelemetry {
+  /** Path to runner transcript JSONL */
+  runnerTranscriptPath?: string;
+  /** Runner (master session) token usage */
+  runnerTokensInput: number;
+  runnerTokensOutput: number;
+  totalRunnerTokens: number;
+  /** Turn tracking (aggregated across all sessions) */
+  turns: TurnCounts;
+  /** AI-generated summary for resume */
+  resumeSummary?: string;
+  /** List of artifact keys created */
+  artifacts: string[];
+  /** Decision history for audit */
+  decisionHistory: DecisionRecord[];
+}
+
+/**
  * Error tracking for recovery
  */
 export interface CheckpointError {
@@ -69,6 +126,9 @@ export interface RunnerCheckpoint {
   // Resource usage at checkpoint
   resourceUsage: ResourceUsage;
 
+  // ST-147: Session telemetry
+  telemetry: SessionTelemetry;
+
   // Error tracking
   lastError?: CheckpointError;
 
@@ -105,6 +165,19 @@ export function createCheckpoint(
       stateTransitions: 0,
       durationMs: 0,
     },
+    // ST-147: Initialize telemetry
+    telemetry: {
+      runnerTokensInput: 0,
+      runnerTokensOutput: 0,
+      totalRunnerTokens: 0,
+      turns: {
+        totalTurns: 0,
+        manualPrompts: 0,
+        autoContinues: 0,
+      },
+      artifacts: [],
+      decisionHistory: [],
+    },
     checkpointedAt: now,
     runStartedAt: now,
   };
@@ -138,5 +211,58 @@ export function isValidCheckpoint(obj: unknown): obj is RunnerCheckpoint {
   // Check resourceUsage
   if (typeof checkpoint.resourceUsage !== 'object' || checkpoint.resourceUsage === null) return false;
 
+  // ST-147: Check telemetry (optional for backward compatibility with old checkpoints)
+  // If telemetry exists, validate its structure
+  if (checkpoint.telemetry !== undefined) {
+    if (typeof checkpoint.telemetry !== 'object' || checkpoint.telemetry === null) return false;
+    const telemetry = checkpoint.telemetry as Record<string, unknown>;
+    if (typeof telemetry.turns !== 'object' || telemetry.turns === null) return false;
+    if (!Array.isArray(telemetry.decisionHistory)) return false;
+  }
+
   return true;
+}
+
+/**
+ * ST-147: Create an empty telemetry object
+ * Used for backward compatibility when loading old checkpoints
+ */
+export function createEmptyTelemetry(): SessionTelemetry {
+  return {
+    runnerTokensInput: 0,
+    runnerTokensOutput: 0,
+    totalRunnerTokens: 0,
+    turns: {
+      totalTurns: 0,
+      manualPrompts: 0,
+      autoContinues: 0,
+    },
+    artifacts: [],
+    decisionHistory: [],
+  };
+}
+
+/**
+ * ST-147: Add a decision to the telemetry history
+ */
+export function addDecision(
+  telemetry: SessionTelemetry,
+  decision: Omit<DecisionRecord, 'timestamp'>
+): void {
+  telemetry.decisionHistory.push({
+    ...decision,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * ST-147: Update turn counts in telemetry
+ */
+export function updateTurnCounts(
+  telemetry: SessionTelemetry,
+  turns: TurnCounts
+): void {
+  telemetry.turns.totalTurns += turns.totalTurns;
+  telemetry.turns.manualPrompts += turns.manualPrompts;
+  telemetry.turns.autoContinues += turns.autoContinues;
 }

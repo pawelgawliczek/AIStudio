@@ -3,13 +3,16 @@
  * Provides common test utilities, mocks, and fixtures
  */
 
-import { PrismaClient } from '@prisma/client';
-import { mockDeep, mockReset, DeepMockProxy } from 'jest-mock-extended';
+// Import the pre-mocked PrismaClient from our global mock
+// This avoids importing from the real @prisma/client which can trigger engine initialization
+import { PrismaClient, prismaMock as globalPrismaMock } from '@prisma/client';
+import { mockReset } from 'jest-mock-extended';
 
-export type MockPrisma = DeepMockProxy<PrismaClient>;
+// Re-export the mock type for test files that need it
+export type MockPrisma = typeof globalPrismaMock;
 
-// Mock Prisma Client
-export const prismaMock = mockDeep<PrismaClient>() as MockPrisma;
+// Use the global mock instead of creating a new one
+export const prismaMock = globalPrismaMock;
 
 // Export a reset function that can be called in beforeEach hooks
 export function resetPrismaMock() {

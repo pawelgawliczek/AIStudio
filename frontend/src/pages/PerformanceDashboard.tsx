@@ -34,6 +34,13 @@ interface DashboardData {
     timePerLOCChange: number;
     totalUserPrompts: number;
     totalUserPromptsChange: number;
+    // ST-147: Session telemetry KPIs
+    totalTurns: number;
+    totalTurnsChange: number;
+    totalManualPrompts: number;
+    totalManualPromptsChange: number;
+    automationRate: number;
+    automationRateChange: number;
   };
   trends: {
     storiesImplemented: { date: string; allWorkflows: number; selectedWorkflows: number }[];
@@ -396,6 +403,13 @@ export function PerformanceDashboard() {
     timePerLOCChange: 0,
     totalUserPrompts: 0,
     totalUserPromptsChange: 0,
+    // ST-147: Session telemetry defaults
+    totalTurns: 0,
+    totalTurnsChange: 0,
+    totalManualPrompts: 0,
+    totalManualPromptsChange: 0,
+    automationRate: 0,
+    automationRateChange: 0,
   };
 
   const trends = dashboardData?.trends || {
@@ -804,6 +818,41 @@ export function PerformanceDashboard() {
               value={kpis.totalUserPrompts || 0}
               change={kpis.totalUserPromptsChange || 0}
               infoText="Total human prompts during workflow coordination. Includes orchestrator guidance and decision-making interactions. Lower numbers indicate higher automation efficiency."
+              invertColor={true}
+            />
+          </div>
+
+          {/* ST-147: Session Telemetry KPIs */}
+          <h4 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-6 mb-4">
+            Session Telemetry
+          </h4>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <KPICard
+              title="Total Turns"
+              value={kpis.totalTurns || 0}
+              change={kpis.totalTurnsChange || 0}
+              infoText="Total conversation turns (all human messages including auto-continues)"
+              invertColor={true}
+            />
+            <KPICard
+              title="Manual Prompts"
+              value={kpis.totalManualPrompts || 0}
+              change={kpis.totalManualPromptsChange || 0}
+              infoText="Human-typed prompts requiring thought/decision (excludes auto-continues). Lower = better automation."
+              invertColor={true}
+            />
+            <KPICard
+              title="Automation Rate"
+              value={kpis.automationRate || 0}
+              change={kpis.automationRateChange || 0}
+              unit="%"
+              infoText="Percentage of turns that were auto-continues vs manual prompts. Higher = more automated."
+            />
+            <KPICard
+              title="Manual / Story"
+              value={kpis.totalManualPrompts && kpis.storiesImplemented ? +(kpis.totalManualPrompts / kpis.storiesImplemented).toFixed(1) : 0}
+              change={0}
+              infoText="Average manual prompts per story. Target: < 5 for highly automated workflows."
               invertColor={true}
             />
           </div>

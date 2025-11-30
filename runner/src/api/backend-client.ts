@@ -40,6 +40,12 @@ export interface ComponentRunComplete {
   errorMessage?: string;
   tokensInput?: number;
   tokensOutput?: number;
+  // ST-147: Turn tracking
+  turnMetrics?: {
+    totalTurns: number;
+    manualPrompts: number;
+    autoContinues: number;
+  };
 }
 
 /**
@@ -164,6 +170,10 @@ export class BackendClient {
         tokensInput: payload.tokensInput,
         tokensOutput: payload.tokensOutput,
         completedAt: new Date().toISOString(),
+        // ST-147: Turn tracking
+        totalTurns: payload.turnMetrics?.totalTurns,
+        manualPrompts: payload.turnMetrics?.manualPrompts,
+        autoContinues: payload.turnMetrics?.autoContinues,
       }
     );
     return response.data;

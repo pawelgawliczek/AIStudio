@@ -122,6 +122,35 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
         </div>
       </div>
 
+      {/* Session Telemetry - ST-147 */}
+      {(summary.totalTurns !== undefined || summary.totalManualPrompts !== undefined) && (
+        <div className="mt-6 pt-6 border-t border-border">
+          <h3 className="text-lg font-semibold text-fg mb-3">Session Telemetry</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-cyan-50 rounded p-3">
+              <div className="text-xs text-cyan-600 font-medium">Total Turns</div>
+              <div className="text-lg font-bold text-cyan-900">{formatNumber(summary.totalTurns)}</div>
+              <div className="text-xs text-cyan-500">All conversation turns</div>
+            </div>
+            <div className="bg-indigo-50 rounded p-3">
+              <div className="text-xs text-indigo-600 font-medium">Manual Prompts</div>
+              <div className="text-lg font-bold text-indigo-900">{formatNumber(summary.totalManualPrompts)}</div>
+              <div className="text-xs text-indigo-500">User-typed input only</div>
+            </div>
+            <div className="bg-teal-50 rounded p-3">
+              <div className="text-xs text-teal-600 font-medium">Auto-Continues</div>
+              <div className="text-lg font-bold text-teal-900">{formatNumber(summary.totalAutoContinues)}</div>
+              <div className="text-xs text-teal-500">Automatic responses</div>
+            </div>
+            <div className="bg-emerald-50 rounded p-3">
+              <div className="text-xs text-emerald-600 font-medium">Automation Rate</div>
+              <div className="text-lg font-bold text-emerald-900">{summary.automationRate ?? 0}%</div>
+              <div className="text-xs text-emerald-500">Auto / Total turns</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Efficiency Metrics */}
       {efficiency && (
         <div className="mt-6 pt-6 border-t border-border">

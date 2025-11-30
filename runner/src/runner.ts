@@ -13,6 +13,10 @@ import {
   MasterResponse,
   StateExecutionResult,
   createCheckpoint,
+  // ST-147: Session telemetry
+  addDecision,
+  updateTurnCounts,
+  TurnCounts,
 } from './types';
 import { MasterSession } from './cli/master-session';
 import { AgentSession } from './cli/agent-session';
@@ -156,6 +160,10 @@ export class Runner extends EventEmitter {
         options.storyId
       );
       this.checkpoint.currentStateId = this.states[0].id;
+
+      // ST-147: Set runner transcript path
+      this.checkpoint.telemetry.runnerTranscriptPath =
+        `${this.config.workingDirectory}/.claude/projects/-opt-stack-AIStudio/${masterSessionId}.jsonl`;
 
       // Start master session
       console.log(`[Runner] Starting master session...`);
@@ -549,6 +557,20 @@ export class Runner extends EventEmitter {
       // Mark state as completed
       this.checkpoint!.completedStates.push(state.id);
 
+      // ST-147: Log state_transition decision
+      addDecision(this.checkpoint!.telemetry, {
+        stateId: state.id,
+        stateName: state.name,
+        decisionType: 'state_transition',
+        reason: `State ${state.name} completed successfully`,
+        outcome: 'success',
+        metadata: {
+          componentId: componentRunId,
+          tokensUsed: agentTokens,
+          durationMs: Date.now() - startTime,
+        },
+      });
+
       return {
         stateId: state.id,
         success: true,
@@ -559,6 +581,19 @@ export class Runner extends EventEmitter {
         tokensUsed: agentTokens,
       };
     } catch (error) {
+      // ST-147: Log failed state_transition decision
+      addDecision(this.checkpoint!.telemetry, {
+        stateId: state.id,
+        stateName: state.name,
+        decisionType: 'state_transition',
+        reason: `State ${state.name} failed`,
+        outcome: 'failed',
+        metadata: {
+          errorMessage: (error as Error).message,
+          durationMs: Date.now() - startTime,
+        },
+      });
+
       return {
         stateId: state.id,
         success: false,
@@ -622,6 +657,18 @@ export class Runner extends EventEmitter {
 
     this.emit('agent:spawned', state.id, state.componentId!);
 
+    // ST-147: Log agent_spawn decision
+    addDecision(this.checkpoint!.telemetry, {
+      stateId: state.id,
+      stateName: state.name,
+      decisionType: 'agent_spawn',
+      reason: `Spawning agent ${state.component.name} for state ${state.name}`,
+      outcome: 'pending',
+      metadata: {
+        componentId: state.componentId!,
+      },
+    });
+
     try {
       // Create agent session
       const agent = new AgentSession({
@@ -649,6 +696,11 @@ export class Runner extends EventEmitter {
       this.resourceManager.recordAgentSpawn();
       this.resourceManager.recordTokens(result.metrics.totalTokens);
 
+      // ST-147: Update telemetry with agent turn counts (if available)
+      if (result.metrics.turns) {
+        updateTurnCounts(this.checkpoint!.telemetry, result.metrics.turns as TurnCounts);
+      }
+
       // Record completion in backend
       await this.backendClient.recordAgentComplete({
         componentRunId: componentRun.id,
@@ -657,6 +709,8 @@ export class Runner extends EventEmitter {
         errorMessage: result.error,
         tokensInput: result.metrics.inputTokens,
         tokensOutput: result.metrics.outputTokens,
+        // ST-147: Include turn metrics if available
+        turnMetrics: result.metrics.turns as TurnCounts | undefined,
       });
 
       return {
@@ -809,6 +863,18 @@ Description: ${this.storyContext.description || 'N/A'}
 
     console.log(`[Runner] Pausing: ${reason || 'Manual pause'}`);
     this.setState('paused');
+
+    // ST-147: Log pause decision
+    const currentState = this.states[this.currentStateIndex];
+    if (currentState && this.checkpoint) {
+      addDecision(this.checkpoint.telemetry, {
+        stateId: currentState.id,
+        stateName: currentState.name,
+        decisionType: 'pause',
+        reason: reason || 'Manual pause',
+        outcome: 'success',
+      });
+    }
 
     if (this.workflowRun) {
       await this.backendClient.updateWorkflowRun(this.workflowRun.id, {

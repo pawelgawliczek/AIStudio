@@ -342,6 +342,22 @@ export class WorkflowRunsService {
       throw new NotFoundException('Workflow run not found');
     }
 
+    // ST-147: Aggregate session telemetry across all component runs
+    const totalTurns = workflowRun.componentRuns.reduce(
+      (sum, cr) => sum + (cr.totalTurns || 0),
+      0,
+    );
+    const totalManualPrompts = workflowRun.componentRuns.reduce(
+      (sum, cr) => sum + (cr.manualPrompts || 0),
+      0,
+    );
+    const totalAutoContinues = workflowRun.componentRuns.reduce(
+      (sum, cr) => sum + (cr.autoContinues || 0),
+      0,
+    );
+    const automationRate =
+      totalTurns > 0 ? Math.round((totalAutoContinues / totalTurns) * 100) : 0;
+
     // Calculate summary metrics
     const summary = {
       totalComponentRuns: workflowRun.componentRuns.length,
@@ -352,6 +368,11 @@ export class WorkflowRunsService {
       totalLoc: workflowRun.totalLocGenerated,
       totalIterations: workflowRun.totalIterations,
       estimatedCost: workflowRun.estimatedCost,
+      // ST-147: Session telemetry aggregates
+      totalTurns,
+      totalManualPrompts,
+      totalAutoContinues,
+      automationRate,
     };
 
     // Calculate efficiency metrics
@@ -396,6 +417,10 @@ export class WorkflowRunsService {
         success: run.success,
         errorMessage: run.errorMessage,
         output: run.output,
+        // ST-147: Session telemetry per component
+        totalTurns: run.totalTurns,
+        manualPrompts: run.manualPrompts,
+        autoContinues: run.autoContinues,
       })),
       summary,
       efficiency,

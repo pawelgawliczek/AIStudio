@@ -12,7 +12,15 @@ import {
 } from '../types/migration.types';
 import { dockerExec } from '../utils/docker-exec.util';
 
-const prisma = new PrismaClient();
+// Lazy-initialized PrismaClient to avoid initialization during module load
+// This prevents 100% CPU issues when Jest loads the module
+let _prisma: PrismaClient | null = null;
+function getPrisma(): PrismaClient {
+  if (!_prisma) {
+    _prisma = new PrismaClient();
+  }
+  return _prisma;
+}
 
 export class ValidationService {
   private containerName: string;
@@ -178,7 +186,7 @@ export class ValidationService {
     try {
       // Check 1: Prisma Client connection
       try {
-        await prisma.$connect();
+        await getPrisma().$connect();
         checks.push({
           name: 'Prisma Client connection',
           passed: true,
@@ -195,7 +203,7 @@ export class ValidationService {
 
       // Check 2: Primary key uniqueness (sample check on projects)
       try {
-        const duplicates = await prisma.$queryRaw<Array<{ count: bigint }>>`
+        const duplicates = await getPrisma().$queryRaw<Array<{ count: bigint }>>`
           SELECT COUNT(*) as count
           FROM (
             SELECT id, COUNT(*) as cnt
@@ -226,7 +234,7 @@ export class ValidationService {
 
       // Check 3: Foreign key integrity (sample check)
       try {
-        const orphanedStories = await prisma.$queryRaw<Array<{ count: bigint }>>`
+        const orphanedStories = await getPrisma().$queryRaw<Array<{ count: bigint }>>`
           SELECT COUNT(*) as count
           FROM stories s
           LEFT JOIN projects p ON s."projectId" = p.id
@@ -256,7 +264,7 @@ export class ValidationService {
 
       // Check 4: NOT NULL constraints on critical fields
       try {
-        const nullProjects = await prisma.$queryRaw<Array<{ count: bigint }>>`
+        const nullProjects = await getPrisma().$queryRaw<Array<{ count: bigint }>>`
           SELECT COUNT(*) as count
           FROM projects
           WHERE name IS NULL OR "createdAt" IS NULL
@@ -283,7 +291,7 @@ export class ValidationService {
     } catch (error: any) {
       errors.push(`Data integrity validation error: ${error.message}`);
     } finally {
-      await prisma.$disconnect();
+      await getPrisma().$disconnect();
     }
 
     const passed = checks.every((c) => c.passed) && errors.length === 0;
@@ -310,13 +318,13 @@ export class ValidationService {
     try {
       // Check 1: Prisma Client generation
       try {
-        await prisma.$connect();
+        await getPrisma().$connect();
         checks.push({
           name: 'Prisma Client functional',
           passed: true,
           message: 'Prisma Client operational',
         });
-        await prisma.$disconnect();
+        await getPrisma().$disconnect();
       } catch (error: any) {
         checks.push({
           name: 'Prisma Client functional',
@@ -328,8 +336,8 @@ export class ValidationService {
 
       // Check 2: Database connection pool
       try {
-        await prisma.$connect();
-        const result = await prisma.$queryRaw<Array<{ count: bigint }>>`SELECT 1 as count`;
+        await getPrisma().$connect();
+        const result = await getPrisma().$queryRaw<Array<{ count: bigint }>>`SELECT 1 as count`;
         const canQuery = result.length > 0;
 
         checks.push({
@@ -341,7 +349,7 @@ export class ValidationService {
         if (!canQuery) {
           errors.push('Cannot execute database queries');
         }
-        await prisma.$disconnect();
+        await getPrisma().$disconnect();
       } catch (error: any) {
         checks.push({
           name: 'Database query execution',
@@ -353,9 +361,9 @@ export class ValidationService {
 
       // Check 3: Critical table row counts
       try {
-        await prisma.$connect();
-        const projectCount = await prisma.project.count();
-        const storyCount = await prisma.story.count();
+        await getPrisma().$connect();
+        const projectCount = await getPrisma().project.count();
+        const storyCount = await getPrisma().story.count();
 
         checks.push({
           name: 'Data accessible',
@@ -363,7 +371,7 @@ export class ValidationService {
           message: `${projectCount} projects, ${storyCount} stories`,
           details: { projectCount, storyCount },
         });
-        await prisma.$disconnect();
+        await getPrisma().$disconnect();
       } catch (error: any) {
         checks.push({
           name: 'Data accessible',
@@ -398,11 +406,11 @@ export class ValidationService {
     const errors: string[] = [];
 
     try {
-      await prisma.$connect();
+      await getPrisma().$connect();
 
       // Smoke Test 1: Query projects
       try {
-        const projects = await prisma.project.findMany({ take: 1 });
+        const projects = await getPrisma().project.findMany({ take: 1 });
         checks.push({
           name: 'Query projects',
           passed: true,
@@ -419,7 +427,7 @@ export class ValidationService {
 
       // Smoke Test 2: Query stories
       try {
-        const stories = await prisma.story.findMany({ take: 1 });
+        const stories = await getPrisma().story.findMany({ take: 1 });
         checks.push({
           name: 'Query stories',
           passed: true,
@@ -436,7 +444,7 @@ export class ValidationService {
 
       // Smoke Test 3: Query use cases
       try {
-        const useCases = await prisma.useCase.findMany({ take: 1 });
+        const useCases = await getPrisma().useCase.findMany({ take: 1 });
         checks.push({
           name: 'Query use cases',
           passed: true,
@@ -453,7 +461,7 @@ export class ValidationService {
 
       // Smoke Test 4: Query workflows
       try {
-        const workflows = await prisma.workflow.findMany({ take: 1 });
+        const workflows = await getPrisma().workflow.findMany({ take: 1 });
         checks.push({
           name: 'Query workflows',
           passed: true,
@@ -470,7 +478,7 @@ export class ValidationService {
 
       // Smoke Test 5: Complex join query
       try {
-        const storiesWithProjects = await prisma.story.findMany({
+        const storiesWithProjects = await getPrisma().story.findMany({
           take: 1,
           include: { project: true },
         });
@@ -488,7 +496,7 @@ export class ValidationService {
         errors.push(`Join query failed: ${error.message}`);
       }
 
-      await prisma.$disconnect();
+      await getPrisma().$disconnect();
     } catch (error: any) {
       errors.push(`Smoke tests error: ${error.message}`);
     }

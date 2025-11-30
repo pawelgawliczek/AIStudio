@@ -111,6 +111,22 @@ export async function handler(prisma: PrismaClient, params: any) {
   const percentComplete =
     totalComponents > 0 ? Math.round((completedComponents / totalComponents) * 100) : 0;
 
+  // ST-147: Aggregate session telemetry across all component runs
+  const totalTurns = workflowRun.componentRuns.reduce(
+    (sum, cr) => sum + (cr.totalTurns || 0),
+    0,
+  );
+  const totalManualPrompts = workflowRun.componentRuns.reduce(
+    (sum, cr) => sum + (cr.manualPrompts || 0),
+    0,
+  );
+  const totalAutoContinues = workflowRun.componentRuns.reduce(
+    (sum, cr) => sum + (cr.autoContinues || 0),
+    0,
+  );
+  const automationRate =
+    totalTurns > 0 ? Math.round((totalAutoContinues / totalTurns) * 100) : 0;
+
   // Format component runs
   const components = workflowRun.componentRuns.map((cr) => {
     const componentData: any = {
@@ -140,6 +156,10 @@ export async function handler(prisma: PrismaClient, params: any) {
         userPrompts: cr.userPrompts,
         systemIterations: cr.systemIterations,
         humanInterventions: cr.humanInterventions,
+        // ST-147: Session telemetry per component
+        totalTurns: cr.totalTurns,
+        manualPrompts: cr.manualPrompts,
+        autoContinues: cr.autoContinues,
       };
       componentData.errorType = cr.errorType;
       componentData.errorMessage = cr.errorMessage;
@@ -184,6 +204,11 @@ export async function handler(prisma: PrismaClient, params: any) {
         avgPromptsPerComponent: workflowRun.avgPromptsPerComponent
           ? Number(workflowRun.avgPromptsPerComponent)
           : null,
+        // ST-147: Session telemetry aggregates
+        totalTurns,
+        totalManualPrompts,
+        totalAutoContinues,
+        automationRate,
       },
 
       progress: {

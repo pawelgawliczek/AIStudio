@@ -61,7 +61,31 @@ export const tool: Tool = {
           cacheReadTokens: { type: 'number' },
           totalTokens: { type: 'number' },
           model: { type: 'string' },
+          // ST-147: Turn metrics (optional, included when using parseTranscriptWithTurns)
+          turns: {
+            type: 'object',
+            properties: {
+              totalTurns: { type: 'number' },
+              manualPrompts: { type: 'number' },
+              autoContinues: { type: 'number' },
+            },
+          },
         },
+      },
+      // ST-147: Direct turn metrics (alternative to transcriptMetrics.turns)
+      turnMetrics: {
+        type: 'object',
+        description: 'ST-147: Turn tracking metrics for session telemetry',
+        properties: {
+          totalTurns: { type: 'number', description: 'All user messages (manual + auto)' },
+          manualPrompts: { type: 'number', description: 'Actual user-typed input' },
+          autoContinues: { type: 'number', description: 'Auto-continue/confirmation prompts' },
+        },
+      },
+      // ST-147: Component summary for resume context
+      componentSummary: {
+        type: 'string',
+        description: 'ST-147: AI-generated summary of what this agent accomplished',
       },
     },
     required: ['runId', 'componentId'],
@@ -209,6 +233,28 @@ export async function handler(prisma: PrismaClient, params: any) {
     select: { name: true },
   });
 
+  // ST-147: Extract turn metrics from various sources
+  let turnMetrics: { totalTurns: number; manualPrompts: number; autoContinues: number } | null = null;
+
+  // Priority 1: Direct turnMetrics parameter
+  if (params.turnMetrics && typeof params.turnMetrics === 'object') {
+    turnMetrics = {
+      totalTurns: params.turnMetrics.totalTurns || 0,
+      manualPrompts: params.turnMetrics.manualPrompts || 0,
+      autoContinues: params.turnMetrics.autoContinues || 0,
+    };
+    console.log(`[ST-147] Direct turn metrics for component ${params.componentId}:`, turnMetrics);
+  }
+  // Priority 2: Turn metrics from transcriptMetrics.turns
+  else if (params.transcriptMetrics?.turns && typeof params.transcriptMetrics.turns === 'object') {
+    turnMetrics = {
+      totalTurns: params.transcriptMetrics.turns.totalTurns || 0,
+      manualPrompts: params.transcriptMetrics.turns.manualPrompts || 0,
+      autoContinues: params.transcriptMetrics.turns.autoContinues || 0,
+    };
+    console.log(`[ST-147] Turn metrics from transcriptMetrics for component ${params.componentId}:`, turnMetrics);
+  }
+
   // Update ComponentRun record with /context or transcript metrics
   const updatedComponentRun = await prisma.componentRun.update({
     where: { id: componentRun.id },
@@ -226,6 +272,13 @@ export async function handler(prisma: PrismaClient, params: any) {
       tokensMessages: contextMetrics?.tokensMessages || null,
       // ST-112: Session ID from transcript
       sessionId: contextMetrics?.sessionId || componentRun.sessionId || null,
+      // ST-147: Turn metrics
+      totalTurns: turnMetrics?.totalTurns || null,
+      manualPrompts: turnMetrics?.manualPrompts || null,
+      autoContinues: turnMetrics?.autoContinues || null,
+      // ST-147: Transcript path and component summary
+      transcriptPath: params.transcriptPath || null,
+      componentSummary: params.componentSummary || null,
       // ST-112: Store cache tokens in metadata (no dedicated fields in schema)
       metadata: contextMetrics?.tokensCacheCreation || contextMetrics?.tokensCacheRead
         ? {
@@ -256,13 +309,26 @@ export async function handler(prisma: PrismaClient, params: any) {
   const aggregatedMetrics = {
     totalTokens: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0),
     durationSeconds: allComponentRuns.reduce((sum, cr) => sum + (cr.durationSeconds || 0), 0),
+    // ST-147: Aggregate turn metrics
+    totalTurns: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTurns || 0), 0),
+    totalManualPrompts: allComponentRuns.reduce((sum, cr) => sum + (cr.manualPrompts || 0), 0),
   };
+
+  const componentCount = allComponentRuns.length;
 
   await prisma.workflowRun.update({
     where: { id: params.runId },
     data: {
       totalTokens: aggregatedMetrics.totalTokens || null,
       durationSeconds: aggregatedMetrics.durationSeconds || null,
+      // ST-147: Aggregated turn metrics
+      totalTurns: aggregatedMetrics.totalTurns || null,
+      totalManualPrompts: aggregatedMetrics.totalManualPrompts || null,
+      // Calculate existing fields too
+      totalUserPrompts: aggregatedMetrics.totalManualPrompts || null,
+      avgPromptsPerComponent: componentCount > 0
+        ? aggregatedMetrics.totalManualPrompts / componentCount
+        : null,
     },
   });
 
@@ -318,7 +384,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       tokensMessages: updatedComponentRun.tokensMessages,
       durationSeconds: updatedComponentRun.durationSeconds,
     },
+    // ST-147: Turn metrics in response
+    turnMetrics: turnMetrics || null,
     aggregatedMetrics,
-    message: `Component "${componentName}" ${status}. Duration: ${durationSeconds}s, Tokens: ${contextMetrics?.tokensInput || 0}`,
+    message: `Component "${componentName}" ${status}. Duration: ${durationSeconds}s, Tokens: ${contextMetrics?.tokensInput || 0}${turnMetrics ? `, Turns: ${turnMetrics.totalTurns} (manual: ${turnMetrics.manualPrompts})` : ''}`,
   };
 }

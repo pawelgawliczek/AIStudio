@@ -24,8 +24,20 @@
  *     "cacheCreationTokens": 100,
  *     "cacheReadTokens": 5000,
  *     "totalTokens": 19134,
- *     "transcriptPath": "/path/to/file.jsonl"
+ *     "model": "claude-sonnet-4-20250514",
+ *     "transcriptPath": "/path/to/file.jsonl",
+ *     "turns": {
+ *       "totalTurns": 15,      // All user messages (manual + auto)
+ *       "manualPrompts": 3,    // Actual user-typed input
+ *       "autoContinues": 12    // Auto-continue/confirmation prompts
+ *     }
  *   }
+ *
+ * ST-147: Turn Classification Rules:
+ * - 'manual': Actual user-typed prompts requiring thought/decision
+ * - 'auto': Auto-continues (slash commands, short confirmations like "yes", "continue")
+ * - 'tool_result': Responses to tool calls (not counted as turns)
+ * - 'meta': System metadata entries (not counted as turns)
  */
 
 import * as fs from 'fs/promises';
@@ -34,11 +46,16 @@ import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
 
-interface TranscriptRecord {
+export interface TranscriptRecord {
   agentId?: string;
   sessionId?: string;
+  type?: string; // 'user', 'assistant', etc.
+  isMeta?: boolean;
   message?: {
+    id?: string;
+    role?: string;
     model?: string;
+    content?: string | Array<{ type: string; text?: string; tool_use_id?: string }>;
     usage?: {
       input_tokens?: number;
       output_tokens?: number;
@@ -48,7 +65,7 @@ interface TranscriptRecord {
   };
 }
 
-interface TranscriptMetrics {
+export interface TranscriptMetrics {
   inputTokens: number;
   outputTokens: number;
   cacheCreationTokens: number;
@@ -58,7 +75,104 @@ interface TranscriptMetrics {
   transcriptPath: string;
 }
 
-async function parseJSONL(filePath: string): Promise<TranscriptRecord[]> {
+// ST-147: Turn Tracking Types
+export interface TurnCounts {
+  totalTurns: number;      // All user messages (manual + auto)
+  manualPrompts: number;   // Actual user-typed input
+  autoContinues: number;   // Auto-continue/confirmation prompts
+}
+
+export type TurnClassification = 'manual' | 'auto' | 'tool_result' | 'meta';
+
+/**
+ * ST-147: Classify a transcript entry as manual input, auto-continue, tool result, or meta
+ *
+ * Classification rules:
+ * - 'meta': System metadata entries (isMeta=true)
+ * - 'tool_result': Entries containing tool_use_id (responses to tool calls)
+ * - 'auto': Auto-continues (slash commands, local commands, short confirmations)
+ * - 'manual': Actual user-typed input requiring thought/decision
+ */
+export function classifyTurn(record: TranscriptRecord): TurnClassification {
+  // Meta entries are system metadata
+  if (record.isMeta) return 'meta';
+
+  // Only classify user messages
+  if (record.type !== 'user' && record.message?.role !== 'user') return 'meta';
+
+  // Extract content text
+  const content = getMessageContent(record);
+
+  // Tool results contain tool_use_id
+  if (content.includes('tool_use_id')) return 'tool_result';
+
+  // Auto-continues from slash commands or local commands
+  if (content.includes('<local-command-stdout>')) return 'auto';
+  if (content.includes('<command-name>')) return 'auto';
+  if (content.includes('<command-message>')) return 'auto';
+  if (content.includes('<system-reminder>')) return 'auto';
+
+  // Short confirmation responses (auto-continues)
+  const trimmedLower = content.trim().toLowerCase();
+  if (/^(continue|yes|y|proceed|ok|go|go ahead|)$/i.test(trimmedLower)) return 'auto';
+
+  // Everything else is manual user input
+  return 'manual';
+}
+
+/**
+ * Extract text content from a TranscriptRecord message
+ */
+function getMessageContent(record: TranscriptRecord): string {
+  if (!record.message?.content) return '';
+
+  if (typeof record.message.content === 'string') {
+    return record.message.content;
+  }
+
+  // Array of content blocks - extract text from each
+  return record.message.content
+    .map(block => block.text || '')
+    .join(' ');
+}
+
+/**
+ * ST-147: Count turns from transcript records
+ *
+ * Returns:
+ * - totalTurns: All user messages (manual + auto, excluding tool_result and meta)
+ * - manualPrompts: User-typed prompts that required thought/decision
+ * - autoContinues: Automatic continuations (confirmations, slash commands)
+ */
+export function countTurns(records: TranscriptRecord[]): TurnCounts {
+  let totalTurns = 0;
+  let manualPrompts = 0;
+  let autoContinues = 0;
+
+  for (const record of records) {
+    const classification = classifyTurn(record);
+
+    if (classification === 'manual') {
+      totalTurns++;
+      manualPrompts++;
+    } else if (classification === 'auto') {
+      totalTurns++;
+      autoContinues++;
+    }
+    // Skip 'tool_result' and 'meta' - they don't count as user turns
+  }
+
+  return { totalTurns, manualPrompts, autoContinues };
+}
+
+/**
+ * ST-147: Parse transcript and return both token metrics and turn counts
+ */
+export interface FullTranscriptMetrics extends TranscriptMetrics {
+  turns: TurnCounts;
+}
+
+export async function parseJSONL(filePath: string): Promise<TranscriptRecord[]> {
   const records: TranscriptRecord[] = [];
   const fileHandle = await fs.open(filePath, 'r');
 
@@ -158,6 +272,87 @@ async function parseTranscript(transcriptPath: string): Promise<TranscriptMetric
   };
 }
 
+/**
+ * ST-147: Parse transcript and return both token metrics and turn counts
+ * This is the full parsing function that includes turn classification.
+ */
+export async function parseTranscriptWithTurns(transcriptPath: string): Promise<FullTranscriptMetrics | null> {
+  const stats = await fs.stat(transcriptPath);
+
+  if (stats.size === 0 || stats.size > 5 * 1024 * 1024) {
+    return null;
+  }
+
+  const records = await parseJSONL(transcriptPath);
+
+  if (records.length === 0) {
+    return null;
+  }
+
+  let model = 'unknown';
+
+  // Deduplicate by message ID - keep LAST occurrence (has final token counts after streaming)
+  const messageUsageMap = new Map<string, {
+    input_tokens: number;
+    output_tokens: number;
+    cache_creation_input_tokens: number;
+    cache_read_input_tokens: number;
+  }>();
+
+  for (const record of records) {
+    if (record.message?.model) {
+      model = record.message.model;
+    }
+    if (record.message?.usage) {
+      const usage = record.message.usage;
+      const messageId = record.message?.id;
+
+      if (messageId) {
+        messageUsageMap.set(messageId, {
+          input_tokens: usage.input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+        });
+      } else {
+        messageUsageMap.set(`no-id-${messageUsageMap.size}`, {
+          input_tokens: usage.input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+        });
+      }
+    }
+  }
+
+  // Sum usage from deduplicated messages
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheCreation = 0;
+  let totalCacheRead = 0;
+
+  for (const usage of messageUsageMap.values()) {
+    totalInput += usage.input_tokens;
+    totalOutput += usage.output_tokens;
+    totalCacheCreation += usage.cache_creation_input_tokens;
+    totalCacheRead += usage.cache_read_input_tokens;
+  }
+
+  // ST-147: Count turns
+  const turns = countTurns(records);
+
+  return {
+    inputTokens: totalInput,
+    outputTokens: totalOutput,
+    cacheCreationTokens: totalCacheCreation,
+    cacheReadTokens: totalCacheRead,
+    totalTokens: totalInput + totalOutput,
+    model,
+    transcriptPath,
+    turns,
+  };
+}
+
 function findTranscriptDirectory(projectPath: string): string {
   // Claude Code stores transcripts in ~/.claude/projects/<escaped-path>/
   // Path escaping: /Users/foo/bar → -Users-foo-bar
@@ -234,39 +429,110 @@ function findAgentTranscript(transcriptDir: string, agentId: string): string | n
 
 /**
  * Find a transcript file containing specific content (e.g., runId, componentId, storyId).
- * Searches only recent agent transcripts (modified in last hour) for efficiency.
+ * Returns the first (most recent) matching file.
  */
-function findTranscriptByContent(transcriptDir: string, searchContent: string): string | null {
+function findTranscriptByContent(transcriptDir: string, searchContent: string, searchDays = 7): string | null {
+  const results = findAllTranscriptsByContent(transcriptDir, searchContent, searchDays);
+  return results.length > 0 ? results[0] : null;
+}
+
+/**
+ * ST-147: Find ALL transcript files containing specific content.
+ * Handles multiple transcripts from compacted/resumed sessions.
+ * Searches transcripts from last N days (default: 7).
+ */
+function findAllTranscriptsByContent(
+  transcriptDir: string,
+  searchContent: string,
+  searchDays = 7
+): string[] {
   if (!fsSync.existsSync(transcriptDir)) {
-    return null;
+    return [];
   }
 
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const cutoffTime = Date.now() - searchDays * 24 * 60 * 60 * 1000;
 
-  // Get recent agent transcripts (modified in last hour)
-  const recentAgentFiles = fsSync.readdirSync(transcriptDir)
-    .filter(f => f.endsWith('.jsonl') && f.startsWith('agent-'))
+  // Get all transcripts (both agent and main session) within time window
+  const transcriptFiles = fsSync.readdirSync(transcriptDir)
+    .filter(f => f.endsWith('.jsonl'))
     .map(f => ({
       name: f,
       path: path.join(transcriptDir, f),
       mtime: fsSync.statSync(path.join(transcriptDir, f)).mtime,
     }))
-    .filter(f => f.mtime.getTime() > oneHourAgo)
+    .filter(f => f.mtime.getTime() > cutoffTime)
     .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // newest first
 
+  const matchingFiles: string[] = [];
+
   // Search each file for the content
-  for (const file of recentAgentFiles) {
+  for (const file of transcriptFiles) {
     try {
       const content = fsSync.readFileSync(file.path, 'utf-8');
       if (content.includes(searchContent)) {
-        return file.path;
+        matchingFiles.push(file.path);
       }
     } catch {
       // Skip files we can't read
     }
   }
 
-  return null;
+  return matchingFiles;
+}
+
+/**
+ * ST-147: Aggregate metrics from multiple transcript files
+ */
+async function aggregateTranscriptMetrics(transcriptPaths: string[]): Promise<FullTranscriptMetrics | null> {
+  if (transcriptPaths.length === 0) return null;
+
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheCreation = 0;
+  let totalCacheRead = 0;
+  let totalTurns = 0;
+  let manualPrompts = 0;
+  let autoContinues = 0;
+  let model = 'unknown';
+  const parsedPaths: string[] = [];
+
+  for (const transcriptPath of transcriptPaths) {
+    try {
+      const metrics = await parseTranscriptWithTurns(transcriptPath);
+      if (metrics) {
+        totalInput += metrics.inputTokens;
+        totalOutput += metrics.outputTokens;
+        totalCacheCreation += metrics.cacheCreationTokens;
+        totalCacheRead += metrics.cacheReadTokens;
+        totalTurns += metrics.turns.totalTurns;
+        manualPrompts += metrics.turns.manualPrompts;
+        autoContinues += metrics.turns.autoContinues;
+        if (metrics.model !== 'unknown') {
+          model = metrics.model;
+        }
+        parsedPaths.push(transcriptPath);
+      }
+    } catch {
+      // Skip files that fail to parse
+    }
+  }
+
+  if (parsedPaths.length === 0) return null;
+
+  return {
+    inputTokens: totalInput,
+    outputTokens: totalOutput,
+    cacheCreationTokens: totalCacheCreation,
+    cacheReadTokens: totalCacheRead,
+    totalTokens: totalInput + totalOutput,
+    model,
+    transcriptPath: parsedPaths.join(', '),
+    turns: {
+      totalTurns,
+      manualPrompts,
+      autoContinues,
+    },
+  };
 }
 
 /**
@@ -282,6 +548,8 @@ function parseArgs(args: string[]): {
   file?: string;
   path?: string;
   positionalPath?: string;
+  aggregateAll?: boolean;
+  searchDays?: number;
 } {
   const result: ReturnType<typeof parseArgs> = {};
 
@@ -304,6 +572,10 @@ function parseArgs(args: string[]): {
       result.file = arg.split('=')[1];
     } else if (arg.startsWith('--path=')) {
       result.path = arg.split('=')[1];
+    } else if (arg === '--aggregate-all') {
+      result.aggregateAll = true;
+    } else if (arg.startsWith('--search-days=')) {
+      result.searchDays = parseInt(arg.split('=')[1], 10);
     } else if (!arg.startsWith('-')) {
       // Positional argument (project path or transcript file)
       result.positionalPath = arg;
@@ -322,12 +594,53 @@ async function main() {
     console.error('       npx tsx scripts/parse-transcript.ts --latest-agent [--path=/project/path]');
     console.error('       npx tsx scripts/parse-transcript.ts --agent=<id> [--path=/project/path]');
     console.error('       npx tsx scripts/parse-transcript.ts --search=<content> [--path=/project/path]');
+    console.error('       npx tsx scripts/parse-transcript.ts --search=<content> --aggregate-all [--search-days=7]');
     console.error('       npx tsx scripts/parse-transcript.ts --file=<filename> [--path=/project/path]');
     process.exit(1);
   }
 
   const parsed = parseArgs(args);
   const projectPath = parsed.path || parsed.positionalPath || process.cwd();
+  const searchDays = parsed.searchDays || 7;
+
+  // ST-147: Handle aggregate-all mode for compacted/resumed sessions
+  if (parsed.search && parsed.aggregateAll) {
+    const transcriptDir = findTranscriptDirectory(projectPath);
+    const allTranscripts = findAllTranscriptsByContent(transcriptDir, parsed.search, searchDays);
+
+    if (allTranscripts.length === 0) {
+      console.error(JSON.stringify({
+        error: `No transcripts found containing "${parsed.search}" in ${transcriptDir}`,
+        hint: `Searched last ${searchDays} days. Use --search-days=N to extend search window.`
+      }));
+      process.exit(1);
+    }
+
+    try {
+      const aggregatedMetrics = await aggregateTranscriptMetrics(allTranscripts);
+
+      if (!aggregatedMetrics) {
+        console.error(JSON.stringify({
+          error: 'Failed to parse any of the matching transcripts',
+          transcriptPaths: allTranscripts
+        }));
+        process.exit(1);
+      }
+
+      // Include extra info about aggregation
+      console.log(JSON.stringify({
+        ...aggregatedMetrics,
+        aggregated: true,
+        transcriptCount: allTranscripts.length,
+        transcriptPaths: allTranscripts,
+      }, null, 2));
+    } catch (err) {
+      console.error(JSON.stringify({ error: String(err), transcriptPaths: allTranscripts }));
+      process.exit(1);
+    }
+    return;
+  }
+
   let transcriptPath: string;
 
   if (parsed.file) {
@@ -370,12 +683,12 @@ async function main() {
     transcriptPath = agentTranscript;
   } else if (parsed.search) {
     const transcriptDir = findTranscriptDirectory(projectPath);
-    const foundTranscript = findTranscriptByContent(transcriptDir, parsed.search);
+    const foundTranscript = findTranscriptByContent(transcriptDir, parsed.search, searchDays);
 
     if (!foundTranscript) {
       console.error(JSON.stringify({
-        error: `No agent transcript found containing "${parsed.search}" in ${transcriptDir}`,
-        hint: 'Searched recent files from last hour. Ensure the content was included in the agent task.'
+        error: `No transcript found containing "${parsed.search}" in ${transcriptDir}`,
+        hint: `Searched last ${searchDays} days. Use --aggregate-all to find and combine ALL matching transcripts (for compacted/resumed sessions).`
       }));
       process.exit(1);
     }
@@ -392,7 +705,8 @@ async function main() {
   }
 
   try {
-    const metrics = await parseTranscript(transcriptPath);
+    // ST-147: Use parseTranscriptWithTurns to include turn metrics
+    const metrics = await parseTranscriptWithTurns(transcriptPath);
 
     if (!metrics) {
       console.error(JSON.stringify({ error: 'Failed to parse transcript', path: transcriptPath }));

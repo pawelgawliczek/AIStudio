@@ -25,6 +25,13 @@ export {
   RunnerCheckpoint,
   createCheckpoint,
   isValidCheckpoint,
+  // ST-147: Session telemetry types
+  TurnCounts,
+  DecisionRecord,
+  SessionTelemetry,
+  createEmptyTelemetry,
+  addDecision,
+  updateTurnCounts,
 } from './checkpoint';
 
 // Configuration

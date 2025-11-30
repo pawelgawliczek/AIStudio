@@ -721,6 +721,23 @@ model WorkflowRun {
   totalInterventions     Int?   @map("total_interventions")
   avgPromptsPerComponent Float? @map("avg_prompts_per_component")
 
+  // ST-147: Runner Session Telemetry
+  runnerTranscriptPath String? @map("runner_transcript_path") // Path to runner transcript JSONL
+  runnerTokensInput    Int?    @default(0) @map("runner_tokens_input")
+  runnerTokensOutput   Int?    @default(0) @map("runner_tokens_output")
+  totalRunnerTokens    Int?    @default(0) @map("total_runner_tokens")
+
+  // ST-147: Turn Tracking (distinguish all turns vs manual input)
+  totalTurns         Int? @default(0) @map("total_turns") // All human messages in transcripts
+  totalManualPrompts Int? @default(0) @map("total_manual_prompts") // Actual user-typed input only
+
+  // ST-147: Resume Context
+  resumeSummary      String?   @map("resume_summary") @db.Text // AI-generated summary for resume
+  resumeGeneratedAt  DateTime? @map("resume_generated_at")
+  decisionHistory    Json?     @map("decision_history") // Array of DecisionRecord[]
+  checkpointData     Json?     @map("checkpoint_data") // RunnerCheckpoint structure
+  lastCheckpointAt   DateTime? @map("last_checkpoint_at")
+
   // Coordinator execution
   coordinatorDecisions Json?   @map("coordinator_decisions") // Array of decisions made
   coordinatorMetrics   Json?   @map("coordinator_metrics") // Coordinator runtime, cost, etc.
@@ -754,6 +771,8 @@ model WorkflowRun {
   @@index([status])
   @@index([currentStateId]) // ST-143: Index for state queries
   @@index([isPaused]) // ST-143: Index for paused runs
+  @@index([totalTurns]) // ST-147: Index for analytics
+  @@index([totalManualPrompts]) // ST-147: Index for analytics
   @@map("workflow_runs")
 }
 
@@ -857,6 +876,15 @@ model ComponentRun {
   remoteJobId String? @map("remote_job_id") @db.Uuid // Link to RemoteJob if executed remotely
   executedOn  String? @map("executed_on") // "kvm_server" | "laptop:hostname"
 
+  // ST-147: Turn Tracking (per-component level)
+  totalTurns    Int? @default(0) @map("total_turns") // All conversation turns
+  manualPrompts Int? @default(0) @map("manual_prompts") // Actual user input only
+  autoContinues Int? @default(0) @map("auto_continues") // Auto-continue count
+
+  // ST-147: Transcript & Summary
+  transcriptPath   String? @map("transcript_path") // Path to agent transcript JSONL
+  componentSummary String? @map("component_summary") @db.Text // AI summary of what agent did
+
   // Relations
   workflowRun        WorkflowRun        @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
   component          Component          @relation(fields: [componentId], references: [id], onDelete: Restrict)
@@ -869,6 +897,7 @@ model ComponentRun {
   @@index([startedAt])
   @@index([status])
   @@index([remoteJobId]) // ST-150: Index for remote job lookups
+  @@index([totalTurns]) // ST-147: Index for analytics
   @@map("component_runs")
 }
 

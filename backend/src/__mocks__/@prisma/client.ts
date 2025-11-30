@@ -8,7 +8,8 @@
  * and be placed in *.integration.test.ts files.
  */
 
-import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+// DO NOT import from '@prisma/client/runtime/library' or jest-mock-extended here
+// as it could trigger side effects. This file must be completely self-contained.
 
 // DO NOT re-export from '@prisma/client/runtime/library' - it initializes the Prisma engine
 // and causes 100% CPU infinite loops in Jest. Instead, mock the needed types inline.
@@ -211,8 +212,8 @@ export class PrismaClient {
   }
 }
 
-// Also export a pre-created mock instance for tests that want to use mockDeep
-export const prismaMock = new PrismaClient() as unknown as DeepMockProxy<PrismaClient>;
+// Export a pre-created mock instance for tests
+export const prismaMock = new PrismaClient();
 
 // Export Prisma namespace for type access
 export const Prisma = {

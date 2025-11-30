@@ -10,26 +10,39 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { mockReset } from 'jest-mock-extended';
 import { handler, tool, metadata } from '../get_transcript_metrics';
-import { prismaMock } from './test-setup';
 
 // Only mock fs (not fs/promises due to dynamic import in handler)
 jest.mock('fs');
 jest.mock('os');
 
+// Mock the RemoteRunner to avoid HTTP calls
+jest.mock('../../../utils/remote-runner', () => ({
+  RemoteRunner: jest.fn().mockImplementation(() => ({
+    execute: jest.fn().mockResolvedValue({
+      executed: false,
+      success: false,
+      error: 'Mock agent offline',
+      fallbackCommand: 'mock fallback command',
+    }),
+  })),
+}));
+
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockOs = os as jest.Mocked<typeof os>;
+
+// Create a mock prisma client (handler doesn't actually use it, but needs it as param)
+const mockPrisma = {} as any;
 
 describe('get_transcript_metrics', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    mockReset(prismaMock);
     jest.clearAllMocks();
     process.env = { ...originalEnv };
     delete process.env.SSH_CONNECTION;
     delete process.env.PROJECT_HOST_PATH;
+    delete process.env.DOCKER_CONTAINER;
 
     // Default mock behavior
     mockOs.homedir.mockReturnValue('/Users/testuser');
@@ -46,7 +59,7 @@ describe('get_transcript_metrics', () => {
   describe('Tool Definition', () => {
     it('should have correct tool name and description', () => {
       expect(tool.name).toBe('get_transcript_metrics');
-      expect(tool.description).toContain('DUAL-MODE OPERATION');
+      expect(tool.description).toContain('TRI-MODE OPERATION');
       expect(tool.description).toContain('runLocally');
     });
 
@@ -85,12 +98,13 @@ describe('get_transcript_metrics', () => {
       const params = { projectPath: '/Users/pawelgawliczek/projects/AIStudio' };
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.success).toBe(true);
       expect(result.runLocally).toBe(true);
-      expect(result.reason).toContain('running in Docker'); // Handler uses same message for SSH or Docker
+      // RemoteRunner now returns error message from mock
+      expect(result.reason).toBeDefined();
       expect(result.command).toContain('npx tsx scripts/parse-transcript.ts');
       expect(result.projectPath).toBe('/Users/pawelgawliczek/projects/AIStudio');
     });
@@ -100,7 +114,7 @@ describe('get_transcript_metrics', () => {
       const params = { projectPath: '/opt/stack/worktrees/st-117' };
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.command).toBe('cd "/opt/stack/worktrees/st-117" && npx tsx scripts/parse-transcript.ts --latest "/opt/stack/worktrees/st-117"');
@@ -114,7 +128,7 @@ describe('get_transcript_metrics', () => {
       };
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.command).toBe('cd "/Users/pawelgawliczek/projects/AIStudio" && npx tsx scripts/parse-transcript.ts "abc123.jsonl"');
@@ -126,7 +140,7 @@ describe('get_transcript_metrics', () => {
       const params = {};
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.projectPath).toBe('/Users/pawelgawliczek/projects/AIStudio');
@@ -138,7 +152,7 @@ describe('get_transcript_metrics', () => {
       const params = { projectPath: '/test/project' };
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.instructions).toContain('Bash tool');
@@ -154,7 +168,7 @@ describe('get_transcript_metrics', () => {
       };
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.command).toContain('--latest-agent');
@@ -169,7 +183,7 @@ describe('get_transcript_metrics', () => {
       };
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.command).toContain('--agent');
@@ -186,7 +200,7 @@ describe('get_transcript_metrics', () => {
       };
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, params);
+      const result = await handler(mockPrisma, params);
 
       // ========== ASSERT ==========
       expect(result.command).not.toContain('--latest-agent');
@@ -209,7 +223,7 @@ describe('get_transcript_metrics', () => {
       mockFs.existsSync.mockReturnValue(false);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath });
+      const result = await handler(mockPrisma, { projectPath });
 
       // ========== ASSERT ==========
       expect(result.success).toBe(false);
@@ -235,7 +249,7 @@ describe('get_transcript_metrics', () => {
       });
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath });
+      const result = await handler(mockPrisma, { projectPath });
 
       // ========== ASSERT ==========
       // Will fail at parsing stage but should have selected the newest file
@@ -252,7 +266,7 @@ describe('get_transcript_metrics', () => {
       mockFs.statSync.mockReturnValue({ mtime: new Date() } as any);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath });
+      const result = await handler(mockPrisma, { projectPath });
 
       // ========== ASSERT ==========
       // Should have found the .jsonl file (may fail at parsing, but path should be correct)
@@ -268,7 +282,7 @@ describe('get_transcript_metrics', () => {
       mockFs.readdirSync.mockReturnValue([] as any);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath });
+      const result = await handler(mockPrisma, { projectPath });
 
       // ========== ASSERT ==========
       expect(result.success).toBe(false);
@@ -287,7 +301,7 @@ describe('get_transcript_metrics', () => {
       });
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath, transcriptFile });
+      const result = await handler(mockPrisma, { projectPath, transcriptFile });
 
       // ========== ASSERT ==========
       // Should try to use the absolute path
@@ -316,7 +330,7 @@ describe('get_transcript_metrics', () => {
       });
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath, agentId: 'latest' });
+      const result = await handler(mockPrisma, { projectPath, agentId: 'latest' });
 
       // ========== ASSERT ==========
       // Should have selected agent-abcd1234.jsonl (newest agent transcript)
@@ -340,7 +354,7 @@ describe('get_transcript_metrics', () => {
       mockFs.statSync.mockReturnValue({ mtime: new Date() } as any);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath, agentId: '7527b7d9' });
+      const result = await handler(mockPrisma, { projectPath, agentId: '7527b7d9' });
 
       // ========== ASSERT ==========
       expect(result.transcriptPath || result.error).toBeTruthy();
@@ -361,7 +375,7 @@ describe('get_transcript_metrics', () => {
       ] as any);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath, agentId: 'latest' });
+      const result = await handler(mockPrisma, { projectPath, agentId: 'latest' });
 
       // ========== ASSERT ==========
       expect(result.success).toBe(false);
@@ -381,7 +395,7 @@ describe('get_transcript_metrics', () => {
       mockFs.statSync.mockReturnValue({ mtime: new Date() } as any);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath });  // No agentId
+      const result = await handler(mockPrisma, { projectPath });  // No agentId
 
       // ========== ASSERT ==========
       // Should select abc123.jsonl, not agent transcript
@@ -403,7 +417,7 @@ describe('get_transcript_metrics', () => {
       mockFs.existsSync.mockReturnValue(false);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath });
+      const result = await handler(mockPrisma, { projectPath });
 
       // ========== ASSERT ==========
       expect(result.success).toBe(false);
@@ -419,7 +433,7 @@ describe('get_transcript_metrics', () => {
       mockFs.existsSync.mockReturnValue(false);
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath, transcriptFile });
+      const result = await handler(mockPrisma, { projectPath, transcriptFile });
 
       // ========== ASSERT ==========
       expect(result.success).toBe(false);
@@ -435,7 +449,7 @@ describe('get_transcript_metrics', () => {
       mockFs.readdirSync.mockReturnValue(['readme.md', 'config.json'] as any); // No .jsonl files
 
       // ========== ACT ==========
-      const result = await handler(prismaMock as any, { projectPath });
+      const result = await handler(mockPrisma, { projectPath });
 
       // ========== ASSERT ==========
       expect(result.success).toBe(false);
@@ -453,7 +467,7 @@ describe('get_transcript_metrics', () => {
       mockFs.existsSync.mockReturnValue(false);
 
       const params = { projectPath };
-      handler(prismaMock as any, params);
+      handler(mockPrisma, params);
 
       // Verify the transcript directory was checked with escaped path
       expect(mockFs.existsSync).toHaveBeenCalledWith(
@@ -468,7 +482,7 @@ describe('get_transcript_metrics', () => {
       mockFs.existsSync.mockReturnValue(false);
 
       const params = { projectPath };
-      handler(prismaMock as any, params);
+      handler(mockPrisma, params);
 
       expect(mockFs.existsSync).toHaveBeenCalledWith(
         expect.stringContaining('-Users-pawel-projects-AIStudio')

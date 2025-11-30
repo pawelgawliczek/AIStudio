@@ -1090,6 +1090,11 @@ export class AgentMetricsService {
       0,
     );
 
+    // ST-147: Turn tracking metrics
+    const totalTurns = allComponentRuns.reduce((sum, cr) => sum + (cr.totalTurns || 0), 0);
+    const totalManualPrompts = allComponentRuns.reduce((sum, cr) => sum + (cr.manualPrompts || 0), 0);
+    const totalAutoContinues = allComponentRuns.reduce((sum, cr) => sum + (cr.autoContinues || 0), 0);
+
     // Cost calculation
     const totalCost = allComponentRuns.reduce((sum, cr) => sum + (Number(cr.cost) || 0), 0);
     const storiesCount = uniqueStories.size || 1;
@@ -1099,6 +1104,10 @@ export class AgentMetricsService {
     const tokensPerLOC = totalLOC > 0 ? (inputTokens + outputTokens) / totalLOC : 0;
     const promptsPerStory = storiesCount > 0 ? totalPrompts / storiesCount : 0;
     const interactionsPerStory = storiesCount > 0 ? totalInteractions / storiesCount : 0;
+    // ST-147: Turn-based efficiency metrics
+    const turnsPerStory = storiesCount > 0 ? totalTurns / storiesCount : 0;
+    const manualPromptsPerStory = storiesCount > 0 ? totalManualPrompts / storiesCount : 0;
+    const automationRate = totalTurns > 0 ? (totalAutoContinues / totalTurns) * 100 : 0;
     const defectsPerStory = 0; // Would need to query defects table
     const codeChurnPercent = 0; // Would need historical data
     const testCoveragePercent = 0; // Would need coverage data
@@ -1127,6 +1136,10 @@ export class AgentMetricsService {
         defectLeakagePercent,
         codeChurnPercent,
         testCoveragePercent,
+        // ST-147: Turn-based metrics
+        turnsPerStory,
+        manualPromptsPerStory,
+        automationRate,
       },
       costValue: {
         costPerStory,
@@ -1150,6 +1163,10 @@ export class AgentMetricsService {
         totalPrompts,
         totalInteractions,
         totalIterations,
+        // ST-147: Turn-based execution metrics
+        totalTurns,
+        totalManualPrompts,
+        totalAutoContinues,
       },
     };
   }
@@ -1363,6 +1380,13 @@ export class AgentMetricsService {
       timePerLOCChange: number;
       totalUserPrompts: number;
       totalUserPromptsChange: number;
+      // ST-147: Session telemetry KPIs
+      totalTurns: number;
+      totalTurnsChange: number;
+      totalManualPrompts: number;
+      totalManualPromptsChange: number;
+      automationRate: number;
+      automationRateChange: number;
     };
     trends: {
       storiesImplemented: { date: string; allWorkflows: number; selectedWorkflows: number }[];
@@ -1545,6 +1569,25 @@ export class AgentMetricsService {
       ? ((totalUserPrompts - previousTotalUserPrompts) / previousTotalUserPrompts) * 100
       : 0;
 
+    // ST-147: Session telemetry KPIs
+    const totalTurns = currentMetrics.execution.totalTurns;
+    const previousTotalTurns = previousMetrics.execution.totalTurns;
+    const totalTurnsChange = previousTotalTurns > 0
+      ? ((totalTurns - previousTotalTurns) / previousTotalTurns) * 100
+      : 0;
+
+    const totalManualPrompts = currentMetrics.execution.totalManualPrompts;
+    const previousManualPrompts = previousMetrics.execution.totalManualPrompts;
+    const totalManualPromptsChange = previousManualPrompts > 0
+      ? ((totalManualPrompts - previousManualPrompts) / previousManualPrompts) * 100
+      : 0;
+
+    const automationRate = currentMetrics.efficiency.automationRate;
+    const previousAutomationRate = previousMetrics.efficiency.automationRate;
+    const automationRateChange = previousAutomationRate > 0
+      ? automationRate - previousAutomationRate
+      : 0;
+
     // Get total counts (without filters)
     const [totalStoriesCount, totalBugsCount] = await Promise.all([
       this.prisma.story.count({
@@ -1619,6 +1662,13 @@ export class AgentMetricsService {
         timePerLOCChange: parseFloat(timePerLOCChange.toFixed(1)),
         totalUserPrompts: totalUserPrompts,
         totalUserPromptsChange: parseFloat(totalUserPromptsChange.toFixed(1)),
+        // ST-147: Session telemetry KPIs
+        totalTurns,
+        totalTurnsChange: parseFloat(totalTurnsChange.toFixed(1)),
+        totalManualPrompts,
+        totalManualPromptsChange: parseFloat(totalManualPromptsChange.toFixed(1)),
+        automationRate: parseFloat(automationRate.toFixed(1)),
+        automationRateChange: parseFloat(automationRateChange.toFixed(1)),
       },
       trends,
       workflows: allWorkflows,
