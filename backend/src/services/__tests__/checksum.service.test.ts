@@ -1,13 +1,13 @@
-import { PrismaClient } from '@prisma/client';
 import { ChecksumService } from '../checksum.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
-// Mock PrismaClient
+// Mock PrismaService
 const mockPrisma = {
   component: {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
-} as unknown as PrismaClient;
+} as unknown as PrismaService;
 
 describe('ChecksumService', () => {
   let service: ChecksumService;

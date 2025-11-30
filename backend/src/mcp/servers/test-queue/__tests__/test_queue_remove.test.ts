@@ -8,16 +8,22 @@ import { NotFoundError } from '../../../types';
 import { handler, tool } from '../test_queue_remove';
 
 describe('test_queue_remove', () => {
-  let prisma: PrismaClient;
   const testStoryId = 'test-story-id-123';
 
-  beforeEach(() => {
-    prisma = new PrismaClient();
-    jest.clearAllMocks();
-  });
+  // Mock PrismaClient with proper structure
+  const mockPrismaClient = {
+    testQueue: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
+    },
+    $disconnect: jest.fn(),
+  };
 
-  afterEach(async () => {
-    await prisma.$disconnect();
+  let prisma: PrismaClient;
+
+  beforeEach(() => {
+    prisma = mockPrismaClient as unknown as PrismaClient;
+    jest.clearAllMocks();
   });
 
   describe('Tool Definition', () => {
@@ -32,7 +38,7 @@ describe('test_queue_remove', () => {
 
   describe('Handler Function - Validation', () => {
     it('should throw NotFoundError if no pending/running entry exists (AC-5)', async () => {
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(null);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(null);
 
       await expect(
         handler(prisma, { storyId: testStoryId })
@@ -45,7 +51,7 @@ describe('test_queue_remove', () => {
     it('should only look for pending or running entries', async () => {
       await handler(prisma, { storyId: testStoryId }).catch(() => {});
 
-      expect(prisma.testQueue.findFirst).toHaveBeenCalledWith(
+      expect(mockPrismaClient.testQueue.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             storyId: testStoryId,
@@ -57,14 +63,14 @@ describe('test_queue_remove', () => {
 
     it('should not remove completed entries (passed/failed)', async () => {
       // This test verifies the where clause only includes pending/running
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(null);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(null);
 
       await expect(
         handler(prisma, { storyId: testStoryId })
       ).rejects.toThrow(NotFoundError);
 
       // Verify we only searched for pending/running
-      expect(prisma.testQueue.findFirst).toHaveBeenCalledWith(
+      expect(mockPrismaClient.testQueue.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             status: { in: ['pending', 'running'] },
@@ -83,15 +89,15 @@ describe('test_queue_remove', () => {
         story: { key: 'ST-1' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.update = jest.fn().mockResolvedValue({
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.update.mockResolvedValue({
         ...mockEntry,
         status: 'cancelled',
       });
 
       const result = await handler(prisma, { storyId: testStoryId });
 
-      expect(prisma.testQueue.update).toHaveBeenCalledWith({
+      expect(mockPrismaClient.testQueue.update).toHaveBeenCalledWith({
         where: { id: 'entry-1' },
         data: { status: 'cancelled' },
       });
@@ -106,8 +112,8 @@ describe('test_queue_remove', () => {
         story: { key: 'ST-2' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.update = jest.fn().mockResolvedValue({
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.update.mockResolvedValue({
         ...mockEntry,
         status: 'cancelled',
       });
@@ -125,8 +131,8 @@ describe('test_queue_remove', () => {
         story: { key: 'ST-1' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.update = jest.fn().mockResolvedValue({
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.update.mockResolvedValue({
         ...mockEntry,
         status: 'cancelled',
       });
@@ -134,8 +140,8 @@ describe('test_queue_remove', () => {
       await handler(prisma, { storyId: testStoryId });
 
       // Verify it's an UPDATE not DELETE (soft delete)
-      expect(prisma.testQueue.update).toHaveBeenCalled();
-      expect(prisma.testQueue.update).toHaveBeenCalledWith(
+      expect(mockPrismaClient.testQueue.update).toHaveBeenCalled();
+      expect(mockPrismaClient.testQueue.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { status: 'cancelled' },
         })
@@ -152,8 +158,8 @@ describe('test_queue_remove', () => {
         story: { key: 'ST-42' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.update = jest.fn().mockResolvedValue({
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.update.mockResolvedValue({
         ...mockEntry,
         status: 'cancelled',
       });
@@ -175,8 +181,8 @@ describe('test_queue_remove', () => {
         story: { key: 'ST-1' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.update = jest.fn().mockResolvedValue({
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.update.mockResolvedValue({
         ...mockEntry,
         status: 'cancelled',
       });
@@ -194,8 +200,8 @@ describe('test_queue_remove', () => {
         story: { key: 'ST-99' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.update = jest.fn().mockResolvedValue({
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.update.mockResolvedValue({
         ...mockEntry,
         status: 'cancelled',
       });
@@ -213,8 +219,8 @@ describe('test_queue_remove', () => {
         story: { key: 'ST-1' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.update = jest.fn().mockResolvedValue({
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.update.mockResolvedValue({
         ...mockEntry,
         status: 'cancelled',
       });

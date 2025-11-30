@@ -18,13 +18,15 @@ describe('get_component_instructions MCP tool', () => {
 
   describe('tool definition', () => {
     it('should have correct name', () => {
-      expect(tool.name).toBe('get_component_instructions');
+      // ST-109: Tool renamed from get_component_instructions to get_agent_instructions
+      expect(tool.name).toBe('get_agent_instructions');
     });
 
     it('should have description', () => {
       expect(tool.description).toBeDefined();
       expect(tool.description).toContain('instructions');
-      expect(tool.description).toContain('component');
+      // ST-109: Description now uses 'agent' instead of 'component'
+      expect(tool.description).toContain('agent');
     });
 
     it('should require componentId field', () => {

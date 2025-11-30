@@ -234,7 +234,7 @@ describe('spawn_agent', () => {
       mockPrisma.componentRun.update.mockResolvedValue({});
       mockPrisma.workflowRun.update.mockResolvedValue({});
 
-      await handler(validParams, mockPrisma as any);
+      await handler(mockPrisma as any, validParams);
 
       expect(mockPrisma.componentRun.update).toHaveBeenCalledWith({
         where: { id: 'comprun-101' },

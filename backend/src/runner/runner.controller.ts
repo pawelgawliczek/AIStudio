@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { RunnerService, RunnerCheckpoint, RunnerStatus } from './runner.service';
+import { BreakpointService, BreakpointContext, BreakpointData } from './breakpoint.service';
 
 /**
  * DTO for saving checkpoint
@@ -36,6 +37,30 @@ class ReportStatusDto {
 }
 
 /**
+ * DTO for checking breakpoints
+ * ST-146: Breakpoint System
+ */
+class CheckBreakpointDto {
+  stateId: string;
+  position: 'before' | 'after';
+  context: BreakpointContext;
+}
+
+/**
+ * DTO for recording breakpoint hit
+ * ST-146: Breakpoint System
+ */
+class RecordBreakpointHitDto {
+  hitAt: string;
+  context: {
+    tokensUsed: number;
+    agentSpawns: number;
+    stateTransitions: number;
+    durationMs: number;
+  };
+}
+
+/**
  * Runner Controller
  * REST API endpoints for Story Runner communication
  *
@@ -46,10 +71,18 @@ class ReportStatusDto {
  * - POST /api/runner/status/:runId - Report status
  * - GET /api/runner/team-context/:runId - Get team context
  * - GET /api/runner/active - List active runs
+ *
+ * ST-146 Breakpoint Endpoints:
+ * - GET /api/runner/breakpoints/:runId - Get breakpoints for run
+ * - POST /api/runner/breakpoints/:runId/check - Check if should pause
+ * - POST /api/runner/breakpoints/:breakpointId/hit - Record breakpoint hit
  */
 @Controller('runner')
 export class RunnerController {
-  constructor(private readonly runnerService: RunnerService) {}
+  constructor(
+    private readonly runnerService: RunnerService,
+    private readonly breakpointService: BreakpointService,
+  ) {}
 
   /**
    * Save checkpoint
@@ -130,5 +163,71 @@ export class RunnerController {
   async listActiveRuns(): Promise<{ runs: unknown[] }> {
     const runs = await this.runnerService.listActiveRuns();
     return { runs };
+  }
+
+  // ========================================
+  // ST-146: Breakpoint Endpoints
+  // ========================================
+
+  /**
+   * Get breakpoints for a workflow run
+   * ST-146: Breakpoint System
+   */
+  @Get('breakpoints/:runId')
+  async getBreakpoints(@Param('runId') runId: string): Promise<{
+    breakpoints: BreakpointData[];
+    breakpointsModifiedAt?: string;
+  }> {
+    const breakpoints = await this.breakpointService.loadBreakpoints(runId);
+    const cached = this.breakpointService.getCachedBreakpoints(runId);
+
+    // Get breakpointsModifiedAt from metadata (would need to pass through)
+    // For now, just return breakpoints
+    return {
+      breakpoints,
+      // breakpointsModifiedAt comes from workflow run metadata
+    };
+  }
+
+  /**
+   * Check if runner should pause at breakpoint
+   * ST-146: Breakpoint System
+   */
+  @Post('breakpoints/:runId/check')
+  @HttpCode(HttpStatus.OK)
+  async checkBreakpoint(
+    @Param('runId') runId: string,
+    @Body() dto: CheckBreakpointDto,
+  ): Promise<{
+    shouldPause: boolean;
+    breakpoint?: BreakpointData;
+    reason?: string;
+  }> {
+    return await this.breakpointService.shouldPause(
+      runId,
+      dto.stateId,
+      dto.position as 'before' | 'after',
+      dto.context,
+    );
+  }
+
+  /**
+   * Record breakpoint hit
+   * ST-146: Breakpoint System
+   */
+  @Post('breakpoints/:breakpointId/hit')
+  @HttpCode(HttpStatus.OK)
+  async recordBreakpointHit(
+    @Param('breakpointId') breakpointId: string,
+    @Body() dto: RecordBreakpointHitDto,
+  ): Promise<{ success: boolean }> {
+    // Get breakpoint by ID
+    const breakpoint = await this.breakpointService.getBreakpointById(breakpointId);
+
+    if (breakpoint) {
+      await this.breakpointService.recordHit(breakpoint);
+    }
+
+    return { success: true };
   }
 }

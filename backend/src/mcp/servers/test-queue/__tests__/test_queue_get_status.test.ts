@@ -8,16 +8,22 @@ import { NotFoundError } from '../../../types';
 import { handler, tool } from '../test_queue_get_status';
 
 describe('test_queue_get_status', () => {
-  let prisma: PrismaClient;
   const testStoryId = 'test-story-id-123';
 
-  beforeEach(() => {
-    prisma = new PrismaClient();
-    jest.clearAllMocks();
-  });
+  // Mock PrismaClient with proper structure
+  const mockPrismaClient = {
+    testQueue: {
+      findFirst: jest.fn(),
+      count: jest.fn(),
+    },
+    $disconnect: jest.fn(),
+  };
 
-  afterEach(async () => {
-    await prisma.$disconnect();
+  let prisma: PrismaClient;
+
+  beforeEach(() => {
+    prisma = mockPrismaClient as unknown as PrismaClient;
+    jest.clearAllMocks();
   });
 
   describe('Tool Definition', () => {
@@ -32,7 +38,7 @@ describe('test_queue_get_status', () => {
 
   describe('Handler Function - Validation', () => {
     it('should throw NotFoundError if no entry exists (AC-4)', async () => {
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(null);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(null);
 
       await expect(
         handler(prisma, { storyId: testStoryId })
@@ -43,9 +49,10 @@ describe('test_queue_get_status', () => {
     });
 
     it('should find most recent entry when multiple exist', async () => {
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(null);
       await handler(prisma, { storyId: testStoryId }).catch(() => {});
 
-      expect(prisma.testQueue.findFirst).toHaveBeenCalledWith(
+      expect(mockPrismaClient.testQueue.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { storyId: testStoryId },
           orderBy: { createdAt: 'desc' },
@@ -70,8 +77,8 @@ describe('test_queue_get_status', () => {
         story: { key: 'ST-1', title: 'Test Story' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.count = jest.fn().mockResolvedValue(2); // 2 entries ahead
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.count.mockResolvedValue(2); // 2 entries ahead
 
       const result = await handler(prisma, { storyId: testStoryId });
 
@@ -96,7 +103,7 @@ describe('test_queue_get_status', () => {
         story: { key: 'ST-1', title: 'Test Story' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
 
       const result = await handler(prisma, { storyId: testStoryId });
 
@@ -121,7 +128,7 @@ describe('test_queue_get_status', () => {
         story: { key: 'ST-1', title: 'Test Story' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
 
       const result = await handler(prisma, { storyId: testStoryId });
 
@@ -145,7 +152,7 @@ describe('test_queue_get_status', () => {
         story: { key: 'ST-1', title: 'Test Story' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
 
       const result = await handler(prisma, { storyId: testStoryId });
 
@@ -171,7 +178,7 @@ describe('test_queue_get_status', () => {
         story: { key: 'ST-1', title: 'Test Story' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
 
       const result = await handler(prisma, { storyId: testStoryId });
 
@@ -202,7 +209,7 @@ describe('test_queue_get_status', () => {
         story: { key: 'ST-42', title: 'Important Feature' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
 
       const result = await handler(prisma, { storyId: testStoryId });
 
@@ -225,8 +232,8 @@ describe('test_queue_get_status', () => {
         story: { key: 'ST-1', title: 'Test Story' },
       };
 
-      prisma.testQueue.findFirst = jest.fn().mockResolvedValue(mockEntry);
-      prisma.testQueue.count = jest.fn().mockResolvedValue(0);
+      mockPrismaClient.testQueue.findFirst.mockResolvedValue(mockEntry);
+      mockPrismaClient.testQueue.count.mockResolvedValue(0);
 
       const result = await handler(prisma, { storyId: testStoryId });
 

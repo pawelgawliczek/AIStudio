@@ -13,12 +13,18 @@ module.exports = {
   forceExit: true,
   // Detect open handles for debugging
   detectOpenHandles: false,
-  // Limit parallel workers to prevent resource contention
-  maxWorkers: 4,
+  // Run tests serially to prevent Prisma engine initialization race conditions
+  // Multiple Jest workers competing for Prisma engine causes infinite loops
+  maxWorkers: 1,
   testMatch: ['**/__tests__/**/*.test.ts'],
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
-  // Don't auto-mock Prisma Client
-  unmockedModulePathPatterns: ['@prisma/client'],
+  // Skip integration tests that require TEST database (port 5434) - run with npm run test:integration
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '\\.integration\\.test\\.ts$',  // Skip *.integration.test.ts files
+  ],
+  // Auto-mock Prisma Client using __mocks__/@prisma/client.ts
+  // This prevents Prisma engine initialization which causes 100% CPU loops
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
@@ -46,6 +52,8 @@ module.exports = {
     '<rootDir>/src/mcp/servers/execution/__tests__/conditional-setup.ts'
   ],
   moduleNameMapper: {
+    // Auto-mock @prisma/client to prevent engine initialization CPU loops
+    '^@prisma/client$': '<rootDir>/src/__mocks__/@prisma/client.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^(\.{1,2}/.*)\\.js$': '$1',
   },

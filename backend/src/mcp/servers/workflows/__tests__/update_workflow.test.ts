@@ -9,7 +9,8 @@ describe('update_workflow MCP tool', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
-    coordinatorAgent: {
+    // Component table is used for coordinator/component lookups
+    component: {
       findUnique: jest.fn(),
     },
   };
@@ -125,7 +126,7 @@ describe('update_workflow MCP tool', () => {
       };
 
       mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.coordinatorAgent.findUnique.mockResolvedValue(
+      mockPrismaClient.component.findUnique.mockResolvedValue(
         mockCoordinator,
       );
       mockPrismaClient.workflow.update.mockResolvedValue(updatedWorkflow);
@@ -136,7 +137,7 @@ describe('update_workflow MCP tool', () => {
       });
 
       expect(result.coordinatorId).toBe('coord-2');
-      expect(mockPrismaClient.coordinatorAgent.findUnique).toHaveBeenCalledWith(
+      expect(mockPrismaClient.component.findUnique).toHaveBeenCalledWith(
         {
           where: { id: 'coord-2' },
         },
@@ -145,7 +146,7 @@ describe('update_workflow MCP tool', () => {
 
     it('should throw error when coordinator does not exist', async () => {
       mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.coordinatorAgent.findUnique.mockResolvedValue(null);
+      mockPrismaClient.component.findUnique.mockResolvedValue(null);
 
       await expect(
         handler(prisma, {
@@ -163,7 +164,7 @@ describe('update_workflow MCP tool', () => {
       };
 
       mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.coordinatorAgent.findUnique.mockResolvedValue(
+      mockPrismaClient.component.findUnique.mockResolvedValue(
         differentProjectCoordinator,
       );
 
@@ -275,7 +276,7 @@ describe('update_workflow MCP tool', () => {
       };
 
       mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.coordinatorAgent.findUnique.mockResolvedValue(
+      mockPrismaClient.component.findUnique.mockResolvedValue(
         mockCoordinator,
       );
       mockPrismaClient.workflow.update.mockResolvedValue(updatedWorkflow);

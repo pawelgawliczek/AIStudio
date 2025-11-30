@@ -255,7 +255,7 @@ describe('TestAnalyticsService', () => {
       const result = await service.getSlowTests('project-uuid', 10);
 
       expect(result).toHaveLength(2);
-      expect(result[0].avgDurationMs).toBe(45000);
+      expect(result[0].avgDuration).toBe(45000);
       expect(result[0].testCaseKey).toBe('TC-E2E-001');
     });
 

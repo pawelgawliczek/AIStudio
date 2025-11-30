@@ -18,7 +18,7 @@ import { MasterSession } from './cli/master-session';
 import { AgentSession } from './cli/agent-session';
 import { CheckpointService } from './checkpoint/checkpoint-service';
 import { ResourceManager } from './resources/resource-manager';
-import { BackendClient } from './api/backend-client';
+import { BackendClient, Breakpoint, BreakpointContext } from './api/backend-client';
 import { ResponseHandler } from './state-machine/response-handler';
 
 /**
@@ -45,6 +45,7 @@ export interface RunnerEvents {
   'agent:spawned': (stateId: string, componentId: string) => void;
   'agent:completed': (stateId: string, exitCode: number) => void;
   'checkpoint:saved': (checkpoint: RunnerCheckpoint) => void;
+  'breakpoint:hit': (breakpoint: Breakpoint, position: 'before' | 'after', stateId: string) => void;
   'error': (error: Error) => void;
 }
 
@@ -77,6 +78,11 @@ export class Runner extends EventEmitter {
   private states: WorkflowState[] = [];
   private storyContext: StoryContext | null = null;
   private currentStateIndex: number = 0;
+
+  // ST-146: Breakpoint state
+  private breakpoints: Breakpoint[] = [];
+  private breakpointsModifiedAt: string | null = null;
+  private lastAgentOutput: Record<string, unknown> | undefined;
 
   constructor(config: RunnerConfig) {
     super();
@@ -239,6 +245,7 @@ export class Runner extends EventEmitter {
 
   /**
    * Main execution loop
+   * ST-146: Added breakpoint checks before and after each state
    */
   private async execute(): Promise<void> {
     if (this.state !== 'ready') {
@@ -248,6 +255,9 @@ export class Runner extends EventEmitter {
     this.setState('executing');
 
     try {
+      // ST-146: Load breakpoints at start
+      await this.loadBreakpoints();
+
       while (this.currentStateIndex < this.states.length) {
         // Check if paused (state can change via pause() method)
         if ((this.state as RunnerState) === 'paused') {
@@ -265,8 +275,20 @@ export class Runner extends EventEmitter {
         const currentState = this.states[this.currentStateIndex];
         console.log(`[Runner] Executing state ${this.currentStateIndex + 1}/${this.states.length}: ${currentState.name}`);
 
+        // ST-146: Check breakpoint BEFORE state execution
+        const beforeCheck = await this.checkBreakpoint(currentState.id, 'before');
+        if (beforeCheck.shouldPause && beforeCheck.breakpoint) {
+          console.log(`[Runner] Breakpoint hit: before ${currentState.name}`);
+          this.emit('breakpoint:hit', beforeCheck.breakpoint, 'before', currentState.id);
+          await this.pauseForBreakpoint(beforeCheck.breakpoint, 'before', currentState.name);
+          return;
+        }
+
         // Execute the state
         const result = await this.executeState(currentState);
+
+        // Store last agent output for breakpoint conditions
+        this.lastAgentOutput = result.output as Record<string, unknown> | undefined;
 
         if (!result.success && !result.skipped) {
           // Handle failure based on component's onFailure config
@@ -280,6 +302,15 @@ export class Runner extends EventEmitter {
             return;
           }
           // 'skip' and 'retry' are handled in executeState
+        }
+
+        // ST-146: Check breakpoint AFTER state execution
+        const afterCheck = await this.checkBreakpoint(currentState.id, 'after');
+        if (afterCheck.shouldPause && afterCheck.breakpoint) {
+          console.log(`[Runner] Breakpoint hit: after ${currentState.name}`);
+          this.emit('breakpoint:hit', afterCheck.breakpoint, 'after', currentState.id);
+          await this.pauseForBreakpoint(afterCheck.breakpoint, 'after', currentState.name);
+          return;
         }
 
         // Save checkpoint after each state
@@ -302,6 +333,125 @@ export class Runner extends EventEmitter {
         errorMessage: (error as Error).message,
       });
     }
+  }
+
+  /**
+   * Load breakpoints from backend
+   * ST-146: Breakpoint System
+   */
+  private async loadBreakpoints(): Promise<void> {
+    if (!this.workflowRun) return;
+
+    try {
+      const response = await this.backendClient.getBreakpoints(this.workflowRun.id);
+      this.breakpoints = response.breakpoints;
+      this.breakpointsModifiedAt = response.breakpointsModifiedAt || null;
+      console.log(`[Runner] Loaded ${this.breakpoints.length} breakpoints`);
+    } catch (error) {
+      console.log(`[Runner] No breakpoints or error loading:`, (error as Error).message);
+      this.breakpoints = [];
+    }
+  }
+
+  /**
+   * Sync breakpoints if modified externally
+   * ST-146: Breakpoint System
+   */
+  private async syncBreakpointsIfNeeded(): Promise<void> {
+    if (!this.workflowRun) return;
+
+    try {
+      const response = await this.backendClient.getBreakpoints(this.workflowRun.id);
+      if (response.breakpointsModifiedAt !== this.breakpointsModifiedAt) {
+        this.breakpoints = response.breakpoints;
+        this.breakpointsModifiedAt = response.breakpointsModifiedAt || null;
+        console.log(`[Runner] Breakpoints synced, now ${this.breakpoints.length} active`);
+      }
+    } catch (error) {
+      // Ignore sync errors, use cached breakpoints
+    }
+  }
+
+  /**
+   * Check if should pause at breakpoint
+   * ST-146: Breakpoint System
+   */
+  private async checkBreakpoint(
+    stateId: string,
+    position: 'before' | 'after'
+  ): Promise<{ shouldPause: boolean; breakpoint?: Breakpoint }> {
+    // Sync breakpoints before checking
+    await this.syncBreakpointsIfNeeded();
+
+    // Find matching breakpoint
+    const breakpoint = this.breakpoints.find(
+      bp => bp.stateId === stateId && bp.position === position && bp.isActive
+    );
+
+    if (!breakpoint) {
+      return { shouldPause: false };
+    }
+
+    // If conditional breakpoint, call backend to evaluate
+    if (breakpoint.condition) {
+      const context = this.buildBreakpointContext();
+      const result = await this.backendClient.checkBreakpoint(
+        this.workflowRun!.id,
+        stateId,
+        position,
+        context
+      );
+      return result;
+    }
+
+    // Unconditional breakpoint
+    return { shouldPause: true, breakpoint };
+  }
+
+  /**
+   * Build context for breakpoint condition evaluation
+   * ST-146: Breakpoint System
+   */
+  private buildBreakpointContext(): BreakpointContext {
+    const usage = this.resourceManager.getUsage();
+    return {
+      tokensUsed: usage.tokensUsed,
+      agentSpawns: usage.agentSpawns,
+      stateTransitions: usage.stateTransitions,
+      durationMs: usage.durationMs,
+      currentStateIndex: this.currentStateIndex,
+      totalStates: this.states.length,
+      previousStateOutput: this.lastAgentOutput,
+    };
+  }
+
+  /**
+   * Pause execution due to breakpoint
+   * ST-146: Breakpoint System
+   */
+  private async pauseForBreakpoint(
+    breakpoint: Breakpoint,
+    position: 'before' | 'after',
+    stateName: string
+  ): Promise<void> {
+    const reason = breakpoint.condition
+      ? `Conditional breakpoint hit ${position} ${stateName}`
+      : `Breakpoint hit ${position} ${stateName}`;
+
+    console.log(`[Runner] ${reason}`);
+
+    // Record breakpoint hit in backend
+    try {
+      await this.backendClient.recordBreakpointHit(
+        breakpoint.id,
+        this.buildBreakpointContext()
+      );
+    } catch (error) {
+      console.warn(`[Runner] Failed to record breakpoint hit:`, (error as Error).message);
+    }
+
+    // Pause execution
+    await this.pause(reason);
   }
 
   /**

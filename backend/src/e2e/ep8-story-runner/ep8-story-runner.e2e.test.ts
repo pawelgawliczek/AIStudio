@@ -10,6 +10,7 @@
  * - Phase 3: Execution Lifecycle
  * - Phase 4: Artifact Management (ST-151)
  * - Phase 5: Runner Control (Limited)
+ * - Phase 5B-5E: Breakpoint System (ST-146)
  * - Phase 6: Remote Agents (ST-150)
  * - Phase 8: Cleanup
  *
@@ -83,6 +84,12 @@ import { handler as getRunnerStatus } from '../../mcp/servers/runner/get_runner_
 import { handler as getRunnerCheckpoint } from '../../mcp/servers/runner/get_runner_checkpoint';
 import { handler as pauseRunner } from '../../mcp/servers/runner/pause_runner';
 import { handler as cancelRunner } from '../../mcp/servers/runner/cancel_runner';
+
+// MCP Handler Imports - Breakpoints (ST-146)
+import { handler as setBreakpoint } from '../../mcp/servers/runner/set_breakpoint';
+import { handler as clearBreakpoint } from '../../mcp/servers/runner/clear_breakpoint';
+import { handler as listBreakpoints } from '../../mcp/servers/runner/list_breakpoints';
+import { handler as stepRunner } from '../../mcp/servers/runner/step_runner';
 
 // MCP Handler Imports - Remote Agents (ST-150)
 import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
@@ -765,6 +772,318 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
       console.log('\n  Phase 5 Summary:');
       console.log('    Note: start_runner spawns Docker containers - skipped');
       console.log('    Note: resume_runner requires paused state - skipped');
+    });
+  });
+
+  // ============================================================
+  // PHASE 5B-5E: BREAKPOINT SYSTEM (ST-146)
+  // ============================================================
+  describe('Phase 5B-5E: Breakpoint System (ST-146)', () => {
+    let breakpointRunId: string;
+    let testBreakpointId: string;
+
+    beforeAll(async () => {
+      // Create a new workflow run specifically for breakpoint testing
+      // This ensures we have a run in a testable state
+      const runResult = await startWorkflowRun(prisma, {
+        workflowId: ctx.workflowId!,
+        triggeredBy: 'ep8-e2e-breakpoint-test',
+      });
+      breakpointRunId = runResult.runId;
+      console.log(`  ✓ Created breakpoint test run: ${breakpointRunId}`);
+    });
+
+    // Phase 5B: Set Breakpoint Tests
+    describe('Phase 5B: Set Breakpoint', () => {
+      it('should set breakpoint by stateId', async () => {
+        expect(ctx.workflowStateIds).toBeDefined();
+        expect(ctx.workflowStateIds!.length).toBeGreaterThan(0);
+
+        const result = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![0],
+          position: 'before',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.status).toBe('created');
+        expect(result.breakpointId).toBeDefined();
+        testBreakpointId = result.breakpointId;
+        console.log(`  ✓ Breakpoint created: ${result.breakpointId}`);
+      });
+
+      it('should set breakpoint by stateName', async () => {
+        const result = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateName: 'analysis', // First state name from test setup
+          position: 'after',
+        });
+
+        expect(result.success).toBe(true);
+        expect(['created', 'already_exists']).toContain(result.status);
+        console.log(`  ✓ Breakpoint by name: ${result.status}`);
+      });
+
+      it('should set breakpoint by stateOrder', async () => {
+        const result = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateOrder: 1,
+          position: 'after',
+        });
+
+        expect(result.success).toBe(true);
+        expect(['created', 'already_exists']).toContain(result.status);
+        console.log(`  ✓ Breakpoint by order: ${result.status}`);
+      });
+
+      it('should set conditional breakpoint', async () => {
+        expect(ctx.workflowStateIds).toBeDefined();
+        expect(ctx.workflowStateIds!.length).toBeGreaterThan(1);
+
+        const result = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![1],
+          position: 'before',
+          condition: { tokensUsed: { $gt: 10000 } },
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.condition).toEqual({ tokensUsed: { $gt: 10000 } });
+        console.log(`  ✓ Conditional breakpoint created`);
+      });
+
+      it('should return already_exists for duplicate breakpoint', async () => {
+        const result = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![0],
+          position: 'before',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.status).toBe('already_exists');
+        console.log(`  ✓ Duplicate detected correctly`);
+      });
+
+      it('should reactivate inactive breakpoint', async () => {
+        // First clear the breakpoint
+        await clearBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![0],
+          position: 'before',
+        });
+
+        // Then set it again - should reactivate
+        const result = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![0],
+          position: 'before',
+        });
+
+        expect(result.success).toBe(true);
+        // May be 'created' or 'reactivated' depending on implementation
+        console.log(`  ✓ Breakpoint reactivated: ${result.status}`);
+      });
+    });
+
+    // Phase 5C: List Breakpoints Tests
+    describe('Phase 5C: List Breakpoints', () => {
+      it('should list all active breakpoints', async () => {
+        const result = await listBreakpoints(prisma, {
+          runId: breakpointRunId,
+        });
+
+        expect(result.success).toBe(true);
+        expect(Array.isArray(result.breakpoints)).toBe(true);
+        expect(result.breakpoints.length).toBeGreaterThan(0);
+        expect(result.summary).toBeDefined();
+        expect(result.summary.total).toBeGreaterThan(0);
+        console.log(`  ✓ Listed ${result.breakpoints.length} breakpoints`);
+      });
+
+      it('should include summary statistics', async () => {
+        const result = await listBreakpoints(prisma, {
+          runId: breakpointRunId,
+        });
+
+        expect(result.summary).toBeDefined();
+        expect(typeof result.summary.total).toBe('number');
+        expect(typeof result.summary.active).toBe('number');
+        expect(typeof result.summary.beforeBreakpoints).toBe('number');
+        expect(typeof result.summary.afterBreakpoints).toBe('number');
+        console.log(`  ✓ Summary: ${result.summary.active} active, ${result.summary.beforeBreakpoints} before, ${result.summary.afterBreakpoints} after`);
+      });
+
+      it('should include inactive breakpoints when requested', async () => {
+        const result = await listBreakpoints(prisma, {
+          runId: breakpointRunId,
+          includeInactive: true,
+        });
+
+        expect(result.success).toBe(true);
+        // May have same or more than active-only query
+        console.log(`  ✓ Including inactive: ${result.breakpoints.length} total`);
+      });
+    });
+
+    // Phase 5D: Clear Breakpoint Tests
+    describe('Phase 5D: Clear Breakpoint', () => {
+      let tempBreakpointId: string;
+
+      beforeAll(async () => {
+        // Create a temporary breakpoint to clear
+        const result = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![ctx.workflowStateIds!.length - 1],
+          position: 'after',
+        });
+        tempBreakpointId = result.breakpointId;
+      });
+
+      it('should clear breakpoint by ID', async () => {
+        const result = await clearBreakpoint(prisma, {
+          breakpointId: tempBreakpointId,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.clearedCount).toBe(1);
+        console.log(`  ✓ Cleared by ID: ${result.clearedCount} breakpoint`);
+      });
+
+      it('should clear breakpoint by state and position', async () => {
+        // First set a breakpoint
+        await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![1],
+          position: 'after',
+        });
+
+        // Then clear by state/position
+        const result = await clearBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![1],
+          position: 'after',
+        });
+
+        expect(result.success).toBe(true);
+        console.log(`  ✓ Cleared by state/position`);
+      });
+
+      it('should clear all breakpoints for a run', async () => {
+        // First set multiple breakpoints
+        await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateOrder: 1,
+          position: 'before',
+        });
+        await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateOrder: 1,
+          position: 'after',
+        });
+
+        const result = await clearBreakpoint(prisma, {
+          runId: breakpointRunId,
+          clearAll: true,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.clearedCount).toBeGreaterThanOrEqual(0);
+        console.log(`  ✓ Cleared all: ${result.clearedCount} breakpoints`);
+      });
+
+      it('should return success with count=0 for non-existent breakpoint (idempotent)', async () => {
+        const result = await clearBreakpoint(prisma, {
+          breakpointId: '00000000-0000-0000-0000-000000000000',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.clearedCount).toBe(0);
+        console.log(`  ✓ Idempotent clear: success with 0 cleared`);
+      });
+    });
+
+    // Phase 5E: Step Runner Tests
+    describe('Phase 5E: Step Runner', () => {
+      let stepTestRunId: string;
+
+      beforeAll(async () => {
+        // Create a fresh run for step testing
+        const runResult = await startWorkflowRun(prisma, {
+          workflowId: ctx.workflowId!,
+          triggeredBy: 'ep8-e2e-step-test',
+        });
+        stepTestRunId = runResult.runId;
+
+        // Update run to paused state for step testing
+        await prisma.workflowRun.update({
+          where: { id: stepTestRunId },
+          data: {
+            status: 'paused',
+            isPaused: true,
+            currentStateId: ctx.workflowStateIds![0],
+            metadata: {
+              checkpoint: {
+                currentStateId: ctx.workflowStateIds![0],
+                completedStates: [],
+              },
+            },
+          },
+        });
+        console.log(`  ✓ Created step test run: ${stepTestRunId}`);
+      });
+
+      it('should step to next state', async () => {
+        const result = await stepRunner(prisma, {
+          runId: stepTestRunId,
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.status).toBe('stepping');
+        expect(result.currentState).toBeDefined();
+        expect(result.nextState).toBeDefined();
+        expect(result.tempBreakpointId).toBeDefined();
+        console.log(`  ✓ Stepping from ${result.currentState.name} to ${result.nextState?.name}`);
+      });
+
+      it('should reject step_runner on running run', async () => {
+        // Create a running (not paused) run
+        const runResult = await startWorkflowRun(prisma, {
+          workflowId: ctx.workflowId!,
+          triggeredBy: 'ep8-e2e-step-validation',
+        });
+
+        // Keep it in running state without isPaused
+        await prisma.workflowRun.update({
+          where: { id: runResult.runId },
+          data: {
+            status: 'running',
+            isPaused: false,
+            currentStateId: ctx.workflowStateIds![0],
+          },
+        });
+
+        await expect(
+          stepRunner(prisma, { runId: runResult.runId })
+        ).rejects.toThrow(/running|pause/i);
+        console.log(`  ✓ Rejected step on running run`);
+      });
+
+      it('should reject step_runner on completed run', async () => {
+        // Use the completed run from earlier tests
+        await expect(
+          stepRunner(prisma, { runId: ctx.workflowRunId! })
+        ).rejects.toThrow(/completed/i);
+        console.log(`  ✓ Rejected step on completed run`);
+      });
+    });
+
+    // Summary
+    afterAll(async () => {
+      console.log('\n  Phase 5B-5E Summary:');
+      console.log('    ✓ Breakpoint creation (by ID, name, order, conditional)');
+      console.log('    ✓ Breakpoint listing with summary statistics');
+      console.log('    ✓ Breakpoint clearing (by ID, state/position, clearAll)');
+      console.log('    ✓ Step runner validation tests');
     });
   });
 

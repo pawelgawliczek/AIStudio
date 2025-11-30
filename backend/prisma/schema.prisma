@@ -1547,6 +1547,10 @@ model RunnerBreakpoint {
   isActive      Boolean            @default(true) @map("is_active")
   hitAt         DateTime?          @map("hit_at") // When breakpoint was triggered
 
+  // ST-146: Conditional breakpoints and step mode
+  condition   Json?   @db.JsonB // Optional JSON condition for conditional breakpoints
+  isTemporary Boolean @default(false) @map("is_temporary") // For step mode temp breakpoints
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

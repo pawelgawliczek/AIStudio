@@ -244,4 +244,86 @@ export class BackendClient {
       return false;
     }
   }
+
+  /**
+   * Get breakpoints for a workflow run
+   * ST-146: Breakpoint System
+   */
+  async getBreakpoints(runId: string): Promise<{
+    breakpoints: Breakpoint[];
+    breakpointsModifiedAt?: string;
+  }> {
+    const response = await this.client.get(`/api/runner/breakpoints/${runId}`);
+    return response.data;
+  }
+
+  /**
+   * Record breakpoint hit
+   * ST-146: Breakpoint System
+   */
+  async recordBreakpointHit(breakpointId: string, context: {
+    tokensUsed: number;
+    agentSpawns: number;
+    stateTransitions: number;
+    durationMs: number;
+  }): Promise<void> {
+    await this.client.post(`/api/runner/breakpoints/${breakpointId}/hit`, {
+      hitAt: new Date().toISOString(),
+      context,
+    });
+  }
+
+  /**
+   * Check if runner should pause for breakpoint at given state/position
+   * Returns breakpoint info if should pause, null otherwise
+   * ST-146: Breakpoint System
+   */
+  async checkBreakpoint(
+    runId: string,
+    stateId: string,
+    position: 'before' | 'after',
+    context: BreakpointContext
+  ): Promise<{
+    shouldPause: boolean;
+    breakpoint?: Breakpoint;
+    reason?: string;
+  }> {
+    const response = await this.client.post(`/api/runner/breakpoints/${runId}/check`, {
+      stateId,
+      position,
+      context,
+    });
+    return response.data;
+  }
+}
+
+/**
+ * Breakpoint type
+ * ST-146: Breakpoint System
+ */
+export interface Breakpoint {
+  id: string;
+  stateId: string;
+  stateName: string;
+  stateOrder: number;
+  position: 'before' | 'after';
+  isActive: boolean;
+  isTemporary: boolean;
+  condition: Record<string, unknown> | null;
+  hitAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Context for breakpoint evaluation
+ * ST-146: Breakpoint System
+ */
+export interface BreakpointContext {
+  tokensUsed: number;
+  agentSpawns: number;
+  stateTransitions: number;
+  durationMs: number;
+  currentStateIndex: number;
+  totalStates: number;
+  previousStateOutput?: Record<string, unknown>;
 }
