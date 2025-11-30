@@ -606,6 +606,7 @@ model Component {
   parent                    Component?      @relation("ComponentVersions", fields: [parentId], references: [id], onDelete: SetNull)
   children                  Component[]     @relation("ComponentVersions")
   workflowStates            WorkflowState[] // ST-143: States that use this component
+  createdArtifacts          Artifact[]      // ST-151: Artifacts created by this component
 
   @@index([projectId])
   @@index([projectId, active])
@@ -655,14 +656,15 @@ model Workflow {
   createdFromVersion   String?   @map("created_from_version")
 
   // Relations
-  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  coordinator     Component        @relation("WorkflowCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
-  stories         Story[]
-  workflowRuns    WorkflowRun[]
-  activeWorkflows ActiveWorkflow[]
-  parent          Workflow?        @relation("WorkflowVersions", fields: [parentId], references: [id], onDelete: SetNull)
-  children        Workflow[]       @relation("WorkflowVersions")
-  states          WorkflowState[]  // ST-143: Workflow states for story runner
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  coordinator         Component            @relation("WorkflowCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
+  stories             Story[]
+  workflowRuns        WorkflowRun[]
+  activeWorkflows     ActiveWorkflow[]
+  parent              Workflow?            @relation("WorkflowVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  children            Workflow[]           @relation("WorkflowVersions")
+  states              WorkflowState[]      // ST-143: Workflow states for story runner
+  artifactDefinitions ArtifactDefinition[] // ST-151: Artifact definitions for this workflow
 
   @@index([projectId])
   @@index([coordinatorId])
@@ -741,6 +743,8 @@ model WorkflowRun {
   breakpoints   RunnerBreakpoint[]
   // ST-150: Agent stream events
   agentStreamEvents AgentStreamEvent[]
+  // ST-151: Artifacts for this workflow run
+  artifacts     Artifact[]
 
   @@index([projectId])
   @@index([workflowId])
@@ -1521,10 +1525,11 @@ model WorkflowState {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  workflow              Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  component             Component?        @relation(fields: [componentId], references: [id], onDelete: SetNull)
-  workflowRunsAtState   WorkflowRun[]     @relation("CurrentState")
+  workflow              Workflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  component             Component?         @relation(fields: [componentId], references: [id], onDelete: SetNull)
+  workflowRunsAtState   WorkflowRun[]      @relation("CurrentState")
   breakpointsAtState    RunnerBreakpoint[]
+  artifactAccess        ArtifactAccess[]   // ST-151: Access rules for this state
 
   @@unique([workflowId, name])
   @@unique([workflowId, order])
@@ -1605,6 +1610,81 @@ model RemoteJob {
   @@index([workflowRunId, status]) // ST-150: Find running jobs for workflow
   @@index([status, reconnectExpiresAt]) // ST-150: Orphan detection query
   @@map("remote_jobs")
+}
+
+// ============================================================================
+// ST-151: ARTIFACT MANAGEMENT FOR STORY RUNNER
+// ============================================================================
+
+// ArtifactDefinition - Defines what artifacts a workflow can produce/consume
+model ArtifactDefinition {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workflowId  String  @map("workflow_id") @db.Uuid
+
+  name        String  // "Architecture Document"
+  key         String  // Unique key like "ARCH_DOC"
+  description String?
+  type        String  // "markdown" | "json" | "code" | "report" | "image" | "other"
+  schema      Json?   // JSON Schema for validation (optional)
+  isMandatory Boolean @default(false) @map("is_mandatory")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workflow    Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  artifacts   Artifact[]
+  accessRules ArtifactAccess[]
+
+  @@unique([workflowId, key])
+  @@index([workflowId])
+  @@map("artifact_definitions")
+}
+
+// Artifact - Actual artifact content for a workflow run
+model Artifact {
+  id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  definitionId  String @map("definition_id") @db.Uuid
+  workflowRunId String @map("workflow_run_id") @db.Uuid
+
+  content     String @db.Text // Actual content or S3 URL
+  contentType String @map("content_type") // MIME type
+  size        Int    @default(0)
+  version     Int    @default(1)
+
+  // Provenance
+  createdByComponentId String? @map("created_by_component_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  definition         ArtifactDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  workflowRun        WorkflowRun        @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  createdByComponent Component?         @relation(fields: [createdByComponentId], references: [id], onDelete: SetNull)
+
+  @@index([workflowRunId])
+  @@index([definitionId, workflowRunId])
+  @@map("artifacts")
+}
+
+// ArtifactAccess - Controls which states can access which artifacts
+model ArtifactAccess {
+  id           String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  definitionId String @map("definition_id") @db.Uuid
+  stateId      String @map("state_id") @db.Uuid
+
+  accessType String @map("access_type") // "read" | "write" | "required"
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  definition ArtifactDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  state      WorkflowState      @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  @@unique([definitionId, stateId])
+  @@index([stateId])
+  @@map("artifact_access")
 }
 
 // ============================================================================
