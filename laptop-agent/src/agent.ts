@@ -6,14 +6,26 @@ import {
   ClaudeCodeJobPayload,
   ExecutionResult,
 } from './claude-code-executor';
+import { executeGitCommand, checkGitAvailable, GitExecutionResult } from './git-executor';
+
+/**
+ * ST-153: Git job payload from server
+ */
+export interface GitJobPayload {
+  id: string;
+  command: string; // Full git command (e.g., "git status --porcelain")
+  cwd: string; // Working directory (worktree path)
+  timeout?: number;
+}
 
 /**
  * Remote Agent
  * ST-133: Script Execution
  * ST-150: Claude Code Agent Execution
+ * ST-153: Git Command Execution
  *
  * WebSocket client that connects to VibeStudio backend
- * and executes approved scripts and Claude Code agents on demand.
+ * and executes approved scripts, Claude Code agents, and git commands on demand.
  *
  * Features:
  * - Auto-reconnect with exponential backoff
@@ -21,6 +33,7 @@ import {
  * - JWT authentication
  * - Job execution with timeout
  * - Claude Code agent execution with streaming progress
+ * - Git command execution with whitelist validation
  */
 
 export class RemoteAgent {
@@ -39,6 +52,9 @@ export class RemoteAgent {
   private currentClaudeJob: ClaudeCodeJobPayload | null = null;
   private isExecutingClaudeCode = false;
 
+  // ST-153: Git execution
+  private gitVersion: string | null = null;
+
   constructor(config: AgentConfig) {
     this.config = config;
   }
@@ -54,6 +70,9 @@ export class RemoteAgent {
 
     // ST-150: Check if Claude Code is available
     await this.checkClaudeCodeAvailability();
+
+    // ST-153: Check if git is available
+    this.checkGitAvailability();
 
     this.socket = io(`${serverUrl}${namespace}`, {
       reconnection: true,
@@ -107,6 +126,29 @@ export class RemoteAgent {
       // Remove claude-code from capabilities
       this.config.capabilities = this.config.capabilities.filter(
         (c) => c !== 'claude-code'
+      );
+    }
+  }
+
+  /**
+   * ST-153: Check if git is available
+   */
+  private checkGitAvailability(): void {
+    const { available, version } = checkGitAvailable();
+
+    if (available) {
+      this.gitVersion = version || 'unknown';
+      console.log(`Git available: ${this.gitVersion}`);
+
+      // Add git-execute to capabilities if not present
+      if (!this.config.capabilities.includes('git-execute')) {
+        this.config.capabilities.push('git-execute');
+      }
+    } else {
+      console.log('Git not available');
+      // Remove git-execute from capabilities
+      this.config.capabilities = this.config.capabilities.filter(
+        (c) => c !== 'git-execute'
       );
     }
   }
@@ -189,6 +231,12 @@ export class RemoteAgent {
     this.socket.on('agent:claude_job', (job: ClaudeCodeJobPayload) => {
       console.log(`Received Claude Code job: ${job.id}`);
       this.executeClaudeCodeJob(job);
+    });
+
+    // ST-153: Git job assignment
+    this.socket.on('agent:git_job', (job: GitJobPayload) => {
+      console.log(`Received git job: ${job.id} (${job.command})`);
+      this.executeGitJob(job);
     });
 
     // Resume acknowledgment
@@ -338,6 +386,46 @@ export class RemoteAgent {
 
       // Switch back to slower heartbeat
       this.startHeartbeat(30000);
+    }
+  }
+
+  /**
+   * ST-153: Execute a git job
+   */
+  private async executeGitJob(job: GitJobPayload): Promise<void> {
+    const { id, command, cwd, timeout } = job;
+
+    try {
+      console.log(`[ST-153] Executing git command: ${command}`);
+      console.log(`[ST-153] Working directory: ${cwd}`);
+
+      const result = executeGitCommand(command, cwd, timeout);
+
+      if (result.success) {
+        this.socket!.emit('agent:git_result', {
+          jobId: id,
+          status: 'completed',
+          output: result.output,
+          operation: result.operation,
+        });
+        console.log(`[ST-153] Git job ${id} completed successfully`);
+      } else {
+        this.socket!.emit('agent:git_result', {
+          jobId: id,
+          status: 'failed',
+          error: result.error,
+          output: result.output,
+          exitCode: result.exitCode,
+        });
+        console.error(`[ST-153] Git job ${id} failed: ${result.error}`);
+      }
+    } catch (error: any) {
+      this.socket!.emit('agent:git_result', {
+        jobId: id,
+        status: 'failed',
+        error: error.message,
+      });
+      console.error(`[ST-153] Git job ${id} execution error:`, error.message);
     }
   }
 

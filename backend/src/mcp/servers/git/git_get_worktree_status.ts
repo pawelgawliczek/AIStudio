@@ -17,6 +17,10 @@
  * - Parse git status for branch info and file counts
  * - Optional disk usage (can be slow)
  * - Return comprehensive status information
+ *
+ * ST-153: Location-Aware Git Operations
+ * - Auto-detects execution location based on worktree hostType
+ * - Supports target override: 'auto' | 'laptop' | 'kvm'
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -28,6 +32,7 @@ import {
   getDiskUsageMB,
   checkFilesystemExists,
   GitStatusInfo,
+  execGitLocationAware,
 } from './git_utils';
 
 export const tool: Tool = {
@@ -52,6 +57,11 @@ export const tool: Tool = {
         type: 'boolean',
         description: 'Include disk usage calculation (default: false, can be slow)',
       },
+      target: {
+        type: 'string',
+        enum: ['auto', 'laptop', 'kvm'],
+        description: 'ST-153: Override target host for git execution (default: auto-detect from worktree hostType)',
+      },
     },
     required: ['storyId'],
   },
@@ -70,6 +80,7 @@ interface GetWorktreeStatusParams {
   worktreeId?: string;
   includeGitStatus?: boolean;
   includeDiskUsage?: boolean;
+  target?: 'auto' | 'laptop' | 'kvm';
 }
 
 interface WorktreeStatusDetail {
@@ -81,11 +92,14 @@ interface WorktreeStatusDetail {
   worktreePath: string;
   baseBranch: string;
   status: WorktreeStatus;
+  hostType: string;
+  hostName?: string;
   createdAt: string;
   updatedAt: string;
   filesystemExists: boolean;
   gitStatus?: GitStatusInfo;
   diskUsageMB?: number;
+  executedOn?: 'kvm' | 'laptop'; // ST-153: Where git command was executed
 }
 
 interface GetWorktreeStatusResponse {
@@ -152,19 +166,46 @@ export async function handler(
       worktreePath: worktree.worktreePath,
       baseBranch: worktree.baseBranch,
       status: worktree.status,
+      hostType: worktree.hostType,
+      hostName: worktree.hostName || undefined,
       createdAt: worktree.createdAt.toISOString(),
       updatedAt: worktree.updatedAt.toISOString(),
       filesystemExists,
     };
 
-    // Get git status if filesystem exists and requested
-    if (filesystemExists && includeGitStatus) {
+    // Get git status if requested (ST-153: location-aware execution)
+    if (includeGitStatus) {
       try {
-        const statusOutput = execGit(
+        // ST-153: Use location-aware execution
+        const result = await execGitLocationAware(
           'git status --porcelain --branch',
-          worktree.worktreePath
+          worktree.worktreePath,
+          {
+            storyId: params.storyId,
+            worktreeId: worktree.id,
+            target: params.target || 'auto',
+            prisma,
+          }
         );
-        detail.gitStatus = parseGitStatus(statusOutput);
+
+        detail.executedOn = result.executedOn;
+
+        if (result.success && result.output) {
+          detail.gitStatus = parseGitStatus(result.output);
+        } else {
+          // Git command failed
+          detail.gitStatus = {
+            branch: worktree.branchName,
+            ahead: 0,
+            behind: 0,
+            modified: 0,
+            staged: 0,
+            untracked: 0,
+            conflicted: 0,
+            isClean: false,
+            rawStatus: `Error: ${result.error}`,
+          };
+        }
       } catch (error: any) {
         // Non-fatal: git status failed but continue
         console.warn(`Failed to get git status for ${worktree.worktreePath}:`, error.message);

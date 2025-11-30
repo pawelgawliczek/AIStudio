@@ -67,12 +67,35 @@ export interface ClaudeCodeCompleteEvent {
 }
 
 /**
+ * ST-153: Git job payload sent to laptop agent
+ */
+export interface GitJobPayload {
+  id: string;
+  command: string;
+  cwd: string;
+  timeout?: number;
+}
+
+/**
+ * ST-153: Git job result from laptop agent
+ */
+export interface GitResultEvent {
+  jobId: string;
+  status: 'completed' | 'failed';
+  output?: string;
+  operation?: string;
+  exitCode?: number;
+  error?: string;
+}
+
+/**
  * ST-133: Remote Agent Gateway
  * ST-150: Claude Code Agent Execution
+ * ST-153: Git Command Execution
  *
  * WebSocket gateway for remote execution agents (laptop/local machines).
  * Handles agent registration, heartbeat, job result submission,
- * and Claude Code execution streaming.
+ * Claude Code execution streaming, and git command execution.
  *
  * Namespace: /remote-agent
  * Authentication: Pre-shared secret → JWT
@@ -744,6 +767,82 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     } catch (error) {
       this.logger.warn(`Job token validation failed: ${error.message}`);
       return false;
+    }
+  }
+
+  // ===========================================================================
+  // ST-153: Git Command Execution WebSocket Events
+  // ===========================================================================
+
+  /**
+   * Emit git job to connected agent
+   * Called by RemoteExecutionService
+   */
+  async emitGitJob(agentId: string, job: GitJobPayload): Promise<void> {
+    // Find agent's socket
+    const agent = await this.prisma.remoteAgent.findUnique({
+      where: { id: agentId },
+    });
+
+    if (!agent || agent.status !== 'online' || !agent.socketId) {
+      throw new Error('Agent not online');
+    }
+
+    if (!agent.capabilities.includes('git-execute')) {
+      throw new Error('Agent does not have git-execute capability');
+    }
+
+    // Emit git job to agent's socket
+    this.server.to(agent.socketId).emit('agent:git_job', job);
+    this.logger.log(`Emitted git job ${job.id} to agent ${agentId} (${agent.hostname})`);
+  }
+
+  /**
+   * Handle git command result from laptop agent
+   *
+   * @event agent:git_result
+   * @param data - Result event with output, exit code, etc.
+   */
+  @SubscribeMessage('agent:git_result')
+  async handleGitResult(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: GitResultEvent,
+  ) {
+    const { agentId } = client.data;
+
+    if (!agentId) {
+      client.emit('agent:error', { error: 'Not registered' });
+      return;
+    }
+
+    this.logger.log(
+      `Git job ${data.jobId} result: status=${data.status}, operation=${data.operation || 'N/A'}`,
+    );
+
+    try {
+      // Update job status
+      await this.prisma.remoteJob.update({
+        where: { id: data.jobId },
+        data: {
+          status: data.status,
+          result: data.status === 'completed'
+            ? ({
+                output: data.output,
+                operation: data.operation,
+              } as any)
+            : ({
+                output: data.output,
+                exitCode: data.exitCode,
+              } as any),
+          error: data.error || null,
+          completedAt: new Date(),
+        },
+      });
+
+      client.emit('agent:ack', { jobId: data.jobId, received: true });
+    } catch (error) {
+      this.logger.error(`Failed to update git job result: ${error.message}`);
+      client.emit('agent:error', { error: 'Failed to update job' });
     }
   }
 }

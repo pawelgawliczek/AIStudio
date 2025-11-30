@@ -11,6 +11,9 @@ import {
   validateInstructions,
   validateAllowedTools,
   getCapabilityTimeout,
+  isGitOperationApproved,
+  validateGitCommand,
+  getGitOperationTimeout,
 } from './approved-scripts';
 import { RemoteAgentGateway } from './remote-agent.gateway';
 
@@ -49,10 +52,33 @@ export interface ClaudeCodeExecutionResult {
 }
 
 /**
+ * ST-153: Git execution request parameters
+ */
+export interface GitExecutionRequest {
+  command: string; // Full git command (e.g., "git status --porcelain")
+  cwd: string; // Working directory (worktree path)
+  timeout?: number;
+}
+
+/**
+ * ST-153: Git execution result
+ */
+export interface GitExecutionResult {
+  success: boolean;
+  jobId: string;
+  agentId: string;
+  output?: string;
+  operation?: string;
+  exitCode?: number;
+  error?: string;
+}
+
+/**
  * ST-133: Remote Execution Service
  * ST-150: Claude Code Agent Execution
+ * ST-153: Git Command Execution
  *
- * Manages remote script and agent execution via connected agents.
+ * Manages remote script, agent, and git execution via connected agents.
  * Handles job creation, agent selection, timeout management, and fallback.
  */
 @Injectable()
@@ -714,5 +740,190 @@ export class RemoteExecutionService {
    */
   async getClaudeCodeAgents(): Promise<any[]> {
     return this.findClaudeCodeAgents();
+  }
+
+  // ===========================================================================
+  // ST-153: Git Command Execution
+  // ===========================================================================
+
+  /**
+   * Execute git command remotely via connected agent
+   *
+   * @param request - Git execution parameters
+   * @param requestedBy - User/agent identifier
+   * @returns Promise<result> or { agentOffline: true, ... } for offline fallback
+   */
+  async executeGitCommand(
+    request: GitExecutionRequest,
+    requestedBy: string = 'mcp-user',
+  ): Promise<GitExecutionResult | { agentOffline: true; error: string }> {
+    // Validate git command
+    const validation = validateGitCommand(request.command);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    // Parse operation from command
+    const match = request.command.match(/^git\s+([a-z-]+)/i);
+    const operation = match?.[1]?.toLowerCase() || 'unknown';
+
+    // Find online agent with git-execute capability
+    const agents = await this.findGitExecuteAgents();
+
+    if (agents.length === 0) {
+      this.logger.warn(`No agent available for git ${operation}, returning offline error`);
+      return {
+        agentOffline: true,
+        error: `Laptop agent is offline. Cannot execute git command on remote worktree.`,
+      };
+    }
+
+    // Select first available agent
+    const agent = agents[0];
+
+    // Create job in database
+    const job = await this.prisma.remoteJob.create({
+      data: {
+        script: `git-${operation}`, // e.g., git-status, git-commit
+        params: { command: request.command, cwd: request.cwd },
+        status: 'pending',
+        agentId: agent.id,
+        requestedBy,
+        jobType: 'git-execute',
+      },
+    });
+
+    // Emit job to agent via WebSocket
+    try {
+      await this.gateway.emitGitJob(agent.id, {
+        id: job.id,
+        command: request.command,
+        cwd: request.cwd,
+        timeout: request.timeout || getGitOperationTimeout(operation),
+      });
+
+      // Mark job as running
+      await this.prisma.remoteJob.update({
+        where: { id: job.id },
+        data: {
+          status: 'running',
+          startedAt: new Date(),
+        },
+      });
+
+      // Wait for result with timeout
+      const timeout = request.timeout || getGitOperationTimeout(operation);
+      const result = await this.waitForGitResult(job.id, timeout);
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Git execution failed: ${error.message}`);
+
+      // Update job status
+      await this.prisma.remoteJob.update({
+        where: { id: job.id },
+        data: {
+          status: 'failed',
+          error: error.message,
+          completedAt: new Date(),
+        },
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Find online agents with git-execute capability
+   */
+  private async findGitExecuteAgents(): Promise<any[]> {
+    return this.prisma.remoteAgent.findMany({
+      where: {
+        status: 'online',
+        capabilities: {
+          has: 'git-execute',
+        },
+      },
+    });
+  }
+
+  /**
+   * Wait for git execution result with timeout
+   */
+  private async waitForGitResult(
+    jobId: string,
+    timeout: number,
+  ): Promise<GitExecutionResult> {
+    const startTime = Date.now();
+    const pollInterval = 1000; // Check every 1 second for git commands
+
+    while (Date.now() - startTime < timeout) {
+      const job = await this.prisma.remoteJob.findUnique({
+        where: { id: jobId },
+      });
+
+      if (!job) {
+        throw new Error('Job not found');
+      }
+
+      if (job.status === 'completed') {
+        const result = job.result as any;
+        return {
+          success: true,
+          jobId: job.id,
+          agentId: job.agentId || '',
+          output: result?.output,
+          operation: result?.operation,
+        };
+      }
+
+      if (job.status === 'failed') {
+        const result = job.result as any;
+        return {
+          success: false,
+          jobId: job.id,
+          agentId: job.agentId || '',
+          error: job.error || 'Execution failed',
+          output: result?.output,
+          exitCode: result?.exitCode,
+        };
+      }
+
+      if (job.status === 'timeout') {
+        return {
+          success: false,
+          jobId: job.id,
+          agentId: job.agentId || '',
+          error: 'Execution timed out',
+        };
+      }
+
+      // Wait before polling again
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    }
+
+    // Timeout exceeded
+    await this.prisma.remoteJob.update({
+      where: { id: jobId },
+      data: {
+        status: 'timeout',
+        error: 'Execution timeout exceeded',
+        completedAt: new Date(),
+      },
+    });
+
+    return {
+      success: false,
+      jobId,
+      agentId: '',
+      error: `Execution timed out after ${timeout / 1000} seconds`,
+    };
+  }
+
+  /**
+   * Get git-capable agents
+   */
+  async getGitExecuteAgents(): Promise<any[]> {
+    return this.findGitExecuteAgents();
   }
 }

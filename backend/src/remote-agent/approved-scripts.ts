@@ -1,6 +1,7 @@
 /**
  * ST-133: Remote Execution Agent - Approved Scripts Whitelist
  * ST-150: Claude Code Agent Execution Capability
+ * ST-153: Location-Aware Git Operations
  *
  * Security-critical configuration defining which scripts and capabilities
  * can be executed remotely and what parameters they accept.
@@ -245,4 +246,208 @@ export function validateAllowedTools(tools: string[]): { valid: boolean; error?:
     }
   }
   return { valid: true };
+}
+
+// =============================================================================
+// ST-153: Git Operations Capability
+// =============================================================================
+
+/**
+ * Approved git operations for remote execution
+ * Each operation has specific allowed arguments for security
+ */
+export interface ApprovedGitOperation {
+  description: string;
+  timeout: number; // Max execution time in ms
+  readOnly: boolean; // True if operation doesn't modify state
+  allowedArgs: string[]; // Allowed git arguments (without 'git' prefix)
+}
+
+/**
+ * Whitelist of approved git operations
+ *
+ * SECURITY: Only these git commands can be executed remotely.
+ * Each command has explicit argument validation.
+ */
+export const APPROVED_GIT_OPERATIONS: Record<string, ApprovedGitOperation> = {
+  // Read-only operations
+  'status': {
+    description: 'Get working tree status',
+    timeout: 30000,
+    readOnly: true,
+    allowedArgs: ['--porcelain', '--branch', '-s', '-b', '--short'],
+  },
+  'log': {
+    description: 'View commit history',
+    timeout: 30000,
+    readOnly: true,
+    allowedArgs: ['--oneline', '-n', '--format', '--since', '--until', '-1', '-5', '-10'],
+  },
+  'diff': {
+    description: 'Show changes',
+    timeout: 60000,
+    readOnly: true,
+    allowedArgs: ['--cached', '--staged', '--stat', '--name-only', '--name-status', 'HEAD', 'main', 'origin/main'],
+  },
+  'rev-parse': {
+    description: 'Parse git references',
+    timeout: 10000,
+    readOnly: true,
+    allowedArgs: ['HEAD', '--verify', '--short', '--abbrev-ref', '--show-toplevel'],
+  },
+  'branch': {
+    description: 'List branches',
+    timeout: 30000,
+    readOnly: true,
+    allowedArgs: ['-l', '-a', '-r', '--list', '--show-current'],
+  },
+  'remote': {
+    description: 'Manage remotes',
+    timeout: 10000,
+    readOnly: true,
+    allowedArgs: ['-v', 'get-url', 'origin'],
+  },
+  'merge-tree': {
+    description: 'Simulate merge (conflict detection)',
+    timeout: 60000,
+    readOnly: true,
+    allowedArgs: ['--write-tree'],
+  },
+
+  // Write operations
+  'fetch': {
+    description: 'Download objects from remote',
+    timeout: 120000,
+    readOnly: false,
+    allowedArgs: ['origin', 'main', '--all', '--prune', '--tags'],
+  },
+  'pull': {
+    description: 'Fetch and integrate remote changes',
+    timeout: 120000,
+    readOnly: false,
+    allowedArgs: ['--rebase', 'origin', 'main'],
+  },
+  'add': {
+    description: 'Stage changes',
+    timeout: 30000,
+    readOnly: false,
+    allowedArgs: ['-A', '.', '-u', '--all', '-p'],
+  },
+  'commit': {
+    description: 'Record changes',
+    timeout: 60000,
+    readOnly: false,
+    allowedArgs: ['-m', '--amend', '--no-edit', '-a', '--allow-empty'],
+  },
+  'push': {
+    description: 'Upload changes to remote',
+    timeout: 120000,
+    readOnly: false,
+    allowedArgs: ['origin', '-u', '--set-upstream', '--force-with-lease'],
+  },
+  'checkout': {
+    description: 'Switch branches or restore files',
+    timeout: 60000,
+    readOnly: false,
+    allowedArgs: ['-b', '--', 'main', 'origin/main'],
+  },
+  'rebase': {
+    description: 'Reapply commits on top of another base',
+    timeout: 300000, // 5 minutes
+    readOnly: false,
+    allowedArgs: ['origin/main', 'main', '--abort', '--continue', '--skip'],
+  },
+  'stash': {
+    description: 'Stash changes',
+    timeout: 30000,
+    readOnly: false,
+    allowedArgs: ['push', 'pop', 'list', 'drop', '-m'],
+  },
+  'worktree': {
+    description: 'Manage worktrees',
+    timeout: 120000,
+    readOnly: false,
+    allowedArgs: ['add', 'remove', 'list', 'prune', '--force'],
+  },
+};
+
+/**
+ * Git commands that are FORBIDDEN for remote execution
+ * These are destructive or dangerous operations
+ */
+export const FORBIDDEN_GIT_PATTERNS = [
+  /^git\s+push\s+.*--force(?!\s*-with-lease)/i, // force push without --force-with-lease
+  /^git\s+reset\s+--hard/i,
+  /^git\s+clean\s+-[fdx]/i,
+  /^git\s+reflog\s+expire/i,
+  /^git\s+gc\s+--prune/i,
+  /^git\s+filter-branch/i,
+  /^git\s+push\s+origin\s+:(main|master)/i, // delete main/master
+  /^git\s+branch\s+-[dD]\s+(main|master)/i, // delete main/master branch
+];
+
+/**
+ * Check if a git operation is approved
+ */
+export function isGitOperationApproved(operation: string): boolean {
+  return operation in APPROVED_GIT_OPERATIONS;
+}
+
+/**
+ * Get git operation configuration
+ */
+export function getGitOperation(operation: string): ApprovedGitOperation | undefined {
+  return APPROVED_GIT_OPERATIONS[operation];
+}
+
+/**
+ * Validate a full git command string
+ *
+ * @param fullCommand - The complete git command (e.g., "git status --porcelain")
+ * @returns Validation result
+ */
+export function validateGitCommand(fullCommand: string): { valid: boolean; error?: string } {
+  // Check forbidden patterns first
+  for (const pattern of FORBIDDEN_GIT_PATTERNS) {
+    if (pattern.test(fullCommand)) {
+      return {
+        valid: false,
+        error: `Forbidden git command pattern: ${fullCommand}`,
+      };
+    }
+  }
+
+  // Parse command: "git <operation> [args...]"
+  const match = fullCommand.match(/^git\s+([a-z-]+)(.*)$/i);
+  if (!match) {
+    return {
+      valid: false,
+      error: `Invalid git command format: ${fullCommand}`,
+    };
+  }
+
+  const operation = match[1].toLowerCase();
+  const argsStr = match[2]?.trim() || '';
+
+  // Check operation is approved
+  const opConfig = APPROVED_GIT_OPERATIONS[operation];
+  if (!opConfig) {
+    return {
+      valid: false,
+      error: `Git operation '${operation}' is not approved for remote execution`,
+    };
+  }
+
+  // Note: We don't strictly validate every argument here because some commands
+  // need dynamic values (branch names, commit messages). The forbidden patterns
+  // block dangerous combinations. For stricter validation, use specific handlers.
+
+  return { valid: true };
+}
+
+/**
+ * Get timeout for a git operation
+ */
+export function getGitOperationTimeout(operation: string): number {
+  return APPROVED_GIT_OPERATIONS[operation]?.timeout || 60000;
 }

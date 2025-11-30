@@ -6,11 +6,13 @@
  * - Parsing git status output
  * - Filesystem operations
  * - Path validation
+ * - ST-153: Location-aware git execution (laptop vs KVM)
  */
 
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import { ValidationError } from '../../types';
+import { ValidationError, MCPError } from '../../types';
+import { PrismaClient } from '@prisma/client';
 
 /**
  * Git status information parsed from git status --porcelain --branch
@@ -217,4 +219,186 @@ export function validateBranchName(branchName: string): void {
       `Invalid branch name: ${branchName}. Only alphanumeric, slash, underscore, and hyphen allowed.`
     );
   }
+}
+
+// =============================================================================
+// ST-153: Location-Aware Git Execution
+// =============================================================================
+
+/**
+ * Options for location-aware git execution
+ */
+export interface LocationAwareOptions {
+  storyId?: string;
+  worktreeId?: string;
+  target?: 'auto' | 'laptop' | 'kvm';
+  prisma: PrismaClient;
+  timeout?: number;
+}
+
+/**
+ * Result of location-aware git execution
+ */
+export interface LocationAwareResult {
+  success: boolean;
+  output?: string;
+  error?: string;
+  executedOn: 'kvm' | 'laptop';
+}
+
+// Reference to RemoteExecutionService (set via setRemoteExecutionService)
+let remoteExecutionService: any = null;
+
+/**
+ * Set the RemoteExecutionService reference for remote git execution
+ * Called during NestJS module initialization
+ */
+export function setRemoteExecutionService(service: any): void {
+  remoteExecutionService = service;
+}
+
+/**
+ * Execute git command with location-aware routing
+ *
+ * Automatically determines whether to execute locally (KVM) or remotely (laptop)
+ * based on worktree's hostType/hostName.
+ *
+ * @param command - Git command to execute
+ * @param cwd - Working directory (worktree path)
+ * @param options - Location-aware options (storyId, target, prisma)
+ * @returns Promise<LocationAwareResult>
+ */
+export async function execGitLocationAware(
+  command: string,
+  cwd: string,
+  options: LocationAwareOptions
+): Promise<LocationAwareResult> {
+  // 1. Resolve target host
+  const target = await resolveTargetHost(cwd, options);
+
+  // 2. Route to appropriate executor
+  if (target === 'kvm') {
+    return execGitLocal(command, cwd, options.timeout);
+  } else {
+    return execGitRemote(command, cwd, options.timeout);
+  }
+}
+
+/**
+ * Execute git command locally on KVM
+ */
+function execGitLocal(command: string, cwd: string, timeout?: number): LocationAwareResult {
+  try {
+    const output = execGit(command, cwd, timeout);
+    return {
+      success: true,
+      output: output.trim(),
+      executedOn: 'kvm',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      executedOn: 'kvm',
+    };
+  }
+}
+
+/**
+ * Execute git command remotely on laptop via RemoteExecutionService
+ */
+async function execGitRemote(
+  command: string,
+  cwd: string,
+  timeout?: number
+): Promise<LocationAwareResult> {
+  if (!remoteExecutionService) {
+    throw new MCPError(
+      'REMOTE_NOT_CONFIGURED',
+      'Remote execution service not configured. Cannot execute git commands on laptop.'
+    );
+  }
+
+  try {
+    const result = await remoteExecutionService.executeGitCommand({
+      command,
+      cwd,
+      timeout,
+    });
+
+    // Check for offline fallback
+    if ('agentOffline' in result && result.agentOffline) {
+      return {
+        success: false,
+        error: result.error || 'Laptop agent is offline. Cannot execute git command on remote worktree.',
+        executedOn: 'laptop',
+      };
+    }
+
+    return {
+      success: result.success,
+      output: result.output,
+      error: result.error,
+      executedOn: 'laptop',
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      executedOn: 'laptop',
+    };
+  }
+}
+
+/**
+ * Resolve target host (kvm or laptop) for git execution
+ *
+ * Priority:
+ * 1. Explicit target override ('laptop' or 'kvm')
+ * 2. Auto-detect from worktree's hostType
+ * 3. Default to 'kvm' if no worktree found
+ */
+async function resolveTargetHost(
+  cwd: string,
+  options: LocationAwareOptions
+): Promise<'laptop' | 'kvm'> {
+  // Explicit override
+  if (options.target === 'laptop') return 'laptop';
+  if (options.target === 'kvm') return 'kvm';
+
+  // Auto-detect from worktree
+  const worktree = await options.prisma.worktree.findFirst({
+    where: options.worktreeId
+      ? { id: options.worktreeId }
+      : options.storyId
+        ? { storyId: options.storyId, status: { in: ['active', 'idle'] } }
+        : { worktreePath: cwd, status: { in: ['active', 'idle'] } },
+  });
+
+  if (!worktree) {
+    // No worktree found - check if path is on KVM
+    if (cwd.startsWith('/opt/stack/')) {
+      return 'kvm';
+    }
+    // Default to KVM if unsure
+    return 'kvm';
+  }
+
+  // hostType='local' means created on laptop
+  return worktree.hostType === 'local' ? 'laptop' : 'kvm';
+}
+
+/**
+ * Check if laptop agent is online
+ */
+export async function isLaptopAgentOnline(prisma: PrismaClient): Promise<boolean> {
+  const agent = await prisma.remoteAgent.findFirst({
+    where: {
+      status: 'online',
+      capabilities: {
+        has: 'git-execute',
+      },
+    },
+  });
+  return !!agent;
 }

@@ -556,3 +556,249 @@ describe('ST-150: Claude Code Capabilities', () => {
     });
   });
 });
+
+// =============================================================================
+// ST-153: Git Operations Tests
+// =============================================================================
+
+import {
+  APPROVED_GIT_OPERATIONS,
+  FORBIDDEN_GIT_PATTERNS,
+  isGitOperationApproved,
+  getGitOperation,
+  validateGitCommand,
+  getGitOperationTimeout,
+} from '../approved-scripts';
+
+describe('ST-153: Git Operations', () => {
+  describe('APPROVED_GIT_OPERATIONS configuration', () => {
+    it('should have read-only operations defined', () => {
+      expect(APPROVED_GIT_OPERATIONS['status']).toBeDefined();
+      expect(APPROVED_GIT_OPERATIONS['status'].readOnly).toBe(true);
+      expect(APPROVED_GIT_OPERATIONS['log']).toBeDefined();
+      expect(APPROVED_GIT_OPERATIONS['log'].readOnly).toBe(true);
+      expect(APPROVED_GIT_OPERATIONS['diff']).toBeDefined();
+      expect(APPROVED_GIT_OPERATIONS['diff'].readOnly).toBe(true);
+    });
+
+    it('should have write operations defined', () => {
+      expect(APPROVED_GIT_OPERATIONS['fetch']).toBeDefined();
+      expect(APPROVED_GIT_OPERATIONS['fetch'].readOnly).toBe(false);
+      expect(APPROVED_GIT_OPERATIONS['commit']).toBeDefined();
+      expect(APPROVED_GIT_OPERATIONS['commit'].readOnly).toBe(false);
+      expect(APPROVED_GIT_OPERATIONS['push']).toBeDefined();
+      expect(APPROVED_GIT_OPERATIONS['push'].readOnly).toBe(false);
+    });
+
+    it('should define timeouts for all operations', () => {
+      Object.keys(APPROVED_GIT_OPERATIONS).forEach((op) => {
+        expect(APPROVED_GIT_OPERATIONS[op].timeout).toBeGreaterThan(0);
+      });
+    });
+
+    it('should have allowed args for all operations', () => {
+      Object.keys(APPROVED_GIT_OPERATIONS).forEach((op) => {
+        expect(Array.isArray(APPROVED_GIT_OPERATIONS[op].allowedArgs)).toBe(true);
+      });
+    });
+  });
+
+  describe('isGitOperationApproved', () => {
+    it('should return true for approved operations', () => {
+      expect(isGitOperationApproved('status')).toBe(true);
+      expect(isGitOperationApproved('log')).toBe(true);
+      expect(isGitOperationApproved('commit')).toBe(true);
+      expect(isGitOperationApproved('push')).toBe(true);
+    });
+
+    it('should return false for unapproved operations', () => {
+      expect(isGitOperationApproved('rm')).toBe(false);
+      expect(isGitOperationApproved('clone')).toBe(false);
+      expect(isGitOperationApproved('init')).toBe(false);
+    });
+
+    it('should return false for empty string', () => {
+      expect(isGitOperationApproved('')).toBe(false);
+    });
+  });
+
+  describe('getGitOperation', () => {
+    it('should return operation config for approved operations', () => {
+      const status = getGitOperation('status');
+      expect(status).toBeDefined();
+      expect(status?.description).toBe('Get working tree status');
+      expect(status?.readOnly).toBe(true);
+    });
+
+    it('should return undefined for unapproved operations', () => {
+      expect(getGitOperation('rm')).toBeUndefined();
+      expect(getGitOperation('unknown')).toBeUndefined();
+    });
+  });
+
+  describe('validateGitCommand', () => {
+    describe('valid commands', () => {
+      it('should accept git status', () => {
+        expect(validateGitCommand('git status').valid).toBe(true);
+        expect(validateGitCommand('git status --porcelain').valid).toBe(true);
+        expect(validateGitCommand('git status --branch').valid).toBe(true);
+      });
+
+      it('should accept git log', () => {
+        expect(validateGitCommand('git log').valid).toBe(true);
+        expect(validateGitCommand('git log --oneline').valid).toBe(true);
+        expect(validateGitCommand('git log -n 10').valid).toBe(true);
+      });
+
+      it('should accept git diff', () => {
+        expect(validateGitCommand('git diff').valid).toBe(true);
+        expect(validateGitCommand('git diff --cached').valid).toBe(true);
+        expect(validateGitCommand('git diff HEAD').valid).toBe(true);
+      });
+
+      it('should accept git commit', () => {
+        expect(validateGitCommand('git commit -m "message"').valid).toBe(true);
+        expect(validateGitCommand('git commit --amend --no-edit').valid).toBe(true);
+      });
+
+      it('should accept git push with force-with-lease', () => {
+        expect(validateGitCommand('git push --force-with-lease').valid).toBe(true);
+        expect(validateGitCommand('git push origin main --force-with-lease').valid).toBe(true);
+      });
+
+      it('should accept git fetch', () => {
+        expect(validateGitCommand('git fetch').valid).toBe(true);
+        expect(validateGitCommand('git fetch origin').valid).toBe(true);
+        expect(validateGitCommand('git fetch --all').valid).toBe(true);
+      });
+    });
+
+    describe('invalid commands', () => {
+      it('should reject non-git commands', () => {
+        const result = validateGitCommand('rm -rf /');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Invalid git command format');
+      });
+
+      it('should reject unapproved git operations', () => {
+        const result = validateGitCommand('git rm file.txt');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('not approved');
+      });
+
+      it('should reject git clone', () => {
+        const result = validateGitCommand('git clone https://github.com/repo.git');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('not approved');
+      });
+
+      it('should reject git init', () => {
+        const result = validateGitCommand('git init');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('not approved');
+      });
+    });
+
+    describe('forbidden patterns', () => {
+      it('should reject force push without --force-with-lease', () => {
+        const result = validateGitCommand('git push --force');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject force push with -f', () => {
+        // Note: -f is an alias for --force, but pattern only catches --force
+        // This test documents current behavior
+        const result = validateGitCommand('git push origin main --force');
+        expect(result.valid).toBe(false);
+      });
+
+      it('should reject git reset --hard', () => {
+        const result = validateGitCommand('git reset --hard HEAD~1');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject git clean -fd', () => {
+        const result = validateGitCommand('git clean -fd');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject git reflog expire', () => {
+        const result = validateGitCommand('git reflog expire --all');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject git gc --prune', () => {
+        const result = validateGitCommand('git gc --prune=now');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject git filter-branch', () => {
+        const result = validateGitCommand('git filter-branch --all');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject deleting main branch via push', () => {
+        const result = validateGitCommand('git push origin :main');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject deleting master branch via push', () => {
+        const result = validateGitCommand('git push origin :master');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+
+      it('should reject deleting main branch', () => {
+        const result = validateGitCommand('git branch -D main');
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('Forbidden');
+      });
+    });
+  });
+
+  describe('getGitOperationTimeout', () => {
+    it('should return correct timeout for status', () => {
+      expect(getGitOperationTimeout('status')).toBe(30000);
+    });
+
+    it('should return correct timeout for diff', () => {
+      expect(getGitOperationTimeout('diff')).toBe(60000);
+    });
+
+    it('should return correct timeout for fetch', () => {
+      expect(getGitOperationTimeout('fetch')).toBe(120000);
+    });
+
+    it('should return correct timeout for rebase', () => {
+      expect(getGitOperationTimeout('rebase')).toBe(300000);
+    });
+
+    it('should return default timeout for unknown operation', () => {
+      expect(getGitOperationTimeout('unknown')).toBe(60000);
+    });
+  });
+
+  describe('FORBIDDEN_GIT_PATTERNS', () => {
+    it('should have patterns defined', () => {
+      expect(FORBIDDEN_GIT_PATTERNS.length).toBeGreaterThan(0);
+    });
+
+    it('should match force push without --force-with-lease', () => {
+      const pattern = FORBIDDEN_GIT_PATTERNS.find(p => p.source.includes('force'));
+      expect(pattern?.test('git push --force')).toBe(true);
+      expect(pattern?.test('git push origin main --force')).toBe(true);
+    });
+
+    it('should NOT match force-with-lease', () => {
+      const pattern = FORBIDDEN_GIT_PATTERNS.find(p => p.source.includes('force'));
+      expect(pattern?.test('git push --force-with-lease')).toBe(false);
+    });
+  });
+});

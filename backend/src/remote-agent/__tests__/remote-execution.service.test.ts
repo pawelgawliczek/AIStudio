@@ -369,4 +369,190 @@ describe('RemoteExecutionService', () => {
       expect(result).toEqual([]);
     });
   });
+
+  // ===========================================================================
+  // ST-153: Git Execution Tests
+  // ===========================================================================
+
+  describe('executeGitCommand', () => {
+    const mockGitAgent = {
+      id: 'git-agent-123',
+      hostname: 'laptop-1',
+      status: 'online',
+      capabilities: ['git-execute'],
+    };
+
+    beforeEach(() => {
+      // Add emitGitJob mock
+      (mockGateway as any).emitGitJob = jest.fn().mockResolvedValue(undefined);
+    });
+
+    it('should execute git command when agent is online', async () => {
+      const mockJob = {
+        id: 'git-job-123',
+        script: 'git-status',
+        params: { command: 'git status --porcelain', cwd: '/path/to/worktree' },
+        status: 'pending',
+        agentId: 'git-agent-123',
+      };
+
+      const mockCompletedJob = {
+        ...mockJob,
+        status: 'completed',
+        result: { output: '## main...origin/main', operation: 'status' },
+      };
+
+      mockPrismaService.remoteAgent.findMany.mockResolvedValue([mockGitAgent] as any);
+      mockPrismaService.remoteJob.create.mockResolvedValue(mockJob as any);
+      mockPrismaService.remoteJob.update.mockResolvedValue(mockCompletedJob as any);
+      mockPrismaService.remoteJob.findUnique.mockResolvedValue(mockCompletedJob as any);
+
+      const result = await service.executeGitCommand(
+        {
+          command: 'git status --porcelain',
+          cwd: '/path/to/worktree',
+        },
+        'test-user'
+      );
+
+      expect(result).toEqual({
+        success: true,
+        jobId: 'git-job-123',
+        agentId: 'git-agent-123',
+        output: '## main...origin/main',
+        operation: 'status',
+      });
+
+      expect(mockPrismaService.remoteAgent.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'online',
+          capabilities: { has: 'git-execute' },
+        },
+      });
+    });
+
+    it('should return offline error when no git agent available', async () => {
+      mockPrismaService.remoteAgent.findMany.mockResolvedValue([]);
+
+      const result = await service.executeGitCommand({
+        command: 'git status',
+        cwd: '/path/to/worktree',
+      });
+
+      expect(result).toEqual({
+        agentOffline: true,
+        error: 'Laptop agent is offline. Cannot execute git command on remote worktree.',
+      });
+    });
+
+    it('should reject unapproved git command', async () => {
+      await expect(
+        service.executeGitCommand({
+          command: 'git rm -rf .',
+          cwd: '/path/to/worktree',
+        })
+      ).rejects.toThrow('not approved');
+    });
+
+    it('should reject forbidden git command', async () => {
+      await expect(
+        service.executeGitCommand({
+          command: 'git push --force',
+          cwd: '/path/to/worktree',
+        })
+      ).rejects.toThrow('Forbidden');
+    });
+
+    it('should reject git reset --hard', async () => {
+      await expect(
+        service.executeGitCommand({
+          command: 'git reset --hard HEAD~1',
+          cwd: '/path/to/worktree',
+        })
+      ).rejects.toThrow('Forbidden');
+    });
+
+    it('should handle failed git job', async () => {
+      const mockJob = {
+        id: 'git-job-456',
+        script: 'git-status',
+        status: 'pending',
+        agentId: 'git-agent-123',
+      };
+
+      const mockFailedJob = {
+        ...mockJob,
+        status: 'failed',
+        error: 'fatal: not a git repository',
+        result: { exitCode: 128 },
+      };
+
+      mockPrismaService.remoteAgent.findMany.mockResolvedValue([mockGitAgent] as any);
+      mockPrismaService.remoteJob.create.mockResolvedValue(mockJob as any);
+      mockPrismaService.remoteJob.update.mockResolvedValue(mockJob as any);
+      mockPrismaService.remoteJob.findUnique.mockResolvedValue(mockFailedJob as any);
+
+      const result = await service.executeGitCommand({
+        command: 'git status',
+        cwd: '/invalid/path',
+      });
+
+      expect(result).toEqual({
+        success: false,
+        jobId: 'git-job-456',
+        agentId: 'git-agent-123',
+        error: 'fatal: not a git repository',
+        output: undefined,
+        exitCode: 128,
+      });
+    });
+
+    it('should use correct timeout based on operation', async () => {
+      const mockJob = {
+        id: 'git-job-789',
+        script: 'git-fetch',
+        status: 'completed',
+        result: { output: '' },
+        agentId: 'git-agent-123',
+      };
+
+      mockPrismaService.remoteAgent.findMany.mockResolvedValue([mockGitAgent] as any);
+      mockPrismaService.remoteJob.create.mockResolvedValue(mockJob as any);
+      mockPrismaService.remoteJob.update.mockResolvedValue(mockJob as any);
+      mockPrismaService.remoteJob.findUnique.mockResolvedValue(mockJob as any);
+
+      await service.executeGitCommand({
+        command: 'git fetch origin',
+        cwd: '/path/to/worktree',
+      });
+
+      // Verify emitGitJob was called with correct timeout (fetch = 120000ms)
+      expect((mockGateway as any).emitGitJob).toHaveBeenCalledWith(
+        'git-agent-123',
+        expect.objectContaining({
+          timeout: 120000, // fetch timeout
+        })
+      );
+    });
+  });
+
+  describe('getGitExecuteAgents', () => {
+    it('should return git-capable agents', async () => {
+      const mockAgents = [
+        { id: 'agent-1', hostname: 'laptop-1', capabilities: ['git-execute'] },
+      ];
+
+      mockPrismaService.remoteAgent.findMany.mockResolvedValue(mockAgents as any);
+
+      const result = await service.getGitExecuteAgents();
+
+      expect(result).toEqual(mockAgents);
+      expect(mockPrismaService.remoteAgent.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'online',
+          capabilities: { has: 'git-execute' },
+        },
+      });
+    });
+  });
 });
