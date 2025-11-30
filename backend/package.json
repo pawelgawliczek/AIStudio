@@ -22,6 +22,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:unit:report": "jest --testPathIgnorePatterns='integration|e2e' --json --outputFile=../test-results/jest-unit-results.json",
     "test:integration:report": "jest --testPathPattern='integration' --json --outputFile=../test-results/jest-integration-results.json",
+    "test:all": "npm test && npm run test:e2e:ep8",
     "test:e2e:ep8": "jest --testMatch='**/e2e/ep8-story-runner/*.e2e.test.ts' --testPathPattern='ep8-story-runner.e2e.test.ts' --runInBand --testTimeout=300000",
     "test:e2e:ep8:full": "jest --testMatch='**/e2e/ep8-story-runner/*.e2e.test.ts' --testPathPattern='ep8-full-path.e2e.test.ts' --runInBand --testTimeout=600000",
     "test:e2e:ep8:cleanup": "tsx src/e2e/ep8-story-runner/helpers/cleanup-orphans.ts",
