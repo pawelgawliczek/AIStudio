@@ -37,7 +37,7 @@ export class OrphanDetectorService implements OnModuleInit {
   /**
    * Main orphan detection job - runs every minute
    */
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE, { name: 'orphan-detector' })
   async detectOrphanedJobs(): Promise<void> {
     if (this.circuitOpen) {
       this.logger.warn('Orphan detection circuit breaker is open - skipping');
