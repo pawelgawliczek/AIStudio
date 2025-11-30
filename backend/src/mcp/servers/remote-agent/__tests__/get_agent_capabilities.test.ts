@@ -17,7 +17,7 @@ describe('get_agent_capabilities', () => {
 
   describe('handler', () => {
     it('should return all approved capabilities when no agent specified', async () => {
-      const result = await handler({}, mockPrisma as any);
+      const result = await handler(mockPrisma as any, {});
 
       expect(result.success).toBe(true);
       expect(result.approvedCapabilities).toBeDefined();
@@ -49,7 +49,7 @@ describe('get_agent_capabilities', () => {
 
       mockPrisma.remoteAgent.findUnique.mockResolvedValue(mockAgent);
 
-      const result = await handler({ agentId: 'agent-123' }, mockPrisma as any);
+      const result = await handler(mockPrisma as any, { agentId: 'agent-123' });
 
       expect(result.success).toBe(true);
       expect(result.agent).toBeDefined();
@@ -75,7 +75,7 @@ describe('get_agent_capabilities', () => {
 
       mockPrisma.remoteAgent.findUnique.mockResolvedValue(mockAgent);
 
-      const result = await handler({ hostname: 'my-laptop' }, mockPrisma as any);
+      const result = await handler(mockPrisma as any, { hostname: 'my-laptop' });
 
       expect(result.success).toBe(true);
       expect(result.agent?.hostname).toBe('my-laptop');
@@ -86,7 +86,7 @@ describe('get_agent_capabilities', () => {
     it('should return failure when agent not found', async () => {
       mockPrisma.remoteAgent.findUnique.mockResolvedValue(null);
 
-      const result = await handler({ agentId: 'non-existent' }, mockPrisma as any);
+      const result = await handler(mockPrisma as any, { agentId: 'non-existent' });
 
       expect(result.success).toBe(false);
       expect(result.agent).toBeUndefined();
@@ -95,7 +95,7 @@ describe('get_agent_capabilities', () => {
     });
 
     it('should include capability metadata', async () => {
-      const result = await handler({}, mockPrisma as any);
+      const result = await handler(mockPrisma as any, {});
 
       // Check that capabilities have proper metadata
       for (const cap of result.approvedCapabilities) {

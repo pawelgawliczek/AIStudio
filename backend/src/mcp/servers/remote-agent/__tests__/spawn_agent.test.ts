@@ -60,7 +60,7 @@ describe('spawn_agent', () => {
       mockPrisma.componentRun.update.mockResolvedValue({});
       mockPrisma.workflowRun.update.mockResolvedValue({});
 
-      const result = await handler(validParams, mockPrisma as any);
+      const result = await handler(mockPrisma as any, validParams);
 
       expect(result.success).toBe(true);
       expect(result.jobId).toBe('job-123');
@@ -94,7 +94,7 @@ describe('spawn_agent', () => {
         offlineFallback: 'pause',
       });
 
-      const result = await handler(validParams, mockPrisma as any);
+      const result = await handler(mockPrisma as any, validParams);
 
       expect(result.success).toBe(false);
       expect(result.agentOffline).toBe(true);
@@ -107,7 +107,7 @@ describe('spawn_agent', () => {
         instructions: 'Use API_KEY="sk-12345" to authenticate',
       };
 
-      const result = await handler(paramsWithSecret, mockPrisma as any);
+      const result = await handler(mockPrisma as any, paramsWithSecret);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('secret');
@@ -130,7 +130,7 @@ describe('spawn_agent', () => {
 
       mockPrisma.remoteAgent.findMany.mockResolvedValue([mockAgent]);
 
-      const result = await handler(paramsWithBadTools, mockPrisma as any);
+      const result = await handler(mockPrisma as any, paramsWithBadTools);
 
       // Should fail validation due to invalid tool pattern
       expect(result.success).toBe(false);
@@ -164,7 +164,7 @@ describe('spawn_agent', () => {
       mockPrisma.componentRun.update.mockResolvedValue({});
       mockPrisma.workflowRun.update.mockResolvedValue({});
 
-      const result = await handler(validParams, mockPrisma as any);
+      const result = await handler(mockPrisma as any, validParams);
 
       expect(result.success).toBe(true);
       expect(result.agentId).toBe('agent-2'); // Should select idle agent
@@ -198,7 +198,7 @@ describe('spawn_agent', () => {
       mockPrisma.componentRun.update.mockResolvedValue({});
       mockPrisma.workflowRun.update.mockResolvedValue({});
 
-      const result = await handler(paramsWithOptions, mockPrisma as any);
+      const result = await handler(mockPrisma as any, paramsWithOptions);
 
       expect(result.success).toBe(true);
 

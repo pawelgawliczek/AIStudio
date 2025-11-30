@@ -13,6 +13,8 @@ module.exports = {
   forceExit: true,
   // Detect open handles for debugging
   detectOpenHandles: false,
+  // Limit parallel workers to prevent resource contention
+  maxWorkers: 4,
   testMatch: ['**/__tests__/**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   // Don't auto-mock Prisma Client

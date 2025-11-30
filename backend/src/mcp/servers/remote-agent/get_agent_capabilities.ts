@@ -66,8 +66,8 @@ interface CapabilityInfo {
 }
 
 export async function handler(
-  params: GetAgentCapabilitiesParams,
   prisma: PrismaClient,
+  params: GetAgentCapabilitiesParams = {},
 ): Promise<{
   success: boolean;
   agent?: {

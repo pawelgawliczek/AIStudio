@@ -42,7 +42,7 @@ describe('get_online_agents', () => {
 
       mockPrisma.remoteAgent.findMany.mockResolvedValue(mockAgents);
 
-      const result = await handler({}, mockPrisma as any);
+      const result = await handler(mockPrisma as any, {});
 
       expect(result.success).toBe(true);
       expect(result.agents).toHaveLength(2);
@@ -70,7 +70,7 @@ describe('get_online_agents', () => {
 
       mockPrisma.remoteAgent.findMany.mockResolvedValue(mockAgents);
 
-      const result = await handler({ capability: 'claude-code' }, mockPrisma as any);
+      const result = await handler(mockPrisma as any, { capability: 'claude-code' });
 
       expect(result.success).toBe(true);
       expect(result.agents).toHaveLength(1);
@@ -109,7 +109,7 @@ describe('get_online_agents', () => {
 
       mockPrisma.remoteAgent.findMany.mockResolvedValue(mockAgents);
 
-      const result = await handler({ includeOffline: true }, mockPrisma as any);
+      const result = await handler(mockPrisma as any, { includeOffline: true });
 
       expect(result.success).toBe(true);
       expect(result.agents).toHaveLength(2);
@@ -123,7 +123,7 @@ describe('get_online_agents', () => {
     it('should return empty array when no agents', async () => {
       mockPrisma.remoteAgent.findMany.mockResolvedValue([]);
 
-      const result = await handler({}, mockPrisma as any);
+      const result = await handler(mockPrisma as any, {});
 
       expect(result.success).toBe(true);
       expect(result.agents).toHaveLength(0);

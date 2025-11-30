@@ -114,8 +114,8 @@ interface SpawnAgentParams {
 // In a full implementation, this would call RemoteExecutionService.executeClaudeAgent()
 // which handles the WebSocket dispatch and agent selection.
 export async function handler(
-  params: SpawnAgentParams,
   prisma: PrismaClient,
+  params: SpawnAgentParams,
 ): Promise<{
   success: boolean;
   jobId?: string;

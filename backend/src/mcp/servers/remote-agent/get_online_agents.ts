@@ -51,8 +51,8 @@ interface GetOnlineAgentsParams {
 }
 
 export async function handler(
-  params: GetOnlineAgentsParams,
   prisma: PrismaClient,
+  params: GetOnlineAgentsParams = {},
 ): Promise<{
   success: boolean;
   agents: Array<{
