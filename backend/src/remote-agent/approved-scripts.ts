@@ -10,6 +10,7 @@
 
 export interface ApprovedScript {
   script: string; // Relative path to script from project root
+  description: string; // Human-readable description
   allowedParams: string[]; // Allowed parameter names (without values)
   timeout: number; // Max execution time in milliseconds
 }
@@ -19,6 +20,7 @@ export interface ApprovedScript {
  */
 export interface ApprovedCapability {
   type: 'claude-agent'; // Capability type
+  description: string; // Human-readable description
   timeout: number; // Max execution time in milliseconds
   requiredParams: string[]; // Required parameter names for execution
   optionalParams: string[]; // Optional parameter names
@@ -33,16 +35,19 @@ export interface ApprovedCapability {
 export const APPROVED_SCRIPTS: Record<string, ApprovedScript> = {
   'parse-transcript': {
     script: 'scripts/parse-transcript.ts',
+    description: 'Parse Claude Code transcript files for token metrics',
     allowedParams: ['--latest', '--latest-agent', '--agent', '--search', '--file', '--path'],
     timeout: 30000, // 30 seconds
   },
   'analyze-story-transcripts': {
     script: 'scripts/analyze-story-transcripts.ts',
+    description: 'Analyze transcripts for a specific story',
     allowedParams: ['--story-id', '--story-key', '--branch', '--days'],
     timeout: 60000, // 60 seconds
   },
   'list-transcripts': {
     script: 'scripts/list-transcripts.ts',
+    description: 'List available transcript files',
     allowedParams: ['--limit', '--since', '--pattern'],
     timeout: 10000, // 10 seconds
   },
@@ -110,6 +115,7 @@ export function getScriptTimeout(scriptName: string): number {
 export const APPROVED_CAPABILITIES: Record<string, ApprovedCapability> = {
   'claude-code': {
     type: 'claude-agent',
+    description: 'Execute Claude Code sessions for agent work',
     timeout: 3600000, // 60 minutes (per ST-150 spec)
     requiredParams: ['componentId', 'stateId', 'workflowRunId', 'instructions'],
     optionalParams: ['storyContext', 'allowedTools', 'model', 'maxTurns', 'projectPath'],
