@@ -91,8 +91,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   private readonly logger = new Logger(RemoteAgentGateway.name);
 
   // ST-150: Store disconnect handler reference for injection
-  private disconnectHandler: ((agentId: string) => Promise<void>) | null = null;
-  private reconnectHandler: ((agentId: string) => Promise<number>) | null = null;
+  private disconnectHandler: ((agentId: string) => Promise<{ jobIds: string[]; workflowRunIds: string[] }>) | null = null;
+  private reconnectHandler: ((agentId: string) => Promise<{ resumed: number; workflowRunIds: string[] }>) | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -103,11 +103,11 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   /**
    * ST-150: Set disconnect/reconnect handlers (called by RemoteExecutionService)
    */
-  setDisconnectHandler(handler: (agentId: string) => Promise<void>) {
+  setDisconnectHandler(handler: (agentId: string) => Promise<{ jobIds: string[]; workflowRunIds: string[] }>) {
     this.disconnectHandler = handler;
   }
 
-  setReconnectHandler(handler: (agentId: string) => Promise<number>) {
+  setReconnectHandler(handler: (agentId: string) => Promise<{ resumed: number; workflowRunIds: string[] }>) {
     this.reconnectHandler = handler;
   }
 
@@ -126,6 +126,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
    * Handle agent disconnection
    * Mark agent as offline in database
    * ST-150: Also handle running Claude Code jobs (grace period)
+   * ST-150: Emit workflow:paused event for frontend notification
    */
   async handleDisconnect(client: Socket) {
     this.logger.log(`Agent disconnected: ${client.id}`);
@@ -145,7 +146,19 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
       // ST-150: Handle running Claude Code jobs if agent was executing
       if (agentId && this.disconnectHandler) {
-        await this.disconnectHandler(agentId);
+        const result = await this.disconnectHandler(agentId);
+
+        // ST-150: Emit workflow:paused event for each affected workflow
+        if (result && result.workflowRunIds) {
+          for (const workflowRunId of result.workflowRunIds) {
+            this.server.emit(`workflow:${workflowRunId}:paused`, {
+              reason: 'offline',
+              agentId,
+              timestamp: new Date().toISOString(),
+            });
+            this.logger.log(`Emitted workflow:${workflowRunId}:paused (agent offline)`);
+          }
+        }
       }
     } catch (error) {
       this.logger.error(`Failed to mark agent offline: ${error.message}`);
@@ -230,9 +243,19 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
       // ST-150: Handle reconnection of waiting jobs
       if (this.reconnectHandler) {
-        const resumed = await this.reconnectHandler(agent.id);
-        if (resumed > 0) {
-          this.logger.log(`Resumed ${resumed} jobs after agent reconnection`);
+        const result = await this.reconnectHandler(agent.id);
+        if (result.resumed > 0) {
+          this.logger.log(`Resumed ${result.resumed} jobs after agent reconnection`);
+
+          // ST-150: Emit workflow:resumed event for each affected workflow
+          for (const workflowRunId of result.workflowRunIds) {
+            this.server.emit(`workflow:${workflowRunId}:resumed`, {
+              agentId: agent.id,
+              hostname,
+              timestamp: new Date().toISOString(),
+            });
+            this.logger.log(`Emitted workflow:${workflowRunId}:resumed (agent reconnected)`);
+          }
         }
       }
 
@@ -668,12 +691,24 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       },
     });
 
-    // Clear WorkflowRun disconnect time
+    // Clear WorkflowRun disconnect time and pause status - ST-150
     if (job.workflowRunId) {
       await this.prisma.workflowRun.update({
         where: { id: job.workflowRunId },
-        data: { agentDisconnectedAt: null },
+        data: {
+          agentDisconnectedAt: null,
+          isPaused: false,
+          pauseReason: null,
+        },
       });
+
+      // ST-150: Emit workflow:resumed event for frontend notification
+      this.server.emit(`workflow:${job.workflowRunId}:resumed`, {
+        jobId: data.jobId,
+        agentId,
+        timestamp: new Date().toISOString(),
+      });
+      this.logger.log(`Emitted workflow:${job.workflowRunId}:resumed (agent reconnected)`);
     }
 
     // Send resume acknowledgment

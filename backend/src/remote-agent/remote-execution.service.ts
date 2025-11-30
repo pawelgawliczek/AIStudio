@@ -599,8 +599,9 @@ export class RemoteExecutionService {
   /**
    * Handle agent disconnection during Claude Code execution
    * Sets job to waiting_reconnect with grace period
+   * ST-150: Sets WorkflowRun.isPaused = true, pauseReason = 'offline'
    */
-  async handleAgentDisconnect(agentId: string): Promise<void> {
+  async handleAgentDisconnect(agentId: string): Promise<{ jobIds: string[]; workflowRunIds: string[] }> {
     // Find running jobs for this agent
     const runningJobs = await this.prisma.remoteJob.findMany({
       where: {
@@ -612,6 +613,8 @@ export class RemoteExecutionService {
 
     const now = new Date();
     const graceExpiry = new Date(now.getTime() + this.GRACE_PERIOD_MS);
+    const jobIds: string[] = [];
+    const workflowRunIds: string[] = [];
 
     for (const job of runningJobs) {
       this.logger.warn(`Agent disconnected during job ${job.id}, starting grace period`);
@@ -625,22 +628,30 @@ export class RemoteExecutionService {
         },
       });
 
-      // Update WorkflowRun
+      jobIds.push(job.id);
+
+      // Update WorkflowRun - ST-150: Set isPaused and pauseReason
       if (job.workflowRunId) {
         await this.prisma.workflowRun.update({
           where: { id: job.workflowRunId },
           data: {
             agentDisconnectedAt: now,
+            isPaused: true,
+            pauseReason: 'offline',
           },
         });
+        workflowRunIds.push(job.workflowRunId);
       }
     }
+
+    return { jobIds, workflowRunIds };
   }
 
   /**
    * Handle agent reconnection - resume jobs in waiting_reconnect
+   * ST-150: Clears WorkflowRun.isPaused and pauseReason
    */
-  async handleAgentReconnect(agentId: string): Promise<number> {
+  async handleAgentReconnect(agentId: string): Promise<{ resumed: number; workflowRunIds: string[] }> {
     const waitingJobs = await this.prisma.remoteJob.findMany({
       where: {
         agentId,
@@ -649,6 +660,8 @@ export class RemoteExecutionService {
     });
 
     let resumed = 0;
+    const workflowRunIds: string[] = [];
+
     for (const job of waitingJobs) {
       // Check if grace period hasn't expired
       if (!job.reconnectExpiresAt || new Date() < job.reconnectExpiresAt) {
@@ -664,21 +677,24 @@ export class RemoteExecutionService {
           },
         });
 
-        // Clear WorkflowRun disconnect time
+        // Clear WorkflowRun disconnect time and pause status - ST-150
         if (job.workflowRunId) {
           await this.prisma.workflowRun.update({
             where: { id: job.workflowRunId },
             data: {
               agentDisconnectedAt: null,
+              isPaused: false,
+              pauseReason: null,
             },
           });
+          workflowRunIds.push(job.workflowRunId);
         }
 
         resumed++;
       }
     }
 
-    return resumed;
+    return { resumed, workflowRunIds };
   }
 
   /**
