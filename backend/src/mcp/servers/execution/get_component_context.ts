@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 export const tool: Tool = {
   name: 'get_component_context',
   description:
-    'Retrieve work instructions for a component agent. Returns input/operation/output instructions, config, and tools. Used by spawned component agents to get their instructions on-demand, enabling token-efficient workflow orchestration.',
+    'Retrieve work instructions for a component agent. Returns input/operation/output instructions, config, tools, and accessible artifacts. Used by spawned component agents to get their instructions on-demand, enabling token-efficient workflow orchestration.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -16,6 +16,10 @@ export const tool: Tool = {
         type: 'string',
         description: 'Workflow run ID (optional - provides transcript tracking if specified)',
       },
+      stateId: {
+        type: 'string',
+        description: 'Workflow State UUID (optional - provides artifact access based on state)',
+      },
       includeStoryContext: {
         type: 'boolean',
         description: 'Include story details with analysis fields (default: true)',
@@ -23,6 +27,10 @@ export const tool: Tool = {
       includePreviousOutputs: {
         type: 'boolean',
         description: 'Include outputs from completed components (default: true)',
+      },
+      includeArtifacts: {
+        type: 'boolean',
+        description: 'Include accessible artifacts based on state access rules (default: true)',
       },
     },
     required: ['componentId'],
@@ -144,12 +152,87 @@ export async function handler(prisma: PrismaClient, params: any) {
           completedAt: cr.finishedAt?.toISOString(),
         }));
       }
+
+      // Include accessible artifacts if requested and stateId is provided
+      if (params.includeArtifacts !== false && params.stateId) {
+        // Get artifact access rules for this state
+        const accessRules = await prisma.artifactAccess.findMany({
+          where: {
+            stateId: params.stateId,
+            accessType: { in: ['read', 'required'] },
+          },
+          include: {
+            definition: true,
+          },
+        });
+
+        if (accessRules.length > 0) {
+          // Get artifacts for accessible definitions
+          const definitionIds = accessRules.map((ar) => ar.definitionId);
+          const artifacts = await prisma.artifact.findMany({
+            where: {
+              workflowRunId: params.runId,
+              definitionId: { in: definitionIds },
+            },
+            include: {
+              definition: true,
+              createdByComponent: {
+                select: { id: true, name: true },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+          });
+
+          // Build artifact map with access info
+          response.artifacts = {
+            accessible: accessRules.map((ar) => {
+              const artifact = artifacts.find((a) => a.definitionId === ar.definitionId);
+              return {
+                definitionId: ar.definitionId,
+                definitionKey: ar.definition.key,
+                definitionName: ar.definition.name,
+                type: ar.definition.type,
+                accessType: ar.accessType,
+                isMandatory: ar.definition.isMandatory,
+                artifact: artifact
+                  ? {
+                      id: artifact.id,
+                      content: artifact.content,
+                      contentType: artifact.contentType,
+                      size: artifact.size,
+                      version: artifact.version,
+                      createdBy: artifact.createdByComponent?.name || 'unknown',
+                      updatedAt: artifact.updatedAt.toISOString(),
+                    }
+                  : null,
+              };
+            }),
+            canWrite: await prisma.artifactAccess
+              .findMany({
+                where: {
+                  stateId: params.stateId,
+                  accessType: 'write',
+                },
+                include: { definition: true },
+              })
+              .then((rules) =>
+                rules.map((r) => ({
+                  definitionId: r.definitionId,
+                  definitionKey: r.definition.key,
+                  definitionName: r.definition.name,
+                  type: r.definition.type,
+                })),
+              ),
+          };
+        }
+      }
     }
   }
 
+  const hasArtifacts = response.artifacts?.accessible?.length > 0;
   response.message = `Component instructions retrieved for "${component.name}". ${
     params.runId ? 'Includes workflow context and transcript tracking.' : 'No workflow context (runId not provided).'
-  }`;
+  }${hasArtifacts ? ` Loaded ${response.artifacts.accessible.length} accessible artifact(s).` : ''}`;
 
   return response;
 }

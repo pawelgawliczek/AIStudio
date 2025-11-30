@@ -836,3 +836,155 @@ export interface WorkflowStateResponse {
     description?: string;
   };
 }
+
+// ============================================================================
+// ARTIFACT MANAGEMENT TOOLS (ST-151)
+// ============================================================================
+
+export type ArtifactType =
+  | 'markdown'
+  | 'json'
+  | 'code'
+  | 'report'
+  | 'image'
+  | 'other';
+export type ArtifactAccessType = 'read' | 'write' | 'required';
+
+// --- Artifact Definition CRUD ---
+
+export interface CreateArtifactDefinitionParams {
+  workflowId: string;
+  name: string;
+  key: string;
+  description?: string;
+  type: ArtifactType;
+  schema?: Record<string, unknown>; // JSON Schema for validation
+  isMandatory?: boolean;
+}
+
+export interface UpdateArtifactDefinitionParams {
+  definitionId: string;
+  name?: string;
+  description?: string;
+  type?: ArtifactType;
+  schema?: Record<string, unknown> | null; // null to clear
+  isMandatory?: boolean;
+}
+
+export interface DeleteArtifactDefinitionParams {
+  definitionId: string;
+  confirm: boolean;
+}
+
+export interface ListArtifactDefinitionsParams extends PaginationParams {
+  workflowId: string;
+}
+
+export interface ArtifactDefinitionResponse {
+  id: string;
+  workflowId: string;
+  name: string;
+  key: string;
+  description?: string;
+  type: string;
+  schema?: Record<string, unknown>;
+  isMandatory: boolean;
+  createdAt: string;
+  updatedAt: string;
+  accessRules?: ArtifactAccessResponse[];
+  artifactCount?: number;
+}
+
+// --- Artifact Access Control ---
+
+export interface SetArtifactAccessParams {
+  definitionId?: string;
+  definitionKey?: string; // Alternative: look up by key
+  workflowId?: string; // Required if using definitionKey
+  stateId: string;
+  accessType: ArtifactAccessType;
+}
+
+export interface RemoveArtifactAccessParams {
+  definitionId?: string;
+  definitionKey?: string;
+  workflowId?: string;
+  stateId: string;
+}
+
+export interface ArtifactAccessResponse {
+  id: string;
+  definitionId: string;
+  stateId: string;
+  accessType: string;
+  createdAt: string;
+  state?: {
+    id: string;
+    name: string;
+    order: number;
+  };
+  definition?: {
+    id: string;
+    name: string;
+    key: string;
+  };
+}
+
+// --- Artifact Content ---
+
+export interface UploadArtifactParams {
+  definitionId?: string;
+  definitionKey?: string;
+  workflowRunId: string;
+  content: string;
+  contentType?: string;
+  componentId?: string;
+}
+
+export interface GetArtifactParams {
+  artifactId?: string;
+  definitionKey?: string;
+  workflowRunId?: string;
+  includeContent?: boolean;
+}
+
+export interface ListArtifactsParams extends PaginationParams {
+  workflowRunId: string;
+  definitionKey?: string;
+  type?: ArtifactType;
+  includeContent?: boolean;
+}
+
+export interface ArtifactResponse {
+  id: string;
+  definitionId: string;
+  workflowRunId: string;
+  content: string;
+  contentType: string;
+  size: number;
+  version: number;
+  createdByComponentId?: string;
+  createdAt: string;
+  updatedAt: string;
+  definition?: {
+    id: string;
+    name: string;
+    key: string;
+    type: string;
+  };
+  createdByComponent?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface DeleteArtifactDefinitionResponse {
+  id: string;
+  key: string;
+  name: string;
+  cascadeDeleted: {
+    artifacts: number;
+    accessRules: number;
+  };
+  message: string;
+}
