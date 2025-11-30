@@ -772,6 +772,8 @@ export interface CreateWorkflowStateParams {
   postExecutionInstructions?: string;
   requiresApproval?: boolean;
   mandatory?: boolean;
+  runLocation?: 'local' | 'laptop'; // ST-150: Where to execute
+  offlineFallback?: 'pause' | 'skip' | 'fail'; // ST-150: What to do if laptop offline
 }
 
 export interface UpdateWorkflowStateParams {
@@ -783,6 +785,8 @@ export interface UpdateWorkflowStateParams {
   postExecutionInstructions?: string | null;
   requiresApproval?: boolean;
   mandatory?: boolean;
+  runLocation?: 'local' | 'laptop'; // ST-150: Where to execute
+  offlineFallback?: 'pause' | 'skip' | 'fail'; // ST-150: What to do if laptop offline
 }
 
 export interface DeleteWorkflowStateParams {
@@ -822,6 +826,8 @@ export interface WorkflowStateResponse {
   postExecutionInstructions?: string;
   requiresApproval: boolean;
   mandatory: boolean;
+  runLocation: string; // ST-150: 'local' | 'laptop'
+  offlineFallback: string; // ST-150: 'pause' | 'skip' | 'fail'
   createdAt: string;
   updatedAt: string;
   component?: {

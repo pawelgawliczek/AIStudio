@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RemoteAgentGateway } from '../remote-agent.gateway';
+import { StreamEventService } from '../stream-event.service';
 
 describe('RemoteAgentGateway', () => {
   let gateway: RemoteAgentGateway;
@@ -24,7 +25,14 @@ describe('RemoteAgentGateway', () => {
     },
     remoteJob: {
       update: jest.fn(),
+      findUnique: jest.fn(),
     },
+  };
+
+  const mockStreamEventService = {
+    storeEvent: jest.fn(),
+    getEventsForComponentRun: jest.fn(),
+    getLatestEvent: jest.fn(),
   };
 
   const mockJwtService = {
@@ -63,6 +71,10 @@ describe('RemoteAgentGateway', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: StreamEventService,
+          useValue: mockStreamEventService,
         },
       ],
     }).compile();
@@ -106,6 +118,7 @@ describe('RemoteAgentGateway', () => {
           status: 'offline',
           socketId: null,
           lastSeenAt: expect.any(Date),
+          currentExecutionId: null, // ST-150: Clear execution reference on disconnect
         },
       });
     });
@@ -158,12 +171,19 @@ describe('RemoteAgentGateway', () => {
           status: 'online',
           capabilities: ['parse-transcript', 'analyze-story-transcripts'],
           lastSeenAt: expect.any(Date),
+          // ST-150: Claude Code fields (defaults)
+          claudeCodeAvailable: false,
+          claudeCodeVersion: null,
         },
         update: {
           socketId: 'socket-123',
           status: 'online',
           capabilities: ['parse-transcript', 'analyze-story-transcripts'],
           lastSeenAt: expect.any(Date),
+          // ST-150: Claude Code fields (defaults)
+          claudeCodeAvailable: false,
+          claudeCodeVersion: null,
+          currentExecutionId: null, // ST-150: Clear execution on reconnect
         },
       });
 

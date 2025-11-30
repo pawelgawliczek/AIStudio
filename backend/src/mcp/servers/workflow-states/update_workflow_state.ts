@@ -53,6 +53,18 @@ export const tool: Tool = {
         type: 'boolean',
         description: 'Must complete successfully to proceed (optional)',
       },
+      runLocation: {
+        type: 'string',
+        enum: ['local', 'laptop'],
+        description:
+          'ST-150: Where to execute the agent - "local" (KVM Docker) or "laptop" (remote agent)',
+      },
+      offlineFallback: {
+        type: 'string',
+        enum: ['pause', 'skip', 'fail'],
+        description:
+          'ST-150: What to do if laptop agent is offline - "pause" (wait), "skip" (continue), "fail" (abort)',
+      },
     },
     required: ['workflowStateId'],
   },
@@ -156,6 +168,20 @@ export async function handler(
     }
     if (params.mandatory !== undefined) {
       updateData.mandatory = params.mandatory;
+    }
+
+    // ST-150: runLocation and offlineFallback
+    if (params.runLocation !== undefined) {
+      if (!['local', 'laptop'].includes(params.runLocation)) {
+        throw new ValidationError('runLocation must be "local" or "laptop"');
+      }
+      updateData.runLocation = params.runLocation;
+    }
+    if (params.offlineFallback !== undefined) {
+      if (!['pause', 'skip', 'fail'].includes(params.offlineFallback)) {
+        throw new ValidationError('offlineFallback must be "pause", "skip", or "fail"');
+      }
+      updateData.offlineFallback = params.offlineFallback;
     }
 
     // Update state

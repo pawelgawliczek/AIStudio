@@ -2,34 +2,68 @@
  * Unit tests for ValidationService
  */
 
-import { PrismaClient } from '@prisma/client';
+// Create mock prisma instance that will be used by the service
+const mockPrisma = {
+  $connect: jest.fn(),
+  $disconnect: jest.fn(),
+  $queryRaw: jest.fn(),
+  project: {
+    count: jest.fn(),
+    findMany: jest.fn(),
+  },
+  story: {
+    count: jest.fn(),
+    findMany: jest.fn(),
+  },
+  useCase: {
+    findMany: jest.fn(),
+  },
+  workflow: {
+    findMany: jest.fn(),
+  },
+};
+
+// Mock Prisma at module level - must be before import
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn().mockImplementation(() => mockPrisma),
+}));
+
+// Mock docker exec utility
+jest.mock('../../utils/docker-exec.util');
+
 import { ValidationLevel } from '../../types/migration.types';
 import { dockerExec } from '../../utils/docker-exec.util';
 import { ValidationService } from '../validation.service';
-
-// Mock dependencies
-jest.mock('@prisma/client');
-jest.mock('../../utils/docker-exec.util');
 
 const mockDockerExec = dockerExec as jest.MockedFunction<typeof dockerExec>;
 
 describe('ValidationService', () => {
   let validationService: ValidationService;
-  let mockPrisma: any;
 
   beforeEach(() => {
     validationService = new ValidationService();
-    const PrismaClientMock = PrismaClient as jest.MockedClass<typeof PrismaClient>;
-    mockPrisma = new PrismaClientMock();
     jest.clearAllMocks();
+
+    // Reset default mock implementations
+    mockPrisma.$connect.mockResolvedValue(undefined);
+    mockPrisma.$disconnect.mockResolvedValue(undefined);
   });
 
   describe('validateSchema', () => {
     it('should validate schema successfully', async () => {
-      // Mock docker exec calls for table count, critical tables, indexes, and FK constraints
+      // Mock docker exec: 1st call = table count, 8 calls for critical tables, index count, FK count
       mockDockerExec
         .mockResolvedValueOnce({ success: true, stdout: '30', stderr: '', exitCode: 0 }) // table count
-        .mockResolvedValue({ success: true, stdout: 't', stderr: '', exitCode: 0 }); // all tables exist
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // projects
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // epics
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // stories
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // use_cases
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // test_cases
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // workflows
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // workflow_components
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // workflow_runs
+        .mockResolvedValueOnce({ success: true, stdout: '50', stderr: '', exitCode: 0 }) // index count
+        .mockResolvedValue({ success: true, stdout: '20', stderr: '', exitCode: 0 }); // FK count
 
       const result = await validationService.validateSchema();
 
@@ -50,10 +84,8 @@ describe('ValidationService', () => {
 
   describe('validateDataIntegrity', () => {
     it('should validate data integrity successfully', async () => {
-      // Mock Prisma methods
-      mockPrisma.$connect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$disconnect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$queryRaw = jest.fn().mockResolvedValue([{ count: BigInt(0) }]);
+      // Mock Prisma methods - all return 0 violations
+      mockPrisma.$queryRaw.mockResolvedValue([{ count: BigInt(0) }]);
 
       const result = await validationService.validateDataIntegrity();
 
@@ -62,9 +94,7 @@ describe('ValidationService', () => {
     });
 
     it('should detect data integrity violations', async () => {
-      mockPrisma.$connect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$disconnect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$queryRaw = jest.fn().mockResolvedValue([{ count: BigInt(5) }]); // violations found
+      mockPrisma.$queryRaw.mockResolvedValue([{ count: BigInt(5) }]); // violations found
 
       const result = await validationService.validateDataIntegrity();
 
@@ -75,11 +105,9 @@ describe('ValidationService', () => {
 
   describe('validateHealth', () => {
     it('should run all health checks successfully', async () => {
-      mockPrisma.$connect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$disconnect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$queryRaw = jest.fn().mockResolvedValue([{ count: BigInt(1) }]);
-      mockPrisma.project = { count: jest.fn().mockResolvedValue(10) };
-      mockPrisma.story = { count: jest.fn().mockResolvedValue(50) };
+      mockPrisma.$queryRaw.mockResolvedValue([{ count: BigInt(1) }]);
+      mockPrisma.project.count.mockResolvedValue(10);
+      mockPrisma.story.count.mockResolvedValue(50);
 
       const result = await validationService.validateHealth();
 
@@ -89,8 +117,7 @@ describe('ValidationService', () => {
     });
 
     it('should detect unhealthy database', async () => {
-      mockPrisma.$connect = jest.fn().mockRejectedValue(new Error('Connection failed'));
-      mockPrisma.$disconnect = jest.fn().mockResolvedValue(undefined);
+      mockPrisma.$connect.mockRejectedValue(new Error('Connection failed'));
 
       const result = await validationService.validateHealth();
 
@@ -101,12 +128,10 @@ describe('ValidationService', () => {
 
   describe('runSmokeTests', () => {
     it('should run smoke tests successfully', async () => {
-      mockPrisma.$connect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$disconnect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.project = { findMany: jest.fn().mockResolvedValue([{ id: '1', name: 'Test' }]) };
-      mockPrisma.story = { findMany: jest.fn().mockResolvedValue([]) };
-      mockPrisma.useCase = { findMany: jest.fn().mockResolvedValue([]) };
-      mockPrisma.workflow = { findMany: jest.fn().mockResolvedValue([]) };
+      mockPrisma.project.findMany.mockResolvedValue([{ id: '1', name: 'Test' }]);
+      mockPrisma.story.findMany.mockResolvedValue([]);
+      mockPrisma.useCase.findMany.mockResolvedValue([]);
+      mockPrisma.workflow.findMany.mockResolvedValue([]);
 
       const result = await validationService.runSmokeTests();
 
@@ -116,9 +141,7 @@ describe('ValidationService', () => {
     });
 
     it('should detect failed smoke tests', async () => {
-      mockPrisma.$connect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$disconnect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.project = { findMany: jest.fn().mockRejectedValue(new Error('Query failed')) };
+      mockPrisma.project.findMany.mockRejectedValue(new Error('Query failed'));
 
       const result = await validationService.runSmokeTests();
 
@@ -129,23 +152,28 @@ describe('ValidationService', () => {
 
   describe('validateAll', () => {
     it('should run all validation levels successfully', async () => {
-      // Mock all docker exec calls for schema validation
-      mockDockerExec.mockResolvedValue({ success: true, stdout: 't', stderr: '', exitCode: 0 });
+      // Mock docker exec: 1st call = table count, 8 calls for critical tables, index count, FK count
+      mockDockerExec
+        .mockResolvedValueOnce({ success: true, stdout: '30', stderr: '', exitCode: 0 }) // table count
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // projects
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // epics
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // stories
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // use_cases
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // test_cases
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // workflows
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // workflow_components
+        .mockResolvedValueOnce({ success: true, stdout: 't', stderr: '', exitCode: 0 }) // workflow_runs
+        .mockResolvedValueOnce({ success: true, stdout: '50', stderr: '', exitCode: 0 }) // index count
+        .mockResolvedValue({ success: true, stdout: '20', stderr: '', exitCode: 0 }); // FK count
 
       // Mock Prisma for data integrity, health, and smoke tests
-      mockPrisma.$connect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$disconnect = jest.fn().mockResolvedValue(undefined);
-      mockPrisma.$queryRaw = jest.fn().mockResolvedValue([{ count: BigInt(0) }]);
-      mockPrisma.project = {
-        count: jest.fn().mockResolvedValue(10),
-        findMany: jest.fn().mockResolvedValue([{ id: '1', name: 'Test' }]),
-      };
-      mockPrisma.story = {
-        count: jest.fn().mockResolvedValue(50),
-        findMany: jest.fn().mockResolvedValue([]),
-      };
-      mockPrisma.useCase = { findMany: jest.fn().mockResolvedValue([]) };
-      mockPrisma.workflow = { findMany: jest.fn().mockResolvedValue([]) };
+      mockPrisma.$queryRaw.mockResolvedValue([{ count: BigInt(0) }]);
+      mockPrisma.project.count.mockResolvedValue(10);
+      mockPrisma.project.findMany.mockResolvedValue([{ id: '1', name: 'Test' }]);
+      mockPrisma.story.count.mockResolvedValue(50);
+      mockPrisma.story.findMany.mockResolvedValue([]);
+      mockPrisma.useCase.findMany.mockResolvedValue([]);
+      mockPrisma.workflow.findMany.mockResolvedValue([]);
 
       const result = await validationService.validateAll();
 

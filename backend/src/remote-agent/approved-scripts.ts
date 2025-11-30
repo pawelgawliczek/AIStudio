@@ -1,16 +1,27 @@
 /**
  * ST-133: Remote Execution Agent - Approved Scripts Whitelist
+ * ST-150: Claude Code Agent Execution Capability
  *
- * Security-critical configuration defining which scripts can be executed remotely
- * and what parameters they accept.
+ * Security-critical configuration defining which scripts and capabilities
+ * can be executed remotely and what parameters they accept.
  *
- * Only scripts listed here can be executed via remote agent.
+ * Only scripts and capabilities listed here can be executed via remote agent.
  */
 
 export interface ApprovedScript {
   script: string; // Relative path to script from project root
   allowedParams: string[]; // Allowed parameter names (without values)
   timeout: number; // Max execution time in milliseconds
+}
+
+/**
+ * ST-150: Approved Claude Code capability configuration
+ */
+export interface ApprovedCapability {
+  type: 'claude-agent'; // Capability type
+  timeout: number; // Max execution time in milliseconds
+  requiredParams: string[]; // Required parameter names for execution
+  optionalParams: string[]; // Optional parameter names
 }
 
 /**
@@ -81,4 +92,151 @@ export function validateParams(
 export function getScriptTimeout(scriptName: string): number {
   const approved = APPROVED_SCRIPTS[scriptName];
   return approved?.timeout || 30000; // Default 30s
+}
+
+// =============================================================================
+// ST-150: Claude Code Agent Execution Capabilities
+// =============================================================================
+
+/**
+ * Whitelist of approved capabilities for remote agent execution
+ *
+ * Claude Code execution requires specific parameters for security:
+ * - componentId: Which component is executing
+ * - stateId: Which workflow state
+ * - workflowRunId: Parent workflow run for tracking
+ * - instructions: The prompt to execute (sanitized server-side)
+ */
+export const APPROVED_CAPABILITIES: Record<string, ApprovedCapability> = {
+  'claude-code': {
+    type: 'claude-agent',
+    timeout: 3600000, // 60 minutes (per ST-150 spec)
+    requiredParams: ['componentId', 'stateId', 'workflowRunId', 'instructions'],
+    optionalParams: ['storyContext', 'allowedTools', 'model', 'maxTurns', 'projectPath'],
+  },
+};
+
+/**
+ * ST-150: Approved tools that Claude Code agent can use
+ * Only these tools will be allowed in --allowedTools parameter
+ */
+export const APPROVED_CLAUDE_TOOLS = [
+  // Core Claude Code tools
+  'Read',
+  'Write',
+  'Edit',
+  'Glob',
+  'Grep',
+  'Bash',
+  'Task',
+  'TodoWrite',
+  'AskUserQuestion',
+  'WebFetch',
+  'WebSearch',
+  // MCP tools - VibeStudio
+  'mcp__vibestudio__*',
+  // MCP tools - Playwright
+  'mcp__playwright__*',
+];
+
+/**
+ * ST-150: Forbidden patterns in instructions (secrets detection)
+ * Instructions containing these patterns will be rejected
+ */
+export const FORBIDDEN_INSTRUCTION_PATTERNS = [
+  /password\s*[:=]\s*['"][^'"]+['"]/i,
+  /api[_-]?key\s*[:=]\s*['"][^'"]+['"]/i,
+  /secret\s*[:=]\s*['"][^'"]+['"]/i,
+  /bearer\s+[a-zA-Z0-9._-]+/i,
+  /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----/i,
+  /aws_access_key_id\s*[:=]\s*['"][^'"]+['"]/i,
+  /aws_secret_access_key\s*[:=]\s*['"][^'"]+['"]/i,
+];
+
+/**
+ * Check if a capability is approved for remote execution
+ */
+export function isCapabilityApproved(capabilityName: string): boolean {
+  return capabilityName in APPROVED_CAPABILITIES;
+}
+
+/**
+ * Get timeout for a capability
+ */
+export function getCapabilityTimeout(capabilityName: string): number {
+  const approved = APPROVED_CAPABILITIES[capabilityName];
+  return approved?.timeout || 3600000; // Default 60 min for Claude Code
+}
+
+/**
+ * Validate capability parameters
+ */
+export function validateCapabilityParams(
+  capabilityName: string,
+  params: Record<string, unknown>
+): { valid: boolean; error?: string } {
+  const approved = APPROVED_CAPABILITIES[capabilityName];
+
+  if (!approved) {
+    return {
+      valid: false,
+      error: `Capability '${capabilityName}' not in whitelist`,
+    };
+  }
+
+  // Check required params
+  for (const required of approved.requiredParams) {
+    if (!(required in params) || params[required] === undefined || params[required] === null) {
+      return {
+        valid: false,
+        error: `Missing required parameter '${required}' for capability '${capabilityName}'`,
+      };
+    }
+  }
+
+  // Check all params are allowed (required or optional)
+  const allowedParams = [...approved.requiredParams, ...approved.optionalParams];
+  for (const paramKey of Object.keys(params)) {
+    if (!allowedParams.includes(paramKey)) {
+      return {
+        valid: false,
+        error: `Parameter '${paramKey}' not allowed for capability '${capabilityName}'`,
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate instructions don't contain secrets
+ */
+export function validateInstructions(instructions: string): { valid: boolean; error?: string } {
+  for (const pattern of FORBIDDEN_INSTRUCTION_PATTERNS) {
+    if (pattern.test(instructions)) {
+      return {
+        valid: false,
+        error: 'Instructions contain potential secrets - sanitize before dispatch',
+      };
+    }
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate allowed tools against whitelist
+ */
+export function validateAllowedTools(tools: string[]): { valid: boolean; error?: string } {
+  for (const tool of tools) {
+    const isApproved = APPROVED_CLAUDE_TOOLS.some((pattern) =>
+      pattern.endsWith('*') ? tool.startsWith(pattern.slice(0, -1)) : tool === pattern
+    );
+    if (!isApproved) {
+      return {
+        valid: false,
+        error: `Tool '${tool}' is not in approved list`,
+      };
+    }
+  }
+  return { valid: true };
 }

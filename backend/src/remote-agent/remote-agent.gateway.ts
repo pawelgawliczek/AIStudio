@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, forwardRef, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   WebSocketGateway,
@@ -10,13 +10,69 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../prisma/prisma.service';
+import { StreamEventService } from './stream-event.service';
+
+/**
+ * ST-150: Claude Code job payload sent to laptop agent
+ */
+export interface ClaudeCodeJobPayload {
+  id: string;
+  componentId: string;
+  stateId: string;
+  workflowRunId: string;
+  instructions: string;
+  config: {
+    storyContext?: Record<string, unknown>;
+    allowedTools?: string[];
+    model?: string;
+    maxTurns?: number;
+    projectPath?: string;
+  };
+  signature: string;
+  timestamp: number;
+  jobToken: string;
+}
+
+/**
+ * ST-150: Progress event from laptop agent
+ */
+export interface ClaudeCodeProgressEvent {
+  jobId: string;
+  jobToken: string;
+  type: 'token_update' | 'tool_call' | 'tool_result' | 'activity_change' | 'stream_end';
+  payload: Record<string, unknown>;
+  timestamp: number;
+  sequenceNumber: number;
+}
+
+/**
+ * ST-150: Completion event from laptop agent
+ */
+export interface ClaudeCodeCompleteEvent {
+  jobId: string;
+  jobToken: string;
+  success: boolean;
+  output?: unknown;
+  metrics?: {
+    inputTokens: number;
+    outputTokens: number;
+    cacheCreationTokens?: number;
+    cacheReadTokens?: number;
+    totalTokens: number;
+  };
+  transcriptPath?: string;
+  error?: string;
+}
 
 /**
  * ST-133: Remote Agent Gateway
+ * ST-150: Claude Code Agent Execution
  *
  * WebSocket gateway for remote execution agents (laptop/local machines).
- * Handles agent registration, heartbeat, and job result submission.
+ * Handles agent registration, heartbeat, job result submission,
+ * and Claude Code execution streaming.
  *
  * Namespace: /remote-agent
  * Authentication: Pre-shared secret → JWT
@@ -34,10 +90,26 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
   private readonly logger = new Logger(RemoteAgentGateway.name);
 
+  // ST-150: Store disconnect handler reference for injection
+  private disconnectHandler: ((agentId: string) => Promise<void>) | null = null;
+  private reconnectHandler: ((agentId: string) => Promise<number>) | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly streamEventService: StreamEventService,
   ) {}
+
+  /**
+   * ST-150: Set disconnect/reconnect handlers (called by RemoteExecutionService)
+   */
+  setDisconnectHandler(handler: (agentId: string) => Promise<void>) {
+    this.disconnectHandler = handler;
+  }
+
+  setReconnectHandler(handler: (agentId: string) => Promise<number>) {
+    this.reconnectHandler = handler;
+  }
 
   /**
    * Handle agent connection
@@ -53,9 +125,11 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   /**
    * Handle agent disconnection
    * Mark agent as offline in database
+   * ST-150: Also handle running Claude Code jobs (grace period)
    */
   async handleDisconnect(client: Socket) {
     this.logger.log(`Agent disconnected: ${client.id}`);
+    const { agentId } = client.data;
 
     // Find agent by socket ID and mark offline
     try {
@@ -65,8 +139,14 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           status: 'offline',
           socketId: null,
           lastSeenAt: new Date(),
+          currentExecutionId: null,
         },
       });
+
+      // ST-150: Handle running Claude Code jobs if agent was executing
+      if (agentId && this.disconnectHandler) {
+        await this.disconnectHandler(agentId);
+      }
     } catch (error) {
       this.logger.error(`Failed to mark agent offline: ${error.message}`);
     }
@@ -91,10 +171,11 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     @MessageBody() data: {
       secret: string;
       hostname: string;
-      capabilities: string[]
+      capabilities: string[];
+      claudeCodeVersion?: string; // ST-150: Claude Code CLI version
     },
   ) {
-    const { secret, hostname, capabilities } = data;
+    const { secret, hostname, capabilities, claudeCodeVersion } = data;
 
     // Validate pre-shared secret
     const expectedSecret = process.env.AGENT_SECRET || 'development-secret-change-in-production';
@@ -114,6 +195,9 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       },
     );
 
+    // ST-150: Check if claude-code capability is present
+    const hasClaudeCode = capabilities.includes('claude-code');
+
     // Register or update agent in database
     try {
       const agent = await this.prisma.remoteAgent.upsert({
@@ -124,12 +208,17 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           status: 'online',
           capabilities,
           lastSeenAt: new Date(),
+          claudeCodeAvailable: hasClaudeCode,
+          claudeCodeVersion: claudeCodeVersion || null,
         },
         update: {
           socketId: client.id,
           status: 'online',
           capabilities,
           lastSeenAt: new Date(),
+          claudeCodeAvailable: hasClaudeCode,
+          claudeCodeVersion: claudeCodeVersion || null,
+          currentExecutionId: null, // Clear on reconnect
         },
       });
 
@@ -137,7 +226,15 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       client.data.agentId = agent.id;
       client.data.hostname = hostname;
 
-      this.logger.log(`Agent registered: ${hostname} (${client.id})`);
+      this.logger.log(`Agent registered: ${hostname} (${client.id}), Claude Code: ${hasClaudeCode ? claudeCodeVersion : 'N/A'}`);
+
+      // ST-150: Handle reconnection of waiting jobs
+      if (this.reconnectHandler) {
+        const resumed = await this.reconnectHandler(agent.id);
+        if (resumed > 0) {
+          this.logger.log(`Resumed ${resumed} jobs after agent reconnection`);
+        }
+      }
 
       // Send JWT token to agent
       client.emit('agent:registered', {
@@ -253,5 +350,365 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         },
       },
     });
+  }
+
+  // ===========================================================================
+  // ST-150: Claude Code Agent Execution WebSocket Events
+  // ===========================================================================
+
+  /**
+   * Emit Claude Code job to connected agent
+   * Called by RemoteExecutionService
+   */
+  async emitClaudeCodeJob(agentId: string, job: ClaudeCodeJobPayload): Promise<void> {
+    // Find agent's socket
+    const agent = await this.prisma.remoteAgent.findUnique({
+      where: { id: agentId },
+    });
+
+    if (!agent || agent.status !== 'online' || !agent.socketId) {
+      throw new Error('Agent not online');
+    }
+
+    if (!agent.claudeCodeAvailable) {
+      throw new Error('Agent does not have Claude Code capability');
+    }
+
+    // Emit Claude Code job to agent's socket
+    this.server.to(agent.socketId).emit('agent:claude_job', job);
+    this.logger.log(`Emitted Claude Code job ${job.id} to agent ${agentId} (${agent.hostname})`);
+  }
+
+  /**
+   * Handle Claude Code progress events from laptop agent
+   *
+   * @event agent:claude_progress
+   * @param data - Progress event with token updates, tool calls, etc.
+   */
+  @SubscribeMessage('agent:claude_progress')
+  async handleClaudeCodeProgress(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: ClaudeCodeProgressEvent,
+  ) {
+    const { agentId } = client.data;
+
+    if (!agentId) {
+      client.emit('agent:error', { error: 'Not registered' });
+      return;
+    }
+
+    // Validate job token
+    const tokenValid = this.validateJobToken(data.jobToken, data.jobId, agentId);
+    if (!tokenValid) {
+      this.logger.warn(`Invalid job token for progress event on job ${data.jobId}`);
+      client.emit('agent:error', { error: 'Invalid job token' });
+      return;
+    }
+
+    // Get job to find component run
+    const job = await this.prisma.remoteJob.findUnique({
+      where: { id: data.jobId },
+    });
+
+    if (!job || !job.componentRunId || !job.workflowRunId) {
+      this.logger.warn(`Job ${data.jobId} not found or missing run IDs`);
+      return;
+    }
+
+    // Store streaming event
+    await this.streamEventService.storeEvent(
+      job.componentRunId,
+      job.workflowRunId,
+      data.type,
+      data.sequenceNumber,
+      new Date(data.timestamp),
+      data.payload,
+    );
+
+    // Update job heartbeat
+    await this.prisma.remoteJob.update({
+      where: { id: data.jobId },
+      data: { lastHeartbeatAt: new Date() },
+    });
+
+    // Emit to any connected frontend clients (future: real-time UI updates)
+    this.server.emit(`workflow:${job.workflowRunId}:progress`, {
+      componentRunId: job.componentRunId,
+      type: data.type,
+      sequenceNumber: data.sequenceNumber,
+      payload: data.payload,
+    });
+  }
+
+  /**
+   * Handle Claude Code completion event from laptop agent
+   *
+   * @event agent:claude_complete
+   * @param data - Completion event with output, metrics, etc.
+   */
+  @SubscribeMessage('agent:claude_complete')
+  async handleClaudeCodeComplete(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: ClaudeCodeCompleteEvent,
+  ) {
+    const { agentId } = client.data;
+
+    if (!agentId) {
+      client.emit('agent:error', { error: 'Not registered' });
+      return;
+    }
+
+    // Validate job token
+    const tokenValid = this.validateJobToken(data.jobToken, data.jobId, agentId);
+    if (!tokenValid) {
+      this.logger.warn(`Invalid job token for complete event on job ${data.jobId}`);
+      client.emit('agent:error', { error: 'Invalid job token' });
+      return;
+    }
+
+    this.logger.log(
+      `Claude Code job ${data.jobId} completed: success=${data.success}, ` +
+        `tokens=${data.metrics?.totalTokens || 'N/A'}`,
+    );
+
+    // Get job for tracking
+    const job = await this.prisma.remoteJob.findUnique({
+      where: { id: data.jobId },
+    });
+
+    if (job?.componentRunId && job?.workflowRunId) {
+      // Store stream_end event
+      await this.streamEventService.storeEvent(
+        job.componentRunId,
+        job.workflowRunId,
+        'stream_end',
+        Date.now(), // Use timestamp as sequence number for terminal event
+        new Date(),
+        {
+          success: data.success,
+          metrics: data.metrics,
+          transcriptPath: data.transcriptPath,
+          error: data.error,
+        },
+      );
+    }
+
+    try {
+      // Update job status
+      await this.prisma.remoteJob.update({
+        where: { id: data.jobId },
+        data: {
+          status: data.success ? 'completed' : 'failed',
+          result: data.success
+            ? ({
+                output: data.output,
+                metrics: data.metrics,
+                transcriptPath: data.transcriptPath,
+              } as any) // Cast to any to satisfy Prisma JSON type
+            : null,
+          error: data.error || null,
+          completedAt: new Date(),
+        },
+      });
+
+      // Clear agent's current execution
+      await this.prisma.remoteAgent.update({
+        where: { id: agentId },
+        data: { currentExecutionId: null },
+      });
+
+      // Clear WorkflowRun executing agent
+      if (job?.workflowRunId) {
+        await this.prisma.workflowRun.update({
+          where: { id: job.workflowRunId },
+          data: {
+            executingAgentId: null,
+            agentDisconnectedAt: null,
+          },
+        });
+      }
+
+      // Emit completion to any connected frontend clients
+      if (job?.workflowRunId) {
+        this.server.emit(`workflow:${job.workflowRunId}:complete`, {
+          componentRunId: job.componentRunId,
+          success: data.success,
+          metrics: data.metrics,
+          error: data.error,
+        });
+      }
+
+      client.emit('agent:ack', { jobId: data.jobId, received: true });
+    } catch (error) {
+      this.logger.error(`Failed to update job completion: ${error.message}`);
+      client.emit('agent:error', { error: 'Failed to update job' });
+    }
+  }
+
+  /**
+   * Handle Claude Code pause event (agent paused for user input)
+   *
+   * @event agent:claude_paused
+   */
+  @SubscribeMessage('agent:claude_paused')
+  async handleClaudeCodePaused(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      jobId: string;
+      jobToken: string;
+      reason: string;
+      question?: string;
+    },
+  ) {
+    const { agentId } = client.data;
+
+    if (!agentId) {
+      client.emit('agent:error', { error: 'Not registered' });
+      return;
+    }
+
+    // Validate job token
+    const tokenValid = this.validateJobToken(data.jobToken, data.jobId, agentId);
+    if (!tokenValid) {
+      client.emit('agent:error', { error: 'Invalid job token' });
+      return;
+    }
+
+    this.logger.log(`Claude Code job ${data.jobId} paused: ${data.reason}`);
+
+    const job = await this.prisma.remoteJob.findUnique({
+      where: { id: data.jobId },
+    });
+
+    if (job?.componentRunId && job?.workflowRunId) {
+      // Store pause event
+      await this.streamEventService.storeEvent(
+        job.componentRunId,
+        job.workflowRunId,
+        'agent_paused',
+        Date.now(),
+        new Date(),
+        {
+          reason: data.reason,
+          question: data.question,
+        },
+      );
+    }
+
+    // Update job status to paused
+    await this.prisma.remoteJob.update({
+      where: { id: data.jobId },
+      data: {
+        status: 'paused',
+      },
+    });
+
+    // Emit to frontend for user notification
+    if (job?.workflowRunId) {
+      this.server.emit(`workflow:${job.workflowRunId}:paused`, {
+        componentRunId: job?.componentRunId,
+        reason: data.reason,
+        question: data.question,
+      });
+    }
+
+    client.emit('agent:ack', { jobId: data.jobId, received: true });
+  }
+
+  /**
+   * Handle resume notification from agent (reconnected and resuming)
+   *
+   * @event agent:resume_available
+   */
+  @SubscribeMessage('agent:resume_available')
+  async handleResumeAvailable(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      jobId: string;
+      jobToken: string;
+      lastSequence: number;
+    },
+  ) {
+    const { agentId } = client.data;
+
+    if (!agentId) {
+      client.emit('agent:error', { error: 'Not registered' });
+      return;
+    }
+
+    this.logger.log(
+      `Agent ${agentId} available to resume job ${data.jobId} from sequence ${data.lastSequence}`,
+    );
+
+    // Get job and check if it's waiting for reconnect
+    const job = await this.prisma.remoteJob.findUnique({
+      where: { id: data.jobId },
+    });
+
+    if (!job) {
+      client.emit('agent:error', { error: 'Job not found' });
+      return;
+    }
+
+    if (job.status !== 'waiting_reconnect') {
+      client.emit('agent:error', {
+        error: `Job not in waiting_reconnect state (current: ${job.status})`,
+      });
+      return;
+    }
+
+    // Resume the job
+    await this.prisma.remoteJob.update({
+      where: { id: data.jobId },
+      data: {
+        status: 'running',
+        disconnectedAt: null,
+        reconnectExpiresAt: null,
+        lastHeartbeatAt: new Date(),
+      },
+    });
+
+    // Clear WorkflowRun disconnect time
+    if (job.workflowRunId) {
+      await this.prisma.workflowRun.update({
+        where: { id: job.workflowRunId },
+        data: { agentDisconnectedAt: null },
+      });
+    }
+
+    // Send resume acknowledgment
+    client.emit('agent:resume_ack', {
+      jobId: data.jobId,
+      resumed: true,
+      continueFromSequence: data.lastSequence,
+    });
+  }
+
+  /**
+   * Validate per-job JWT token
+   */
+  private validateJobToken(token: string, jobId: string, agentId: string): boolean {
+    try {
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        this.logger.error('JWT_SECRET not configured');
+        return false;
+      }
+
+      const decoded = jwt.verify(token, secret) as {
+        jobId: string;
+        agentId: string;
+        type: string;
+      };
+
+      return (
+        decoded.type === 'job-execution' &&
+        decoded.jobId === jobId &&
+        decoded.agentId === agentId
+      );
+    } catch (error) {
+      this.logger.warn(`Job token validation failed: ${error.message}`);
+      return false;
+    }
   }
 }

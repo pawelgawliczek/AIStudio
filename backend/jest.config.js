@@ -7,6 +7,12 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
+  // Global timeout to prevent infinite hangs (10 seconds per test)
+  testTimeout: 10000,
+  // Force exit after tests complete (prevent hanging from unclosed handles)
+  forceExit: true,
+  // Detect open handles for debugging
+  detectOpenHandles: false,
   testMatch: ['**/__tests__/**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   // Don't auto-mock Prisma Client

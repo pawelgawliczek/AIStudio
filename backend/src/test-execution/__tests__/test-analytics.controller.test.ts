@@ -48,10 +48,10 @@ describe('TestAnalyticsController', () => {
 
       mockTestAnalyticsService.getFlakyTests.mockResolvedValue(mockFlakyTests);
 
-      const result = await controller.getFlakyTests('project-uuid');
+      const result = await controller.getFlakyTests('project-uuid', 30);
 
       expect(result).toEqual(mockFlakyTests);
-      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 30, undefined);
+      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 30);
     });
 
     it('should accept custom days parameter', async () => {
@@ -59,21 +59,21 @@ describe('TestAnalyticsController', () => {
 
       await controller.getFlakyTests('project-uuid', 7);
 
-      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 7, undefined);
+      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 7);
     });
 
-    it('should accept custom threshold parameter', async () => {
+    it('should accept custom days parameter (90)', async () => {
       mockTestAnalyticsService.getFlakyTests.mockResolvedValue([]);
 
-      await controller.getFlakyTests('project-uuid', 30, 0.20);
+      await controller.getFlakyTests('project-uuid', 90);
 
-      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 30, 0.20);
+      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 90);
     });
 
     it('should handle empty results', async () => {
       mockTestAnalyticsService.getFlakyTests.mockResolvedValue([]);
 
-      const result = await controller.getFlakyTests('project-uuid');
+      const result = await controller.getFlakyTests('project-uuid', 30);
 
       expect(result).toEqual([]);
     });
@@ -81,7 +81,7 @@ describe('TestAnalyticsController', () => {
     it('should handle service errors', async () => {
       mockTestAnalyticsService.getFlakyTests.mockRejectedValue(new Error('Database error'));
 
-      await expect(controller.getFlakyTests('project-uuid')).rejects.toThrow('Database error');
+      await expect(controller.getFlakyTests('project-uuid', 30)).rejects.toThrow('Database error');
     });
   });
 
@@ -100,7 +100,7 @@ describe('TestAnalyticsController', () => {
 
       mockTestAnalyticsService.getTestPerformanceTrends.mockResolvedValue(mockTrends);
 
-      const result = await controller.getPerformanceTrends('project-uuid');
+      const result = await controller.getPerformanceTrends('project-uuid', 30);
 
       expect(result).toEqual(mockTrends);
       expect(service.getTestPerformanceTrends).toHaveBeenCalledWith('project-uuid', 30);
@@ -166,7 +166,7 @@ describe('TestAnalyticsController', () => {
 
       mockTestAnalyticsService.getTestExecutionTrends.mockResolvedValue(mockTrends);
 
-      const result = await controller.getExecutionTrends('project-uuid');
+      const result = await controller.getExecutionTrends('project-uuid', 30);
 
       expect(result).toEqual(mockTrends);
       expect(service.getTestExecutionTrends).toHaveBeenCalledWith('project-uuid', 30);
@@ -195,7 +195,7 @@ describe('TestAnalyticsController', () => {
 
       mockTestAnalyticsService.getSlowTests.mockResolvedValue(mockSlowTests);
 
-      const result = await controller.getSlowTests('project-uuid');
+      const result = await controller.getSlowTests('project-uuid', 10);
 
       expect(result).toEqual(mockSlowTests);
       expect(service.getSlowTests).toHaveBeenCalledWith('project-uuid', 10);
@@ -245,7 +245,7 @@ describe('TestAnalyticsController', () => {
 
       await controller.getFlakyTests('project-uuid', 365);
 
-      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 365, undefined);
+      expect(service.getFlakyTests).toHaveBeenCalledWith('project-uuid', 365);
     });
 
     it('should handle zero limit parameter', async () => {
@@ -262,7 +262,7 @@ describe('TestAnalyticsController', () => {
       const error = new Error('Service unavailable');
       mockTestAnalyticsService.getFlakyTests.mockRejectedValue(error);
 
-      await expect(controller.getFlakyTests('project-uuid')).rejects.toThrow('Service unavailable');
+      await expect(controller.getFlakyTests('project-uuid', 30)).rejects.toThrow('Service unavailable');
     });
 
     it('should handle malformed project IDs', async () => {

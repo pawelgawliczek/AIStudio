@@ -446,6 +446,8 @@ export function formatWorkflowState(
     postExecutionInstructions: state.postExecutionInstructions || undefined,
     requiresApproval: state.requiresApproval,
     mandatory: state.mandatory,
+    runLocation: state.runLocation, // ST-150
+    offlineFallback: state.offlineFallback, // ST-150
     createdAt: state.createdAt.toISOString(),
     updatedAt: state.updatedAt.toISOString(),
   };

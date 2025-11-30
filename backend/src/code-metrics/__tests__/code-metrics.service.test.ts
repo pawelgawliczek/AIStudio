@@ -15,6 +15,10 @@ describe('CodeMetricsService', () => {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
     },
+    codeMetricsSnapshot: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
     project: {
       findUnique: jest.fn(),
     },
@@ -24,6 +28,11 @@ describe('CodeMetricsService', () => {
     testCase: {
       count: jest.fn(),
       findMany: jest.fn(),
+    },
+    testExecution: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      count: jest.fn(),
     },
   };
 
@@ -45,6 +54,20 @@ describe('CodeMetricsService', () => {
     workersService = module.get<WorkersService>(WorkersService);
 
     jest.clearAllMocks();
+
+    // Set default mock return values for all Prisma methods
+    mockPrismaService.codeMetrics.findMany.mockResolvedValue([]);
+    mockPrismaService.codeMetrics.findUnique.mockResolvedValue(null);
+    mockPrismaService.codeMetrics.findFirst.mockResolvedValue(null);
+    mockPrismaService.codeMetricsSnapshot.findMany.mockResolvedValue([]);
+    mockPrismaService.codeMetricsSnapshot.findFirst.mockResolvedValue(null);
+    mockPrismaService.project.findUnique.mockResolvedValue(null);
+    mockPrismaService.commit.findMany.mockResolvedValue([]);
+    mockPrismaService.testCase.count.mockResolvedValue(0);
+    mockPrismaService.testCase.findMany.mockResolvedValue([]);
+    mockPrismaService.testExecution.findMany.mockResolvedValue([]);
+    mockPrismaService.testExecution.findFirst.mockResolvedValue(null);
+    mockPrismaService.testExecution.count.mockResolvedValue(0);
   });
 
   describe('getProjectMetrics - ST-7: Empty metrics handling', () => {
@@ -114,6 +137,21 @@ describe('CodeMetricsService', () => {
   describe('getProjectMetrics - with data', () => {
     const projectId = 'test-project-001';
 
+    beforeEach(() => {
+      // Mock project to have localPath for coverage lookup
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: projectId,
+        name: 'Test Project',
+        localPath: '/opt/stack/test-project',
+      });
+      // Mock test execution data to avoid filesystem fallback
+      mockPrismaService.testExecution.findMany.mockResolvedValue([
+        { status: 'pass', executedAt: new Date(), coveragePercentage: 80 },
+        { status: 'pass', executedAt: new Date(), coveragePercentage: 80 },
+        { status: 'fail', executedAt: new Date(), coveragePercentage: 80 },
+      ]);
+    });
+
     const mockMetrics = [
       {
         linesOfCode: 200,
@@ -163,8 +201,9 @@ describe('CodeMetricsService', () => {
 
       const result = await service.getProjectMetrics(projectId, {});
 
-      // (80*200 + 90*150 + 70*100) / 450 = (16000 + 13500 + 7000) / 450 = 81.11
-      expect(result.healthScore.coverage).toBeCloseTo(81, 0);
+      // ST-135: Coverage now comes from TestExecution table, not codeMetrics
+      // Mock testExecution has coveragePercentage: 80
+      expect(result.healthScore.coverage).toBeCloseTo(80, 0);
     });
 
     it('should calculate LOC-weighted average maintainability', async () => {
@@ -376,12 +415,29 @@ describe('CodeMetricsService', () => {
   });
 
   describe('getTrendData', () => {
-    it('should return trend data points even with empty metrics', async () => {
-      mockPrismaService.codeMetrics.findMany.mockResolvedValue([]);
+    it('should return empty array when no snapshots exist', async () => {
+      mockPrismaService.codeMetricsSnapshot.findMany.mockResolvedValue([]);
 
       const result = await service.getTrendData('test-project', 30);
 
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toEqual([]);
+    });
+
+    it('should return trend data points with snapshot data', async () => {
+      const mockSnapshots = [
+        {
+          snapshotDate: new Date('2025-01-01'),
+          healthScore: 75,
+          avgCoverage: 80,
+          avgComplexity: 10,
+          techDebtRatio: 20,
+        },
+      ];
+      mockPrismaService.codeMetricsSnapshot.findMany.mockResolvedValue(mockSnapshots);
+
+      const result = await service.getTrendData('test-project', 30);
+
+      expect(result.length).toBe(1);
       expect(result[0]).toHaveProperty('date');
       expect(result[0]).toHaveProperty('healthScore');
       expect(result[0]).toHaveProperty('coverage');
@@ -513,35 +569,43 @@ describe('CodeMetricsService', () => {
   });
 
   describe('getTestSummary', () => {
-    it('should return zeroed summary when no tests exist', async () => {
-      mockPrismaService.testCase.count.mockResolvedValue(0);
-      mockPrismaService.testCase.findMany.mockResolvedValue([]);
+    beforeEach(() => {
+      // Mock project to have localPath for coverage fallback
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: 'test-project',
+        name: 'Test Project',
+        localPath: '/opt/stack/test-project',
+      });
+    });
 
-      const result = await service.getTestSummary('test-project');
+    it('should return zeroed summary when no test executions exist', async () => {
+      // testExecution.findMany returns empty, so service falls back to coverage file
+      // Mock coverage file not found by keeping testExecution empty
+      mockPrismaService.testExecution.findMany.mockResolvedValue([]);
 
-      expect(result.totalTests).toBe(0);
-      expect(result.passing).toBe(0);
-      expect(result.failing).toBe(0);
-      expect(result.skipped).toBe(0);
-      expect(result.lastExecution).toBeUndefined();
+      // This will throw NotFoundException for coverage file - which is expected behavior
+      // when there are no test executions and no coverage file
+      await expect(service.getTestSummary('test-project')).rejects.toThrow(
+        'Coverage report not found'
+      );
     });
 
     it('should count test execution results correctly', async () => {
-      mockPrismaService.testCase.count.mockResolvedValue(5);
-      mockPrismaService.testCase.findMany.mockResolvedValue([
-        { executions: [{ status: 'pass', executedAt: new Date('2025-01-15T10:00:00Z') }] },
-        { executions: [{ status: 'pass', executedAt: new Date('2025-01-15T10:01:00Z') }] },
-        { executions: [{ status: 'fail', executedAt: new Date('2025-01-15T10:02:00Z') }] },
-        { executions: [{ status: 'skip', executedAt: new Date('2025-01-15T10:03:00Z') }] },
-        { executions: [] }, // No execution yet
+      mockPrismaService.testExecution.findMany.mockResolvedValue([
+        { status: 'pass', executedAt: new Date('2025-01-15T10:00:00Z'), coveragePercentage: 80 },
+        { status: 'pass', executedAt: new Date('2025-01-15T10:01:00Z'), coveragePercentage: 85 },
+        { status: 'fail', executedAt: new Date('2025-01-15T10:02:00Z'), coveragePercentage: 75 },
+        { status: 'skip', executedAt: new Date('2025-01-15T10:03:00Z'), coveragePercentage: null },
+        { status: 'pass', executedAt: new Date('2025-01-15T10:04:00Z'), coveragePercentage: 90 },
       ]);
 
       const result = await service.getTestSummary('test-project');
 
       expect(result.totalTests).toBe(5);
-      expect(result.passing).toBe(2);
+      expect(result.passing).toBe(3);
       expect(result.failing).toBe(1);
       expect(result.skipped).toBe(1);
+      expect(result.coveragePercentage).toBe(82.5); // avg of 80, 85, 75, 90
     });
   });
 

@@ -696,6 +696,10 @@ model WorkflowRun {
   pausedAt        DateTime? @map("paused_at") // When paused
   pauseReason     String?   @map("pause_reason") // Why paused (breakpoint, error, approval needed)
 
+  // ST-150: Remote agent execution tracking
+  executingAgentId    String?   @map("executing_agent_id") @db.Uuid // RemoteAgent ID if executing on laptop
+  agentDisconnectedAt DateTime? @map("agent_disconnected_at") // When remote agent disconnected (for pause-on-offline)
+
   // Timing
   startedAt       DateTime  @map("started_at")
   finishedAt      DateTime? @map("finished_at")
@@ -735,6 +739,8 @@ model WorkflowRun {
   // ST-143: Story Runner relations
   currentState  WorkflowState?   @relation("CurrentState", fields: [currentStateId], references: [id], onDelete: SetNull)
   breakpoints   RunnerBreakpoint[]
+  // ST-150: Agent stream events
+  agentStreamEvents AgentStreamEvent[]
 
   @@index([projectId])
   @@index([workflowId])
@@ -843,16 +849,22 @@ model ComponentRun {
   // Artifacts (S3 storage)
   artifacts Json? // Array of { name, s3Key, type, size }
 
+  // ST-150: Remote Execution Tracking
+  remoteJobId String? @map("remote_job_id") @db.Uuid // Link to RemoteJob if executed remotely
+  executedOn  String? @map("executed_on") // "kvm_server" | "laptop:hostname"
+
   // Relations
-  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-  component   Component   @relation(fields: [componentId], references: [id], onDelete: Restrict)
-  subtasks    Subtask[]
-  otelEvents  OtelEvent[]
+  workflowRun        WorkflowRun        @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  component          Component          @relation(fields: [componentId], references: [id], onDelete: Restrict)
+  subtasks           Subtask[]
+  otelEvents         OtelEvent[]
+  agentStreamEvents  AgentStreamEvent[] // ST-150: Streaming events from remote execution
 
   @@index([workflowRunId])
   @@index([componentId])
   @@index([startedAt])
   @@index([status])
+  @@index([remoteJobId]) // ST-150: Index for remote job lookups
   @@map("component_runs")
 }
 
@@ -1501,6 +1513,10 @@ model WorkflowState {
   requiresApproval Boolean @default(false) @map("requires_approval") // Human-in-the-loop gate
   mandatory        Boolean @default(true) // Must complete to proceed to next state
 
+  // ST-150: Remote Agent Execution Configuration
+  runLocation     String @default("local") @map("run_location") // "local" | "laptop"
+  offlineFallback String @default("pause") @map("offline_fallback") // "pause" | "skip" | "fail"
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1549,10 +1565,16 @@ model RemoteAgent {
   socketId     String?   @map("socket_id")
   status       String    @default("offline") // online, offline
   lastSeenAt   DateTime? @map("last_seen_at")
-  capabilities String[]  // ['parse-transcript', 'analyze-story-transcripts']
+  capabilities String[]  // ['parse-transcript', 'analyze-story-transcripts', 'claude-code']
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
+  // ST-150: Claude Code execution support
+  claudeCodeAvailable Boolean   @default(false) @map("claude_code_available") // Whether Claude Code CLI is available
+  claudeCodeVersion   String?   @map("claude_code_version") // Version of Claude Code CLI
+  currentExecutionId  String?   @map("current_execution_id") @db.Uuid // Currently executing job ID
+
+  @@index([status, claudeCodeAvailable]) // ST-150: Find online agents with Claude Code
   @@map("remote_agents")
 }
 
@@ -1561,7 +1583,7 @@ model RemoteJob {
   id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   script      String
   params      Json
-  status      String    @default("pending") // pending, running, completed, failed, timeout
+  status      String    @default("pending") // pending, running, completed, failed, timeout, waiting_reconnect
   result      Json?
   error       String?
   agentId     String?   @map("agent_id")
@@ -1570,6 +1592,46 @@ model RemoteJob {
   startedAt   DateTime? @map("started_at")
   completedAt DateTime? @map("completed_at")
 
+  // ST-150: Claude Code execution fields
+  jobType            String?   @map("job_type") // 'script' | 'claude-agent'
+  componentRunId     String?   @map("component_run_id") @db.Uuid // Link to ComponentRun for Claude jobs
+  workflowRunId      String?   @map("workflow_run_id") @db.Uuid // Link to WorkflowRun
+  lastHeartbeatAt    DateTime? @map("last_heartbeat_at") // For tiered heartbeat monitoring
+  disconnectedAt     DateTime? @map("disconnected_at") // When agent disconnected during execution
+  reconnectExpiresAt DateTime? @map("reconnect_expires_at") // Grace period expiration (15 min from disconnect)
+
   @@index([status, createdAt])
+  @@index([componentRunId]) // ST-150: Find job by component run
+  @@index([workflowRunId, status]) // ST-150: Find running jobs for workflow
+  @@index([status, reconnectExpiresAt]) // ST-150: Orphan detection query
   @@map("remote_jobs")
+}
+
+// ============================================================================
+// ST-150: AGENT STREAM EVENTS (Real-time execution streaming)
+// ============================================================================
+
+// AgentStreamEvent - Stores streaming events from Claude Code agent execution
+// Captures token updates, tool calls, tool results, and stream completion events
+model AgentStreamEvent {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  componentRunId  String   @map("component_run_id") @db.Uuid
+  workflowRunId   String   @map("workflow_run_id") @db.Uuid
+
+  // Event data
+  eventType       String   @map("event_type") // token_update, tool_call, tool_result, activity_change, stream_end
+  sequenceNumber  Int      @map("sequence_number") // For ordering and replay
+  timestamp       DateTime
+  payload         Json // Event-specific data
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  componentRun    ComponentRun @relation(fields: [componentRunId], references: [id], onDelete: Cascade)
+  workflowRun     WorkflowRun  @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([componentRunId, sequenceNumber])
+  @@index([workflowRunId, eventType])
+  @@index([componentRunId, eventType, timestamp]) // For filtering by event type
+  @@map("agent_stream_events")
 }

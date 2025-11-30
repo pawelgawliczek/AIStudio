@@ -184,10 +184,32 @@ export class BuildDecisionService {
    * Make a build decision based on current state and target commit
    */
   async makeBuildDecision(targetCommit: string = 'HEAD'): Promise<BuildDecision> {
-    // Get current commit if HEAD
-    const currentCommit = targetCommit === 'HEAD'
-      ? this.getCurrentCommit()
-      : targetCommit;
+    // Get current commit if HEAD (with error handling)
+    let currentCommit: string;
+    try {
+      currentCommit = targetCommit === 'HEAD'
+        ? this.getCurrentCommit()
+        : targetCommit;
+    } catch (error: any) {
+      console.error(`[BuildDecisionService] Failed to get current commit: ${error.message}`);
+      // Return safe "no changes" decision on error
+      return {
+        skipBackendBuild: true,
+        skipFrontendBuild: true,
+        reason: 'Git error - unable to determine changes',
+        analysis: {
+          changeType: ChangeType.NONE,
+          backendFiles: [],
+          frontendFiles: [],
+          sharedFiles: [],
+          docsFiles: [],
+          totalChangedFiles: 0,
+          reason: 'Git command failed',
+          skipBackendBuild: true,
+          skipFrontendBuild: true,
+        },
+      };
+    }
 
     // Get last deployed commits for both services
     const [lastBackendCommit, lastFrontendCommit] = await Promise.all([
@@ -293,9 +315,11 @@ export class BuildDecisionService {
 
   private isDocsFile(file: string): boolean {
     return this.docsPatterns.some(pattern => {
-      if (pattern.startsWith('.')) {
+      // Handle file extensions (e.g., .md)
+      if (pattern.startsWith('.') && !pattern.includes('/')) {
         return file.endsWith(pattern);
       }
+      // Handle directory patterns (e.g., docs/, .github/)
       return file.startsWith(pattern) || file.includes(`/${pattern}`);
     });
   }

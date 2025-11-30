@@ -36,6 +36,15 @@ describe('CodeMetricsService - ST-37 Test Metrics Fix', () => {
     commit: {
       findFirst: jest.fn(),
     },
+    testExecution: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      count: jest.fn(),
+    },
+    testCase: {
+      count: jest.fn(),
+      findMany: jest.fn(),
+    },
   };
 
   const mockWorkersService = {
@@ -494,6 +503,8 @@ describe('CodeMetricsService - ST-37 Test Metrics Fix', () => {
         id: projectId,
         localPath: mockLocalPath,
       });
+      // Mock testExecution to return empty (falls back to coverage file)
+      mockPrismaService.testExecution.findMany.mockResolvedValue([]);
       (fs.readFileSync as jest.Mock).mockReturnValue(mockCoverageJson);
       (fs.statSync as jest.Mock).mockReturnValue({ mtime: new Date() });
 
@@ -520,6 +531,8 @@ describe('CodeMetricsService - ST-37 Test Metrics Fix', () => {
         id: projectId,
         localPath: '/opt/stack/AIStudio/backend',
       });
+      // Mock testExecution to return empty (falls back to coverage file)
+      mockPrismaService.testExecution.findMany.mockResolvedValue([]);
       (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({
         total: { lines: { pct: 11.88 } },
       }));

@@ -82,6 +82,7 @@ describe('DeploymentService', () => {
         findMany: jest.fn(),
         findFirst: jest.fn(),
       },
+      $queryRaw: jest.fn().mockResolvedValue([{ value: 1 }]), // Mock for health check
     };
 
     // Create mock services

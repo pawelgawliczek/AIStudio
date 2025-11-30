@@ -61,6 +61,18 @@ export const tool: Tool = {
         description:
           'If true, this state must complete successfully to proceed (default: true)',
       },
+      runLocation: {
+        type: 'string',
+        enum: ['local', 'laptop'],
+        description:
+          'ST-150: Where to execute the agent - "local" (KVM Docker) or "laptop" (remote agent). Default: "local"',
+      },
+      offlineFallback: {
+        type: 'string',
+        enum: ['pause', 'skip', 'fail'],
+        description:
+          'ST-150: What to do if laptop agent is offline - "pause" (wait), "skip" (continue), "fail" (abort). Default: "pause"',
+      },
     },
     required: ['workflowId', 'name', 'order'],
   },
@@ -135,6 +147,16 @@ export async function handler(
       );
     }
 
+    // Validate runLocation if provided
+    if (params.runLocation && !['local', 'laptop'].includes(params.runLocation)) {
+      throw new ValidationError('runLocation must be "local" or "laptop"');
+    }
+
+    // Validate offlineFallback if provided
+    if (params.offlineFallback && !['pause', 'skip', 'fail'].includes(params.offlineFallback)) {
+      throw new ValidationError('offlineFallback must be "pause", "skip", or "fail"');
+    }
+
     // Create workflow state
     const state = await prisma.workflowState.create({
       data: {
@@ -146,6 +168,8 @@ export async function handler(
         postExecutionInstructions: params.postExecutionInstructions,
         requiresApproval: params.requiresApproval ?? false,
         mandatory: params.mandatory ?? true,
+        runLocation: params.runLocation ?? 'local', // ST-150
+        offlineFallback: params.offlineFallback ?? 'pause', // ST-150
       },
       include: {
         component: true,

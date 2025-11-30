@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkflowStateService } from '../../execution/workflow-state.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 import { RunStatus } from '../dto';
 import { WorkflowRunsService } from '../workflow-runs.service';
 
@@ -73,12 +74,19 @@ describe('WorkflowRunsService', () => {
 
   const mockWorkflowStateService = {};
 
+  const mockWebSocketGateway = {
+    server: {
+      emit: jest.fn(),
+    },
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkflowRunsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: WorkflowStateService, useValue: mockWorkflowStateService },
+        { provide: AppWebSocketGateway, useValue: mockWebSocketGateway },
       ],
     }).compile();
 

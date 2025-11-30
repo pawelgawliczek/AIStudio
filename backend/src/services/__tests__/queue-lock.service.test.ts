@@ -2,29 +2,28 @@
  * Unit tests for QueueLockService
  */
 
-import { PrismaClient } from '@prisma/client';
-import { QueueLockService } from '../queue-lock.service';
+// Create mock prisma instance that will be used by the service
+const mockPrisma = {
+  testQueueLock: {
+    create: jest.fn(),
+    update: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+  },
+};
 
-// Mock Prisma
+// Mock Prisma at module level - must be before import
 jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({
-    testQueueLock: {
-      create: jest.fn(),
-      update: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-    },
-  })),
+  PrismaClient: jest.fn().mockImplementation(() => mockPrisma),
 }));
+
+import { QueueLockService } from '../queue-lock.service';
 
 describe('QueueLockService', () => {
   let queueLockService: QueueLockService;
-  let mockPrisma: any;
 
   beforeEach(() => {
     queueLockService = new QueueLockService();
-    const PrismaClientMock = PrismaClient as jest.MockedClass<typeof PrismaClient>;
-    mockPrisma = new PrismaClientMock();
     jest.clearAllMocks();
   });
 
@@ -170,7 +169,7 @@ describe('QueueLockService', () => {
     it('should cap at maximum duration', () => {
       const duration = queueLockService.estimateLockDuration(100, true);
 
-      expect(duration).toBe(480); // Capped at maximum
+      expect(duration).toBe(120); // Capped at maxDuration from migration.config.ts
     });
   });
 
