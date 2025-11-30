@@ -813,9 +813,18 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
       });
 
       it('should set breakpoint by stateName', async () => {
+        // Get the actual state name from the test context
+        // State names are prefixed with _TEST_EP8_State_analysis_<timestamp>
+        const run = await prisma.workflowRun.findUnique({
+          where: { id: breakpointRunId },
+          include: { workflow: { include: { states: true } } },
+        });
+        const analysisState = run?.workflow.states.find(s => s.name.includes('analysis'));
+        expect(analysisState).toBeDefined();
+
         const result = await setBreakpoint(prisma, {
           runId: breakpointRunId,
-          stateName: 'analysis', // First state name from test setup
+          stateName: analysisState!.name, // Use actual state name
           position: 'after',
         });
 
@@ -882,6 +891,47 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
         expect(result.success).toBe(true);
         // May be 'created' or 'reactivated' depending on implementation
         console.log(`  ✓ Breakpoint reactivated: ${result.status}`);
+      });
+
+      it('should allow both before and after breakpoints on same state', async () => {
+        // Set before breakpoint
+        const beforeResult = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![0],
+          position: 'before',
+        });
+        expect(beforeResult.success).toBe(true);
+
+        // Set after breakpoint on same state - should succeed
+        const afterResult = await setBreakpoint(prisma, {
+          runId: breakpointRunId,
+          stateId: ctx.workflowStateIds![0],
+          position: 'after',
+        });
+        expect(afterResult.success).toBe(true);
+        console.log(`  ✓ Both before+after on same state allowed`);
+      });
+
+      it('should reject breakpoint on invalid state', async () => {
+        await expect(
+          setBreakpoint(prisma, {
+            runId: breakpointRunId,
+            stateId: '00000000-0000-0000-0000-000000000000',
+            position: 'before',
+          })
+        ).rejects.toThrow(/state|not found|invalid/i);
+        console.log(`  ✓ Invalid state rejected`);
+      });
+
+      it('should reject breakpoint on invalid run', async () => {
+        await expect(
+          setBreakpoint(prisma, {
+            runId: '00000000-0000-0000-0000-000000000000',
+            stateId: ctx.workflowStateIds![0],
+            position: 'before',
+          })
+        ).rejects.toThrow(/run|not found|invalid/i);
+        console.log(`  ✓ Invalid run rejected`);
       });
     });
 
