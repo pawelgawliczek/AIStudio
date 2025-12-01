@@ -177,22 +177,24 @@ export function checkFilesystemExists(worktreePath: string): boolean {
  * Prevents:
  * - Deleting main repository
  * - Path traversal attacks
- * - Operating outside /opt/stack/worktrees directory
+ * - Operating outside allowed worktree directories
+ *
+ * ST-158: Support both KVM worktrees (/opt/stack/worktrees) and
+ * laptop worktrees (~/worktrees or project/worktrees)
  *
  * @param worktreePath - Path to validate
+ * @param hostType - Optional host type ('local' for laptop, undefined for KVM)
  * @throws ValidationError if path is invalid or unsafe
  */
-export function validateWorktreePath(worktreePath: string): void {
-  // Never delete main repository
-  if (worktreePath === '/opt/stack/AIStudio') {
-    throw new ValidationError('Cannot delete main repository worktree');
-  }
+export function validateWorktreePath(worktreePath: string, hostType?: string): void {
+  // Never delete main repositories
+  const forbiddenPaths = [
+    '/opt/stack/AIStudio',
+    '/Users/pawelgawliczek/projects/AIStudio', // Laptop main repo
+  ];
 
-  // Must be within worktrees directory
-  if (!worktreePath.startsWith('/opt/stack/worktrees/')) {
-    throw new ValidationError(
-      `Invalid worktree path: ${worktreePath}. Must be within /opt/stack/worktrees/`
-    );
+  if (forbiddenPaths.includes(worktreePath)) {
+    throw new ValidationError('Cannot delete main repository worktree');
   }
 
   // Prevent path traversal
@@ -200,6 +202,29 @@ export function validateWorktreePath(worktreePath: string): void {
   if (normalized.includes('..')) {
     throw new ValidationError(
       `Invalid worktree path: ${worktreePath}. Path traversal detected.`
+    );
+  }
+
+  // ST-158: For laptop worktrees (hostType='local'), allow paths in user's project worktrees
+  if (hostType === 'local') {
+    // Laptop worktree paths - must contain 'worktrees' or be in user's home
+    const isValidLaptopPath =
+      worktreePath.includes('/worktrees/') ||
+      worktreePath.startsWith('/Users/') ||
+      worktreePath.startsWith(process.env.HOME || '');
+
+    if (!isValidLaptopPath) {
+      throw new ValidationError(
+        `Invalid laptop worktree path: ${worktreePath}. Must be within a worktrees directory.`
+      );
+    }
+    return;
+  }
+
+  // KVM worktrees - must be within /opt/stack/worktrees/
+  if (!worktreePath.startsWith('/opt/stack/worktrees/')) {
+    throw new ValidationError(
+      `Invalid worktree path: ${worktreePath}. Must be within /opt/stack/worktrees/`
     );
   }
 }

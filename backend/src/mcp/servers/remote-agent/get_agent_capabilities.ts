@@ -1,5 +1,6 @@
 /**
  * ST-150: Get Agent Capabilities Tool
+ * ST-158: Added projectPath and worktreeRoot to agent response
  *
  * Returns detailed capabilities for a specific agent or all approved capabilities.
  * Used to check what an agent can do before dispatching work.
@@ -17,14 +18,15 @@ export const tool: Tool = {
   description: `Get capabilities for a remote agent or list all approved capabilities.
 
 Returns:
-- For specific agent: Agent details with its registered capabilities
+- For specific agent: Agent details with its registered capabilities, projectPath, and worktreeRoot
 - Without agentId: All approved scripts and capabilities with their configurations
 
 Capabilities include:
 - parse-transcript: Parse Claude Code transcripts for metrics
 - analyze-story-transcripts: Analyze transcripts for a story
 - list-transcripts: List available transcript files
-- claude-code: Execute Claude Code sessions (60 min timeout)`,
+- claude-code: Execute Claude Code sessions (60 min timeout)
+- git-execute: Execute git commands on laptop (ST-153)`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -77,6 +79,9 @@ export async function handler(
     capabilities: string[];
     claudeCodeAvailable: boolean;
     claudeCodeVersion: string | null;
+    // ST-158: Agent config paths
+    projectPath?: string;
+    worktreeRoot?: string;
   };
   approvedCapabilities: CapabilityInfo[];
   agentCapabilities?: CapabilityInfo[];
@@ -125,6 +130,12 @@ export async function handler(
       agent.capabilities.includes(cap.name),
     );
 
+    // ST-158: Extract paths from agent config
+    const agentConfig = (agent.config as Record<string, unknown>) || {};
+    const projectPath = (agentConfig.projectPath as string) || undefined;
+    const worktreeRoot = (agentConfig.worktreeRoot as string) ||
+      (projectPath ? `${projectPath}/worktrees` : undefined);
+
     return {
       success: true,
       agent: {
@@ -134,6 +145,8 @@ export async function handler(
         capabilities: agent.capabilities,
         claudeCodeAvailable: agent.claudeCodeAvailable,
         claudeCodeVersion: agent.claudeCodeVersion,
+        projectPath,
+        worktreeRoot,
       },
       approvedCapabilities,
       agentCapabilities,

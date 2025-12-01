@@ -32,6 +32,18 @@ export interface TestContext {
 
   // Phase 7: Full Path (Laptop)
   spawnedAgentJobId?: string;
+
+  // ST-153: Worktree Tests
+  worktreeId?: string;
+  worktreePath?: string;
+  branchName?: string;
+
+  // ST-158: MCP-Orchestrated Worktree Tests
+  agentId?: string;
+  agentHostname?: string;
+  agentProjectPath?: string;
+  agentWorktreeRoot?: string;
+  mcpOrchestrated?: boolean;
 }
 
 /**

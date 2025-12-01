@@ -39,6 +39,16 @@ export async function cleanupTestData(
   // Fallback: Delete in reverse dependency order
   console.log('[CLEANUP] Running fallback cleanup...');
 
+  // 0. Delete worktrees first (ST-153)
+  if (ctx.worktreeId) {
+    try {
+      await prisma.worktree.delete({ where: { id: ctx.worktreeId } });
+      console.log('[CLEANUP] Deleted worktree');
+    } catch (error: any) {
+      errors.push(`Worktree delete failed: ${error.message}`);
+    }
+  }
+
   // 1. Delete artifacts (most dependent)
   if (ctx.artifactId) {
     try {

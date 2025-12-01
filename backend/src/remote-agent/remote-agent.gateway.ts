@@ -200,6 +200,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
    * @param secret - Pre-shared secret for initial authentication
    * @param hostname - Agent hostname
    * @param capabilities - Array of script capabilities
+   * @param config - ST-158: Agent config (projectPath, worktreeRoot)
    */
   @SubscribeMessage('agent:register')
   async handleAgentRegister(
@@ -209,9 +210,13 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       hostname: string;
       capabilities: string[];
       claudeCodeVersion?: string; // ST-150: Claude Code CLI version
+      config?: {
+        projectPath?: string;
+        worktreeRoot?: string;
+      }; // ST-158: Agent config
     },
   ) {
-    const { secret, hostname, capabilities, claudeCodeVersion } = data;
+    const { secret, hostname, capabilities, claudeCodeVersion, config } = data;
 
     // Validate pre-shared secret
     const expectedSecret = process.env.AGENT_SECRET || 'development-secret-change-in-production';
@@ -235,6 +240,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     const hasClaudeCode = capabilities.includes('claude-code');
 
     // Register or update agent in database
+    // ST-158: Include config for projectPath and worktreeRoot
     try {
       const agent = await this.prisma.remoteAgent.upsert({
         where: { hostname },
@@ -246,6 +252,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           lastSeenAt: new Date(),
           claudeCodeAvailable: hasClaudeCode,
           claudeCodeVersion: claudeCodeVersion || null,
+          config: config || {}, // ST-158: Store agent config
         },
         update: {
           socketId: client.id,
@@ -255,6 +262,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           claudeCodeAvailable: hasClaudeCode,
           claudeCodeVersion: claudeCodeVersion || null,
           currentExecutionId: null, // Clear on reconnect
+          config: config || {}, // ST-158: Update agent config
         },
       });
 

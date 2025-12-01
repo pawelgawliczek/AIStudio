@@ -155,8 +155,12 @@ export class RemoteAgent {
 
   /**
    * Register agent with server using pre-shared secret
+   * ST-158: Include projectPath and worktreeRoot for MCP orchestration
    */
   private async register(): Promise<void> {
+    // ST-158: Calculate worktree root path
+    const worktreeRoot = `${this.config.projectPath}/worktrees`;
+
     return new Promise((resolve, reject) => {
       this.socket!.emit(
         'agent:register',
@@ -165,6 +169,11 @@ export class RemoteAgent {
           hostname: this.config.hostname,
           capabilities: this.config.capabilities,
           claudeCodeVersion: this.claudeCodeVersion || undefined, // ST-150
+          // ST-158: Include paths for MCP-orchestrated worktree creation
+          config: {
+            projectPath: this.config.projectPath,
+            worktreeRoot,
+          },
         },
         (response: any) => {
           if (response?.error) {

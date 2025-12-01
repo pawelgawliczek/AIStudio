@@ -1680,7 +1680,7 @@ model RemoteAgent {
   socketId     String?   @map("socket_id")
   status       String    @default("offline") // online, offline
   lastSeenAt   DateTime? @map("last_seen_at")
-  capabilities String[]  // ['parse-transcript', 'analyze-story-transcripts', 'claude-code']
+  capabilities String[]  // ['parse-transcript', 'analyze-story-transcripts', 'claude-code', 'git-execute']
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -1688,6 +1688,9 @@ model RemoteAgent {
   claudeCodeAvailable Boolean   @default(false) @map("claude_code_available") // Whether Claude Code CLI is available
   claudeCodeVersion   String?   @map("claude_code_version") // Version of Claude Code CLI
   currentExecutionId  String?   @map("current_execution_id") @db.Uuid // Currently executing job ID
+
+  // ST-158: Agent configuration (projectPath, worktreeRoot for MCP orchestration)
+  config              Json      @default("{}") // { projectPath: string, worktreeRoot: string }
 
   @@index([status, claudeCodeAvailable]) // ST-150: Find online agents with Claude Code
   @@map("remote_agents")

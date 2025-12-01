@@ -1,6 +1,11 @@
 /**
  * Git Create Worktree Tool
  * Creates a git worktree for a story with automatic branch naming and database tracking
+ *
+ * ST-158: MCP-Orchestrated Laptop Worktree Creation via Remote Agent
+ * - When target='laptop', creates worktree on laptop via remote agent
+ * - Uses execGitLocationAware() for location-aware git execution
+ * - Records worktree with hostType='local' and correct hostName
  */
 
 import { execSync } from 'child_process';
@@ -11,15 +16,27 @@ import { PrismaClient } from '@prisma/client';
 import {
   NotFoundError,
   ValidationError,
+  MCPError,
 } from '../../types';
 import {
   validateRequired,
   handlePrismaError,
 } from '../../utils';
+import {
+  execGitLocationAware,
+  isLaptopAgentOnline,
+} from './git_utils';
 
 export const tool: Tool = {
   name: 'git_create_worktree',
-  description: 'Create a git worktree for a story with automatic branch naming and database tracking',
+  description: `Create a git worktree for a story with automatic branch naming and database tracking.
+
+ST-158: MCP-Orchestrated Laptop Worktree Creation
+- target='laptop': Creates worktree on laptop via remote agent (MCP orchestrated)
+- target='kvm': Creates worktree on KVM server (local execution)
+- target='auto': Auto-detect based on environment (default)
+
+When target='laptop', the MCP server executes git commands on the laptop via the remote agent infrastructure.`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -38,7 +55,7 @@ export const tool: Tool = {
       target: {
         type: 'string',
         enum: ['auto', 'laptop', 'kvm'],
-        description: 'ST-153: Target host for worktree creation. Note: worktrees must be created where they will be used (laptop or kvm). Uses runLocally directive when remote execution detected.',
+        description: 'ST-158: Target host for worktree creation. "laptop" executes via remote agent, "kvm" executes locally, "auto" detects environment.',
       },
     },
     required: ['storyId'],
@@ -115,6 +132,138 @@ function execGit(command: string, cwd?: string): string {
   }
 }
 
+/**
+ * ST-158: Create worktree on laptop via remote agent
+ *
+ * Executes git commands on the laptop via the remote agent infrastructure:
+ * 1. Validates laptop agent is online
+ * 2. Gets agent config for paths (projectPath, worktreeRoot)
+ * 3. Executes git fetch, branch, worktree add via remote agent
+ * 4. Records worktree in database with hostType='local'
+ */
+async function createWorktreeOnLaptop(
+  prisma: PrismaClient,
+  params: CreateWorktreeParams,
+  story: { id: string; key: string; title: string },
+  baseBranch: string,
+): Promise<CreateWorktreeResponse> {
+  // 1. Check if laptop agent is online
+  const agent = await prisma.remoteAgent.findFirst({
+    where: {
+      status: 'online',
+      capabilities: { has: 'git-execute' },
+    },
+  });
+
+  if (!agent) {
+    throw new MCPError(
+      'AGENT_OFFLINE',
+      'Laptop agent is offline. Cannot create worktree on laptop. ' +
+      'Start the agent with: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist'
+    );
+  }
+
+  // 2. Get agent config for paths
+  const agentConfig = (agent.config as Record<string, unknown>) || {};
+  const projectPath = (agentConfig.projectPath as string) || '/Users/pawelgawliczek/projects/AIStudio';
+  const worktreeRoot = (agentConfig.worktreeRoot as string) || `${projectPath}/worktrees`;
+
+  // 3. Generate branch name
+  const branchName = params.branchName || generateBranchName(story.key, story.title);
+  const worktreePath = `${worktreeRoot}/${branchName}`;
+
+  console.log(`[ST-158] Creating worktree on laptop via remote agent`);
+  console.log(`[ST-158] Project path: ${projectPath}`);
+  console.log(`[ST-158] Worktree path: ${worktreePath}`);
+  console.log(`[ST-158] Branch: ${branchName}`);
+
+  // 4. Check if worktree already exists for this story
+  const existingWorktree = await prisma.worktree.findFirst({
+    where: {
+      storyId: params.storyId,
+      status: { in: ['active', 'idle'] },
+    },
+  });
+
+  if (existingWorktree) {
+    throw new ValidationError(
+      `Worktree already exists for story ${story.key} at ${existingWorktree.worktreePath}`
+    );
+  }
+
+  // 5. Execute git commands on laptop via remote agent
+  const options = { target: 'laptop' as const, prisma };
+
+  // Fetch latest from origin
+  const fetchResult = await execGitLocationAware(`git fetch origin ${baseBranch}`, projectPath, options);
+  if (!fetchResult.success) {
+    throw new MCPError('GIT_ERROR', `Failed to fetch from origin: ${fetchResult.error}`);
+  }
+  console.log(`[ST-158] Fetched origin/${baseBranch}`);
+
+  // Create branch from origin/baseBranch
+  const branchResult = await execGitLocationAware(
+    `git branch ${branchName} origin/${baseBranch}`,
+    projectPath,
+    options
+  );
+  if (!branchResult.success) {
+    // Branch might already exist - check if it's an error we can ignore
+    if (!branchResult.error?.includes('already exists')) {
+      throw new MCPError('GIT_ERROR', `Failed to create branch: ${branchResult.error}`);
+    }
+    console.log(`[ST-158] Branch ${branchName} already exists, using existing branch`);
+  } else {
+    console.log(`[ST-158] Created branch ${branchName}`);
+  }
+
+  // Create worktree
+  const worktreeResult = await execGitLocationAware(
+    `git worktree add "${worktreePath}" ${branchName}`,
+    projectPath,
+    options
+  );
+  if (!worktreeResult.success) {
+    // Clean up branch on failure
+    await execGitLocationAware(`git branch -D ${branchName}`, projectPath, options);
+    throw new MCPError('GIT_ERROR', `Failed to create worktree: ${worktreeResult.error}`);
+  }
+  console.log(`[ST-158] Created worktree at ${worktreePath}`);
+
+  // 6. Record worktree in database with hostType='local'
+  const worktree = await prisma.worktree.create({
+    data: {
+      storyId: params.storyId,
+      branchName,
+      worktreePath,
+      baseBranch,
+      status: 'active',
+      hostType: 'local',
+      hostName: agent.hostname,
+    },
+  });
+
+  // 7. Update story phase to implementation
+  await prisma.story.update({
+    where: { id: params.storyId },
+    data: {
+      currentPhase: 'implementation',
+    },
+  });
+
+  console.log(`[ST-158] Worktree created successfully on laptop: ${worktree.id}`);
+
+  return {
+    worktreeId: worktree.id,
+    storyId: params.storyId,
+    branchName,
+    worktreePath,
+    baseBranch,
+    message: `Successfully created worktree for ${story.key} on laptop at ${worktreePath}`,
+    executedOn: 'laptop',
+  };
+}
+
 export async function handler(
   prisma: PrismaClient,
   params: CreateWorktreeParams,
@@ -122,13 +271,46 @@ export async function handler(
   try {
     validateRequired(params, ['storyId']);
 
+    const baseBranch = params.baseBranch || 'main';
+
+    // ST-158: Handle explicit target='laptop' - execute via remote agent
+    if (params.target === 'laptop') {
+      // Verify story exists first
+      const story = await prisma.story.findUnique({
+        where: { id: params.storyId },
+        select: { id: true, key: true, title: true },
+      });
+
+      if (!story) {
+        throw new NotFoundError('Story', params.storyId);
+      }
+
+      // Check if worktree already exists
+      const existingWorktree = await prisma.worktree.findFirst({
+        where: {
+          storyId: params.storyId,
+          status: { in: ['active', 'idle'] },
+        },
+      });
+
+      if (existingWorktree) {
+        throw new ValidationError(
+          `Worktree already exists for story ${story.key} at ${existingWorktree.worktreePath}`
+        );
+      }
+
+      return await createWorktreeOnLaptop(prisma, params, story, baseBranch);
+    }
+
     // Detect if running remotely via SSH or in Docker (ST-125)
     const isRunningRemotely = !!process.env.SSH_CONNECTION ||
       process.env.VIBESTUDIO_REMOTE === 'true' ||
       !!process.env.DOCKER_CONTAINER ||
       fs.existsSync('/.dockerenv');
 
-    if (isRunningRemotely) {
+    // ST-158: For target='auto' (default), return runLocally directive when running remotely
+    // unless explicitly targeting KVM
+    if (isRunningRemotely && params.target !== 'kvm') {
       // Get story info for the slash command
       const story = await prisma.story.findUnique({
         where: { id: params.storyId },
@@ -147,20 +329,19 @@ export async function handler(
           branchName: params.branchName,
           baseBranch: params.baseBranch || 'main',
         },
-        instructions: `MCP server is running remotely. Use the slash command to create worktree locally:
+        instructions: `MCP server is running remotely. You have two options:
 
-/git_create_worktree ${params.storyId}
+1. Use the MCP tool with target='laptop' for fully orchestrated creation:
+   git_create_worktree({ storyId: "${params.storyId}", target: "laptop" })
 
-This will:
-1. Create the git worktree on your LOCAL machine
-2. Record the worktree in the database via record_worktree_created MCP tool
-
-After creating the worktree locally, call record_worktree_created to update the database.`,
+2. Use the slash command to create worktree manually:
+   /git_create_worktree ${params.storyId}
+   Then call record_worktree_created to update the database.`,
         story: { key: story.key, title: story.title },
       };
     }
 
-    const baseBranch = params.baseBranch || 'main';
+    // KVM local execution path
     const repoPath = '/opt/stack/AIStudio';
 
     // 1. Verify story exists
