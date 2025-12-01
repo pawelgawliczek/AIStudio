@@ -74,4 +74,31 @@ export class RemoteAgentController {
     this.validateSecret(secret);
     return this.remoteExecution.listJobs(20);
   }
+
+  /**
+   * ST-158: Execute a git command remotely
+   * POST /api/remote-agent/git-execute
+   * Requires X-Agent-Secret header
+   * Body: { command: "git status", cwd: "/path/to/worktree", timeout?: 30000 }
+   */
+  @Post('git-execute')
+  async gitExecute(
+    @Headers('x-agent-secret') secret: string,
+    @Body() body: { command: string; cwd: string; timeout?: number },
+  ) {
+    this.validateSecret(secret);
+    this.logger.log(`Git execute request: ${body.command} in ${body.cwd}`);
+
+    try {
+      const result = await this.remoteExecution.executeGitCommand({
+        command: body.command,
+        cwd: body.cwd,
+        timeout: body.timeout,
+      });
+      return result;
+    } catch (error) {
+      this.logger.error(`Git execution failed: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
 }

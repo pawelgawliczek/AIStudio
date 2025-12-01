@@ -330,29 +330,41 @@ function execGitLocal(command: string, cwd: string, timeout?: number): LocationA
 }
 
 /**
- * Execute git command remotely on laptop via RemoteExecutionService
+ * Execute git command remotely on laptop via HTTP API
+ * ST-158: Fallback to HTTP when RemoteExecutionService is not available (MCP server context)
  */
-async function execGitRemote(
+async function execGitViaHttp(
   command: string,
   cwd: string,
   timeout?: number
 ): Promise<LocationAwareResult> {
-  if (!remoteExecutionService) {
-    throw new MCPError(
-      'REMOTE_NOT_CONFIGURED',
-      'Remote execution service not configured. Cannot execute git commands on laptop.'
-    );
-  }
+  const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:3000';
+  const apiSecret = process.env.INTERNAL_API_SECRET || process.env.AGENT_SECRET || '';
 
   try {
-    const result = await remoteExecutionService.executeGitCommand({
-      command,
-      cwd,
-      timeout,
+    const response = await fetch(`${backendUrl}/api/remote-agent/git-execute`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Agent-Secret': apiSecret,
+      },
+      body: JSON.stringify({ command, cwd, timeout }),
     });
 
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`HTTP ${response.status}: ${text}`);
+    }
+
+    const result = await response.json() as {
+      success: boolean;
+      output?: string;
+      error?: string;
+      agentOffline?: boolean;
+    };
+
     // Check for offline fallback
-    if ('agentOffline' in result && result.agentOffline) {
+    if (result.agentOffline) {
       return {
         success: false,
         error: result.error || 'Laptop agent is offline. Cannot execute git command on remote worktree.',
@@ -369,10 +381,55 @@ async function execGitRemote(
   } catch (error: any) {
     return {
       success: false,
-      error: error.message,
+      error: `Failed to execute git via HTTP: ${error.message}`,
       executedOn: 'laptop',
     };
   }
+}
+
+/**
+ * Execute git command remotely on laptop via RemoteExecutionService or HTTP fallback
+ */
+async function execGitRemote(
+  command: string,
+  cwd: string,
+  timeout?: number
+): Promise<LocationAwareResult> {
+  // ST-158: If RemoteExecutionService is available (NestJS context), use it directly
+  if (remoteExecutionService) {
+    try {
+      const result = await remoteExecutionService.executeGitCommand({
+        command,
+        cwd,
+        timeout,
+      });
+
+      // Check for offline fallback
+      if ('agentOffline' in result && result.agentOffline) {
+        return {
+          success: false,
+          error: result.error || 'Laptop agent is offline. Cannot execute git command on remote worktree.',
+          executedOn: 'laptop',
+        };
+      }
+
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        executedOn: 'laptop',
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        executedOn: 'laptop',
+      };
+    }
+  }
+
+  // ST-158: Fallback to HTTP API (MCP server context - separate process)
+  return execGitViaHttp(command, cwd, timeout);
 }
 
 /**
