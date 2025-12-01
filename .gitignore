@@ -70,3 +70,4 @@ docker-compose.override.yml
 mcp-config.json
 mcp-config-dev.json
 backup/
+worktrees/

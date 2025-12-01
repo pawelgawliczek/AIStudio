@@ -155,7 +155,7 @@ export async function handler(
     const forceDelete = params.forceDelete === true;   // Default false
     const preserveDatabase = params.preserveDatabase !== false; // Default true
 
-    const repoPath = '/opt/stack/AIStudio';
+    let repoPath = '/opt/stack/AIStudio'; // Default KVM path
     let executedOn: 'kvm' | 'laptop' | undefined;
 
     // Build where clause
@@ -186,6 +186,26 @@ export async function handler(
     // Validate worktree path for security (ST-158: pass hostType for laptop worktrees)
     validateWorktreePath(worktree.worktreePath, worktree.hostType || undefined);
     validateBranchName(worktree.branchName);
+
+    // ST-158: Determine target and get correct repo path
+    const effectiveTarget = params.target || (worktree.hostType === 'local' ? 'laptop' : 'kvm');
+    if (effectiveTarget === 'laptop') {
+      // Query agent config for laptop project path
+      const agent = await prisma.remoteAgent.findFirst({
+        where: {
+          status: 'online',
+          capabilities: { has: 'git-execute' },
+        },
+      });
+      if (agent) {
+        const agentConfig = (agent.config as Record<string, unknown>) || {};
+        repoPath = (agentConfig.projectPath as string) || '/Users/pawelgawliczek/projects/AIStudio';
+      } else {
+        // Fallback to laptop default if agent offline
+        repoPath = '/Users/pawelgawliczek/projects/AIStudio';
+      }
+      console.log(`[ST-158] Deleting worktree on laptop, using repoPath: ${repoPath}`);
+    }
 
     // Track actions and warnings
     const actions: DeleteActions = {

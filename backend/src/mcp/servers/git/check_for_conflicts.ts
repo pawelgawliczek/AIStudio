@@ -337,7 +337,7 @@ export async function handler(
     // Validate git version
     validateGitVersion();
 
-    const mainRepoPath = '/opt/stack/AIStudio';
+    let mainRepoPath = '/opt/stack/AIStudio'; // Default KVM path
     const detectedAt = new Date().toISOString();
 
     // 1. Fetch story and worktree from database
@@ -380,6 +380,26 @@ export async function handler(
 
     // 2. Validate worktree path (security check) - ST-158: pass hostType for laptop worktrees
     validateWorktreePath(worktree.worktreePath, worktree.hostType || undefined);
+
+    // ST-158: Determine target and get correct repo path
+    const effectiveTarget = params.target || (worktree.hostType === 'local' ? 'laptop' : 'kvm');
+    if (effectiveTarget === 'laptop') {
+      // Query agent config for laptop project path
+      const agent = await prisma.remoteAgent.findFirst({
+        where: {
+          status: 'online',
+          capabilities: { has: 'git-execute' },
+        },
+      });
+      if (agent) {
+        const agentConfig = (agent.config as Record<string, unknown>) || {};
+        mainRepoPath = (agentConfig.projectPath as string) || '/Users/pawelgawliczek/projects/AIStudio';
+      } else {
+        // Fallback to laptop default if agent offline
+        mainRepoPath = '/Users/pawelgawliczek/projects/AIStudio';
+      }
+      console.log(`[ST-158] Checking conflicts on laptop, using mainRepoPath: ${mainRepoPath}`);
+    }
 
     // 3. Fetch latest origin/main with retry logic (network resilience) - ST-153: location-aware
     console.log('Fetching latest from origin/main...');

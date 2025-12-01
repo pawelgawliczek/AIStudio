@@ -41,7 +41,7 @@ export const metadata = {
 };
 
 // Constants
-const REPO_PATH = '/opt/stack/AIStudio';
+const DEFAULT_REPO_PATH = '/opt/stack/AIStudio';
 const MIGRATIONS_SUBPATH = 'backend/prisma/migrations';
 const MIGRATION_SQL_FILENAME = 'migration.sql';
 const MAX_MIGRATION_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -327,7 +327,7 @@ function analyzeMigration(
     return {
       name: migrationName,
       timestamp: extractTimestamp(migrationName),
-      filePath: path.relative(REPO_PATH, migrationPath),
+      filePath: path.relative(DEFAULT_REPO_PATH, migrationPath),
       isBreaking: breakingPatterns.length > 0,
       breakingPatterns,
       nonBreakingPatterns,
@@ -341,7 +341,7 @@ function analyzeMigration(
     return {
       name: migrationName,
       timestamp: extractTimestamp(migrationName),
-      filePath: path.relative(REPO_PATH, migrationPath),
+      filePath: path.relative(DEFAULT_REPO_PATH, migrationPath),
       isBreaking: true,
       breakingPatterns: [],
       nonBreakingPatterns: [],
@@ -420,6 +420,26 @@ export async function handler(
       );
     }
 
+    // ST-158: Determine correct repo path based on worktree location
+    let repoPath = DEFAULT_REPO_PATH;
+    if (worktree.hostType === 'local') {
+      // Query agent config for laptop project path
+      const agent = await prisma.remoteAgent.findFirst({
+        where: {
+          status: 'online',
+          capabilities: { has: 'git-execute' },
+        },
+      });
+      if (agent) {
+        const agentConfig = (agent.config as Record<string, unknown>) || {};
+        repoPath = (agentConfig.projectPath as string) || '/Users/pawelgawliczek/projects/AIStudio';
+      } else {
+        // Fallback to laptop default if agent offline
+        repoPath = '/Users/pawelgawliczek/projects/AIStudio';
+      }
+      console.log(`[ST-158] Detecting schema changes on laptop worktree, using repoPath: ${repoPath}`);
+    }
+
     // 4. List migrations in worktree
     const worktreeMigrationsPath = path.join(
       worktree.worktreePath,
@@ -428,7 +448,7 @@ export async function handler(
     const worktreeMigrations = listMigrations(worktreeMigrationsPath);
 
     // 5. List migrations in main branch
-    const mainMigrations = listMainBranchMigrations(REPO_PATH);
+    const mainMigrations = listMainBranchMigrations(repoPath);
 
     // 6. Find new migrations
     const newMigrations = findNewMigrations(worktreeMigrations, mainMigrations);
