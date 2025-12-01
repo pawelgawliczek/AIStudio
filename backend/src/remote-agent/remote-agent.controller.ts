@@ -13,17 +13,26 @@ import { RemoteExecutionService } from './remote-execution.service';
 export class RemoteAgentController {
   private readonly logger = new Logger(RemoteAgentController.name);
   private readonly agentSecret: string;
+  private readonly internalApiSecret: string;
 
   constructor(private readonly remoteExecution: RemoteExecutionService) {
     this.agentSecret = process.env.AGENT_SECRET || 'development-secret-change-in-production';
+    // ST-158: Also accept INTERNAL_API_SECRET for MCP server authentication
+    this.internalApiSecret = process.env.INTERNAL_API_SECRET || '';
   }
 
   /**
    * Validate API secret from X-Agent-Secret header
+   * ST-158: Accept both AGENT_SECRET (laptop agent) and INTERNAL_API_SECRET (MCP server)
    */
   private validateSecret(secret: string | undefined): void {
-    if (!secret || secret !== this.agentSecret) {
-      this.logger.warn('Unauthorized remote-agent API access attempt');
+    if (!secret) {
+      this.logger.warn('Unauthorized remote-agent API access attempt: missing secret');
+      throw new UnauthorizedException('Invalid or missing X-Agent-Secret header');
+    }
+    // Accept either AGENT_SECRET or INTERNAL_API_SECRET
+    if (secret !== this.agentSecret && secret !== this.internalApiSecret) {
+      this.logger.warn('Unauthorized remote-agent API access attempt: invalid secret');
       throw new UnauthorizedException('Invalid or missing X-Agent-Secret header');
     }
   }
