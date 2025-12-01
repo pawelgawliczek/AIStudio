@@ -412,8 +412,8 @@ export async function handler(
       );
     }
 
-    // 3. Validate worktree filesystem exists
-    validateWorktreePath(worktree.worktreePath);
+    // 3. Validate worktree filesystem exists (ST-158: pass hostType for laptop worktrees)
+    validateWorktreePath(worktree.worktreePath, worktree.hostType || undefined);
     if (!checkFilesystemExists(worktree.worktreePath)) {
       throw new ValidationError(
         `Worktree filesystem does not exist at ${worktree.worktreePath}. Use git_delete_worktree to clean up database record.`

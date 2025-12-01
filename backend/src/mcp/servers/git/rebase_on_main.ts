@@ -254,8 +254,8 @@ export async function handler(
       prisma,
     };
 
-    // 2. Validate worktree path (security check)
-    validateWorktreePath(worktreePath);
+    // 2. Validate worktree path (security check) - ST-158: pass hostType for laptop worktrees
+    validateWorktreePath(worktreePath, worktree.hostType || undefined);
 
     // 3. Check for stale rebase and auto-abort if needed
     if (isRebaseInProgress(worktreePath)) {

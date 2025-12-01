@@ -183,8 +183,8 @@ export async function handler(
       throw new NotFoundError('Worktree', params.storyId);
     }
 
-    // Validate worktree path for security
-    validateWorktreePath(worktree.worktreePath);
+    // Validate worktree path for security (ST-158: pass hostType for laptop worktrees)
+    validateWorktreePath(worktree.worktreePath, worktree.hostType || undefined);
     validateBranchName(worktree.branchName);
 
     // Track actions and warnings

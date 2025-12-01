@@ -378,8 +378,8 @@ export async function handler(
       prisma,
     };
 
-    // 2. Validate worktree path (security check)
-    validateWorktreePath(worktree.worktreePath);
+    // 2. Validate worktree path (security check) - ST-158: pass hostType for laptop worktrees
+    validateWorktreePath(worktree.worktreePath, worktree.hostType || undefined);
 
     // 3. Fetch latest origin/main with retry logic (network resilience) - ST-153: location-aware
     console.log('Fetching latest from origin/main...');
