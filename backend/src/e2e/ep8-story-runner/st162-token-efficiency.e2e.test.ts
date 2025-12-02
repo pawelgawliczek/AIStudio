@@ -888,11 +888,13 @@ More content to make the description longer.`;
     beforeAll(async () => {
       // Create a use case with content
       // Note: create_use_case returns { content: [{ text: JSON }] } format
+      // Key format must be UC-<COMPONENT>-<NUMBER>
+      const ucNumber = Date.now() % 10000;
       const result = await runner.execute<{
         content: Array<{ text: string }>;
       }>('create_use_case', {
         projectId: ctx.projectId,
-        key: `UC_${testPrefix}`,
+        key: `UC-TEST-${ucNumber}`,
         title: 'Test Use Case',
         content: 'This is detailed use case content. '.repeat(50),
         area: 'Testing',
