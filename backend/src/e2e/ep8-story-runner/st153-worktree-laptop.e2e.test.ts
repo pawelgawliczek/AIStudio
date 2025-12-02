@@ -295,17 +295,27 @@ describe('ST-153: Local Worktree E2E Tests', () => {
           return;
         }
 
-        // MCP-orchestrated success
-        ctx.worktreeId = result.worktreeId;
-        ctx.branchName = result.branchName;
-        ctx.worktreePath = result.worktreePath;
+        // MCP-orchestrated success - type cast after guard
+        const worktreeResult = result as {
+          worktreeId: string;
+          storyId: string;
+          branchName: string;
+          worktreePath: string;
+          baseBranch: string;
+          message: string;
+          executedOn?: 'kvm' | 'laptop';
+        };
 
-        expect(result.executedOn).toBe('laptop');
+        ctx.worktreeId = worktreeResult.worktreeId;
+        ctx.branchName = worktreeResult.branchName;
+        ctx.worktreePath = worktreeResult.worktreePath;
+
+        expect(worktreeResult.executedOn).toBe('laptop');
         console.log(`  ✓ MCP-orchestrated worktree created!`);
-        console.log(`    - Worktree ID: ${result.worktreeId}`);
-        console.log(`    - Branch: ${result.branchName}`);
-        console.log(`    - Path: ${result.worktreePath}`);
-        console.log(`    - Executed on: ${result.executedOn}`);
+        console.log(`    - Worktree ID: ${worktreeResult.worktreeId}`);
+        console.log(`    - Branch: ${worktreeResult.branchName}`);
+        console.log(`    - Path: ${worktreeResult.worktreePath}`);
+        console.log(`    - Executed on: ${worktreeResult.executedOn}`);
       } catch (error: any) {
         // Handle agent offline error
         if (error.code === 'AGENT_OFFLINE' || error.message?.includes('offline')) {
