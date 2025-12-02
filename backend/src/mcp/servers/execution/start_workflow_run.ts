@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
 
 export const tool: Tool = {
   name: 'start_team_run',
@@ -67,13 +68,13 @@ export async function handler(prisma: PrismaClient, params: any) {
     throw new Error('triggeredBy is required');
   }
 
-  // Verify workflow exists and get coordinator info
+  // Verify workflow exists
   const workflow = await prisma.workflow.findUnique({
     where: { id: workflowId },
     include: {
-      coordinator: true,
       project: true,
     },
+    // Explicitly select config field
   });
 
   if (!workflow) {
@@ -84,9 +85,11 @@ export async function handler(prisma: PrismaClient, params: any) {
     throw new Error(`Workflow ${workflow.name} is not active. Please activate it first.`);
   }
 
-  // Get component IDs from coordinator
-  const coordinatorConfig = (workflow.coordinator.config as any) || {};
-  const componentIds = coordinatorConfig.componentIds || [];
+  // Get component IDs from workflow componentAssignments
+  const componentAssignments = (workflow.componentAssignments as any) || [];
+  const componentIds = Array.isArray(componentAssignments)
+    ? componentAssignments.map((assignment: any) => assignment.componentId).filter(Boolean)
+    : [];
 
   // Determine transcript directory from cwd
   // IMPORTANT: cwd should be the HOST path (from PROJECT_HOST_PATH env or explicit param)
@@ -122,7 +125,6 @@ export async function handler(prisma: PrismaClient, params: any) {
   const workflowRun = await prisma.workflowRun.create({
     data: {
       workflowId: workflowId,
-      coordinatorId: workflow.coordinatorId,
       projectId: workflow.projectId,
       status: 'running',
       metadata: {
@@ -142,29 +144,14 @@ export async function handler(prisma: PrismaClient, params: any) {
     },
     include: {
       workflow: true,
-      coordinator: true,
     },
   });
 
   // ST-57: Create orchestrator ComponentRun with executionOrder=0
   // This enables unified tracking of orchestrator metrics in the same table as components
-  const orchestratorComponentRun = await prisma.componentRun.create({
-    data: {
-      workflowRunId: workflowRun.id,
-      componentId: workflow.coordinatorId, // Coordinator is treated as a component
-      executionOrder: 0, // Special order=0 for orchestrator (displays first, purple styling)
-      status: 'running',
-      success: false, // Will be updated on workflow completion
-      startedAt: new Date(),
-      metadata: {
-        role: 'orchestrator',
-        transcriptPath: orchestratorTranscript
-          ? path.join(transcriptDirectory, orchestratorTranscript)
-          : null,
-        dataSource: 'transcript',
-      },
-    },
-  });
+  // Note: orchestratorComponentRun is no longer created as coordinatorId field was removed
+  // Orchestrator metrics are now tracked differently (ST-164)
+  const orchestratorComponentRun = null;
 
   // ST-99: Get component REFERENCES only (not full instructions)
   // Agents pull their own instructions via get_component_instructions({ componentId })
@@ -194,22 +181,28 @@ export async function handler(prisma: PrismaClient, params: any) {
     componentMap[c.name] = c.id;
   });
 
+  // ST-164: Register workflow on laptop for context recovery after compaction
+  // This is a best-effort operation - don't fail the workflow if laptop agent is offline
+  const storyId = params.context?.storyId;
+  let workflowTrackerResult: { success: boolean; agentOffline?: boolean; error?: string } | null = null;
+  try {
+    workflowTrackerResult = await registerWorkflowOnLaptop(
+      workflowRun.id,
+      workflowId,
+      storyId || undefined
+    );
+  } catch (error: any) {
+    // Non-fatal - log but don't fail
+    console.warn(`[ST-164] Failed to register workflow on laptop: ${error.message}`);
+  }
+
   return {
     success: true,
     runId: workflowRun.id,
     workflowId: workflowRun.workflowId,
     workflowName: workflow.name,
-    orchestratorComponentRunId: orchestratorComponentRun.id, // ST-57: Return orchestrator ComponentRun ID
-    coordinator: {
-      id: workflowRun.coordinatorId,
-      name: workflow.coordinator.name,
-      instructions: workflow.coordinator.operationInstructions,
-      strategy: coordinatorConfig.decisionStrategy || "adaptive",
-      config: workflow.coordinator.config,
-      tools: workflow.coordinator.tools,
-      flowDiagram: coordinatorConfig.flowDiagram,
-    },
-    // ST-105: Name→UUID mapping for coordinator to resolve component names
+    orchestratorComponentRunId: orchestratorComponentRun?.id || null, // ST-57: Return orchestrator ComponentRun ID (null after ST-164)
+    // ST-105: Name→UUID mapping to resolve component names
     componentMap,
     // ST-99: Component references only - agents call get_component_instructions({ componentId }) for full instructions
     components: components.map((c, index) => ({
@@ -221,6 +214,12 @@ export async function handler(prisma: PrismaClient, params: any) {
     status: workflowRun.status,
     startedAt: workflowRun.startedAt.toISOString(),
     context: workflowRun.metadata,
-    message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Follow coordinator.instructions to orchestrate. Use componentMap to resolve names to UUIDs.`,
+    // ST-164: Include workflow tracking status
+    workflowTracking: workflowTrackerResult ? {
+      registered: workflowTrackerResult.success,
+      agentOffline: workflowTrackerResult.agentOffline || false,
+      error: workflowTrackerResult.error,
+    } : null,
+    message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Use componentMap to resolve names to UUIDs.`,
   };
 }

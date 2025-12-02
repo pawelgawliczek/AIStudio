@@ -52,6 +52,13 @@ export const APPROVED_SCRIPTS: Record<string, ApprovedScript> = {
     allowedParams: ['--limit', '--since', '--pattern'],
     timeout: 10000, // 10 seconds
   },
+  // ST-164: Workflow tracker for context recovery after compaction
+  'workflow-tracker': {
+    script: '.claude/hooks/workflow-tracker.sh',
+    description: 'Manage running workflow tracking for context recovery',
+    allowedParams: ['register', 'unregister', 'set-current', 'get-current', 'list'],
+    timeout: 5000, // 5 seconds
+  },
 };
 
 /**

@@ -4,6 +4,7 @@ import * as readline from 'readline';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types';
+import { unregisterWorkflowOnLaptop } from './workflow-tracker-utils';
 
 export const tool: Tool = {
   name: 'update_team_status',
@@ -391,6 +392,18 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
   }
 
+  // ST-164: Unregister workflow on laptop when reaching terminal state
+  // This is a best-effort operation - don't fail the status update if laptop agent is offline
+  let workflowTrackerResult: { success: boolean; agentOffline?: boolean; error?: string } | null = null;
+  if (['completed', 'failed', 'cancelled'].includes(params.status)) {
+    try {
+      workflowTrackerResult = await unregisterWorkflowOnLaptop(params.runId);
+    } catch (error: any) {
+      // Non-fatal - log but don't fail
+      console.warn(`[ST-164] Failed to unregister workflow on laptop: ${error.message}`);
+    }
+  }
+
   return {
     success: true,
     runId: updatedWorkflowRun.id,
@@ -402,6 +415,12 @@ export async function handler(prisma: PrismaClient, params: any) {
     errorMessage: updatedWorkflowRun.errorMessage,
     orchestratorMetrics,
     finalMetrics,
+    // ST-164: Include workflow tracking status
+    workflowTracking: workflowTrackerResult ? {
+      unregistered: workflowTrackerResult.success,
+      agentOffline: workflowTrackerResult.agentOffline || false,
+      error: workflowTrackerResult.error,
+    } : null,
     summary: params.summary || null,
     message: `Workflow status updated to "${params.status}". ${orchestratorMetrics ? `Parsed orchestrator transcript: ${orchestratorMetrics.totalTokens} tokens, $${orchestratorMetrics.costUsd.toFixed(4)} cost.` : ''} ${params.summary || ''}`,
   };
