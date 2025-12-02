@@ -41,6 +41,17 @@ export const tool: Tool = {
         type: 'number',
         description: 'Pagination offset (default: 0)',
       },
+      fields: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Specific fields to return for token efficiency. Default: all. Options: id, key, title, area, summary, content, version, linkedStories, updatedAt. Note: "content" is the most expensive field.',
+      },
+      excludeContent: {
+        type: 'boolean',
+        description:
+          'Exclude content field to reduce token usage (default: false). Use this when only metadata is needed.',
+      },
     },
     required: ['projectId'],
   },
@@ -54,8 +65,13 @@ export const metadata = {
   since: '2025-11-10',
 };
 
+// Valid use case fields that can be requested
+const validUseCaseFields = new Set([
+  'id', 'key', 'title', 'area', 'summary', 'content', 'version', 'linkedStories', 'updatedAt',
+]);
+
 export async function handler(prisma: PrismaClient, params: any) {
-  const { projectId, query, area, areas, storyId, epicId, limit = 20, offset = 0 } = params;
+  const { projectId, query, area, areas, storyId, epicId, limit = 20, offset = 0, fields, excludeContent } = params;
 
   try {
     // Validate required parameters
@@ -142,10 +158,12 @@ export async function handler(prisma: PrismaClient, params: any) {
       orderBy: { updatedAt: 'desc' },
     });
 
-    // Format results for AI agent
+    // Format results for AI agent with optional field filtering
     const formattedResults = useCases.map((uc) => {
       const latestVersion = uc.versions[0];
-      return {
+
+      // Build full result first
+      const fullResult: any = {
         id: uc.id,
         key: uc.key,
         title: uc.title,
@@ -162,6 +180,49 @@ export async function handler(prisma: PrismaClient, params: any) {
         })),
         updatedAt: uc.updatedAt,
       };
+
+      // Apply excludeContent parameter (simpler option)
+      if (excludeContent && fullResult.content) {
+        const contentLength = fullResult.content.length;
+        fullResult.content = null;
+        fullResult._truncated = {
+          field: 'content',
+          originalLength: contentLength,
+          truncatedTo: 0,
+          reason: 'Excluded via excludeContent parameter for token efficiency',
+          fetchCommand: `search_use_cases({ projectId: '${projectId}', storyId: '${uc.id}' })`,
+        };
+      }
+
+      // Apply field filtering if specified
+      if (fields && Array.isArray(fields) && fields.length > 0) {
+        const requestedFields = new Set(fields.filter((f: string) => validUseCaseFields.has(f)));
+        const filteredResult: any = {};
+        const omittedFields: string[] = [];
+
+        // Always include id for reference
+        filteredResult.id = fullResult.id;
+
+        for (const field of validUseCaseFields) {
+          if (requestedFields.has(field)) {
+            filteredResult[field] = fullResult[field];
+          } else if (field !== 'id' && fullResult[field] !== undefined) {
+            omittedFields.push(field);
+          }
+        }
+
+        if (omittedFields.length > 0) {
+          filteredResult._fieldSelection = {
+            requested: Array.from(requestedFields),
+            omitted: omittedFields,
+            fetchCommand: `get_use_case_coverage({ useCaseId: '${uc.id}' })`,
+          };
+        }
+
+        return filteredResult;
+      }
+
+      return fullResult;
     });
 
     return {

@@ -78,6 +78,7 @@ export interface CreateEpicParams {
 export interface ListEpicsParams extends PaginationParams {
   projectId: string;
   status?: 'planning' | 'in_progress' | 'done' | 'archived';
+  fields?: string[]; // Specific fields to return for token efficiency
 }
 
 // ============================================================================
@@ -89,6 +90,7 @@ export interface CreateStoryParams {
   epicId?: string;
   title: string;
   description?: string;
+  summary?: string; // AI-generated 2-sentence summary (max 300 chars)
   type?: 'feature' | 'bug' | 'defect' | 'chore' | 'spike';
   businessImpact?: number;
   businessComplexity?: number;
@@ -102,6 +104,8 @@ export interface ListStoriesParams extends PaginationParams {
   status?: 'planning' | 'analysis' | 'architecture' | 'design' | 'impl' | 'review' | 'qa' | 'done';
   type?: 'feature' | 'bug' | 'defect' | 'chore' | 'spike';
   assignedToMe?: boolean; // future: filter by current user
+  excludeDescription?: boolean; // Exclude description for token efficiency (use summary instead)
+  fields?: string[]; // Specific fields to return for token efficiency
 }
 
 export interface GetStoryParams {
@@ -109,12 +113,14 @@ export interface GetStoryParams {
   includeSubtasks?: boolean;
   includeUseCases?: boolean;
   includeCommits?: boolean;
+  responseMode?: 'minimal' | 'standard' | 'full'; // Token efficiency: minimal=key fields, standard=all, full=with relations
 }
 
 export interface UpdateStoryParams {
   storyId: string;
   title?: string;
   description?: string;
+  summary?: string; // AI-generated 2-sentence summary (max 300 chars)
   status?: 'planning' | 'analysis' | 'architecture' | 'design' | 'impl' | 'review' | 'qa' | 'done';
   businessImpact?: number;
   businessComplexity?: number;
@@ -282,6 +288,7 @@ export interface StoryResponse {
   key: string;
   type: string;
   title: string;
+  summary?: string | null; // Token-efficient 2-sentence summary (max 300 chars)
   description?: string;
   status: string;
   businessImpact?: number;

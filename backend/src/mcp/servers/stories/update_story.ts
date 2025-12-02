@@ -14,6 +14,7 @@ import {
   formatStory,
   validateRequired,
   handlePrismaError,
+  autoTruncateSummary,
 } from '../../utils';
 
 export const tool: Tool = {
@@ -38,6 +39,11 @@ Use the Artifact system instead:
       description: {
         type: 'string',
         description: 'New story description',
+      },
+      summary: {
+        type: 'string',
+        description:
+          'AI-generated 2-sentence summary (max 300 chars). If description changes and no summary provided, auto-regenerates from description.',
       },
       status: {
         type: 'string',
@@ -121,6 +127,15 @@ export async function handler(
 
     if (params.title !== undefined) updateData.title = params.title;
     if (params.description !== undefined) updateData.description = params.description;
+
+    // Handle summary: if explicitly provided, use it; if description changed, auto-regenerate
+    if (params.summary !== undefined) {
+      updateData.summary = params.summary?.slice(0, 300) || null;
+    } else if (params.description !== undefined) {
+      // Description changed but no summary provided - auto-regenerate
+      updateData.summary = autoTruncateSummary(params.description);
+    }
+
     if (params.status !== undefined) updateData.status = params.status;
     if (params.businessImpact !== undefined)
       updateData.businessImpact = params.businessImpact;

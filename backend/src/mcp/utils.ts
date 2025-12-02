@@ -54,6 +54,30 @@ export function formatEpic(epic: any, includeStoryCount = false): EpicResponse {
 }
 
 /**
+ * Auto-generate summary by truncating description to first 2 sentences
+ * Used as fallback when AI-generated summary is not provided
+ */
+export function autoTruncateSummary(
+  description: string | null | undefined,
+): string | null {
+  if (!description) return null;
+
+  // Extract sentences (ending with . ! or ?)
+  const sentences = description.match(/[^.!?]+[.!?]+/g) || [];
+
+  if (sentences.length === 0) {
+    // No proper sentences found, just truncate
+    return description.slice(0, 300);
+  }
+
+  // Take first 2 sentences and join them
+  const twoSentences = sentences.slice(0, 2).join(' ').trim();
+
+  // Ensure we don't exceed 300 chars
+  return twoSentences.slice(0, 300);
+}
+
+/**
  * Format story for MCP response
  */
 export function formatStory(story: any, includeRelations = false): StoryResponse {
@@ -64,6 +88,7 @@ export function formatStory(story: any, includeRelations = false): StoryResponse
     key: story.key,
     type: story.type,
     title: story.title,
+    summary: story.summary || null, // Token-efficient 2-sentence summary
     description: story.description,
     status: story.status,
     businessImpact: story.businessImpact,

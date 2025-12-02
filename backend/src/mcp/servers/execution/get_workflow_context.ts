@@ -1,5 +1,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { truncateWithMetadata, teamRunResultsFetchCommand } from '../../truncation-utils';
 
 export const tool: Tool = {
   name: 'get_team_context',
@@ -10,6 +11,11 @@ export const tool: Tool = {
       runId: {
         type: 'string',
         description: 'Team run ID (required)',
+      },
+      truncateOutputs: {
+        type: 'number',
+        description:
+          'Truncate component outputs to N characters for token efficiency (default: unlimited, recommended: 500)',
       },
     },
     required: ['runId'],
@@ -94,26 +100,44 @@ export async function handler(prisma: PrismaClient, params: any) {
       tools: workflowRun.coordinator.tools,
       flowDiagram: coordinatorConfig.flowDiagram,
     },
-    completedComponents: completedComponentRuns.map((cr) => ({
-      componentRunId: cr.id,
-      componentId: cr.componentId,
-      componentName: cr.component.name,
-      status: cr.status,
-      input: cr.inputData,
-      output: cr.outputData,
-      metrics: {
-        tokensUsed: cr.totalTokens,
-        durationSeconds: cr.durationSeconds,
-        costUsd: Number(cr.cost),
-        linesOfCode: cr.locGenerated,
-        userPrompts: cr.userPrompts,
-        systemIterations: cr.systemIterations,
-        humanInterventions: cr.humanInterventions,
-      },
-      startedAt: cr.startedAt.toISOString(),
-      completedAt: cr.finishedAt?.toISOString(),
-      errorMessage: cr.errorMessage,
-    })),
+    completedComponents: completedComponentRuns.map((cr) => {
+      // Truncate outputs if truncateOutputs parameter is set
+      let output = cr.outputData;
+      let outputTruncated = undefined;
+
+      if (params.truncateOutputs && cr.outputData) {
+        const truncated = truncateWithMetadata(
+          cr.outputData,
+          params.truncateOutputs,
+          'output',
+          teamRunResultsFetchCommand(params.runId),
+        );
+        output = truncated.value;
+        outputTruncated = truncated.truncationInfo;
+      }
+
+      return {
+        componentRunId: cr.id,
+        componentId: cr.componentId,
+        componentName: cr.component.name,
+        status: cr.status,
+        input: cr.inputData,
+        output,
+        _truncated: outputTruncated,
+        metrics: {
+          tokensUsed: cr.totalTokens,
+          durationSeconds: cr.durationSeconds,
+          costUsd: Number(cr.cost),
+          linesOfCode: cr.locGenerated,
+          userPrompts: cr.userPrompts,
+          systemIterations: cr.systemIterations,
+          humanInterventions: cr.humanInterventions,
+        },
+        startedAt: cr.startedAt.toISOString(),
+        completedAt: cr.finishedAt?.toISOString(),
+        errorMessage: cr.errorMessage,
+      };
+    }),
     remainingComponents: remainingComponents.map((c, index) => ({
       componentId: c.id,
       componentName: c.name,

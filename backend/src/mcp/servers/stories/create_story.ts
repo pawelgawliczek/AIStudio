@@ -17,6 +17,7 @@ import {
   validateRequired,
   handlePrismaError,
   getSystemUserId,
+  autoTruncateSummary,
 } from '../../utils';
 
 export const tool: Tool = {
@@ -61,6 +62,11 @@ export const tool: Tool = {
       assignedFrameworkId: {
         type: 'string',
         description: 'Framework UUID to assign this story to',
+      },
+      summary: {
+        type: 'string',
+        description:
+          'AI-generated 2-sentence summary (max 300 chars). If not provided, auto-truncates from description.',
       },
     },
     required: ['projectId', 'title'],
@@ -124,6 +130,11 @@ export async function handler(
     // Generate next story key (e.g., ST-1, ST-2)
     const key = await generateNextKey(prisma, 'story', params.projectId);
 
+    // Generate summary: use provided summary or auto-truncate from description
+    const summary =
+      params.summary?.slice(0, 300) ||
+      autoTruncateSummary(params.description);
+
     // Create story
     const story = await prisma.story.create({
       data: {
@@ -133,6 +144,7 @@ export async function handler(
         type: params.type || 'feature',
         title: params.title,
         description: params.description,
+        summary,
         status: 'planning',
         businessImpact: params.businessImpact,
         businessComplexity: params.businessComplexity,

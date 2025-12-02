@@ -12,6 +12,7 @@ import {
   formatStory,
   handlePrismaError,
 } from '../../utils';
+import { storyFetchCommand } from '../../truncation-utils';
 
 export interface SearchStoriesParams {
   projectId?: string;
@@ -22,6 +23,7 @@ export interface SearchStoriesParams {
   includeUseCases?: boolean;
   includeCommits?: boolean;
   limit?: number;
+  fields?: string[]; // Specific fields to return for token efficiency
 }
 
 export const tool: Tool = {
@@ -64,6 +66,12 @@ export const tool: Tool = {
         minimum: 1,
         maximum: 50,
       },
+      fields: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Specific fields to return for token efficiency. Default: all. Options: id, key, title, status, type, summary, description, projectId, epicId, businessImpact, businessComplexity, technicalComplexity, estimatedTokenCost, assignedFrameworkId, createdAt, updatedAt',
+      },
     },
   },
 };
@@ -75,6 +83,46 @@ export const metadata = {
   version: '1.0.0',
   since: 'sprint-5',
 };
+
+// Valid story fields that can be requested
+const validStoryFields = new Set([
+  'id', 'key', 'title', 'status', 'type', 'summary', 'description',
+  'projectId', 'epicId', 'businessImpact', 'businessComplexity',
+  'technicalComplexity', 'estimatedTokenCost', 'assignedFrameworkId',
+  'createdAt', 'updatedAt', 'subtasks', 'useCases', 'commits',
+]);
+
+// Helper function to filter story fields for token efficiency
+function filterStoryFields(story: StoryResponse, fields?: string[]): StoryResponse {
+  if (!fields || fields.length === 0) {
+    return story;
+  }
+
+  const requestedFields = new Set(fields.filter(f => validStoryFields.has(f)));
+  const filteredStory: any = {};
+  const omittedFields: string[] = [];
+
+  // Always include id for reference
+  filteredStory.id = story.id;
+
+  for (const field of validStoryFields) {
+    if (requestedFields.has(field)) {
+      filteredStory[field] = (story as any)[field];
+    } else if (field !== 'id' && (story as any)[field] !== undefined) {
+      omittedFields.push(field);
+    }
+  }
+
+  if (omittedFields.length > 0) {
+    filteredStory._fieldSelection = {
+      requested: Array.from(requestedFields),
+      omitted: omittedFields,
+      fetchCommand: storyFetchCommand(story.id, 'full'),
+    };
+  }
+
+  return filteredStory as StoryResponse;
+}
 
 export async function handler(
   prisma: PrismaClient,
@@ -124,7 +172,7 @@ export async function handler(
         include: Object.keys(includeClause).length > 0 ? includeClause : undefined,
       });
 
-      return story ? [formatStory(story, true)] : [];
+      return story ? [filterStoryFields(formatStory(story, true), params.fields)] : [];
     }
 
     // Priority 2: Search by exact key
@@ -139,7 +187,7 @@ export async function handler(
         include: Object.keys(includeClause).length > 0 ? includeClause : undefined,
       });
 
-      return story ? [formatStory(story, true)] : [];
+      return story ? [filterStoryFields(formatStory(story, true), params.fields)] : [];
     }
 
     // Priority 3: Search by query (fuzzy match on title, key, description)
@@ -163,7 +211,7 @@ export async function handler(
         take: limit,
       });
 
-      return stories.map((s: any) => formatStory(s, true));
+      return stories.map((s: any) => filterStoryFields(formatStory(s, true), params.fields));
     }
 
     // If no search criteria provided, return empty array

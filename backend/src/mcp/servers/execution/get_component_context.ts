@@ -1,5 +1,11 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import {
+  truncateWithMetadata,
+  markOmitted,
+  teamRunResultsFetchCommand,
+  artifactFetchCommand,
+} from '../../truncation-utils';
 
 export const tool: Tool = {
   name: 'get_component_context',
@@ -31,6 +37,11 @@ export const tool: Tool = {
       includeArtifacts: {
         type: 'boolean',
         description: 'Include accessible artifacts based on state access rules (default: true)',
+      },
+      summaryMode: {
+        type: 'boolean',
+        description:
+          'Return lightweight context - excludes artifact content and truncates outputs to 500 chars (default: false)',
       },
     },
     required: ['componentId'],
@@ -109,6 +120,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       }
 
       // Include story context if requested
+      // NOTE: Deprecated analysis fields (contextExploration, baAnalysis, architectAnalysis, designerAnalysis)
+      // are NO LONGER included as of ST-162. Use the Artifact system instead via list_artifacts.
       if (params.includeStoryContext !== false && metadata?.storyId) {
         const story = await prisma.story.findUnique({
           where: { id: metadata.storyId },
@@ -116,17 +129,20 @@ export async function handler(prisma: PrismaClient, params: any) {
             id: true,
             key: true,
             title: true,
+            summary: true, // Token-efficient 2-sentence summary (ST-162)
             description: true,
             status: true,
             type: true,
-            contextExploration: true,
-            baAnalysis: true,
-            architectAnalysis: true,
-            designerAnalysis: true,
+            // REMOVED: contextExploration, baAnalysis, architectAnalysis, designerAnalysis
+            // These are deprecated (ST-152). Use Artifact system instead.
           },
         });
         if (story) {
           response.story = story;
+          // Add note about deprecated fields
+          response.storyAnalysisNote =
+            'Analysis fields (contextExploration, baAnalysis, architectAnalysis, designerAnalysis) are deprecated. ' +
+            'Use list_artifacts({ workflowRunId }) to access analysis artifacts.';
         }
       }
 
@@ -145,12 +161,32 @@ export async function handler(prisma: PrismaClient, params: any) {
           orderBy: { startedAt: 'asc' },
         });
 
-        response.previousOutputs = completedRuns.map((cr) => ({
-          componentName: cr.component.name,
-          componentId: cr.componentId,
-          output: cr.outputData,
-          completedAt: cr.finishedAt?.toISOString(),
-        }));
+        // In summaryMode, truncate outputs to 500 chars with metadata
+        response.previousOutputs = completedRuns.map((cr) => {
+          if (params.summaryMode && cr.outputData) {
+            const truncated = truncateWithMetadata(
+              cr.outputData,
+              500,
+              'output',
+              teamRunResultsFetchCommand(params.runId),
+            );
+            return {
+              componentName: cr.component.name,
+              componentId: cr.componentId,
+              componentRunId: cr.id,
+              output: truncated.value,
+              _truncated: truncated.truncationInfo,
+              completedAt: cr.finishedAt?.toISOString(),
+            };
+          }
+          return {
+            componentName: cr.component.name,
+            componentId: cr.componentId,
+            componentRunId: cr.id,
+            output: cr.outputData,
+            completedAt: cr.finishedAt?.toISOString(),
+          };
+        });
       }
 
       // Include accessible artifacts if requested and stateId is provided
@@ -184,9 +220,44 @@ export async function handler(prisma: PrismaClient, params: any) {
           });
 
           // Build artifact map with access info
+          // In summaryMode, exclude content and provide fetch instructions
           response.artifacts = {
             accessible: accessRules.map((ar) => {
               const artifact = artifacts.find((a) => a.definitionId === ar.definitionId);
+
+              // Build artifact response with optional content exclusion
+              let artifactData = null;
+              if (artifact) {
+                if (params.summaryMode) {
+                  // In summaryMode, exclude content but provide metadata
+                  artifactData = {
+                    id: artifact.id,
+                    content: null,
+                    contentType: artifact.contentType,
+                    size: artifact.size,
+                    version: artifact.version,
+                    createdBy: artifact.createdByComponent?.name || 'unknown',
+                    updatedAt: artifact.updatedAt.toISOString(),
+                    _truncated: markOmitted(
+                      'content',
+                      artifact.size || 0,
+                      artifactFetchCommand(artifact.id),
+                    ),
+                  };
+                } else {
+                  // Full mode - include content
+                  artifactData = {
+                    id: artifact.id,
+                    content: artifact.content,
+                    contentType: artifact.contentType,
+                    size: artifact.size,
+                    version: artifact.version,
+                    createdBy: artifact.createdByComponent?.name || 'unknown',
+                    updatedAt: artifact.updatedAt.toISOString(),
+                  };
+                }
+              }
+
               return {
                 definitionId: ar.definitionId,
                 definitionKey: ar.definition.key,
@@ -194,17 +265,7 @@ export async function handler(prisma: PrismaClient, params: any) {
                 type: ar.definition.type,
                 accessType: ar.accessType,
                 isMandatory: ar.definition.isMandatory,
-                artifact: artifact
-                  ? {
-                      id: artifact.id,
-                      content: artifact.content,
-                      contentType: artifact.contentType,
-                      size: artifact.size,
-                      version: artifact.version,
-                      createdBy: artifact.createdByComponent?.name || 'unknown',
-                      updatedAt: artifact.updatedAt.toISOString(),
-                    }
-                  : null,
+                artifact: artifactData,
               };
             }),
             canWrite: await prisma.artifactAccess

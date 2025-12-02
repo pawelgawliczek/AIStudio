@@ -43,6 +43,12 @@ export const tool: Tool = {
         minimum: 1,
         maximum: 100,
       },
+      fields: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Specific fields to return for token efficiency. Default: all. Options: id, projectId, title, description, status, priority, createdAt, updatedAt, storyCount',
+      },
     },
     required: ['projectId'],
   },
@@ -102,8 +108,49 @@ export async function handler(
 
     const totalPages = Math.ceil(total / pageSize);
 
+    // Valid epic fields that can be requested
+    const validEpicFields = new Set([
+      'id', 'projectId', 'key', 'title', 'description', 'status',
+      'priority', 'createdAt', 'updatedAt', 'storyCount',
+    ]);
+
+    // Format epics with optional field filtering
+    const formattedEpics = epics.map((e: any) => {
+      const formatted = formatEpic(e, true);
+
+      // Apply field filtering if specified
+      if (params.fields && params.fields.length > 0) {
+        const requestedFields = new Set(params.fields.filter(f => validEpicFields.has(f)));
+        const filteredEpic: any = {};
+        const omittedFields: string[] = [];
+
+        // Always include id for reference
+        filteredEpic.id = formatted.id;
+
+        for (const field of validEpicFields) {
+          if (requestedFields.has(field)) {
+            filteredEpic[field] = (formatted as any)[field];
+          } else if (field !== 'id' && (formatted as any)[field] !== undefined) {
+            omittedFields.push(field);
+          }
+        }
+
+        if (omittedFields.length > 0) {
+          filteredEpic._fieldSelection = {
+            requested: Array.from(requestedFields),
+            omitted: omittedFields,
+            fetchCommand: `get_epic({ epicId: '${formatted.id}' })`,
+          };
+        }
+
+        return filteredEpic;
+      }
+
+      return formatted;
+    });
+
     return {
-      data: epics.map((e: any) => formatEpic(e, true)),
+      data: formattedEpics,
       pagination: {
         page,
         pageSize,

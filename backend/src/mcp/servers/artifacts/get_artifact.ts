@@ -13,6 +13,7 @@ import {
 } from '../../types';
 import { handlePrismaError } from '../../utils';
 import { formatArtifact } from './upload_artifact';
+import { markOmitted, artifactFetchCommand } from '../../truncation-utils';
 
 export const tool: Tool = {
   name: 'get_artifact',
@@ -35,7 +36,7 @@ export const tool: Tool = {
       },
       includeContent: {
         type: 'boolean',
-        description: 'Include full content in response (default: true)',
+        description: 'Include full content in response (default: false for token efficiency)',
       },
     },
     required: [],
@@ -121,9 +122,16 @@ export async function handler(
 
     const response = formatArtifact(artifact);
 
-    // Optionally exclude content for metadata-only queries
-    if (params.includeContent === false) {
-      response.content = '[content omitted]';
+    // Default: exclude content for token efficiency (BREAKING CHANGE - ST-162)
+    // Content is only included when explicitly requested with includeContent: true
+    if (params.includeContent !== true) {
+      const contentSize = artifact.content?.length || 0;
+      response.content = null;
+      (response as any)._truncated = markOmitted(
+        'content',
+        contentSize,
+        artifactFetchCommand(artifact.id),
+      );
     }
 
     return response;

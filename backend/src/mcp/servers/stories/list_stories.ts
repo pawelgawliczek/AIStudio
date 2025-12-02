@@ -14,6 +14,7 @@ import {
   formatStory,
   handlePrismaError,
 } from '../../utils';
+import { storyFetchCommand } from '../../truncation-utils';
 
 export const tool: Tool = {
   name: 'list_stories',
@@ -49,6 +50,17 @@ export const tool: Tool = {
         description: 'Items per page (default: 20, max: 100)',
         minimum: 1,
         maximum: 100,
+      },
+      excludeDescription: {
+        type: 'boolean',
+        description:
+          'Exclude description field to reduce token usage (default: false). Use summary field for lightweight queries.',
+      },
+      fields: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Specific fields to return for token efficiency. Default: all. Options: id, key, title, status, type, summary, description, projectId, epicId, businessImpact, businessComplexity, technicalComplexity, estimatedTokenCost, assignedFrameworkId, createdAt, updatedAt',
       },
     },
   },
@@ -104,8 +116,65 @@ export async function handler(
 
     const totalPages = Math.ceil(total / pageSize);
 
+    // Valid story fields that can be requested
+    const validFields = new Set([
+      'id', 'key', 'title', 'status', 'type', 'summary', 'description',
+      'projectId', 'epicId', 'businessImpact', 'businessComplexity',
+      'technicalComplexity', 'estimatedTokenCost', 'assignedFrameworkId',
+      'createdAt', 'updatedAt',
+    ]);
+
+    // Format stories with optional field filtering for token efficiency
+    const formattedStories = stories.map((s: any) => {
+      const formatted = formatStory(s);
+
+      // Apply field filtering if specified
+      if (params.fields && params.fields.length > 0) {
+        const requestedFields = new Set(params.fields.filter(f => validFields.has(f)));
+        const filteredStory: any = {};
+        const omittedFields: string[] = [];
+
+        // Always include id for reference
+        filteredStory.id = formatted.id;
+
+        for (const field of validFields) {
+          if (requestedFields.has(field)) {
+            filteredStory[field] = (formatted as any)[field];
+          } else if (field !== 'id' && (formatted as any)[field] !== undefined) {
+            omittedFields.push(field);
+          }
+        }
+
+        if (omittedFields.length > 0) {
+          filteredStory._fieldSelection = {
+            requested: Array.from(requestedFields),
+            omitted: omittedFields,
+            fetchCommand: storyFetchCommand(formatted.id, 'full'),
+          };
+        }
+
+        return filteredStory as StoryResponse;
+      }
+
+      // Legacy excludeDescription support (deprecated in favor of fields parameter)
+      if (params.excludeDescription) {
+        // Exclude description but keep summary for lightweight queries
+        const descLength = formatted.description?.length || 0;
+        formatted.description = undefined;
+        (formatted as any)._truncated = {
+          field: 'description',
+          originalLength: descLength,
+          truncatedTo: 0,
+          reason: 'Excluded via excludeDescription parameter for token efficiency',
+          fetchCommand: storyFetchCommand(formatted.id, 'includeDescription'),
+        };
+      }
+
+      return formatted;
+    });
+
     return {
-      data: stories.map((s: any) => formatStory(s)),
+      data: formattedStories,
       pagination: {
         page,
         pageSize,

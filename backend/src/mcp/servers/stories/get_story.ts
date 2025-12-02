@@ -15,6 +15,7 @@ import {
   validateRequired,
   handlePrismaError,
 } from '../../utils';
+import { storyFetchCommand } from '../../truncation-utils';
 
 export const tool: Tool = {
   name: 'get_story',
@@ -37,6 +38,12 @@ export const tool: Tool = {
       includeCommits: {
         type: 'boolean',
         description: 'Include linked commits in response (last 10)',
+      },
+      responseMode: {
+        type: 'string',
+        enum: ['minimal', 'standard', 'full'],
+        description:
+          'Response detail level for token efficiency. minimal=key fields only (id, key, title, status, type), standard=all fields without relations (default), full=everything including all related data',
       },
     },
     required: ['storyId'],
@@ -100,10 +107,78 @@ export async function handler(
       throw new NotFoundError('Story', params.storyId);
     }
 
-    return formatStory(
+    const formatted = formatStory(
       story,
       params.includeSubtasks || params.includeUseCases || params.includeCommits,
     );
+
+    // Apply responseMode filtering for token efficiency
+    const responseMode = params.responseMode || 'standard';
+
+    if (responseMode === 'minimal') {
+      // Return only key fields for token efficiency
+      const minimalFields = ['id', 'key', 'title', 'status', 'type', 'summary'];
+      const minimal: any = {};
+      const omittedFields: string[] = [];
+
+      for (const field of minimalFields) {
+        minimal[field] = (formatted as any)[field];
+      }
+
+      // Track omitted fields
+      for (const key of Object.keys(formatted)) {
+        if (!minimalFields.includes(key) && (formatted as any)[key] !== undefined) {
+          omittedFields.push(key);
+        }
+      }
+
+      minimal._responseMode = {
+        mode: 'minimal',
+        omittedFields,
+        fetchCommand: storyFetchCommand(formatted.id, 'responseMode: full'),
+      };
+
+      return minimal as StoryResponse;
+    }
+
+    if (responseMode === 'full') {
+      // Force include all related data
+      if (!params.includeSubtasks || !params.includeUseCases || !params.includeCommits) {
+        // Re-fetch with all relations if not already included
+        const fullStory = await prisma.story.findUnique({
+          where: { id: params.storyId },
+          include: {
+            subtasks: { orderBy: { createdAt: 'asc' } },
+            useCaseLinks: {
+              include: {
+                useCase: {
+                  include: {
+                    versions: { orderBy: { version: 'desc' }, take: 1 },
+                  },
+                },
+              },
+            },
+            commits: {
+              include: { files: true },
+              orderBy: { timestamp: 'desc' },
+              take: 10,
+            },
+          },
+        });
+
+        if (fullStory) {
+          const fullFormatted = formatStory(fullStory, true);
+          (fullFormatted as any)._responseMode = { mode: 'full' };
+          return fullFormatted;
+        }
+      }
+
+      (formatted as any)._responseMode = { mode: 'full' };
+      return formatted;
+    }
+
+    // Standard mode - return as-is
+    return formatted;
   } catch (error: any) {
     if (error.name === 'MCPError') {
       throw error;

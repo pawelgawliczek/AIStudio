@@ -103,6 +103,7 @@ model Story {
   type                StoryType   @default(feature)
   title               String
   description         String?
+  summary             String?     @db.VarChar(300) // AI-generated 2-sentence summary for token efficiency
   status              StoryStatus @default(planning)
   priority            Int         @default(0)
   businessImpact      Int?        @map("business_impact")
@@ -801,9 +802,10 @@ model ComponentRun {
   success Boolean   @default(false)
 
   // Input/Output
-  inputData  Json?   @map("input_data") // Data received
-  outputData Json?   @map("output_data") // Data produced
-  output     String? @db.Text // Output text
+  inputData     Json?   @map("input_data") // Data received
+  outputData    Json?   @map("output_data") // Data produced
+  output        String? @db.Text // Output text
+  outputSummary String? @map("output_summary") @db.VarChar(1000) // AI-generated summary for token-efficient queries
 
   // Universal metrics
   tokensInput     Int?   @default(0) @map("tokens_input")
@@ -1818,10 +1820,12 @@ model Artifact {
   definitionId  String @map("definition_id") @db.Uuid
   workflowRunId String @map("workflow_run_id") @db.Uuid
 
-  content     String @db.Text // Actual content or S3 URL
-  contentType String @map("content_type") // MIME type
-  size        Int    @default(0)
-  version     Int    @default(1)
+  content        String  @db.Text // Actual content or S3 URL
+  contentPreview String? @map("content_preview") @db.VarChar(500) // First 500 chars for token-efficient queries
+  contentHash    String? @map("content_hash") @db.VarChar(64) // SHA256 for change detection
+  contentType    String  @map("content_type") // MIME type
+  size           Int     @default(0)
+  version        Int     @default(1)
 
   // Provenance
   createdByComponentId String? @map("created_by_component_id") @db.Uuid

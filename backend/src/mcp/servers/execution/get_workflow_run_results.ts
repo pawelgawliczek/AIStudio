@@ -25,6 +25,12 @@ export const tool: Tool = {
         type: 'boolean',
         description: 'Include detailed component information (default: true)',
       },
+      responseMode: {
+        type: 'string',
+        enum: ['minimal', 'standard', 'full'],
+        description:
+          'Response detail level for token efficiency. minimal=summary metrics only, standard=with component status (default), full=everything including outputs and decisions',
+      },
     },
     required: ['runId'],
   },
@@ -44,8 +50,13 @@ export async function handler(prisma: PrismaClient, params: any) {
     throw new Error('runId is required');
   }
 
-  const includeArtifacts = params.includeArtifacts !== false;
-  const includeComponentDetails = params.includeComponentDetails !== false;
+  // Response mode determines what's included
+  const responseMode = params.responseMode || 'standard';
+
+  // In minimal mode, exclude details and artifacts by default
+  const includeArtifacts = responseMode === 'full' ? true : params.includeArtifacts === true;
+  const includeComponentDetails =
+    responseMode === 'minimal' ? false : params.includeComponentDetails !== false;
 
   // Fetch workflow run with all related data
   const workflowRun = await prisma.workflowRun.findUnique({
@@ -220,9 +231,32 @@ export async function handler(prisma: PrismaClient, params: any) {
 
       components,
 
-      coordinatorDecisions: workflowRun.coordinatorDecisions,
-      coordinatorMetrics: workflowRun.coordinatorMetrics,
-      context: workflowRun.metadata,
+      // Include coordinator details only in standard/full mode
+      ...(responseMode !== 'minimal'
+        ? {
+            coordinatorDecisions: workflowRun.coordinatorDecisions,
+            coordinatorMetrics: workflowRun.coordinatorMetrics,
+            context: workflowRun.metadata,
+          }
+        : {}),
+    },
+
+    // Add responseMode metadata for token efficiency transparency
+    _responseMode: {
+      mode: responseMode,
+      included: {
+        componentDetails: includeComponentDetails,
+        artifacts: includeArtifacts,
+        coordinatorDecisions: responseMode !== 'minimal',
+        coordinatorMetrics: responseMode !== 'minimal',
+        componentOutputs: responseMode === 'full',
+      },
+      ...(responseMode === 'minimal'
+        ? {
+            omitted: ['componentDetails', 'coordinatorDecisions', 'coordinatorMetrics', 'componentOutputs'],
+            fetchCommand: `get_team_run_results({ runId: '${workflowRun.id}', responseMode: 'full' })`,
+          }
+        : {}),
     },
     message: `Retrieved results for workflow run ${workflowRun.id}. Status: ${workflowRun.status}, Progress: ${percentComplete}%`,
   };
