@@ -10,7 +10,7 @@
  * - Transcript metrics collection
  * - Full runner execution with remote agents
  *
- * @see /Users/pawelgawliczek/.claude/plans/deep-brewing-quasar.md
+ * @see ~/.claude/plans/ for implementation plans
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -74,7 +74,7 @@ describe('EP-8 Full Path E2E Tests (Run from Laptop)', () => {
     if (agentResult.agents.length === 0) {
       console.error('\n⚠️  WARNING: No laptop agent is online!');
       console.error('These tests require the laptop agent to be running.');
-      console.error('Start the agent with: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist');
+      console.error('Start the laptop agent (see CLAUDE.md for launchd setup)');
       console.error('\nTests will be skipped.\n');
     } else {
       laptopAgentId = agentResult.agents[0].id;

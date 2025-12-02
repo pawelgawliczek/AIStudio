@@ -40,9 +40,9 @@ import { handler as gitGetWorktreeStatus } from '../../mcp/servers/git/git_get_w
 // Prisma client with production database
 const prisma = new PrismaClient();
 
-// Test configuration
-const LAPTOP_PROJECT_PATH = process.env.PROJECT_PATH || '/Users/pawelgawliczek/projects/AIStudio';
-const LAPTOP_WORKTREE_ROOT = path.join(os.homedir(), 'worktrees-test');
+// Test configuration - paths from environment variables (no defaults with usernames)
+const LAPTOP_PROJECT_PATH = process.env.PROJECT_PATH || process.cwd();
+const LAPTOP_WORKTREE_ROOT = process.env.WORKTREE_ROOT || path.join(os.homedir(), 'worktrees-test');
 
 // Extended test context for worktree tests
 interface WorktreeTestContext extends TestContext {

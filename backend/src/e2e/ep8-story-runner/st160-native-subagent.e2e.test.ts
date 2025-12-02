@@ -53,7 +53,7 @@ const prisma = new PrismaClient();
 // NOTE: Laptop agent connects to PRODUCTION, so we need to use production WebSocket
 // to receive streaming events when agent executes.
 // Local Docker (127.0.0.1:3000) has no agent connected.
-const WS_URL = process.env.WS_URL || 'https://vibestudio.example.com';
+const WS_URL = process.env.WS_URL || process.env.VITE_API_URL || 'http://localhost:3000';
 
 // Extended test context for native subagent tests
 interface NativeSubagentTestContext extends TestContext {
@@ -106,7 +106,7 @@ describe('ST-160: Native Subagent Integration E2E Tests', () => {
     if (agentResult.agents.length === 0) {
       console.warn('\n⚠️  WARNING: No laptop agent is online!');
       console.warn('Native agent execution tests require the laptop agent.');
-      console.warn('Start the agent with: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist');
+      console.warn('Start the laptop agent (see CLAUDE.md for launchd setup)');
       console.warn('\nSome tests will be skipped.\n');
     } else {
       laptopAgentId = agentResult.agents[0].id;

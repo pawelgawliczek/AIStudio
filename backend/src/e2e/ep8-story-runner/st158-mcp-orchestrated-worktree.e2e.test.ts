@@ -48,7 +48,7 @@ const prisma = new PrismaClient();
 
 // KVM API configuration for agent queries
 // Uses HTTP API to query the server where agent is actually registered
-const KVM_API_URL = process.env.KVM_API_URL || 'https://vibestudio.example.com';
+const KVM_API_URL = process.env.KVM_API_URL || process.env.VITE_API_URL || 'http://localhost:3000';
 const AGENT_SECRET = process.env.AGENT_SECRET || '';
 
 /**
@@ -371,7 +371,7 @@ describe.each(TEST_TARGETS)('ST-158: Worktree E2E Tests - $description', (target
         if (!result.online) {
           console.log(`  ⚠ Agent not online: ${result.error}`);
           console.log('  This test requires the laptop agent to be running.');
-          console.log('  Start it with: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist');
+          console.log('  Start the laptop agent (see CLAUDE.md for launchd setup)');
           // Don't fail - just skip MCP-orchestrated tests
           return;
         }

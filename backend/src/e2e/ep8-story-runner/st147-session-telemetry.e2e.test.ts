@@ -14,7 +14,7 @@
  * connected to the same database as the test is running against.
  *
  * Environment Requirements:
- * - Laptop agent: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist
+ * - Laptop agent must be running (see CLAUDE.md for launchd setup)
  * - The laptop agent must connect to the same VibeStudio server that the test DB is using
  * - For local testing, run against the DEV database (port 5433) where the agent registers
  *
@@ -90,7 +90,7 @@ describe('ST-147 Session Telemetry E2E Tests', () => {
     if (agentResult.agents.length === 0) {
       console.error('\n⚠️  WARNING: No laptop agent is online!');
       console.error('These tests require the laptop agent for real transcript generation.');
-      console.error('Start with: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist');
+      console.error('Start the laptop agent (see CLAUDE.md for launchd setup)');
       console.error('\nTests will be skipped.\n');
     } else {
       laptopAgentId = agentResult.agents[0].id;

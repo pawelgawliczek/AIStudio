@@ -1,19 +1,18 @@
 /**
  * ST-152: Artifact Discussion Sessions E2E Tests
  *
- * Tests the artifact session functionality:
+ * Tests the artifact session MCP tools:
  * - open_artifact_session: Start Claude Code session with artifact context
  * - save_artifact_changes: Save modified content back to artifact
  * - close_artifact_session: Close session without saving
  *
- * These tests run against the production database with dedicated test entities.
+ * NOTE: For full agent testing, use MCP tools directly via Claude Code.
+ * This test validates handler logic and error handling.
+ * Agent-dependent tests are skipped when no agent is online.
  *
- * Test Phases:
- * - Phase 1: Setup (project, workflow, artifact definition)
- * - Phase 2: Artifact Session Lifecycle
- * - Phase 3: Save and Version Increment
- * - Phase 4: Error Handling
- * - Phase 5: Cleanup
+ * To test with real agent execution, use MCP tools:
+ *   mcp__vibestudio__open_artifact_session(...)
+ *   mcp__vibestudio__save_artifact_changes(...)
  */
 
 import { PrismaClient } from '@prisma/client';

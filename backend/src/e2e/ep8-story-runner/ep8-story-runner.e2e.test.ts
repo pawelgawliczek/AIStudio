@@ -16,7 +16,7 @@
  *
  * Note: Phase 7 (Full Path Integration) is in a separate file for laptop execution.
  *
- * @see /Users/pawelgawliczek/.claude/plans/deep-brewing-quasar.md
+ * @see ~/.claude/plans/ for implementation plans
  */
 
 import { PrismaClient } from '@prisma/client';
