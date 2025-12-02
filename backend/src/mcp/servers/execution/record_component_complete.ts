@@ -2,14 +2,72 @@
  * ST-110: Refactored record_component_complete to use /context command
  * Removed ALL transcript parsing (1,457 lines) and replaced with simple /context parsing
  * ST-112: Added transcriptPath parameter for spawned agent token tracking
+ * ST-165: Added auto-discovery of metrics from RemoteJob.result and transcript search
  */
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { broadcastComponentCompleted } from '../../services/websocket-gateway.instance';
 import { ValidationError } from '../../types';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
 import { TranscriptParserService } from './services/transcript-parser.service';
+
+/**
+ * ST-165: Get the transcript directory for a project path
+ * Claude Code stores transcripts at ~/.claude/projects/{escaped-path}/
+ */
+function getTranscriptDir(projectPath: string): string {
+  const homeDir = os.homedir();
+  // Escape path: replace / with - (except leading /)
+  const escapedPath = projectPath.replace(/^\//, '').replace(/\//g, '-');
+  return path.join(homeDir, '.claude', 'projects', escapedPath);
+}
+
+/**
+ * ST-165: Find a transcript file containing specific content
+ * Searches recent transcripts for runId/componentId
+ */
+function findTranscriptByContent(transcriptDir: string, searchContent: string, searchDays = 7): string | null {
+  if (!fs.existsSync(transcriptDir)) {
+    return null;
+  }
+
+  const cutoffTime = Date.now() - searchDays * 24 * 60 * 60 * 1000;
+
+  // Get all transcripts within time window
+  let transcriptFiles: Array<{ name: string; path: string; mtime: Date }>;
+  try {
+    transcriptFiles = fs
+      .readdirSync(transcriptDir)
+      .filter((f) => f.endsWith('.jsonl'))
+      .map((f) => ({
+        name: f,
+        path: path.join(transcriptDir, f),
+        mtime: fs.statSync(path.join(transcriptDir, f)).mtime,
+      }))
+      .filter((f) => f.mtime.getTime() > cutoffTime)
+      .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // newest first
+  } catch {
+    return null;
+  }
+
+  // Search each file for the content
+  for (const file of transcriptFiles) {
+    try {
+      const content = fs.readFileSync(file.path, 'utf-8');
+      if (content.includes(searchContent)) {
+        return file.path;
+      }
+    } catch {
+      // Skip files we can't read
+    }
+  }
+
+  return null;
+}
 
 
 // ALIASING: Component → Agent (ST-109)
@@ -224,6 +282,138 @@ export async function handler(prisma: PrismaClient, params: any) {
       });
     } else {
       console.warn(`[ST-112] Failed to parse transcript at ${params.transcriptPath}`);
+    }
+  }
+
+  // ST-165: Priority 4: Check RemoteJob.result for laptop-executed agents
+  if (!contextMetrics && componentRun.remoteJobId) {
+    const remoteJob = await prisma.remoteJob.findUnique({
+      where: { id: componentRun.remoteJobId },
+      select: { result: true, status: true },
+    });
+
+    if (remoteJob?.status === 'completed' && remoteJob.result) {
+      const result = remoteJob.result as Record<string, unknown>;
+      const metrics = result.metrics as Record<string, number> | undefined;
+
+      if (metrics) {
+        contextMetrics = {
+          tokensInput: metrics.inputTokens || 0,
+          tokensOutput: metrics.outputTokens || 0,
+          tokensSystemPrompt: null,
+          tokensSystemTools: null,
+          tokensMcpTools: null,
+          tokensMemoryFiles: null,
+          tokensMessages: null,
+          tokensCacheCreation: metrics.cacheCreationTokens || 0,
+          tokensCacheRead: metrics.cacheReadTokens || 0,
+          sessionId: (result.sessionId as string) || null,
+        };
+        dataSource = 'transcript_metrics';
+        console.log(`[ST-165] Auto-extracted metrics from RemoteJob.result for component ${params.componentId}:`, {
+          inputTokens: metrics.inputTokens,
+          outputTokens: metrics.outputTokens,
+          cacheCreationTokens: metrics.cacheCreationTokens,
+          cacheReadTokens: metrics.cacheReadTokens,
+          totalTokens: metrics.totalTokens,
+          remoteJobId: componentRun.remoteJobId,
+        });
+      }
+    }
+  }
+
+  // ST-165: Priority 5: Auto-search for transcript
+  // For spawned agents: use sessionId from RemoteJob.result (more reliable than runId)
+  // For orchestrator: search by runId in MCP tool calls
+  if (!contextMetrics) {
+    // Get the project path from WorkflowRun.metadata._transcriptTracking.projectPath
+    // or fallback to Project.hostPath or PROJECT_HOST_PATH
+    const workflowRun = await prisma.workflowRun.findUnique({
+      where: { id: params.runId },
+      select: {
+        metadata: true,
+        project: {
+          select: { hostPath: true },
+        },
+      },
+    });
+
+    // Extract projectPath from metadata._transcriptTracking (stored by start_workflow_run)
+    const metadata = workflowRun?.metadata as Record<string, any> | null;
+    const transcriptTracking = metadata?._transcriptTracking as Record<string, string> | undefined;
+    const projectPath = transcriptTracking?.projectPath ||
+                        workflowRun?.project?.hostPath ||
+                        process.env.PROJECT_HOST_PATH;
+
+    if (projectPath) {
+      const transcriptDir = getTranscriptDir(projectPath);
+      let foundTranscript: string | null = null;
+      let searchMethod = '';
+
+      // For spawned agents: if we have RemoteJob with sessionId, search by sessionId
+      // (even if metrics weren't in result, the transcript might exist)
+      if (componentRun.remoteJobId) {
+        const remoteJob = await prisma.remoteJob.findUnique({
+          where: { id: componentRun.remoteJobId },
+          select: { result: true },
+        });
+        const jobResult = remoteJob?.result as Record<string, unknown> | null;
+        const sessionId = jobResult?.sessionId as string | undefined;
+
+        if (sessionId) {
+          console.log(`[ST-165] Searching for transcript with sessionId=${sessionId}`);
+          foundTranscript = findTranscriptByContent(transcriptDir, sessionId);
+          searchMethod = `sessionId=${sessionId}`;
+        }
+      }
+
+      // Fallback: search by runId (works for orchestrator transcripts with MCP tool calls)
+      if (!foundTranscript) {
+        console.log(`[ST-165] Searching for transcript with runId=${params.runId}`);
+        foundTranscript = findTranscriptByContent(transcriptDir, params.runId);
+        searchMethod = `runId=${params.runId}`;
+      }
+
+      // Last resort: search by componentRunId
+      if (!foundTranscript) {
+        console.log(`[ST-165] Searching for transcript with componentRunId=${componentRun.id}`);
+        foundTranscript = findTranscriptByContent(transcriptDir, componentRun.id);
+        searchMethod = `componentRunId=${componentRun.id}`;
+      }
+
+      if (foundTranscript) {
+        console.log(`[ST-165] Found transcript via ${searchMethod}: ${foundTranscript}`);
+        const transcriptParser = new TranscriptParserService();
+        const transcriptMetrics = await transcriptParser.parseAgentTranscript(foundTranscript);
+
+        if (transcriptMetrics) {
+          contextMetrics = {
+            tokensInput: transcriptMetrics.inputTokens,
+            tokensOutput: transcriptMetrics.outputTokens,
+            tokensSystemPrompt: null,
+            tokensSystemTools: null,
+            tokensMcpTools: null,
+            tokensMemoryFiles: null,
+            tokensMessages: null,
+            tokensCacheCreation: transcriptMetrics.cacheCreationTokens,
+            tokensCacheRead: transcriptMetrics.cacheReadTokens,
+            sessionId: transcriptMetrics.sessionId,
+          };
+          dataSource = 'transcript';
+          console.log(`[ST-165] Auto-parsed transcript for component ${params.componentId}:`, {
+            transcriptPath: foundTranscript,
+            inputTokens: transcriptMetrics.inputTokens,
+            outputTokens: transcriptMetrics.outputTokens,
+            cacheCreationTokens: transcriptMetrics.cacheCreationTokens,
+            cacheReadTokens: transcriptMetrics.cacheReadTokens,
+            totalTokens: transcriptMetrics.totalTokens,
+          });
+        }
+      } else {
+        console.log(`[ST-165] No transcript found for component ${params.componentId}`);
+      }
+    } else {
+      console.log(`[ST-165] Cannot auto-search transcript: no project path available`);
     }
   }
 
