@@ -79,15 +79,47 @@ export async function cleanupTestData(
     }
   }
 
-  // 3. Delete component runs (all for workflow run)
+  // 3. Delete component runs (all for workflow run AND all for components in this project)
+  // Must delete component runs before components due to FK constraint
   if (ctx.workflowRunId) {
     try {
       await prisma.componentRun.deleteMany({ where: { workflowRunId: ctx.workflowRunId } });
-      console.log('[CLEANUP] Deleted component runs');
+      console.log('[CLEANUP] Deleted component runs by workflowRunId');
     } catch (error: any) {
-      errors.push(`Component runs delete failed: ${error.message}`);
+      errors.push(`Component runs delete by workflowRunId failed: ${error.message}`);
     }
-  } else if (ctx.componentRunId) {
+  }
+
+  // Also delete component runs for ALL workflow runs of the workflow
+  if (ctx.workflowId) {
+    try {
+      // Get all workflow run IDs for this workflow
+      const workflowRuns = await prisma.workflowRun.findMany({
+        where: { workflowId: ctx.workflowId },
+        select: { id: true },
+      });
+      const runIds = workflowRuns.map(r => r.id);
+      if (runIds.length > 0) {
+        await prisma.componentRun.deleteMany({ where: { workflowRunId: { in: runIds } } });
+        console.log(`[CLEANUP] Deleted component runs for ${runIds.length} workflow runs`);
+      }
+    } catch (error: any) {
+      errors.push(`Component runs delete for workflow failed: ${error.message}`);
+    }
+  }
+
+  // Also delete any component runs referencing our components (including orphaned ones)
+  const componentIds = [ctx.agentComponentId, ctx.coordinatorComponentId].filter(Boolean) as string[];
+  if (componentIds.length > 0) {
+    try {
+      await prisma.componentRun.deleteMany({ where: { componentId: { in: componentIds } } });
+      console.log('[CLEANUP] Deleted component runs by componentId');
+    } catch (error: any) {
+      errors.push(`Component runs delete by componentId failed: ${error.message}`);
+    }
+  }
+
+  if (ctx.componentRunId) {
     try {
       await prisma.componentRun.delete({ where: { id: ctx.componentRunId } });
       console.log('[CLEANUP] Deleted component run');
@@ -96,13 +128,23 @@ export async function cleanupTestData(
     }
   }
 
-  // 4. Delete workflow runs
+  // 4. Delete workflow runs (both tracked and any orphaned ones for the workflow)
   if (ctx.workflowRunId) {
     try {
       await prisma.workflowRun.delete({ where: { id: ctx.workflowRunId } });
-      console.log('[CLEANUP] Deleted workflow run');
+      console.log('[CLEANUP] Deleted workflow run by id');
     } catch (error: any) {
-      errors.push(`Workflow run delete failed: ${error.message}`);
+      errors.push(`Workflow run delete by id failed: ${error.message}`);
+    }
+  }
+
+  // Also delete any workflow runs for our workflow (in case there are orphaned runs)
+  if (ctx.workflowId) {
+    try {
+      await prisma.workflowRun.deleteMany({ where: { workflowId: ctx.workflowId } });
+      console.log('[CLEANUP] Deleted workflow runs by workflowId');
+    } catch (error: any) {
+      errors.push(`Workflow runs delete by workflowId failed: ${error.message}`);
     }
   }
 
