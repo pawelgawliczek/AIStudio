@@ -114,10 +114,11 @@ model Story {
   createdById         String      @map("created_by") @db.Uuid
 
   // Analysis fields (filled by agents)
-  contextExploration String? @map("context_exploration") @db.Text // Context from Explore component
-  baAnalysis         String? @map("ba_analysis") @db.Text // Requirements from BA component
-  designerAnalysis   String? @map("designer_analysis") @db.Text // UI/UX design from Designer component
-  architectAnalysis  String? @map("architect_analysis") @db.Text // Technical design from Architect component
+  // @deprecated ST-152: Use Artifact system instead - these fields will be removed in a future release
+  contextExploration String? @map("context_exploration") @db.Text /// @deprecated Use Artifact system (ST-152)
+  baAnalysis         String? @map("ba_analysis") @db.Text /// @deprecated Use Artifact system (ST-152)
+  designerAnalysis   String? @map("designer_analysis") @db.Text /// @deprecated Use Artifact system (ST-152)
+  architectAnalysis  String? @map("architect_analysis") @db.Text /// @deprecated Use Artifact system (ST-152)
 
   // Analysis timestamps
   contextExploredAt   DateTime? @map("context_explored_at")

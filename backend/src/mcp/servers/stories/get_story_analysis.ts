@@ -19,7 +19,12 @@ import {
 
 export const tool: Tool = {
   name: 'get_story_analysis',
-  description: 'Get analysis fields for a story (architectAnalysis, baAnalysis, designerAnalysis, contextExploration)',
+  description: `Get analysis fields for a story.
+
+**DEPRECATED (ST-152):** These fields are deprecated. Use the Artifact system instead:
+- list_artifacts({ workflowRunId }) to get analysis artifacts
+- get_artifact({ definitionKey: "ARCH_ANALYSIS", workflowRunId }) for specific analysis
+- open_artifact_session() for interactive editing`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -54,6 +59,8 @@ export interface StoryAnalysisResponse {
     designerAnalysis: string | null;
     contextExploration: string | null;
   };
+  /** @deprecated ST-152 - Use Artifact system instead */
+  _deprecationWarning?: string;
 }
 
 export async function handler(
@@ -90,6 +97,7 @@ export async function handler(
         designerAnalysis: story.designerAnalysis,
         contextExploration: story.contextExploration,
       },
+      _deprecationWarning: 'These analysis fields are deprecated (ST-152). Use the Artifact system instead: list_artifacts(), get_artifact(), or open_artifact_session().',
     };
   } catch (error: any) {
     if (error.name === 'MCPError') {
