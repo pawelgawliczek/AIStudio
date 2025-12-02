@@ -189,6 +189,114 @@ export async function broadcastApprovalResolved(
   }
 }
 
+/**
+ * ST-160: Send answer to remote agent for session resume
+ * Triggers the remote agent gateway to emit the answer to the laptop agent
+ */
+export async function sendAnswerToRemoteAgent(
+  agentId: string,
+  data: {
+    sessionId: string;
+    answer: string;
+    questionId: string;
+    jobId: string;
+    workflowRunId: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/remote-agent/internal/answer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        agentId,
+        ...data,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn(`[ST-160] Failed to send answer to remote agent: ${errorText}`);
+      return { success: false, error: errorText };
+    }
+
+    const result = await response.json() as { success: boolean; error?: string };
+    return result;
+  } catch (error: any) {
+    console.warn(`[ST-160] Failed to send answer to remote agent: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ST-160: Broadcast question detected event via HTTP to backend
+ * Emitted when a Claude CLI agent asks a question during execution
+ */
+export async function broadcastQuestionDetected(
+  workflowRunId: string,
+  projectId: string,
+  data: {
+    questionId: string;
+    componentRunId?: string;
+    sessionId: string;
+    questionText: string;
+    canHandoff: boolean;
+    executionType: string;
+  }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'question:detected',
+        workflowRunId,
+        projectId,
+        data,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-160] Failed to broadcast question:detected: ${error.message}`);
+  }
+}
+
+/**
+ * ST-160: Broadcast question answered event via HTTP to backend
+ * Emitted when a pending question is answered
+ */
+export async function broadcastQuestionAnswered(
+  workflowRunId: string,
+  projectId: string,
+  data: {
+    questionId: string;
+    answeredBy?: string;
+    resumeTriggered: boolean;
+  }
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        event: 'question:answered',
+        workflowRunId,
+        projectId,
+        data,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-160] Failed to broadcast question:answered: ${error.message}`);
+  }
+}
+
 // Keep old exports for NestJS-side code (main.ts)
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 let sharedGateway: AppWebSocketGateway | null = null;

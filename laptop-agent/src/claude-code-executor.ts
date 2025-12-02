@@ -17,6 +17,20 @@ import { EventEmitter } from 'events';
  */
 
 /**
+ * ST-160: Native subagent execution types
+ */
+export type ExecutionType = 'custom' | 'native_explore' | 'native_plan' | 'native_general';
+
+/**
+ * ST-160: Native agent configuration
+ */
+export interface NativeAgentConfig {
+  questionTimeout?: number;  // Timeout for question response (ms)
+  maxQuestions?: number;     // Max questions per execution
+  allowedTools?: string[];   // Override tools for native agent
+}
+
+/**
  * Job payload from server
  */
 export interface ClaudeCodeJobPayload {
@@ -31,6 +45,9 @@ export interface ClaudeCodeJobPayload {
     model?: string;
     maxTurns?: number;
     projectPath?: string;
+    // ST-160: Native subagent support
+    executionType?: ExecutionType;
+    nativeAgentConfig?: NativeAgentConfig;
   };
   signature: string;
   timestamp: number;
@@ -45,7 +62,9 @@ export type ProgressEventType =
   | 'tool_call'
   | 'tool_result'
   | 'activity_change'
-  | 'stream_end';
+  | 'stream_end'
+  | 'question_detected'  // ST-160: Agent is asking a question
+  | 'session_init';       // ST-160: Session ID captured from init message
 
 /**
  * Execution result
@@ -61,6 +80,8 @@ export interface ExecutionResult {
     totalTokens: number;
   };
   transcriptPath?: string;
+  // ST-160: Session tracking for resume support
+  sessionId?: string;
   error?: string;
 }
 
@@ -90,6 +111,9 @@ export class ClaudeCodeExecutor extends EventEmitter {
   private outputTokens = 0;
   private cacheCreationTokens = 0;
   private cacheReadTokens = 0;
+  // ST-160: Session tracking for native subagent support
+  private sessionId: string | null = null;
+  private executionType: ExecutionType = 'custom';
 
   constructor(config: {
     agentSecret: string;
@@ -145,6 +169,9 @@ export class ClaudeCodeExecutor extends EventEmitter {
     this.outputTokens = 0;
     this.cacheCreationTokens = 0;
     this.cacheReadTokens = 0;
+    // ST-160: Track execution type and session
+    this.sessionId = null;
+    this.executionType = job.config.executionType || 'custom';
 
     // Build Claude Code command
     const args = this.buildClaudeCodeArgs(job);
@@ -191,6 +218,8 @@ export class ClaudeCodeExecutor extends EventEmitter {
             totalTokens: this.totalTokens,
           },
           transcriptPath: this.transcriptPath || undefined,
+          // ST-160: Include session ID for resume support
+          sessionId: this.sessionId || undefined,
           error: code !== 0 ? `Process exited with code ${code}` : undefined,
         };
 
@@ -221,12 +250,23 @@ export class ClaudeCodeExecutor extends EventEmitter {
 
   /**
    * Build command line arguments for Claude Code
+   * ST-160: Added support for native subagent execution types
    */
   private buildClaudeCodeArgs(job: ClaudeCodeJobPayload): string[] {
+    const executionType = job.config.executionType || 'custom';
     const args: string[] = [
       '--print', // Output result only
+      '--verbose', // ST-160: Always use verbose for detailed output
       '--output-format', 'stream-json', // Streaming JSON output
     ];
+
+    // ST-160: Add permission mode for native read-only types
+    // native_explore and native_plan use plan mode (read-only)
+    // native_general and custom use default (full permissions)
+    if (executionType === 'native_explore' || executionType === 'native_plan') {
+      args.push('--permission-mode', 'plan');
+      console.log(`[ST-160] Using plan permission mode for ${executionType}`);
+    }
 
     // Model selection
     if (job.config.model) {
@@ -238,14 +278,17 @@ export class ClaudeCodeExecutor extends EventEmitter {
       args.push('--max-turns', String(job.config.maxTurns));
     }
 
-    // Allowed tools
-    if (job.config.allowedTools && job.config.allowedTools.length > 0) {
-      args.push('--allowedTools', job.config.allowedTools.join(','));
+    // Allowed tools - use override from nativeAgentConfig if provided
+    const allowedTools = job.config.nativeAgentConfig?.allowedTools || job.config.allowedTools;
+    if (allowedTools && allowedTools.length > 0) {
+      args.push('--allowedTools', allowedTools.join(','));
     }
 
     // Prompt (via --prompt flag or stdin)
     // We use stdin for the prompt to avoid shell escaping issues
     args.push('--prompt', '-'); // Read prompt from stdin
+
+    console.log(`[ST-160] Execution type: ${executionType}, args: ${args.join(' ')}`);
 
     return args;
   }
@@ -311,11 +354,23 @@ export class ClaudeCodeExecutor extends EventEmitter {
 
   /**
    * Handle streaming JSON event from Claude Code
+   * ST-160: Added session_id capture and question detection
    */
   private handleStreamEvent(event: Record<string, unknown>): void {
     const eventType = event.type as string;
 
     switch (eventType) {
+      case 'init':
+        // ST-160: Capture session_id from init message (CRITICAL for --resume)
+        if (event.session_id) {
+          this.sessionId = event.session_id as string;
+          console.log(`[ST-160] Captured session_id: ${this.sessionId}`);
+          this.emitProgress('session_init', {
+            sessionId: this.sessionId,
+          });
+        }
+        break;
+
       case 'tool_use':
         this.emitProgress('tool_call', {
           toolName: event.name,
@@ -332,7 +387,18 @@ export class ClaudeCodeExecutor extends EventEmitter {
         break;
 
       case 'text':
-        // Periodic text output - could emit as activity
+        // ST-160: Detect questions from text output
+        // Questions are detected from TEXT patterns since AskUserQuestion
+        // is NOT available in -p (print) mode
+        const text = event.text as string || '';
+        if (this.isQuestionText(text)) {
+          console.log(`[ST-160] Question detected: ${text.substring(0, 100)}...`);
+          this.emitProgress('question_detected', {
+            questionText: text,
+            sessionId: this.sessionId,
+            executionType: this.executionType,
+          });
+        }
         break;
 
       case 'usage':
@@ -371,6 +437,41 @@ export class ClaudeCodeExecutor extends EventEmitter {
   }
 
   /**
+   * ST-160: Detect if text output contains a question
+   * Questions are typically:
+   * - End with "?"
+   * - Contains phrases like "Would you like", "Should I", "Do you want"
+   * - Contains "Please select", "Choose", "Which option"
+   */
+  private isQuestionText(text: string): boolean {
+    if (!text || text.length < 10) return false;
+
+    // Normalize text
+    const normalized = text.trim().toLowerCase();
+
+    // Check for question mark at end
+    if (text.trim().endsWith('?')) {
+      return true;
+    }
+
+    // Check for common question phrases
+    const questionPatterns = [
+      /would you like/i,
+      /should i/i,
+      /do you want/i,
+      /please select/i,
+      /please choose/i,
+      /which option/i,
+      /which would you prefer/i,
+      /what would you like/i,
+      /can you confirm/i,
+      /could you clarify/i,
+    ];
+
+    return questionPatterns.some(pattern => pattern.test(text));
+  }
+
+  /**
    * Emit a progress event
    */
   private emitProgress(type: ProgressEventType, payload: Record<string, unknown>): void {
@@ -379,6 +480,115 @@ export class ClaudeCodeExecutor extends EventEmitter {
       type,
       sequenceNumber: this.sequenceNumber,
       payload,
+    });
+  }
+
+  /**
+   * ST-160: Resume a paused session with an answer
+   * Uses --resume flag to continue the Claude Code session
+   */
+  async resumeWithAnswer(
+    sessionId: string,
+    answer: string,
+    originalJob: ClaudeCodeJobPayload
+  ): Promise<ExecutionResult> {
+    // Reset state for resumed session
+    this.sequenceNumber = 0;
+    this.outputBuffer = '';
+    this.totalTokens = 0;
+    this.inputTokens = 0;
+    this.outputTokens = 0;
+    this.cacheCreationTokens = 0;
+    this.cacheReadTokens = 0;
+    this.sessionId = sessionId;
+    this.executionType = originalJob.config.executionType || 'custom';
+
+    // Build resume args
+    const args: string[] = [
+      '--print',
+      '--verbose',
+      '--output-format', 'stream-json',
+      '--resume', sessionId,
+    ];
+
+    // Add permission mode for native read-only types
+    if (this.executionType === 'native_explore' || this.executionType === 'native_plan') {
+      args.push('--permission-mode', 'plan');
+    }
+
+    // Model selection (if specified)
+    if (originalJob.config.model) {
+      args.push('--model', originalJob.config.model);
+    }
+
+    const projectPath = originalJob.config.projectPath || this.projectPath;
+
+    console.log(`[ST-160] Resuming session ${sessionId} with answer: "${answer.substring(0, 50)}..."`);
+    console.log(`[ST-160] Resume command: ${this.claudeCodePath} ${args.join(' ')}`);
+
+    return new Promise((resolve, reject) => {
+      // Spawn Claude Code process with --resume
+      this.process = spawn(this.claudeCodePath, args, {
+        cwd: projectPath,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          CI: 'true',
+          CLAUDE_CODE_NON_INTERACTIVE: 'true',
+        },
+      });
+
+      // Handle stdout
+      this.process.stdout?.on('data', (data: Buffer) => {
+        this.handleStdout(data.toString());
+      });
+
+      // Handle stderr
+      this.process.stderr?.on('data', (data: Buffer) => {
+        this.handleStderr(data.toString());
+      });
+
+      // Handle process exit
+      this.process.on('close', (code) => {
+        console.log(`[ST-160] Resumed session exited with code: ${code}`);
+
+        const result: ExecutionResult = {
+          success: code === 0,
+          output: this.outputBuffer.trim(),
+          metrics: {
+            inputTokens: this.inputTokens,
+            outputTokens: this.outputTokens,
+            cacheCreationTokens: this.cacheCreationTokens,
+            cacheReadTokens: this.cacheReadTokens,
+            totalTokens: this.totalTokens,
+          },
+          transcriptPath: this.transcriptPath || undefined,
+          sessionId: this.sessionId || undefined,
+          error: code !== 0 ? `Process exited with code ${code}` : undefined,
+        };
+
+        // Emit stream_end event
+        this.emitProgress('stream_end', {
+          success: result.success,
+          metrics: result.metrics,
+        });
+
+        this.emit('complete', result);
+        resolve(result);
+      });
+
+      // Handle process error
+      this.process.on('error', (error) => {
+        console.error(`[ST-160] Resume process error:`, error);
+        this.emit('error', error);
+        reject(error);
+      });
+
+      // Write the answer to stdin (Claude Code will continue with this response)
+      if (this.process.stdin) {
+        this.process.stdin.write(answer);
+        this.process.stdin.end();
+      }
     });
   }
 

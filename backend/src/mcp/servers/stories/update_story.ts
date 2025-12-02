@@ -18,8 +18,12 @@ import {
 
 export const tool: Tool = {
   name: 'update_story',
-  description:
-    'Update an existing story (title, description, status, complexity, framework, workflow analysis fields)',
+  description: `Update an existing story (title, description, status, complexity, framework).
+
+**DEPRECATED (ST-152):** The analysis fields (architectAnalysis, baAnalysis, designerAnalysis, contextExploration) are deprecated.
+Use the Artifact system instead:
+- upload_artifact({ definitionKey: "ARCH_ANALYSIS", workflowRunId, content }) for architect analysis
+- open_artifact_session() for interactive artifact editing`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -58,19 +62,19 @@ export const tool: Tool = {
       },
       contextExploration: {
         type: 'string',
-        description: 'Context exploration from Explore component',
+        description: '@deprecated Use Artifact system instead (ST-152)',
       },
       baAnalysis: {
         type: 'string',
-        description: 'BA agent analysis notes',
+        description: '@deprecated Use Artifact system instead (ST-152)',
       },
       designerAnalysis: {
         type: 'string',
-        description: 'Designer agent analysis notes',
+        description: '@deprecated Use Artifact system instead (ST-152)',
       },
       architectAnalysis: {
         type: 'string',
-        description: 'Architect agent analysis notes',
+        description: '@deprecated Use Artifact system instead (ST-152)',
       },
     },
     required: ['storyId'],
@@ -127,15 +131,24 @@ export async function handler(
     if (params.assignedFrameworkId !== undefined)
       updateData.assignedFrameworkId = params.assignedFrameworkId;
 
-    // Workflow component analysis fields
-    if (params.contextExploration !== undefined)
+    // Workflow component analysis fields (DEPRECATED - ST-152)
+    const deprecatedFieldsUsed: string[] = [];
+    if (params.contextExploration !== undefined) {
       updateData.contextExploration = params.contextExploration;
-    if (params.baAnalysis !== undefined)
+      deprecatedFieldsUsed.push('contextExploration');
+    }
+    if (params.baAnalysis !== undefined) {
       updateData.baAnalysis = params.baAnalysis;
-    if (params.designerAnalysis !== undefined)
+      deprecatedFieldsUsed.push('baAnalysis');
+    }
+    if (params.designerAnalysis !== undefined) {
       updateData.designerAnalysis = params.designerAnalysis;
-    if (params.architectAnalysis !== undefined)
+      deprecatedFieldsUsed.push('designerAnalysis');
+    }
+    if (params.architectAnalysis !== undefined) {
       updateData.architectAnalysis = params.architectAnalysis;
+      deprecatedFieldsUsed.push('architectAnalysis');
+    }
 
     // Update story
     const updatedStory = await prisma.story.update({
@@ -143,7 +156,14 @@ export async function handler(
       data: updateData,
     });
 
-    return formatStory(updatedStory);
+    const response = formatStory(updatedStory);
+
+    // Add deprecation warning if deprecated fields were used
+    if (deprecatedFieldsUsed.length > 0) {
+      (response as any)._deprecationWarning = `Fields [${deprecatedFieldsUsed.join(', ')}] are deprecated (ST-152). Use the Artifact system instead: upload_artifact() or open_artifact_session()`;
+    }
+
+    return response;
   } catch (error: any) {
     if (error.name === 'MCPError') {
       throw error;

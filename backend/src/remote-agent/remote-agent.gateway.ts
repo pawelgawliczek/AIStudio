@@ -15,7 +15,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StreamEventService } from './stream-event.service';
 
 /**
+ * ST-160: Native subagent execution types
+ */
+export type ExecutionType = 'custom' | 'native_explore' | 'native_plan' | 'native_general';
+
+/**
+ * ST-160: Native agent configuration
+ */
+export interface NativeAgentConfig {
+  questionTimeout?: number;  // Timeout for question response (ms)
+  maxQuestions?: number;     // Max questions per execution
+  allowedTools?: string[];   // Override tools for native agent
+}
+
+/**
  * ST-150: Claude Code job payload sent to laptop agent
+ * ST-160: Added executionType and nativeAgentConfig
  */
 export interface ClaudeCodeJobPayload {
   id: string;
@@ -29,6 +44,9 @@ export interface ClaudeCodeJobPayload {
     model?: string;
     maxTurns?: number;
     projectPath?: string;
+    // ST-160: Native subagent support
+    executionType?: ExecutionType;
+    nativeAgentConfig?: NativeAgentConfig;
   };
   signature: string;
   timestamp: number;
@@ -37,11 +55,13 @@ export interface ClaudeCodeJobPayload {
 
 /**
  * ST-150: Progress event from laptop agent
+ * ST-160: Added session_init and question_detected event types
  */
 export interface ClaudeCodeProgressEvent {
   jobId: string;
   jobToken: string;
-  type: 'token_update' | 'tool_call' | 'tool_result' | 'activity_change' | 'stream_end';
+  type: 'token_update' | 'tool_call' | 'tool_result' | 'activity_change' | 'stream_end'
+    | 'session_init' | 'question_detected';  // ST-160: Native subagent events
   payload: Record<string, unknown>;
   timestamp: number;
   sequenceNumber: number;
@@ -485,6 +505,72 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       data: { lastHeartbeatAt: new Date() },
     });
 
+    // ST-160: Handle special event types
+    if (data.type === 'session_init') {
+      // Store session ID on job for resume support
+      const sessionId = data.payload.sessionId as string;
+      if (sessionId) {
+        await this.prisma.remoteJob.update({
+          where: { id: data.jobId },
+          data: {
+            result: {
+              ...(job.result as Record<string, unknown> || {}),
+              sessionId,
+            } as any,
+          },
+        });
+        this.logger.log(`[ST-160] Session ID captured for job ${data.jobId}: ${sessionId}`);
+      }
+    }
+
+    if (data.type === 'question_detected') {
+      // Create AgentQuestion record
+      const questionText = data.payload.questionText as string;
+      const sessionId = data.payload.sessionId as string;
+      const executionType = data.payload.executionType as string || 'custom';
+
+      if (questionText && sessionId) {
+        try {
+          // Get state from job params
+          const jobParams = job.params as Record<string, unknown> || {};
+          const stateId = jobParams.stateId as string || job.workflowRunId; // Fallback to workflowRunId
+
+          const question = await this.prisma.agentQuestion.create({
+            data: {
+              workflowRunId: job.workflowRunId,
+              stateId,
+              componentRunId: job.componentRunId,
+              sessionId,
+              questionText,
+              status: 'pending',
+              canHandoff: executionType !== 'native_explore' && executionType !== 'native_plan',
+            },
+          });
+
+          this.logger.log(`[ST-160] Created AgentQuestion ${question.id} for job ${data.jobId}`);
+
+          // Emit dedicated question event to frontend
+          this.server.emit(`workflow:${job.workflowRunId}:question`, {
+            questionId: question.id,
+            componentRunId: job.componentRunId,
+            sessionId,
+            questionText,
+            canHandoff: question.canHandoff,
+            executionType,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Pause the job until question is answered
+          await this.prisma.remoteJob.update({
+            where: { id: data.jobId },
+            data: { status: 'paused' },
+          });
+        } catch (error: any) {
+          this.logger.error(`[ST-160] Failed to create AgentQuestion: ${error.message}`);
+        }
+      }
+    }
+
     // Emit to any connected frontend clients (future: real-time UI updates)
     this.server.emit(`workflow:${job.workflowRunId}:progress`, {
       componentRunId: job.componentRunId,
@@ -852,5 +938,194 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       this.logger.error(`Failed to update git job result: ${error.message}`);
       client.emit('agent:error', { error: 'Failed to update job' });
     }
+  }
+
+  // ===========================================================================
+  // ST-160: Native Subagent Question Handling & Session Streaming
+  // ===========================================================================
+
+  /**
+   * ST-160: Send answer to laptop agent for --resume
+   * Called when answer_question MCP tool is invoked
+   */
+  async emitAnswerToAgent(
+    agentId: string,
+    data: {
+      sessionId: string;
+      answer: string;
+      questionId: string;
+      jobId: string;
+    },
+  ): Promise<void> {
+    // Find agent's socket
+    const agent = await this.prisma.remoteAgent.findUnique({
+      where: { id: agentId },
+    });
+
+    if (!agent || agent.status !== 'online' || !agent.socketId) {
+      throw new Error('Agent not online');
+    }
+
+    // Emit answer to agent's socket
+    this.server.to(agent.socketId).emit('agent:resume_with_answer', {
+      sessionId: data.sessionId,
+      answer: data.answer,
+      questionId: data.questionId,
+      jobId: data.jobId,
+    });
+
+    this.logger.log(`[ST-160] Sent answer for question ${data.questionId} to agent ${agentId}`);
+  }
+
+  /**
+   * ST-160: Subscribe frontend client to session streaming
+   * Allows watching real-time session output via WebGUI
+   *
+   * @event session:subscribe
+   */
+  @SubscribeMessage('session:subscribe')
+  async handleSessionSubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { workflowRunId: string; componentRunId?: string },
+  ) {
+    const { workflowRunId, componentRunId } = data;
+
+    // Join room for workflow updates
+    client.join(`workflow:${workflowRunId}`);
+    this.logger.log(`[ST-160] Client ${client.id} subscribed to workflow ${workflowRunId}`);
+
+    if (componentRunId) {
+      client.join(`component:${componentRunId}`);
+      this.logger.log(`[ST-160] Client ${client.id} subscribed to component ${componentRunId}`);
+    }
+
+    // Send current session state (events so far)
+    try {
+      const events = await this.streamEventService.getEventsForWorkflowRun(workflowRunId, {
+        limit: 100,
+      });
+
+      client.emit('session:history', {
+        workflowRunId,
+        events: events.map(e => ({
+          componentRunId: e.componentRunId,
+          type: e.eventType,
+          sequenceNumber: e.sequenceNumber,
+          timestamp: e.timestamp.toISOString(),
+          payload: e.payload,
+        })),
+      });
+    } catch (error: any) {
+      this.logger.error(`[ST-160] Failed to fetch session history: ${error.message}`);
+    }
+
+    client.emit('session:subscribed', {
+      workflowRunId,
+      componentRunId,
+      success: true,
+    });
+  }
+
+  /**
+   * ST-160: Unsubscribe frontend client from session streaming
+   *
+   * @event session:unsubscribe
+   */
+  @SubscribeMessage('session:unsubscribe')
+  async handleSessionUnsubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { workflowRunId: string; componentRunId?: string },
+  ) {
+    const { workflowRunId, componentRunId } = data;
+
+    client.leave(`workflow:${workflowRunId}`);
+
+    if (componentRunId) {
+      client.leave(`component:${componentRunId}`);
+    }
+
+    this.logger.log(`[ST-160] Client ${client.id} unsubscribed from workflow ${workflowRunId}`);
+
+    client.emit('session:unsubscribed', {
+      workflowRunId,
+      componentRunId,
+      success: true,
+    });
+  }
+
+  /**
+   * ST-160: Get session streaming status for a workflow
+   * Returns current agent execution state, pending questions, etc.
+   */
+  async getSessionStatus(workflowRunId: string): Promise<{
+    isActive: boolean;
+    agentId?: string;
+    agentHostname?: string;
+    currentJobId?: string;
+    pendingQuestions: number;
+    lastEventAt?: Date;
+  }> {
+    // Get workflow run
+    const workflowRun = await this.prisma.workflowRun.findUnique({
+      where: { id: workflowRunId },
+    });
+
+    // Get agent hostname if executing
+    let agentHostname: string | undefined;
+    if (workflowRun?.executingAgentId) {
+      const agent = await this.prisma.remoteAgent.findUnique({
+        where: { id: workflowRun.executingAgentId },
+        select: { hostname: true },
+      });
+      agentHostname = agent?.hostname;
+    }
+
+    // Count pending questions
+    const pendingQuestions = await this.prisma.agentQuestion.count({
+      where: {
+        workflowRunId,
+        status: 'pending',
+      },
+    });
+
+    // Get last event
+    const lastEvent = await this.prisma.agentStreamEvent.findFirst({
+      where: { workflowRunId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Find current job
+    const currentJob = await this.prisma.remoteJob.findFirst({
+      where: {
+        workflowRunId,
+        status: { in: ['running', 'paused'] },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      isActive: !!workflowRun?.executingAgentId,
+      agentId: workflowRun?.executingAgentId || undefined,
+      agentHostname,
+      currentJobId: currentJob?.id || undefined,
+      pendingQuestions,
+      lastEventAt: lastEvent?.createdAt,
+    };
+  }
+
+  /**
+   * ST-160: Broadcast session update to all subscribed clients
+   * Used for real-time text streaming from agent
+   */
+  broadcastSessionUpdate(
+    workflowRunId: string,
+    update: {
+      componentRunId?: string;
+      type: string;
+      content: string;
+      timestamp: string;
+    },
+  ): void {
+    this.server.to(`workflow:${workflowRunId}`).emit('session:update', update);
   }
 }

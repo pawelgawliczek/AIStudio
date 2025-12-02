@@ -587,6 +587,12 @@ model Component {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // ST-160: Native Subagent Support
+  executionType     String @default("custom") @map("execution_type")
+  // Values: "custom" | "native_explore" | "native_plan" | "native_general"
+  nativeAgentConfig Json?  @map("native_agent_config")
+  // For native types: { questionBehavior, maxQuestions, allowedTools, etc. }
+
   // Versioning fields (ST-58)
   versionMajor         Int       @default(1) @map("version_major")
   versionMinor         Int       @default(0) @map("version_minor")
@@ -765,6 +771,8 @@ model WorkflowRun {
   artifacts     Artifact[]
   // ST-148: Approval gates
   approvalRequests ApprovalRequest[]
+  // ST-160: Agent questions
+  agentQuestions   AgentQuestion[]
 
   @@index([projectId])
   @@index([workflowId])
@@ -1587,6 +1595,7 @@ model WorkflowState {
   breakpointsAtState    RunnerBreakpoint[]
   artifactAccess        ArtifactAccess[]   // ST-151: Access rules for this state
   approvalRequests      ApprovalRequest[]  // ST-148: Approval requests for this state
+  agentQuestions        AgentQuestion[]    // ST-160: Questions asked during this state
 
   @@unique([workflowId, name])
   @@unique([workflowId, order])
@@ -1667,6 +1676,54 @@ model ApprovalRequest {
   @@index([projectId, status])
   @@index([status, requestedAt])
   @@map("approval_requests")
+}
+
+// ============================================================================
+// ST-160: AGENT QUESTION HANDLING - INTERACTIVE CLI QUESTIONS
+// ============================================================================
+
+// AgentQuestion - Track questions asked by Claude CLI agents during execution
+// Questions are detected from text patterns in stream-json output
+// Answers are injected via --resume <sessionId> "answer"
+model AgentQuestion {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workflowRunId  String   @map("workflow_run_id") @db.Uuid
+  stateId        String   @map("state_id") @db.Uuid
+  componentRunId String?  @map("component_run_id") @db.Uuid
+
+  // Session tracking (CRITICAL for --resume)
+  sessionId      String   @map("session_id") // CLI session ID from init message - REQUIRED for resume
+
+  // Question details (detected from text output)
+  questionText   String   @map("question_text") @db.Text // Full text containing the question
+
+  // Status
+  status         AgentQuestionStatus @default(pending)
+  answer         String?  @db.Text // User's answer text (injected via --resume)
+  answeredBy     String?  @map("answered_by")
+  answeredAt     DateTime? @map("answered_at")
+
+  // Session handoff capability
+  canHandoff     Boolean  @default(true) @map("can_handoff")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workflowRun    WorkflowRun   @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  state          WorkflowState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, status])
+  @@index([sessionId])
+  @@index([status, createdAt])
+  @@map("agent_questions")
+}
+
+enum AgentQuestionStatus {
+  pending   // Waiting for user answer
+  answered  // User provided answer, will be injected via --resume
+  skipped   // User skipped the question (timeout or manual skip)
+  cancelled // Question cancelled (workflow cancelled)
 }
 
 // ============================================================================

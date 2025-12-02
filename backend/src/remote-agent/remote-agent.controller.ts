@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Logger, Headers, UnauthorizedException } from '@nestjs/common';
 import { RemoteExecutionService } from './remote-execution.service';
+import { RemoteAgentGateway } from './remote-agent.gateway';
 
 /**
  * ST-133: Remote Agent Controller
@@ -15,7 +16,10 @@ export class RemoteAgentController {
   private readonly agentSecret: string;
   private readonly internalApiSecret: string;
 
-  constructor(private readonly remoteExecution: RemoteExecutionService) {
+  constructor(
+    private readonly remoteExecution: RemoteExecutionService,
+    private readonly remoteAgentGateway: RemoteAgentGateway,  // ST-160: For sending answers to agents
+  ) {
     this.agentSecret = process.env.AGENT_SECRET || 'development-secret-change-in-production';
     // ST-158: Also accept INTERNAL_API_SECRET for MCP server authentication
     this.internalApiSecret = process.env.INTERNAL_API_SECRET || '';
@@ -109,5 +113,68 @@ export class RemoteAgentController {
       this.logger.error(`Git execution failed: ${error.message}`);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Validate internal API secret from X-Internal-API-Secret header
+   * Used for internal MCP tool calls
+   */
+  private validateInternalSecret(secret: string | undefined): void {
+    if (!secret || secret !== this.internalApiSecret) {
+      this.logger.warn('Unauthorized internal API access attempt');
+      throw new UnauthorizedException('Invalid or missing X-Internal-API-Secret header');
+    }
+  }
+
+  /**
+   * ST-160: Send answer to remote agent for session resume
+   * POST /api/internal/remote-agent/answer
+   * Requires X-Internal-API-Secret header
+   * Body: { agentId, sessionId, answer, questionId, jobId, workflowRunId }
+   *
+   * Called by answer_question MCP tool to trigger session resume on laptop agent
+   */
+  @Post('internal/answer')
+  async sendAnswer(
+    @Headers('x-internal-api-secret') secret: string,
+    @Body() body: {
+      agentId: string;
+      sessionId: string;
+      answer: string;
+      questionId: string;
+      jobId: string;
+      workflowRunId: string;
+    },
+  ) {
+    this.validateInternalSecret(secret);
+    this.logger.log(`[ST-160] Send answer request for question ${body.questionId}`);
+
+    try {
+      await this.remoteAgentGateway.emitAnswerToAgent(body.agentId, {
+        sessionId: body.sessionId,
+        answer: body.answer,
+        questionId: body.questionId,
+        jobId: body.jobId,
+      });
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`[ST-160] Failed to send answer: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * ST-160: Get session streaming status
+   * GET /api/remote-agent/session-status/:workflowRunId
+   * Requires X-Agent-Secret header
+   */
+  @Get('session-status/:workflowRunId')
+  async getSessionStatus(
+    @Headers('x-agent-secret') secret: string,
+    @Body() body: { workflowRunId: string },
+  ) {
+    this.validateSecret(secret);
+    return this.remoteAgentGateway.getSessionStatus(body.workflowRunId);
   }
 }

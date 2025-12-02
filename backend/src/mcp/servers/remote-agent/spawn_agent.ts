@@ -83,6 +83,31 @@ The Story Runner should pause/skip based on the fallback setting.`,
         type: 'string',
         description: 'Preferred agent UUID (optional, for sticky sessions)',
       },
+      // ST-160: Native subagent support
+      executionType: {
+        type: 'string',
+        enum: ['custom', 'native_explore', 'native_plan', 'native_general'],
+        description: 'Execution type: "custom" (default) or "native_*" for Anthropic native subagents',
+      },
+      nativeAgentConfig: {
+        type: 'object',
+        description: 'Configuration for native subagent types',
+        properties: {
+          questionTimeout: {
+            type: 'number',
+            description: 'Timeout in ms for question response (default: 300000)',
+          },
+          maxQuestions: {
+            type: 'number',
+            description: 'Maximum questions allowed per execution',
+          },
+          allowedTools: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Override tools for native agent execution',
+          },
+        },
+      },
     },
     required: ['componentId', 'stateId', 'workflowRunId', 'componentRunId', 'instructions'],
   },
@@ -96,6 +121,15 @@ export const metadata = {
   since: '2025-11-30',
 };
 
+// ST-160: Native subagent execution types
+type ExecutionType = 'custom' | 'native_explore' | 'native_plan' | 'native_general';
+
+interface NativeAgentConfig {
+  questionTimeout?: number;  // Timeout for question response (ms)
+  maxQuestions?: number;     // Max questions per execution
+  allowedTools?: string[];   // Override tools for native agent
+}
+
 interface SpawnAgentParams {
   componentId: string;
   stateId: string;
@@ -108,6 +142,9 @@ interface SpawnAgentParams {
   maxTurns?: number;
   projectPath?: string;
   preferredAgentId?: string;
+  // ST-160: Native subagent support
+  executionType?: ExecutionType;
+  nativeAgentConfig?: NativeAgentConfig;
 }
 
 // Note: This is a simplified implementation that creates the job directly.
@@ -138,6 +175,9 @@ export async function handler(
     maxTurns = 50,
     projectPath,
     preferredAgentId,
+    // ST-160: Native subagent support
+    executionType = 'custom',
+    nativeAgentConfig,
   } = params;
 
   // Validate capability is approved
@@ -245,6 +285,9 @@ export async function handler(
         model,
         maxTurns,
         projectPath,
+        // ST-160: Native subagent support
+        executionType,
+        nativeAgentConfig: nativeAgentConfig || null,
       } as any,
       status: 'pending',
       agentId: selectedAgent.id,

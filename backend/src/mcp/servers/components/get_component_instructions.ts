@@ -27,6 +27,9 @@ export interface ComponentInstructionsResponse {
   tools: string[];
   subtaskConfig?: any;
   onFailure: string;
+  // ST-160: Native subagent support
+  executionType: string;
+  nativeAgentConfig: any;
 }
 
 
@@ -79,6 +82,9 @@ export async function handler(
         subtaskConfig: true,
         onFailure: true,
         active: true,
+        // ST-160: Native subagent support
+        executionType: true,
+        nativeAgentConfig: true,
       },
     });
 
@@ -117,6 +123,9 @@ export async function handler(
       tools: component.tools,
       subtaskConfig: component.subtaskConfig,
       onFailure: component.onFailure,
+      // ST-160: Native subagent support
+      executionType: component.executionType,
+      nativeAgentConfig: component.nativeAgentConfig,
     };
   } catch (error: any) {
     if (error.name === 'MCPError') throw error;

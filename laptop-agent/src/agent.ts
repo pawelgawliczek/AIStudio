@@ -253,6 +253,17 @@ export class RemoteAgent {
       console.log(`Resume acknowledged for job ${data.jobId}`);
     });
 
+    // ST-160: Resume with answer - server sends answer for pending question
+    this.socket.on('agent:resume_with_answer', (data: {
+      sessionId: string;
+      answer: string;
+      questionId: string;
+      jobId: string;
+    }) => {
+      console.log(`[ST-160] Received answer for question ${data.questionId} (job ${data.jobId})`);
+      this.handleResumeWithAnswer(data);
+    });
+
     // Acknowledgement
     this.socket.on('agent:ack', (data: any) => {
       console.log(`Job ${data.jobId} acknowledged by server`);
@@ -272,6 +283,69 @@ export class RemoteAgent {
       jobToken: this.currentClaudeJob.jobToken,
       lastSequence: 0, // Claude Code executor tracks this internally
     });
+  }
+
+  /**
+   * ST-160: Handle resume with answer from server
+   * Resumes a paused Claude Code session with the provided answer
+   */
+  private async handleResumeWithAnswer(data: {
+    sessionId: string;
+    answer: string;
+    questionId: string;
+    jobId: string;
+  }): Promise<void> {
+    if (!this.claudeCodeExecutor) {
+      console.error(`[ST-160] Claude Code not available - cannot resume`);
+      return;
+    }
+
+    // Verify this is for our current job
+    if (!this.currentClaudeJob || this.currentClaudeJob.id !== data.jobId) {
+      console.warn(`[ST-160] Resume request for unknown job ${data.jobId}`);
+      return;
+    }
+
+    console.log(`[ST-160] Resuming session ${data.sessionId} with answer`);
+
+    try {
+      // Resume the session with the answer
+      const result = await this.claudeCodeExecutor.resumeWithAnswer(
+        data.sessionId,
+        data.answer,
+        this.currentClaudeJob
+      );
+
+      console.log(`[ST-160] Resume completed: success=${result.success}`);
+
+      // Send completion event
+      this.socket!.emit('agent:claude_complete', {
+        jobId: data.jobId,
+        jobToken: this.currentClaudeJob.jobToken,
+        success: result.success,
+        output: result.output,
+        metrics: result.metrics,
+        transcriptPath: result.transcriptPath,
+        error: result.error,
+      });
+    } catch (error: any) {
+      console.error(`[ST-160] Resume error:`, error);
+
+      this.socket!.emit('agent:claude_complete', {
+        jobId: data.jobId,
+        jobToken: this.currentClaudeJob.jobToken,
+        success: false,
+        error: error.message,
+      });
+    } finally {
+      // Cleanup
+      this.claudeCodeExecutor.removeAllListeners('progress');
+      this.currentClaudeJob = null;
+      this.isExecutingClaudeCode = false;
+
+      // Switch back to slower heartbeat
+      this.startHeartbeat(30000);
+    }
   }
 
   /**

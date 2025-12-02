@@ -19,6 +19,15 @@ import {
   handlePrismaError,
 } from '../../utils';
 
+// ST-160: Native subagent execution types
+export type ExecutionType = 'custom' | 'native_explore' | 'native_plan' | 'native_general';
+
+export interface NativeAgentConfig {
+  questionTimeout?: number;  // Timeout for question response (ms)
+  maxQuestions?: number;     // Max questions per execution
+  allowedTools?: string[];   // Override tools for native agent
+}
+
 export interface UpdateComponentParams {
   componentId: string;
   name?: string;
@@ -45,6 +54,9 @@ export interface UpdateComponentParams {
   tags?: string[];
   active?: boolean;
   version?: string;
+  // ST-160: Native subagent support
+  executionType?: ExecutionType;
+  nativeAgentConfig?: NativeAgentConfig;
   // PM-specific fields (only used when component has 'coordinator' tag)
   domain?: string;
   decisionStrategy?: 'sequential' | 'adaptive' | 'parallel' | 'conditional';
@@ -67,6 +79,9 @@ export interface ComponentResponse {
   tags: string[];
   active: boolean;
   version: string;
+  // ST-160: Native subagent support
+  executionType: string;
+  nativeAgentConfig: any;
   createdAt: string;
   updatedAt: string;
   // PM-specific response fields (only present for coordinators)
@@ -153,6 +168,31 @@ export const tool: Tool = {
       version: {
         type: 'string',
         description: 'Version (optional)',
+      },
+      // ST-160: Native subagent support
+      executionType: {
+        type: 'string',
+        enum: ['custom', 'native_explore', 'native_plan', 'native_general'],
+        description: 'Execution type: "custom" (default) for custom agents, or "native_*" for Anthropic native subagents (optional)',
+      },
+      nativeAgentConfig: {
+        type: 'object',
+        description: 'Configuration for native subagent types (optional)',
+        properties: {
+          questionTimeout: {
+            type: 'number',
+            description: 'Timeout in ms for question response (default: 300000 = 5 min)',
+          },
+          maxQuestions: {
+            type: 'number',
+            description: 'Maximum questions allowed per execution',
+          },
+          allowedTools: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Override tools for native agent execution',
+          },
+        },
       },
     },
     required: ['componentId'],
@@ -307,6 +347,18 @@ export async function handler(
     if (params.active !== undefined) updateData.active = params.active;
     if (params.version !== undefined) updateData.version = params.version;
 
+    // ST-160: Native subagent support
+    if (params.executionType !== undefined) {
+      const validExecutionTypes = ['custom', 'native_explore', 'native_plan', 'native_general'];
+      if (!validExecutionTypes.includes(params.executionType)) {
+        throw new ValidationError(`Invalid executionType: ${params.executionType}. Must be one of: ${validExecutionTypes.join(', ')}`);
+      }
+      updateData.executionType = params.executionType;
+    }
+    if (params.nativeAgentConfig !== undefined) {
+      updateData.nativeAgentConfig = params.nativeAgentConfig;
+    }
+
     // Handle operationInstructions (also accept coordinatorInstructions as alias)
     const newOperationInstructions = params.operationInstructions || params.coordinatorInstructions;
     if (newOperationInstructions !== undefined) {
@@ -418,6 +470,9 @@ export async function handler(
       tags: component.tags,
       active: component.active,
       version: component.version,
+      // ST-160: Native subagent support
+      executionType: component.executionType,
+      nativeAgentConfig: component.nativeAgentConfig,
       createdAt: component.createdAt.toISOString(),
       updatedAt: component.updatedAt.toISOString(),
     };

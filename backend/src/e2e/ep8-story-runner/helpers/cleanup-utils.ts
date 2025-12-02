@@ -69,8 +69,25 @@ export async function cleanupTestData(
     }
   }
 
-  // 3. Delete component runs
-  if (ctx.componentRunId) {
+  // 2.5. Delete agent questions (ST-160)
+  if (ctx.workflowRunId) {
+    try {
+      await prisma.agentQuestion.deleteMany({ where: { workflowRunId: ctx.workflowRunId } });
+      console.log('[CLEANUP] Deleted agent questions');
+    } catch (error: any) {
+      errors.push(`Agent questions delete failed: ${error.message}`);
+    }
+  }
+
+  // 3. Delete component runs (all for workflow run)
+  if (ctx.workflowRunId) {
+    try {
+      await prisma.componentRun.deleteMany({ where: { workflowRunId: ctx.workflowRunId } });
+      console.log('[CLEANUP] Deleted component runs');
+    } catch (error: any) {
+      errors.push(`Component runs delete failed: ${error.message}`);
+    }
+  } else if (ctx.componentRunId) {
     try {
       await prisma.componentRun.delete({ where: { id: ctx.componentRunId } });
       console.log('[CLEANUP] Deleted component run');

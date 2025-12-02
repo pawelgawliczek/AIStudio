@@ -44,6 +44,13 @@ export interface TestContext {
   agentProjectPath?: string;
   agentWorktreeRoot?: string;
   mcpOrchestrated?: boolean;
+
+  // ST-160: Native Subagent Tests
+  nativeExploreComponentId?: string;
+  nativePlanComponentId?: string;
+  nativeGeneralComponentId?: string;
+  sessionId?: string;
+  questionId?: string;
 }
 
 /**
