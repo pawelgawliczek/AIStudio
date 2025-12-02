@@ -44,6 +44,10 @@ const prisma = new PrismaClient();
 const LAPTOP_PROJECT_PATH = process.env.PROJECT_PATH || process.cwd();
 const LAPTOP_WORKTREE_ROOT = process.env.WORKTREE_ROOT || path.join(os.homedir(), 'worktrees-test');
 
+// Detect if running on KVM server (has /opt/stack but no local .git in cwd)
+const IS_KVM_ENVIRONMENT = fs.existsSync('/opt/stack/AIStudio') && !fs.existsSync(path.join(process.cwd(), '.git'));
+const IS_LAPTOP_ENVIRONMENT = fs.existsSync(path.join(LAPTOP_PROJECT_PATH, '.git'));
+
 // Extended test context for worktree tests
 interface WorktreeTestContext extends TestContext {
   worktreeId?: string;
@@ -116,15 +120,20 @@ async function cleanupWorktree(worktreePath?: string, branchName?: string): Prom
   }
 }
 
-describe('ST-153: Local Worktree E2E Tests', () => {
+// Skip entire test suite on KVM - this test requires laptop environment with local git repo
+// Use ST-158 for comprehensive laptop+KVM worktree testing via remote agent
+const describeOrSkip = IS_LAPTOP_ENVIRONMENT ? describe : describe.skip;
+
+describeOrSkip('ST-153: Local Worktree E2E Tests (Laptop Only)', () => {
   // Pre-flight check: Verify local environment
   beforeAll(async () => {
     console.log('\n============================================================');
-    console.log('ST-153: Local Worktree E2E Tests');
+    console.log('ST-153: Local Worktree E2E Tests (Laptop Only)');
     console.log('============================================================');
     console.log(`Started at: ${new Date().toISOString()}`);
     console.log(`Project path: ${LAPTOP_PROJECT_PATH}`);
     console.log(`Worktree root: ${LAPTOP_WORKTREE_ROOT}`);
+    console.log(`Environment: ${IS_KVM_ENVIRONMENT ? 'KVM' : 'Laptop'}`);
     console.log('');
 
     // Create worktree test directory if needed
@@ -133,7 +142,7 @@ describe('ST-153: Local Worktree E2E Tests', () => {
       console.log(`✓ Created worktree root: ${LAPTOP_WORKTREE_ROOT}`);
     }
 
-    // Verify git repository exists
+    // Verify git repository exists (should always pass since we check IS_LAPTOP_ENVIRONMENT)
     if (!fs.existsSync(path.join(LAPTOP_PROJECT_PATH, '.git'))) {
       console.error(`❌ Git repository not found at ${LAPTOP_PROJECT_PATH}`);
       throw new Error('Git repository required for tests');
@@ -548,5 +557,29 @@ describe('ST-153: Local Worktree E2E Tests', () => {
       // Always pass - this is a summary
       expect(true).toBe(true);
     });
+  });
+});
+
+// This test suite always runs - even on KVM - to provide clear skip messaging
+describe('ST-153: Environment Detection', () => {
+  it('should detect environment and skip appropriately', () => {
+    console.log('\n============================================================');
+    console.log('ST-153: Environment Detection');
+    console.log('============================================================');
+    console.log(`  IS_KVM_ENVIRONMENT: ${IS_KVM_ENVIRONMENT}`);
+    console.log(`  IS_LAPTOP_ENVIRONMENT: ${IS_LAPTOP_ENVIRONMENT}`);
+    console.log(`  LAPTOP_PROJECT_PATH: ${LAPTOP_PROJECT_PATH}`);
+
+    if (IS_KVM_ENVIRONMENT) {
+      console.log('\n  ℹ️  Running on KVM server - laptop-specific tests skipped');
+      console.log('  ℹ️  Use ST-158 for comprehensive laptop+KVM worktree tests via remote agent');
+    } else if (IS_LAPTOP_ENVIRONMENT) {
+      console.log('\n  ✓ Running on laptop - all tests will execute');
+    } else {
+      console.log('\n  ⚠️  Unknown environment - tests may fail');
+    }
+
+    console.log('============================================================');
+    expect(true).toBe(true);
   });
 });
