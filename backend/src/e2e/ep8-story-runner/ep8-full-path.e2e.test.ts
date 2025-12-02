@@ -127,12 +127,13 @@ describe('EP-8 Full Path E2E Tests (Run from Laptop)', () => {
 
       const result = await getAgentCapabilities(prisma, { agentId: laptopAgentId });
 
-      expect(result.capabilities).toBeDefined();
+      // The result has agent.capabilities, not top-level capabilities
+      expect(result.agent?.capabilities).toBeDefined();
       // Check for claude-code capability
-      const hasClaudeCode = result.capabilities?.some(
-        (c: any) => c.name === 'claude-code' || c === 'claude-code'
+      const hasClaudeCode = result.agent?.capabilities?.some(
+        (c: any) => c === 'claude-code'
       );
-      console.log(`  ✓ Agent capabilities: ${JSON.stringify(result.capabilities).substring(0, 100)}...`);
+      console.log(`  ✓ Agent capabilities: ${JSON.stringify(result.agent?.capabilities).substring(0, 100)}...`);
     });
   });
 
@@ -411,10 +412,10 @@ describe('EP-8 Full Path E2E Tests (Run from Laptop)', () => {
         workflowId: ctx.workflowId,
         storyId: ctx.storyId,
         detached: false, // Wait for completion
-      });
+      }) as { success: boolean; message?: string };
 
       expect(runnerResult.success).toBe(true);
-      console.log(`  ✓ Runner completed: ${runnerResult.message}`);
+      console.log(`  ✓ Runner completed: ${runnerResult.message || 'OK'}`);
 
       // Check final status
       const statusResult = await getRunnerStatus(prisma, {
