@@ -42,10 +42,112 @@ import { handler as checkForConflicts } from '../../mcp/servers/git/check_for_co
 import { handler as detectSchemaChanges } from '../../mcp/servers/git/detect_schema_changes';
 import { handler as rebaseOnMain } from '../../mcp/servers/git/rebase_on_main';
 import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
-import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
 
 // Prisma client
 const prisma = new PrismaClient();
+
+// KVM API configuration for agent queries
+// Uses HTTP API to query the server where agent is actually registered
+const KVM_API_URL = process.env.KVM_API_URL || 'https://vibestudio.example.com';
+const AGENT_SECRET = process.env.AGENT_SECRET || '';
+
+/**
+ * Helper: Fetch online agents from KVM API
+ * This queries the KVM server directly where the laptop agent is registered
+ */
+async function fetchOnlineAgentsFromKVM(): Promise<{
+  success: boolean;
+  agents: Array<{
+    id: string;
+    hostname: string;
+    status: string;
+    capabilities: string[];
+    claudeCodeAvailable: boolean;
+    claudeCodeVersion: string | null;
+    config?: Record<string, unknown>;
+  }>;
+  error?: string;
+}> {
+  try {
+    const response = await fetch(`${KVM_API_URL}/api/remote-agent/agents`, {
+      method: 'GET',
+      headers: {
+        'X-Agent-Secret': AGENT_SECRET,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        agents: [],
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
+    const data = await response.json() as Array<{
+      id: string;
+      hostname: string;
+      status: string;
+      capabilities: string[];
+      claudeCodeAvailable: boolean;
+      claudeCodeVersion: string | null;
+      config?: Record<string, unknown>;
+    }>;
+    // API returns array directly, not { agents: [...] }
+    return {
+      success: true,
+      agents: Array.isArray(data) ? data : [],
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      agents: [],
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Helper: Sync agent from KVM to local database
+ * This ensures MCP handlers can find the agent when querying local DB
+ */
+async function syncAgentToLocalDB(agent: {
+  id: string;
+  hostname: string;
+  status: string;
+  capabilities: string[];
+  claudeCodeAvailable: boolean;
+  claudeCodeVersion: string | null;
+  config?: Record<string, unknown>;
+}): Promise<void> {
+  // Cast config to Prisma JSON type
+  const configJson = agent.config ? JSON.parse(JSON.stringify(agent.config)) : {};
+
+  await prisma.remoteAgent.upsert({
+    where: { id: agent.id },
+    update: {
+      hostname: agent.hostname,
+      status: agent.status,
+      capabilities: agent.capabilities,
+      claudeCodeAvailable: agent.claudeCodeAvailable,
+      claudeCodeVersion: agent.claudeCodeVersion,
+      config: configJson,
+      lastSeenAt: new Date(),
+    },
+    create: {
+      id: agent.id,
+      hostname: agent.hostname,
+      socketId: 'synced-from-kvm',
+      status: agent.status,
+      capabilities: agent.capabilities,
+      claudeCodeAvailable: agent.claudeCodeAvailable,
+      claudeCodeVersion: agent.claudeCodeVersion,
+      config: configJson,
+      lastSeenAt: new Date(),
+    },
+  });
+}
 
 // Extended test context for ST-158
 interface ST158TestContext extends TestContext {
@@ -64,6 +166,8 @@ const TEST_TIMEOUT = 300000;
 
 /**
  * Helper: Check if agent is online with required capabilities
+ * Uses HTTP API to query the KVM server where agent is registered,
+ * then syncs the agent to local database so MCP handlers can find it.
  */
 async function checkAgentOnline(): Promise<{
   online: boolean;
@@ -76,31 +180,41 @@ async function checkAgentOnline(): Promise<{
   error?: string;
 }> {
   try {
-    // Get online agents with git-execute capability
-    const agents = await prisma.remoteAgent.findMany({
-      where: {
-        status: 'online',
-        capabilities: { has: 'git-execute' },
-      },
-    });
+    // Use HTTP API to query the KVM server where agent is registered
+    const result = await fetchOnlineAgentsFromKVM();
 
-    if (agents.length === 0) {
+    if (!result.success) {
+      return {
+        online: false,
+        error: result.error || 'Failed to fetch agents from KVM API',
+      };
+    }
+
+    // Filter for agents with git-execute capability
+    const agentsWithGitExecute = result.agents.filter(
+      (a) => a.status === 'online' && a.capabilities?.includes('git-execute')
+    );
+
+    if (agentsWithGitExecute.length === 0) {
       return {
         online: false,
         error: 'No agents online with git-execute capability',
       };
     }
 
-    const agent = agents[0];
-    const config = (agent.config as Record<string, unknown>) || {};
+    const agent = agentsWithGitExecute[0];
+    const config = agent.config || {};
+
+    // Sync agent to local database so MCP handlers can find it
+    await syncAgentToLocalDB(agent);
 
     return {
       online: true,
       agent: {
         id: agent.id,
         hostname: agent.hostname,
-        projectPath: (config.projectPath as string) || undefined,
-        worktreeRoot: (config.worktreeRoot as string) || undefined,
+        projectPath: config.projectPath as string | undefined,
+        worktreeRoot: config.worktreeRoot as string | undefined,
       },
     };
   } catch (error: any) {
@@ -150,15 +264,50 @@ async function cleanupWorktree(
   }
 }
 
-describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
+// Test targets configuration
+type TargetConfig = {
+  target: 'laptop' | 'kvm';
+  expectedHostType: 'local' | 'remote';
+  description: string;
+  requiresAgent: boolean;
+};
+
+// Detect if running on KVM (presence of /opt/stack directory indicates KVM server)
+const IS_KVM_ENVIRONMENT = require('fs').existsSync('/opt/stack/AIStudio');
+
+const TEST_TARGETS: TargetConfig[] = [
+  {
+    target: 'laptop',
+    expectedHostType: 'local',
+    description: 'Laptop (via remote agent)',
+    requiresAgent: true,
+  },
+  // Only include KVM target when running on KVM server
+  ...(IS_KVM_ENVIRONMENT ? [{
+    target: 'kvm' as const,
+    expectedHostType: 'remote' as const,
+    description: 'KVM (direct execution)',
+    requiresAgent: false,
+  }] : []),
+];
+
+// Log which targets will be tested
+console.log(`\n[ST-158] Test environment: ${IS_KVM_ENVIRONMENT ? 'KVM Server' : 'Laptop'}`);
+console.log(`[ST-158] Testing targets: ${TEST_TARGETS.map(t => t.target).join(', ')}\n`);
+
+// Run tests for each target
+describe.each(TEST_TARGETS)('ST-158: Worktree E2E Tests - $description', (targetConfig) => {
+  const { target, expectedHostType, requiresAgent } = targetConfig;
+
   // ============================================================
   // TEST SETUP
   // ============================================================
   beforeAll(async () => {
     console.log('\n============================================================');
-    console.log('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests');
+    console.log(`ST-158: MCP-Orchestrated Worktree E2E Tests [target=${target}]`);
     console.log('============================================================');
     console.log(`Started at: ${new Date().toISOString()}`);
+    console.log(`Target: ${target} (expected hostType: ${expectedHostType})`);
     console.log('');
 
     ctx = createTestContext() as ST158TestContext;
@@ -214,64 +363,81 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
   // PHASE 1: PRE-FLIGHT CHECKS
   // ============================================================
   describe('Phase 1: Pre-Flight Checks', () => {
-    it('should verify laptop agent is online', async () => {
-      const result = await checkAgentOnline();
+    it(`should verify pre-requisites for target=${target}`, async () => {
+      if (target === 'laptop') {
+        // Laptop target requires online agent
+        const result = await checkAgentOnline();
 
-      if (!result.online) {
-        console.log(`  ⚠ Agent not online: ${result.error}`);
-        console.log('  This test requires the laptop agent to be running.');
-        console.log('  Start it with: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist');
-        // Don't fail - just skip MCP-orchestrated tests
-        return;
+        if (!result.online) {
+          console.log(`  ⚠ Agent not online: ${result.error}`);
+          console.log('  This test requires the laptop agent to be running.');
+          console.log('  Start it with: launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist');
+          // Don't fail - just skip MCP-orchestrated tests
+          return;
+        }
+
+        ctx.agentId = result.agent!.id;
+        ctx.agentHostname = result.agent!.hostname;
+        ctx.agentProjectPath = result.agent!.projectPath;
+        ctx.agentWorktreeRoot = result.agent!.worktreeRoot;
+
+        console.log('  ✓ Laptop agent online');
+        console.log(`    - ID: ${ctx.agentId}`);
+        console.log(`    - Hostname: ${ctx.agentHostname}`);
+        console.log(`    - Project Path: ${ctx.agentProjectPath || 'not set'}`);
+        console.log(`    - Worktree Root: ${ctx.agentWorktreeRoot || 'not set'}`);
+      } else {
+        // KVM target - no agent required
+        console.log('  ✓ KVM target - no remote agent required');
+        console.log('    - Worktrees will be created directly on KVM');
       }
-
-      ctx.agentId = result.agent!.id;
-      ctx.agentHostname = result.agent!.hostname;
-      ctx.agentProjectPath = result.agent!.projectPath;
-      ctx.agentWorktreeRoot = result.agent!.worktreeRoot;
-
-      console.log('  ✓ Agent online');
-      console.log(`    - ID: ${ctx.agentId}`);
-      console.log(`    - Hostname: ${ctx.agentHostname}`);
-      console.log(`    - Project Path: ${ctx.agentProjectPath || 'not set'}`);
-      console.log(`    - Worktree Root: ${ctx.agentWorktreeRoot || 'not set'}`);
     });
 
-    it('should verify agent has git-execute capability', async () => {
-      if (!ctx.agentId) {
+    it(`should verify capabilities for target=${target}`, async () => {
+      if (target === 'laptop' && !ctx.agentId) {
         console.log('  ⚠ Skipping - no agent online');
         return;
       }
 
-      const result = await getAgentCapabilities(prisma, { agentId: ctx.agentId });
+      if (target === 'laptop') {
+        const result = await getAgentCapabilities(prisma, { agentId: ctx.agentId! });
 
-      expect(result.success).toBe(true);
-      expect(result.agent?.capabilities).toContain('git-execute');
+        expect(result.success).toBe(true);
+        expect(result.agent?.capabilities).toContain('git-execute');
 
-      console.log('  ✓ Agent has git-execute capability');
-      console.log(`    - All capabilities: ${result.agent?.capabilities.join(', ')}`);
+        console.log('  ✓ Agent has git-execute capability');
+        console.log(`    - All capabilities: ${result.agent?.capabilities.join(', ')}`);
+      } else {
+        // KVM has direct git access
+        console.log('  ✓ KVM has direct git access');
+      }
     });
 
-    it('should verify agent config includes paths', async () => {
-      if (!ctx.agentId) {
+    it(`should verify paths for target=${target}`, async () => {
+      if (target === 'laptop' && !ctx.agentId) {
         console.log('  ⚠ Skipping - no agent online');
         return;
       }
 
-      const result = await getAgentCapabilities(prisma, { agentId: ctx.agentId });
+      if (target === 'laptop') {
+        const result = await getAgentCapabilities(prisma, { agentId: ctx.agentId! });
 
-      // Paths should be present for MCP orchestration
-      if (!result.agent?.projectPath) {
-        console.log('  ⚠ Agent projectPath not set - update laptop agent config');
-        console.log('    Expected in ~/.vibestudio/config.json: "projectPath": "/path/to/project"');
-      } else {
-        console.log(`  ✓ Project path: ${result.agent.projectPath}`);
-      }
+        // Paths should be present for MCP orchestration
+        if (!result.agent?.projectPath) {
+          console.log('  ⚠ Agent projectPath not set - update laptop agent config');
+          console.log('    Expected in ~/.vibestudio/config.json: "projectPath": "/path/to/project"');
+        } else {
+          console.log(`  ✓ Project path: ${result.agent.projectPath}`);
+        }
 
-      if (!result.agent?.worktreeRoot) {
-        console.log('  ⚠ Agent worktreeRoot not set - will use default');
+        if (!result.agent?.worktreeRoot) {
+          console.log('  ⚠ Agent worktreeRoot not set - will use default');
+        } else {
+          console.log(`  ✓ Worktree root: ${result.agent.worktreeRoot}`);
+        }
       } else {
-        console.log(`  ✓ Worktree root: ${result.agent.worktreeRoot}`);
+        // KVM uses default paths
+        console.log('  ✓ KVM uses default paths from environment');
       }
     });
   });
@@ -326,24 +492,25 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
   // PHASE 3: MCP-ORCHESTRATED WORKTREE CREATION
   // ============================================================
   describe('Phase 3: MCP-Orchestrated Worktree Creation', () => {
-    it('should create worktree via MCP with target=laptop', async () => {
+    it(`should create worktree via MCP with target=${target}`, async () => {
       if (!ctx.storyId) {
         console.log('  ⚠ Skipping - no story');
         return;
       }
 
-      if (!ctx.agentId) {
+      // Laptop requires online agent
+      if (target === 'laptop' && !ctx.agentId) {
         console.log('  ⚠ Skipping - no agent online');
         console.log('    This test requires the laptop agent to be running.');
         return;
       }
 
-      console.log('  Calling git_create_worktree with target=laptop...');
+      console.log(`  Calling git_create_worktree with target=${target}...`);
 
       try {
         const result = await gitCreateWorktree(prisma, {
           storyId: ctx.storyId,
-          target: 'laptop',
+          target: target,
         });
 
         // Check if it's a runLocally directive (shouldn't happen with agent online)
@@ -374,9 +541,9 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
         expect(worktreeResult.worktreeId).toBeDefined();
         expect(worktreeResult.branchName).toBeDefined();
         expect(worktreeResult.worktreePath).toBeDefined();
-        expect(worktreeResult.executedOn).toBe('laptop');
+        expect(worktreeResult.executedOn).toBe(target);
 
-        console.log('  ✓ MCP-orchestrated worktree created!');
+        console.log(`  ✓ MCP-orchestrated worktree created on ${target}!`);
         console.log(`    - Worktree ID: ${worktreeResult.worktreeId}`);
         console.log(`    - Branch: ${worktreeResult.branchName}`);
         console.log(`    - Path: ${worktreeResult.worktreePath}`);
@@ -384,7 +551,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
         console.log(`    - Executed On: ${worktreeResult.executedOn}`);
         console.log(`    - Message: ${worktreeResult.message}`);
       } catch (error: any) {
-        if (error.code === 'AGENT_OFFLINE') {
+        if (error.code === 'AGENT_OFFLINE' && target === 'laptop') {
           console.log(`  ⚠ Agent offline: ${error.message}`);
           ctx.mcpOrchestrated = false;
         } else {
@@ -393,7 +560,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
       }
     }, TEST_TIMEOUT);
 
-    it('should verify worktree is recorded with hostType=local', async () => {
+    it(`should verify worktree is recorded with hostType=${expectedHostType}`, async () => {
       if (!ctx.worktreeId) {
         console.log('  ⚠ Skipping - no worktree created');
         return;
@@ -404,8 +571,10 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
       });
 
       expect(worktree).toBeDefined();
-      expect(worktree?.hostType).toBe('local');
-      expect(worktree?.hostName).toBe(ctx.agentHostname);
+      expect(worktree?.hostType).toBe(expectedHostType);
+      if (target === 'laptop') {
+        expect(worktree?.hostName).toBe(ctx.agentHostname);
+      }
       expect(worktree?.status).toBe('active');
       expect(worktree?.branchName).toBe(ctx.branchName);
 
@@ -496,10 +665,10 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
   });
 
   // ============================================================
-  // PHASE 5: ADDITIONAL GIT TOOLS WITH LAPTOP WORKTREES
+  // PHASE 5: ADDITIONAL GIT TOOLS WITH WORKTREES
   // ============================================================
-  describe('Phase 5: Additional Git Tools with Laptop Worktrees', () => {
-    it('should check for conflicts via check_for_conflicts with target=laptop', async () => {
+  describe(`Phase 5: Additional Git Tools (target=${target})`, () => {
+    it(`should check for conflicts via check_for_conflicts with target=${target}`, async () => {
       if (!ctx.storyId || !ctx.mcpOrchestrated) {
         console.log('  ⚠ Skipping - no MCP-orchestrated worktree');
         return;
@@ -508,7 +677,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
       try {
         const result = await checkForConflicts(prisma, {
           storyId: ctx.storyId,
-          target: 'laptop',
+          target: target,
         });
 
         console.log('  ✓ Conflict check completed');
@@ -518,7 +687,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
 
         if (result.executedOn) {
           console.log(`    - Executed On: ${result.executedOn}`);
-          expect(result.executedOn).toBe('laptop');
+          expect(result.executedOn).toBe(target);
         }
 
         // Fresh worktree should have no conflicts
@@ -534,7 +703,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
       }
     }, TEST_TIMEOUT);
 
-    it('should detect schema changes via detect_schema_changes with laptop worktree', async () => {
+    it(`should detect schema changes via detect_schema_changes (target=${target})`, async () => {
       if (!ctx.storyId || !ctx.mcpOrchestrated) {
         console.log('  ⚠ Skipping - no MCP-orchestrated worktree');
         return;
@@ -564,7 +733,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
       }
     }, TEST_TIMEOUT);
 
-    it('should execute rebase_on_main via laptop agent (no-op for fresh branch)', async () => {
+    it(`should execute rebase_on_main (target=${target}, no-op for fresh branch)`, async () => {
       if (!ctx.storyId || !ctx.mcpOrchestrated) {
         console.log('  ⚠ Skipping - no MCP-orchestrated worktree');
         return;
@@ -573,7 +742,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
       try {
         const result = await rebaseOnMain(prisma, {
           storyId: ctx.storyId,
-          target: 'laptop',
+          target: target,
         });
 
         console.log('  ✓ Rebase completed');
@@ -584,7 +753,7 @@ describe('ST-158: MCP-Orchestrated Laptop Worktree E2E Tests', () => {
 
         if (result.executedOn) {
           console.log(`    - Executed On: ${result.executedOn}`);
-          expect(result.executedOn).toBe('laptop');
+          expect(result.executedOn).toBe(target);
         }
 
         // Fresh worktree should rebase successfully (no-op)
