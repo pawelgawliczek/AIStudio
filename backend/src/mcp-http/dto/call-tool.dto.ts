@@ -9,8 +9,7 @@
  */
 
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsString, IsObject, IsUUID, Matches, MaxLength, ValidateNested } from 'class-validator';
+import { IsString, IsObject, Matches, MaxLength } from 'class-validator';
 
 export class CallToolDto {
   @ApiProperty({
@@ -34,8 +33,9 @@ export class CallToolDto {
     type: 'object',
   })
   @IsObject()
-  @ValidateNested()
-  @Type(() => Object)
+  // Note: Don't use @ValidateNested() here - it causes forbidNonWhitelisted
+  // to reject all properties since Object has no defined properties.
+  // Tool-specific validation is handled by the tool handlers themselves.
   arguments: Record<string, any>;
 
   @ApiProperty({
