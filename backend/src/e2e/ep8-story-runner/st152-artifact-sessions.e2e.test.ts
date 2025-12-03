@@ -48,7 +48,6 @@ interface ST152TestContext {
   projectId?: string;
   epicId?: string;
   storyId?: string;
-  coordinatorId?: string;
   workflowId?: string;
   workflowStateId?: string;
   workflowRunId?: string;
@@ -140,14 +139,6 @@ describe('ST-152: Artifact Discussion Sessions E2E', () => {
         console.log('  ✓ Deleted workflow');
       }
 
-      // Clean up coordinator
-      if (ctx.coordinatorId) {
-        await prisma.component.deleteMany({
-          where: { id: ctx.coordinatorId },
-        });
-        console.log('  ✓ Deleted coordinator');
-      }
-
       // Clean up story
       if (ctx.storyId) {
         await prisma.story.deleteMany({
@@ -229,33 +220,12 @@ describe('ST-152: Artifact Discussion Sessions E2E', () => {
       console.log(`  ✓ Story created: ${result.id}`);
     });
 
-    it('should create coordinator component', async () => {
-      expect(ctx.projectId).toBeDefined();
-
-      const result = await createComponent(prisma, {
-        projectId: ctx.projectId!,
-        name: testName('ST152_Coordinator'),
-        description: 'Test coordinator for ST-152',
-        inputInstructions: 'Receive context',
-        operationInstructions: 'Orchestrate agents',
-        outputInstructions: 'Report status',
-        config: TEST_CONFIG.MODEL_CONFIG,
-        tools: ['get_team_context'],
-        active: true,
-      });
-
-      ctx.coordinatorId = result.id;
-      expect(result.id).toBeDefined();
-      console.log(`  ✓ Coordinator created: ${result.id}`);
-    });
-
     it('should create workflow (team)', async () => {
       expect(ctx.projectId).toBeDefined();
-      expect(ctx.coordinatorId).toBeDefined();
 
+      // ST-164: Teams no longer require coordinator
       const result = await createWorkflow(prisma, {
         projectId: ctx.projectId!,
-        coordinatorId: ctx.coordinatorId!,
         name: testName('ST152_Workflow'),
         description: 'Test workflow for artifact sessions',
         triggerConfig: { type: 'manual' },

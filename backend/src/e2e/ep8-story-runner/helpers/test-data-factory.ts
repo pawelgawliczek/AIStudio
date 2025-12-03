@@ -61,31 +61,12 @@ export function createTestAgentParams(projectId: string) {
 }
 
 /**
- * Create test coordinator (PM) component parameters
- */
-export function createTestCoordinatorParams(projectId: string) {
-  return {
-    projectId,
-    name: testName('Coordinator'),
-    description: 'Test project manager for EP-8 E2E tests',
-    inputInstructions: 'Receive story context and team configuration',
-    operationInstructions: 'Orchestrate agent execution in sequence',
-    outputInstructions: 'Report completion status and any errors',
-    config: TEST_CONFIG.MODEL_CONFIG,
-    tools: ['get_team_context', 'record_agent_start', 'record_agent_complete'],
-    tags: ['test', 'e2e', 'ep8', 'coordinator'],
-    active: true,
-    version: 'v1.0',
-  };
-}
-
-/**
  * Create test workflow (team) parameters
+ * Note: ST-164 removed coordinator/project manager - teams no longer require coordinatorId
  */
-export function createTestWorkflowParams(projectId: string, coordinatorId: string) {
+export function createTestWorkflowParams(projectId: string) {
   return {
     projectId,
-    coordinatorId,
     name: testName('Workflow'),
     description: 'Test workflow for EP-8 E2E tests',
     triggerConfig: {

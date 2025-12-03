@@ -21,7 +21,7 @@ import {
   createTestEpicParams,
   createTestStoryParams,
   createTestAgentParams,
-  createTestCoordinatorParams,
+  // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
   createTestWorkflowStateParams,
 } from './helpers/test-data-factory';
@@ -215,27 +215,14 @@ describe('EP-8 Full Path E2E Tests (Run from Laptop)', () => {
       console.log(`  ✓ Laptop agent created: ${result.name}`);
     });
 
-    it('should create test coordinator', async () => {
+    it('should create workflow with laptop-targeted state', async () => {
       if (!laptopAgentId || !ctx.projectId) {
         console.log('  ⚠ Skipping');
         return;
       }
 
-      const params = createTestCoordinatorParams(ctx.projectId);
-      const result = await createComponent(prisma, params);
-
-      ctx.coordinatorComponentId = result.id;
-      console.log(`  ✓ Coordinator created: ${result.name}`);
-    });
-
-    it('should create workflow with laptop-targeted state', async () => {
-      if (!laptopAgentId || !ctx.projectId || !ctx.coordinatorComponentId) {
-        console.log('  ⚠ Skipping');
-        return;
-      }
-
-      // Create workflow
-      const workflowParams = createTestWorkflowParams(ctx.projectId, ctx.coordinatorComponentId);
+      // Create workflow (ST-164: no coordinator required)
+      const workflowParams = createTestWorkflowParams(ctx.projectId);
       const workflow = await createWorkflow(prisma, workflowParams);
       ctx.workflowId = workflow.id;
 

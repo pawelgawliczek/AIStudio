@@ -202,38 +202,6 @@ describe('ST-161: Real MCP Commands E2E Tests', () => {
       }
     }, ST161_CONFIG.TIMEOUT);
 
-    it('should create project manager component via real MCP command', async () => {
-      expect(ctx.projectId).toBeDefined();
-
-      const pmName = `${ST161_CONFIG.PREFIX}PM`;
-
-      const res = await mcp.execute('create_project_manager', {
-        projectId: ctx.projectId,
-        name: pmName,
-        description: 'ST-161 E2E Test Project Manager',
-        domain: 'software-development',
-        coordinatorInstructions: 'Test PM coordinator instructions',
-        config: {
-          modelId: 'claude-sonnet-4-20250514',
-          temperature: 0.5,
-        },
-        tools: ['mcp__vibestudio__list_agents'],
-        decisionStrategy: 'sequential',
-      }) as AnyResult;
-
-      expect(res.success).toBe(true);
-      expect(res.error).toBeUndefined();
-      expect(res.result).toBeDefined();
-      expect(res.result?.id).toBeDefined();
-
-      ctx.coordinatorComponentId = res.result?.id;
-
-      console.log(`  ✓ Project Manager created: ${pmName} (${res.result?.id})`);
-      if (res.metrics) {
-        console.log(`    Tokens: ${res.metrics.totalTokens}`);
-      }
-    }, ST161_CONFIG.TIMEOUT);
-
     it('should verify all Phase 1 entities created', () => {
       expect(hasPhase1Entities(ctx)).toBe(true);
 
@@ -242,7 +210,6 @@ describe('ST-161: Real MCP Commands E2E Tests', () => {
       console.log(`    Epic: ${ctx.epicId}`);
       console.log(`    Story: ${ctx.storyId}`);
       console.log(`    Agent: ${ctx.agentComponentId}`);
-      console.log(`    PM: ${ctx.coordinatorComponentId}`);
     });
   });
 
@@ -257,7 +224,6 @@ describe('ST-161: Real MCP Commands E2E Tests', () => {
 
       const res = await mcp.execute('create_team', {
         projectId: ctx.projectId,
-        coordinatorId: ctx.coordinatorComponentId,
         name: teamName,
         description: 'ST-161 E2E Test Team',
         triggerConfig: {

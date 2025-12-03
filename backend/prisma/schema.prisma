@@ -891,6 +891,7 @@ model ComponentRun {
 
   // ST-147: Transcript & Summary
   transcriptPath   String? @map("transcript_path") // Path to agent transcript JSONL
+  claudeAgentId    String? @map("claude_agent_id") // Claude Code agent ID (8-char hex) - filename is agent-{id}.jsonl
   componentSummary String? @map("component_summary") @db.Text // AI summary of what agent did
 
   // Relations

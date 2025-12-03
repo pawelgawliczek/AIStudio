@@ -30,7 +30,7 @@ import {
   createTestEpicParams,
   createTestStoryParams,
   createTestAgentParams,
-  createTestCoordinatorParams,
+  // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
 } from './helpers/test-data-factory';
 import { cleanupTestData } from './helpers/cleanup-utils';
@@ -211,20 +211,13 @@ describe('ST-147 Session Telemetry E2E Tests', () => {
       console.log(`  ✓ Telemetry test agent created: ${result.name}`);
     });
 
-    it('should create coordinator component', async () => {
-      if (!laptopAgentId || !ctx.projectId) return;
-
-      const params = createTestCoordinatorParams(ctx.projectId);
-      const result = await createComponent(prisma, params);
-
-      ctx.coordinatorComponentId = result.id;
-      console.log(`  ✓ Coordinator created: ${result.name}`);
-    });
+    // Note: ST-164 removed coordinator component - teams no longer require one
 
     it('should create workflow with laptop state', async () => {
-      if (!laptopAgentId || !ctx.projectId || !ctx.coordinatorComponentId) return;
+      if (!laptopAgentId || !ctx.projectId) return;
 
-      const workflowParams = createTestWorkflowParams(ctx.projectId, ctx.coordinatorComponentId);
+      // ST-164: no coordinatorId required
+      const workflowParams = createTestWorkflowParams(ctx.projectId);
       const workflow = await createWorkflow(prisma, {
         ...workflowParams,
         name: testName('TelemetryWorkflow'),

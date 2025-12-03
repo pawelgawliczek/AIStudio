@@ -6,8 +6,7 @@
  * - Epics: create, get, list, delete
  * - Stories: create, get, list, update, search, delete
  * - Agents: create, get, list, update, activate/deactivate
- * - Project Managers: create, get, list, update, activate/deactivate
- * - Teams: create, list, update
+ * - Teams: create, list, update (Note: ST-164 removed Project Managers)
  * - Workflow States: create, list, update, reorder, delete
  */
 
@@ -22,12 +21,12 @@ describe('ST-161: MCP CRUD Operations E2E Tests', () => {
   let runner: MCPTestRunner;
 
   // Test context - IDs created during tests
+  // Note: ST-164 removed Project Manager - no pmId needed
   const ctx: {
     projectId?: string;
     epicId?: string;
     storyId?: string;
     agentId?: string;
-    pmId?: string;
     teamId?: string;
     stateIds: string[];
   } = { stateIds: [] };
@@ -62,12 +61,7 @@ describe('ST-161: MCP CRUD Operations E2E Tests', () => {
         await prisma.workflow.delete({ where: { id: ctx.teamId } }).catch(() => {});
       }
 
-      // Delete PM (coordinator)
-      if (ctx.pmId) {
-        await prisma.component.delete({ where: { id: ctx.pmId } }).catch(() => {});
-      }
-
-      // Delete agent
+      // Delete agent (Note: ST-164 removed Project Manager cleanup)
       if (ctx.agentId) {
         await prisma.component.delete({ where: { id: ctx.agentId } }).catch(() => {});
       }
@@ -412,103 +406,13 @@ describe('ST-161: MCP CRUD Operations E2E Tests', () => {
   });
 
   // ==========================================================================
-  // PROJECT MANAGER CRUD
-  // ==========================================================================
-  describe('Project Manager CRUD', () => {
-    it('should create project manager', async () => {
-      const result = await runner.execute<{ id: string; name: string; active: boolean }>(
-        'create_project_manager',
-        {
-          projectId: ctx.projectId,
-          name: `${testPrefix}_PM`,
-          description: 'CRUD test PM',
-          domain: 'software-development',
-          coordinatorInstructions: 'Orchestrate analysis and implementation',
-          config: { modelId: 'claude-sonnet-4-20250514' },
-          tools: ['Read', 'Task'],
-          decisionStrategy: 'sequential',
-        },
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.result?.id).toBeDefined();
-      ctx.pmId = result.result!.id;
-
-      console.log(`    ✓ PM created: ${ctx.pmId}`);
-    });
-
-    it('should get project manager by ID', async () => {
-      // get_project_manager returns { coordinator: {...} }
-      const result = await runner.execute<{
-        coordinator: {
-          id: string;
-          name: string;
-          operationInstructions: string;
-        };
-      }>('get_project_manager', { coordinatorId: ctx.pmId });
-
-      expect(result.success).toBe(true);
-      expect(result.result?.coordinator?.id).toBe(ctx.pmId);
-      expect(result.result?.coordinator?.name).toBe(`${testPrefix}_PM`);
-
-      console.log(`    ✓ PM retrieved: ${result.result?.coordinator?.name}`);
-    });
-
-    it('should update project manager', async () => {
-      const result = await runner.execute<{ id: string; description: string }>(
-        'update_project_manager',
-        {
-          coordinatorId: ctx.pmId,
-          description: 'Updated PM description',
-        },
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.result?.description).toBe('Updated PM description');
-
-      console.log(`    ✓ PM updated`);
-    });
-
-    it('should list project managers', async () => {
-      const result = await runner.execute<{ data: Array<{ id: string }> }>(
-        'list_project_managers',
-        { projectId: ctx.projectId },
-      );
-
-      expect(result.success).toBe(true);
-      const found = result.result?.data.find((pm) => pm.id === ctx.pmId);
-      expect(found).toBeDefined();
-
-      console.log(`    ✓ PM found in list of ${result.result?.data.length} PMs`);
-    });
-
-    it('should deactivate project manager', async () => {
-      const result = await runner.execute<{ success: boolean }>('deactivate_project_manager', {
-        coordinatorId: ctx.pmId,
-      });
-
-      expect(result.success).toBe(true);
-      console.log(`    ✓ PM deactivated`);
-    });
-
-    it('should activate project manager', async () => {
-      const result = await runner.execute<{ success: boolean }>('activate_project_manager', {
-        coordinatorId: ctx.pmId,
-      });
-
-      expect(result.success).toBe(true);
-      console.log(`    ✓ PM activated`);
-    });
-  });
-
-  // ==========================================================================
-  // TEAM/WORKFLOW CRUD
+  // TEAM/WORKFLOW CRUD (Note: ST-164 removed Project Manager CRUD)
   // ==========================================================================
   describe('Team CRUD', () => {
     it('should create team', async () => {
+      // Note: ST-164 removed coordinatorId - teams no longer require a project manager
       const result = await runner.execute<{ id: string; name: string }>('create_team', {
         projectId: ctx.projectId,
-        coordinatorId: ctx.pmId,
         name: `${testPrefix}_Team`,
         description: 'CRUD test team',
         triggerConfig: { type: 'manual' },

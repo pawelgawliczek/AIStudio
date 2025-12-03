@@ -101,17 +101,7 @@ export const MCP_INSTRUCTIONS = {
   list_agents: (p: object) =>
     `${NO_FIX_CONSTRAINTS}\nCall mcp__vibestudio__list_agents(${JSON.stringify(p)}). Return result.`,
 
-  // Project Managers/Coordinators
-  create_project_manager: (p: object) =>
-    `${NO_FIX_CONSTRAINTS}\nCall mcp__vibestudio__create_project_manager(${JSON.stringify(p)}). Return result.`,
-
-  get_project_manager: (p: object) =>
-    `${NO_FIX_CONSTRAINTS}\nCall mcp__vibestudio__get_project_manager(${JSON.stringify(p)}). Return result.`,
-
-  list_project_managers: (p: object) =>
-    `${NO_FIX_CONSTRAINTS}\nCall mcp__vibestudio__list_project_managers(${JSON.stringify(p)}). Return result.`,
-
-  // Teams/Workflows
+  // Teams/Workflows (Note: ST-164 removed coordinator/project manager tools)
   create_team: (p: object) =>
     `${NO_FIX_CONSTRAINTS}\nCall mcp__vibestudio__create_team(${JSON.stringify(p)}). Return result.`,
 

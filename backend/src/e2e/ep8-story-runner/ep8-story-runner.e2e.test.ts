@@ -27,7 +27,7 @@ import {
   createTestEpicParams,
   createTestStoryParams,
   createTestAgentParams,
-  createTestCoordinatorParams,
+  // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
   createTestWorkflowStateParams,
   createTestArtifactDefinitionParams,
@@ -215,18 +215,7 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
       console.log(`  ✓ Agent created: ${result.name} (${result.id})`);
     });
 
-    it('should create test coordinator (PM) component', async () => {
-      expect(ctx.projectId).toBeDefined();
-
-      const params = createTestCoordinatorParams(ctx.projectId!);
-      const result = await createComponent(prisma, params);
-
-      ctx.coordinatorComponentId = result.id;
-
-      expect(result.name).toContain(TEST_CONFIG.PREFIX);
-      expect(result.projectId).toBe(ctx.projectId);
-      console.log(`  ✓ Coordinator created: ${result.name} (${result.id})`);
-    });
+    // Note: ST-164 removed coordinator component - teams no longer require one
 
     it('should have all Phase 1 entities', () => {
       expect(hasPhase1Entities(ctx)).toBe(true);
@@ -235,7 +224,6 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
       console.log(`    Epic: ${ctx.epicId}`);
       console.log(`    Story: ${ctx.storyId}`);
       console.log(`    Agent: ${ctx.agentComponentId}`);
-      console.log(`    Coordinator: ${ctx.coordinatorComponentId}`);
     });
   });
 
@@ -243,17 +231,17 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
   // PHASE 2: WORKFLOW & TEAM MANAGEMENT
   // ============================================================
   describe('Phase 2: Workflow & Team Management', () => {
-    it('should create workflow (team) with coordinator', async () => {
+    it('should create workflow (team)', async () => {
       expect(hasPhase1Entities(ctx)).toBe(true);
 
-      const params = createTestWorkflowParams(ctx.projectId!, ctx.coordinatorComponentId!);
+      // Note: ST-164 removed coordinatorId - teams no longer require one
+      const params = createTestWorkflowParams(ctx.projectId!);
       const result = await createWorkflow(prisma, params);
 
       ctx.workflowId = result.id;
 
       expect(result.name).toContain(TEST_CONFIG.PREFIX);
       expect(result.projectId).toBe(ctx.projectId);
-      expect(result.coordinatorId).toBe(ctx.coordinatorComponentId);
       console.log(`  ✓ Workflow created: ${result.name} (${result.id})`);
     });
 

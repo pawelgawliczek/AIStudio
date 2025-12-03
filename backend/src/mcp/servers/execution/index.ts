@@ -8,7 +8,7 @@ export * as recordComponentComplete from './record_component_complete.js';
 export * as getWorkflowContext from './get_workflow_context.js';
 export * as getComponentContext from './get_component_context.js';
 export * as updateWorkflowStatus from './update_workflow_status.js';
-export * as getTranscriptMetrics from './get_transcript_metrics.js';
+// get_transcript_metrics removed - functionality integrated into record_agent_complete (ST-165)
 
 // Story/Epic execution tools
 export * as executeStoryWithWorkflow from './execute_story_with_workflow.js';

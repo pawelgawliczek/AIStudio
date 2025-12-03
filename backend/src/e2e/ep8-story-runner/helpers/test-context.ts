@@ -16,7 +16,6 @@ export interface TestContext {
   epicId?: string;
   storyId?: string;
   agentComponentId?: string;
-  coordinatorComponentId?: string;
 
   // Phase 2: Workflow & Team
   workflowId?: string;
@@ -64,14 +63,14 @@ export function createTestContext(): TestContext {
 
 /**
  * Check if context has all required Phase 1 entities
+ * Note: ST-164 removed coordinator - no longer required
  */
 export function hasPhase1Entities(ctx: TestContext): boolean {
   return !!(
     ctx.projectId &&
     ctx.epicId &&
     ctx.storyId &&
-    ctx.agentComponentId &&
-    ctx.coordinatorComponentId
+    ctx.agentComponentId
   );
 }
 

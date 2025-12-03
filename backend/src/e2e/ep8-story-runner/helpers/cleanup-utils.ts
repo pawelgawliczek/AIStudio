@@ -109,7 +109,8 @@ export async function cleanupTestData(
   }
 
   // Also delete any component runs referencing our components (including orphaned ones)
-  const componentIds = [ctx.agentComponentId, ctx.coordinatorComponentId].filter(Boolean) as string[];
+  // Note: ST-164 removed coordinator - only agent component now
+  const componentIds = [ctx.agentComponentId].filter(Boolean) as string[];
   if (componentIds.length > 0) {
     try {
       await prisma.componentRun.deleteMany({ where: { componentId: { in: componentIds } } });
@@ -170,8 +171,8 @@ export async function cleanupTestData(
     }
   }
 
-  // 7. Delete components (agent and coordinator)
-  for (const componentId of [ctx.agentComponentId, ctx.coordinatorComponentId]) {
+  // 7. Delete components (agent only - ST-164 removed coordinator)
+  for (const componentId of [ctx.agentComponentId]) {
     if (componentId) {
       try {
         await prisma.component.delete({ where: { id: componentId } });

@@ -26,7 +26,6 @@ describe('ST-161: MCP Artifact System E2E Tests', () => {
     epicId?: string;
     storyId?: string;
     agentId?: string;
-    pmId?: string;
     teamId?: string;
     stateId?: string;
     runId?: string;
@@ -83,11 +82,6 @@ describe('ST-161: MCP Artifact System E2E Tests', () => {
       // Delete team/workflow
       if (ctx.teamId) {
         await prisma.workflow.delete({ where: { id: ctx.teamId } }).catch(() => {});
-      }
-
-      // Delete PM
-      if (ctx.pmId) {
-        await prisma.component.delete({ where: { id: ctx.pmId } }).catch(() => {});
       }
 
       // Delete agent
@@ -171,27 +165,12 @@ describe('ST-161: MCP Artifact System E2E Tests', () => {
       expect(agentResult.success).toBe(true);
       ctx.agentId = agentResult.result!.id;
 
-      const pmResult = await runner.execute<{ id: string }>('create_project_manager', {
-        projectId: ctx.projectId,
-        name: `${testPrefix}_PM`,
-        description: 'Test PM',
-        domain: 'software-development',
-        coordinatorInstructions: 'Coordinate',
-        config: { modelId: 'claude-sonnet-4-20250514' },
-        tools: ['Task'],
-        decisionStrategy: 'sequential',
-      });
-      expect(pmResult.success).toBe(true);
-      ctx.pmId = pmResult.result!.id;
-
       console.log(`    ✓ Agent: ${ctx.agentId}`);
-      console.log(`    ✓ PM: ${ctx.pmId}`);
     });
 
     it('should create team with workflow state', async () => {
       const teamResult = await runner.execute<{ id: string }>('create_team', {
         projectId: ctx.projectId,
-        coordinatorId: ctx.pmId,
         name: `${testPrefix}_Team`,
         triggerConfig: { type: 'manual' },
       });

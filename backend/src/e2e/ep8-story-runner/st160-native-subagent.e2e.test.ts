@@ -300,39 +300,17 @@ describe('ST-160: Native Subagent Integration E2E Tests', () => {
       console.log(`  ✓ Native Plan component created: ${result.id}`);
     });
 
-    it('should create coordinator component', async () => {
-      if (!ctx.projectId) {
-        console.log('  ⚠ Skipping - no project');
-        return;
-      }
-
-      const result = await createComponent(prisma, {
-        projectId: ctx.projectId,
-        name: testName('Coordinator'),
-        description: 'Test coordinator for ST-160 tests',
-        inputInstructions: 'Coordinate test agents',
-        operationInstructions: 'Execute agents in sequence',
-        outputInstructions: 'Report completion status',
-        config: TEST_CONFIG.MODEL_CONFIG,
-        tools: ['get_team_context'],
-        tags: ['test', 'e2e', 'coordinator'],
-        active: true,
-      });
-
-      ctx.coordinatorComponentId = result.id;
-      console.log(`  ✓ Coordinator component created: ${result.id}`);
-    });
+    // Note: ST-164 removed coordinator component - teams no longer require one
 
     it('should create workflow with native agent state', async () => {
-      if (!ctx.projectId || !ctx.coordinatorComponentId || !ctx.nativeExploreComponentId) {
+      if (!ctx.projectId || !ctx.nativeExploreComponentId) {
         console.log('  ⚠ Skipping - prerequisites not met');
         return;
       }
 
-      // Create workflow
+      // Create workflow (ST-164: no coordinatorId required)
       const workflow = await createWorkflow(prisma, {
         projectId: ctx.projectId,
-        coordinatorId: ctx.coordinatorComponentId,
         name: testName('NativeWorkflow'),
         description: 'Workflow for native subagent tests',
         triggerConfig: { type: 'manual', filters: {}, notifications: {} },

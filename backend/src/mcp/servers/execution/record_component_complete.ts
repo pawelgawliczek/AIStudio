@@ -5,70 +5,13 @@
  * ST-165: Added auto-discovery of metrics from RemoteJob.result and transcript search
  */
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { broadcastComponentCompleted } from '../../services/websocket-gateway.instance';
 import { ValidationError } from '../../types';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
 import { TranscriptParserService } from './services/transcript-parser.service';
-
-/**
- * ST-165: Get the transcript directory for a project path
- * Claude Code stores transcripts at ~/.claude/projects/{escaped-path}/
- */
-function getTranscriptDir(projectPath: string): string {
-  const homeDir = os.homedir();
-  // Escape path: replace / with - (except leading /)
-  const escapedPath = projectPath.replace(/^\//, '').replace(/\//g, '-');
-  return path.join(homeDir, '.claude', 'projects', escapedPath);
-}
-
-/**
- * ST-165: Find a transcript file containing specific content
- * Searches recent transcripts for runId/componentId
- */
-function findTranscriptByContent(transcriptDir: string, searchContent: string, searchDays = 7): string | null {
-  if (!fs.existsSync(transcriptDir)) {
-    return null;
-  }
-
-  const cutoffTime = Date.now() - searchDays * 24 * 60 * 60 * 1000;
-
-  // Get all transcripts within time window
-  let transcriptFiles: Array<{ name: string; path: string; mtime: Date }>;
-  try {
-    transcriptFiles = fs
-      .readdirSync(transcriptDir)
-      .filter((f) => f.endsWith('.jsonl'))
-      .map((f) => ({
-        name: f,
-        path: path.join(transcriptDir, f),
-        mtime: fs.statSync(path.join(transcriptDir, f)).mtime,
-      }))
-      .filter((f) => f.mtime.getTime() > cutoffTime)
-      .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()); // newest first
-  } catch {
-    return null;
-  }
-
-  // Search each file for the content
-  for (const file of transcriptFiles) {
-    try {
-      const content = fs.readFileSync(file.path, 'utf-8');
-      if (content.includes(searchContent)) {
-        return file.path;
-      }
-    } catch {
-      // Skip files we can't read
-    }
-  }
-
-  return null;
-}
-
+import { RemoteRunner } from '../../utils/remote-runner';
 
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
@@ -144,6 +87,11 @@ export const tool: Tool = {
       componentSummary: {
         type: 'string',
         description: 'ST-147: AI-generated summary of what this agent accomplished',
+      },
+      // Claude Code agent ID for transcript lookup
+      claudeAgentId: {
+        type: 'string',
+        description: 'Claude Code agent ID (8-char hex like "b6ebed38"). Transcript filename is agent-{claudeAgentId}.jsonl. Pass this when spawning subagents via Task tool.',
       },
     },
     required: ['runId', 'componentId'],
@@ -322,12 +270,14 @@ export async function handler(prisma: PrismaClient, params: any) {
     }
   }
 
-  // ST-165: Priority 5: Auto-search for transcript
-  // For spawned agents: use sessionId from RemoteJob.result (more reliable than runId)
-  // For orchestrator: search by runId in MCP tool calls
+  // ST-165: Priority 5: Auto-search for transcript via RemoteRunner
+  // Executes parse-transcript.ts on laptop where transcripts live
+  // Stores: metrics + agentId + sessionId + transcriptPath
+  let discoveredAgentId: string | undefined;
+  let discoveredTranscriptPath: string | undefined;
+
   if (!contextMetrics) {
     // Get the project path from WorkflowRun.metadata._transcriptTracking.projectPath
-    // or fallback to Project.hostPath or PROJECT_HOST_PATH
     const workflowRun = await prisma.workflowRun.findUnique({
       where: { id: params.runId },
       select: {
@@ -338,7 +288,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       },
     });
 
-    // Extract projectPath from metadata._transcriptTracking (stored by start_workflow_run)
+    // Extract projectPath from metadata._transcriptTracking (stored by start_workflow_run with cwd)
     const metadata = workflowRun?.metadata as Record<string, any> | null;
     const transcriptTracking = metadata?._transcriptTracking as Record<string, string> | undefined;
     const projectPath = transcriptTracking?.projectPath ||
@@ -346,74 +296,81 @@ export async function handler(prisma: PrismaClient, params: any) {
                         process.env.PROJECT_HOST_PATH;
 
     if (projectPath) {
-      const transcriptDir = getTranscriptDir(projectPath);
-      let foundTranscript: string | null = null;
-      let searchMethod = '';
+      // Use RemoteRunner to execute parse-transcript.ts on laptop
+      const runner = new RemoteRunner();
 
-      // For spawned agents: if we have RemoteJob with sessionId, search by sessionId
-      // (even if metrics weren't in result, the transcript might exist)
-      if (componentRun.remoteJobId) {
-        const remoteJob = await prisma.remoteJob.findUnique({
-          where: { id: componentRun.remoteJobId },
-          select: { result: true },
-        });
-        const jobResult = remoteJob?.result as Record<string, unknown> | null;
-        const sessionId = jobResult?.sessionId as string | undefined;
+      // Build search content - prefer componentId, fallback to runId
+      const searchContent = params.componentId || params.runId;
+      const scriptParams = [`--search=${searchContent}`, `--path=${projectPath}`];
 
-        if (sessionId) {
-          console.log(`[ST-165] Searching for transcript with sessionId=${sessionId}`);
-          foundTranscript = findTranscriptByContent(transcriptDir, sessionId);
-          searchMethod = `sessionId=${sessionId}`;
-        }
+      console.log(`[ST-165] Auto-searching transcript via RemoteRunner: search=${searchContent}, path=${projectPath}`);
+
+      interface RemoteMetrics {
+        inputTokens: number;
+        outputTokens: number;
+        cacheCreationTokens: number;
+        cacheReadTokens: number;
+        totalTokens: number;
+        model: string;
+        transcriptPath: string;
+        agentId?: string;
+        sessionId?: string;
+        turns?: {
+          totalTurns: number;
+          manualPrompts: number;
+          autoContinues: number;
+        };
       }
 
-      // Fallback: search by runId (works for orchestrator transcripts with MCP tool calls)
-      if (!foundTranscript) {
-        console.log(`[ST-165] Searching for transcript with runId=${params.runId}`);
-        foundTranscript = findTranscriptByContent(transcriptDir, params.runId);
-        searchMethod = `runId=${params.runId}`;
-      }
+      const result = await runner.execute<RemoteMetrics>('parse-transcript', scriptParams, {
+        requestedBy: 'record_agent_complete',
+      });
 
-      // Last resort: search by componentRunId
-      if (!foundTranscript) {
-        console.log(`[ST-165] Searching for transcript with componentRunId=${componentRun.id}`);
-        foundTranscript = findTranscriptByContent(transcriptDir, componentRun.id);
-        searchMethod = `componentRunId=${componentRun.id}`;
-      }
+      if (result.executed && result.success && result.result) {
+        const metrics = result.result;
+        contextMetrics = {
+          tokensInput: metrics.inputTokens,
+          tokensOutput: metrics.outputTokens,
+          tokensSystemPrompt: null,
+          tokensSystemTools: null,
+          tokensMcpTools: null,
+          tokensMemoryFiles: null,
+          tokensMessages: null,
+          tokensCacheCreation: metrics.cacheCreationTokens,
+          tokensCacheRead: metrics.cacheReadTokens,
+          sessionId: metrics.sessionId || null,
+        };
+        dataSource = 'transcript';
+        discoveredAgentId = metrics.agentId;
+        discoveredTranscriptPath = metrics.transcriptPath;
 
-      if (foundTranscript) {
-        console.log(`[ST-165] Found transcript via ${searchMethod}: ${foundTranscript}`);
-        const transcriptParser = new TranscriptParserService();
-        const transcriptMetrics = await transcriptParser.parseAgentTranscript(foundTranscript);
-
-        if (transcriptMetrics) {
-          contextMetrics = {
-            tokensInput: transcriptMetrics.inputTokens,
-            tokensOutput: transcriptMetrics.outputTokens,
-            tokensSystemPrompt: null,
-            tokensSystemTools: null,
-            tokensMcpTools: null,
-            tokensMemoryFiles: null,
-            tokensMessages: null,
-            tokensCacheCreation: transcriptMetrics.cacheCreationTokens,
-            tokensCacheRead: transcriptMetrics.cacheReadTokens,
-            sessionId: transcriptMetrics.sessionId,
+        // Also extract turn metrics if available
+        if (metrics.turns && !turnMetrics) {
+          turnMetrics = {
+            totalTurns: metrics.turns.totalTurns,
+            manualPrompts: metrics.turns.manualPrompts,
+            autoContinues: metrics.turns.autoContinues,
           };
-          dataSource = 'transcript';
-          console.log(`[ST-165] Auto-parsed transcript for component ${params.componentId}:`, {
-            transcriptPath: foundTranscript,
-            inputTokens: transcriptMetrics.inputTokens,
-            outputTokens: transcriptMetrics.outputTokens,
-            cacheCreationTokens: transcriptMetrics.cacheCreationTokens,
-            cacheReadTokens: transcriptMetrics.cacheReadTokens,
-            totalTokens: transcriptMetrics.totalTokens,
-          });
         }
+
+        console.log(`[ST-165] Auto-parsed transcript via RemoteRunner for component ${params.componentId}:`, {
+          transcriptPath: metrics.transcriptPath,
+          agentId: metrics.agentId,
+          inputTokens: metrics.inputTokens,
+          outputTokens: metrics.outputTokens,
+          cacheCreationTokens: metrics.cacheCreationTokens,
+          totalTokens: metrics.totalTokens,
+        });
       } else {
-        console.log(`[ST-165] No transcript found for component ${params.componentId}`);
+        console.log(`[ST-165] RemoteRunner transcript search failed:`, {
+          executed: result.executed,
+          success: result.success,
+          error: result.error,
+          agentOffline: !result.executed,
+        });
       }
     } else {
-      console.log(`[ST-165] Cannot auto-search transcript: no project path available`);
+      console.log(`[ST-165] Cannot auto-search transcript: no project path available (did start_team_run receive cwd?)`);
     }
   }
 
@@ -466,8 +423,10 @@ export async function handler(prisma: PrismaClient, params: any) {
       totalTurns: turnMetrics?.totalTurns || null,
       manualPrompts: turnMetrics?.manualPrompts || null,
       autoContinues: turnMetrics?.autoContinues || null,
-      // ST-147: Transcript path and component summary
-      transcriptPath: params.transcriptPath || null,
+      // ST-147: Transcript path, agent ID, and component summary
+      // Priority: explicit params > auto-discovered values
+      transcriptPath: params.transcriptPath || discoveredTranscriptPath || null,
+      claudeAgentId: params.claudeAgentId || discoveredAgentId || null,
       componentSummary: params.componentSummary || null,
       // ST-112: Store cache tokens in metadata (no dedicated fields in schema)
       metadata: contextMetrics?.tokensCacheCreation || contextMetrics?.tokensCacheRead

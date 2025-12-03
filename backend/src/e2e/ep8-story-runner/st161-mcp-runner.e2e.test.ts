@@ -159,30 +159,9 @@ describe('ST-161: MCP Story Runner E2E Tests', () => {
       console.log(`    ✓ Agent created: ${ctx.agentId}`);
     });
 
-    it('should create project manager', async () => {
-      const result = await runner.execute<{ id: string }>('create_project_manager', {
-        projectId: ctx.projectId,
-        name: `${testPrefix}_PM`,
-        description: 'Test project manager',
-        domain: 'software-development',
-        coordinatorInstructions: 'Orchestrate the workflow execution',
-        config: {
-          modelId: 'claude-sonnet-4-20250514',
-          temperature: 0.5,
-        },
-        tools: ['mcp__vibestudio__get_team_context'],
-        decisionStrategy: 'sequential',
-      });
-
-      expect(result.success).toBe(true);
-      ctx.coordinatorId = result.result!.id;
-      console.log(`    ✓ Project Manager created: ${ctx.coordinatorId}`);
-    });
-
     it('should create team', async () => {
       const result = await runner.execute<{ id: string }>('create_team', {
         projectId: ctx.projectId,
-        coordinatorId: ctx.coordinatorId,
         name: `${testPrefix}_Team`,
         description: 'Test team',
         triggerConfig: {

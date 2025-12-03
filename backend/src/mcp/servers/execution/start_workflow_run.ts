@@ -24,7 +24,7 @@ export const tool: Tool = {
       },
       cwd: {
         type: 'string',
-        description: 'Current working directory of the orchestrator session. Used to auto-detect transcript location. If not provided, will use project localPath.',
+        description: 'REQUIRED: Current working directory of the orchestrator session (e.g., /Users/you/projects/AIStudio). Used to locate Claude Code transcripts for metrics. Must be the HOST path where Claude Code is running, NOT a Docker path.',
       },
       // ST-148: Approval override options
       approvalOverrides: {
@@ -44,7 +44,7 @@ export const tool: Tool = {
         },
       },
     },
-    required: ['teamId', 'triggeredBy'],
+    required: ['teamId', 'triggeredBy', 'cwd'],
   },
 };
 
@@ -66,6 +66,9 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
   if (!params.triggeredBy) {
     throw new Error('triggeredBy is required');
+  }
+  if (!params.cwd) {
+    throw new Error('cwd is required - must be the HOST path where Claude Code is running (e.g., /Users/you/projects/AIStudio). This is needed for transcript tracking.');
   }
 
   // Verify workflow exists
@@ -91,10 +94,10 @@ export async function handler(prisma: PrismaClient, params: any) {
     ? componentAssignments.map((assignment: any) => assignment.componentId).filter(Boolean)
     : [];
 
-  // Determine transcript directory from cwd
-  // IMPORTANT: cwd should be the HOST path (from PROJECT_HOST_PATH env or explicit param)
-  // DO NOT use workflow.project.localPath here as it contains Docker path (/app)
-  const projectPath = params.cwd || process.cwd();
+  // Determine transcript directory from cwd (now required)
+  // cwd is the HOST path where Claude Code is running (e.g., /Users/you/projects/AIStudio)
+  // This is used to locate transcripts at ~/.claude/projects/<escaped-path>/
+  const projectPath = params.cwd;
   // Claude Code stores transcripts in ~/.claude/projects/<escaped-path>/
   // Path escaping: /opt/stack/AIStudio → -opt-stack-AIStudio
   const escapedPath = projectPath.replace(/^\//, '-').replace(/\//g, '-');

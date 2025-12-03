@@ -370,28 +370,9 @@ More content to make the description longer.`;
   // ==========================================================================
   describe('Artifact Content Truncation', () => {
     beforeAll(async () => {
-      // Create minimal PM and team for artifacts
-      const pmResult = await runner.execute<{ id: string }>('create_project_manager', {
-        projectId: ctx.projectId,
-        name: `${testPrefix}_PM`,
-        description: 'Test PM',
-        domain: 'software-development',
-        coordinatorInstructions: 'Coordinate',
-        config: { modelId: 'claude-sonnet-4-20250514' },
-        tools: ['Task'],
-        decisionStrategy: 'sequential',
-      });
-
-      if (!pmResult.success || !pmResult.result?.id) {
-        console.error('Failed to create PM:', pmResult);
-        throw new Error('PM creation failed');
-      }
-      const pmId = pmResult.result.id;
-      console.log(`    ✓ PM: ${pmId}`);
-
+      // Create minimal team for artifacts (ST-164: no PM required)
       const teamResult = await runner.execute<{ id: string }>('create_team', {
         projectId: ctx.projectId,
-        coordinatorId: pmId,
         name: `${testPrefix}_Team`,
         triggerConfig: { type: 'manual' },
       });

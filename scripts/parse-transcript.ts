@@ -170,6 +170,8 @@ export function countTurns(records: TranscriptRecord[]): TurnCounts {
  */
 export interface FullTranscriptMetrics extends TranscriptMetrics {
   turns: TurnCounts;
+  agentId?: string;   // Claude Code agent ID (8-char hex) - present for spawned agents
+  sessionId?: string; // Parent session ID
 }
 
 export async function parseJSONL(filePath: string): Promise<TranscriptRecord[]> {
@@ -290,6 +292,19 @@ export async function parseTranscriptWithTurns(transcriptPath: string): Promise<
   }
 
   let model = 'unknown';
+  let agentId: string | undefined;
+  let sessionId: string | undefined;
+
+  // Extract agentId and sessionId from first record (init message)
+  const firstRecord = records[0];
+  if (firstRecord) {
+    if (firstRecord.agentId) {
+      agentId = firstRecord.agentId;
+    }
+    if (firstRecord.sessionId) {
+      sessionId = firstRecord.sessionId;
+    }
+  }
 
   // Deduplicate by message ID - keep LAST occurrence (has final token counts after streaming)
   const messageUsageMap = new Map<string, {
@@ -350,6 +365,8 @@ export async function parseTranscriptWithTurns(transcriptPath: string): Promise<
     model,
     transcriptPath,
     turns,
+    agentId,
+    sessionId,
   };
 }
 

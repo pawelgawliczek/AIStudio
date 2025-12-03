@@ -35,7 +35,9 @@ When the user invokes this command:
 2. Verify the story has `assignedWorkflowId` set. If not, list available teams and ask user to assign one
 3. Get the workflow details using `get_runner_status` to check if a run already exists
 4. If no active run exists:
-   - Create a new workflow run using `start_team_run`
+   - Create a new workflow run using `start_team_run` with:
+     - `cwd`: Your current working directory (CRITICAL for transcript tracking on remote MCP server)
+     - `context`: Include storyId, storyKey, and any relevant context
    - Launch the Story Runner using `start_runner`
 5. Report the status and provide the run ID
 6. Suggest using `get_runner_status` to monitor progress

@@ -20,7 +20,7 @@ import { TestContext, createTestContext, hasPhase1Entities, hasWorkflowReady } f
 import {
   createTestProjectParams,
   createTestAgentParams,
-  createTestCoordinatorParams,
+  // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
   createTestWorkflowStateParams,
 } from './helpers/test-data-factory';
@@ -119,24 +119,14 @@ describe('ST-148 Approval Gates E2E Tests', () => {
       console.log(`  ✓ Agent created: ${result.name} (${result.id})`);
     });
 
-    it('should create test coordinator', async () => {
-      expect(ctx.projectId).toBeDefined();
-
-      const params = createTestCoordinatorParams(ctx.projectId!);
-      const result = await createComponent(prisma, params);
-
-      ctx.coordinatorComponentId = result.id;
-
-      expect(result.id).toBeDefined();
-      console.log(`  ✓ Coordinator created: ${result.name} (${result.id})`);
-    });
+    // Note: ST-164 removed coordinator - teams no longer require one
 
     it('should create workflow', async () => {
       expect(ctx.projectId).toBeDefined();
-      expect(ctx.coordinatorComponentId).toBeDefined();
 
+      // ST-164: no coordinatorId required
       const params = {
-        ...createTestWorkflowParams(ctx.projectId!, ctx.coordinatorComponentId!),
+        ...createTestWorkflowParams(ctx.projectId!),
         name: `${TEST_CONFIG.PREFIX}ApprovalWorkflow_${TEST_CONFIG.TIMESTAMP}`,
       };
       const result = await createWorkflow(prisma, params);
