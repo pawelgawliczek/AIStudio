@@ -22,6 +22,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import Redis from 'ioredis';
 import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
 import { McpExceptionFilter } from './filters/mcp-exception.filter';
 import { McpAuthGuard } from './guards/mcp-auth.guard';
 import { McpRateLimitGuard } from './guards/mcp-rate-limit.guard';
@@ -59,14 +60,15 @@ const redisProvider = {
 };
 
 /**
- * McpSessionService provider with Redis injection
+ * McpSessionService provider with Redis and Prisma injection
+ * Phase 2: Added PrismaService for ToolRegistry integration
  */
 const sessionServiceProvider = {
   provide: McpSessionService,
-  useFactory: (redis: Redis) => {
-    return new McpSessionService(redis);
+  useFactory: (redis: Redis, prisma: PrismaService) => {
+    return new McpSessionService(redis, prisma);
   },
-  inject: ['REDIS_CLIENT'],
+  inject: ['REDIS_CLIENT', PrismaService],
 };
 
 /**

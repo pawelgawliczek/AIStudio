@@ -1,18 +1,21 @@
 /**
- * MCP Session Service (Tasks 1.4, 1.4a)
+ * MCP Session Service (Tasks 1.4, 1.4a, Phase 2)
  *
  * Manages MCP HTTP sessions with Redis storage and security features:
  * - Session creation with 1-hour TTL
  * - IP and User-Agent binding for hijacking prevention
  * - API key revocation propagation
  * - Input validation for security
+ * - Phase 2: Tool discovery and execution via ToolRegistry
  *
  * @see ST-163 Task 1.4: Implement Session Service
  * @see ST-163 Task 1.4a: Enhance Session Interface with IP/User-Agent Binding
  * @see ST-163 Task 1.2a: Define Detailed Input Validation Rules
+ * @see ST-163 Phase 2: ToolRegistry Integration
  */
 
 import * as crypto from 'crypto';
+import * as path from 'path';
 import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { Request } from 'express';
 import { Redis } from 'ioredis';
@@ -23,13 +26,24 @@ import {
   MCP_SESSION_PREFIX,
 } from './interfaces/mcp-session.interface';
 import { validateToolArguments } from './utils/ssrf-validator';
+import { ToolRegistry } from '../mcp/core/registry';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class McpSessionService {
   private readonly logger = new Logger(McpSessionService.name);
   private mcpGateway: any; // Injected later in Phase 3 for WebSocket events
+  private toolRegistry: ToolRegistry;
 
-  constructor(private readonly redis: Redis) {}
+  constructor(
+    private readonly redis: Redis,
+    private readonly prisma: PrismaService,
+  ) {
+    // Initialize ToolRegistry with path to MCP servers
+    const serversPath = path.join(__dirname, '..', 'mcp', 'servers');
+    this.toolRegistry = new ToolRegistry(serversPath, prisma);
+    this.logger.log(`ToolRegistry initialized with serversPath: ${serversPath}`);
+  }
 
   /**
    * Set WebSocket gateway for event emission (Task 3.2)
@@ -458,11 +472,14 @@ export class McpSessionService {
   }
 
   /**
-   * Execute MCP tool with WebSocket event streaming (Tasks 2.x, 3.2, 5.4)
+   * Execute MCP tool with WebSocket event streaming (Phase 2 - ToolRegistry integration)
    * Delegates to ToolRegistry and emits events via WebSocket gateway
    * Includes SSRF validation for tool arguments
    */
   async executeTool(sessionId: string, toolName: string, args: Record<string, any>): Promise<any> {
+    // Validate tool name format
+    this.validateToolName(toolName);
+
     // Task 5.4: Validate tool arguments for SSRF vulnerabilities
     validateToolArguments(toolName, args);
 
@@ -478,13 +495,8 @@ export class McpSessionService {
     }
 
     try {
-      // TODO: Phase 2 - Delegate to existing ToolRegistry
-      // For now, simulate tool execution for testing
-      const result = {
-        success: true,
-        output: `Tool ${toolName} executed with args: ${JSON.stringify(args)}`,
-        timestamp: new Date().toISOString(),
-      };
+      // Phase 2: Delegate to ToolRegistry for actual execution
+      const result = await this.toolRegistry.executeTool(toolName, args);
 
       // Emit tool:complete event
       if (this.mcpGateway) {
@@ -515,24 +527,44 @@ export class McpSessionService {
         });
       }
 
-      throw error;
+      throw new BadRequestException(`Tool execution failed: ${error.message}`);
     }
   }
 
   /**
-   * List available MCP tools (delegated to ToolRegistry in Phase 2)
-   * Placeholder for now - returns empty list
+   * List available MCP tools (Phase 2 - ToolRegistry integration)
+   * Delegates to ToolRegistry for actual tool discovery
    */
   async listTools(sessionId: string, category?: string, query?: string): Promise<any> {
-    // TODO: Phase 2 - Delegate to existing ToolRegistry
-    // For now, return stub response
-    return {
-      tools: [],
-      totalCount: 0,
-      category: category || 'all',
-      query: query || null,
-      message: 'Tool listing not implemented yet - Phase 2 will integrate with ToolRegistry',
-    };
+    try {
+      // If query provided, use search_tools functionality
+      if (query) {
+        const searchResult = await this.toolRegistry.searchTools(query, category || 'all', 'with_descriptions');
+        return {
+          tools: searchResult.tools || [],
+          totalCount: searchResult.tools?.length || 0,
+          category: category || 'all',
+          query,
+        };
+      }
+
+      // Otherwise, list all tools (optionally filtered by category)
+      const tools = await this.toolRegistry.listTools(category);
+
+      return {
+        tools: tools.map((tool: any) => ({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema || tool.parameters,
+        })),
+        totalCount: tools.length,
+        category: category || 'all',
+        query: null,
+      };
+    } catch (error: any) {
+      this.logger.error(`Failed to list tools: ${error.message}`);
+      throw new BadRequestException(`Failed to list tools: ${error.message}`);
+    }
   }
 }
 
