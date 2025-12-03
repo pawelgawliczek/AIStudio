@@ -4,6 +4,9 @@
   "description": "HTTP client for VibeStudio MCP server with auto-reconnect",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "vibestudio-mcp": "./dist/mcp-stdio-bridge.js"
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
