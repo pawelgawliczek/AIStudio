@@ -68,6 +68,12 @@ export class McpRateLimitGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
+    // Skip rate limiting for admin endpoints
+    const path = request.path || request.url;
+    if (path.includes('/admin/')) {
+      return true;
+    }
+
     try {
       // Extract request identifiers
       const apiKey = request.user?.apiKey;

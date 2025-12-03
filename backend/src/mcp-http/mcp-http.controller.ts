@@ -36,6 +36,7 @@ import {
   Header,
   NotFoundException,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Request, Response } from 'express';
@@ -43,12 +44,15 @@ import { CallToolDto } from './dto/call-tool.dto';
 import { InitializeSessionDto } from './dto/initialize-session.dto';
 import { ListToolsDto } from './dto/list-tools.dto';
 import { SessionResponseDto } from './dto/session-response.dto';
+import { McpAuthGuard } from './guards/mcp-auth.guard';
+import { McpRateLimitGuard } from './guards/mcp-rate-limit.guard';
 import { ResponseSigningInterceptor } from './interceptors/response-signing.interceptor';
 import { McpHttpGateway, ToolEvent } from './mcp-http.gateway';
 import { McpSessionService } from './mcp-session.service';
 
 @ApiTags('MCP HTTP Transport')
 @UseInterceptors(ResponseSigningInterceptor)
+@UseGuards(McpAuthGuard, McpRateLimitGuard)
 @Controller('mcp/v1')
 export class McpHttpController {
   constructor(

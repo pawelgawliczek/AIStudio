@@ -42,6 +42,12 @@ export class McpAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
+    // Skip auth for admin endpoints (they handle their own security, e.g., internal network only)
+    const path = request.path || request.url;
+    if (path.includes('/admin/')) {
+      return true;
+    }
+
     // Extract Authorization header
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
