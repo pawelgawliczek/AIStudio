@@ -7,7 +7,6 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { pathToFileURL } from 'url';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export interface ToolModule {
@@ -68,8 +67,8 @@ export class ToolLoader {
           if (module) {
             tools.push(module);
             // Check if alias tool was also cached
-            const fileUrl = pathToFileURL(toolPath).href;
-            const rawModule = await import(fileUrl);
+            const modulePath = toolPath.replace(/\.ts$/, '.js');
+            const rawModule = require(modulePath);
             if (rawModule.aliasTool) {
               const aliasPath = `${toolPath}#${rawModule.aliasTool.name}`;
               const aliasModule = this.cache.get(aliasPath);
@@ -90,7 +89,7 @@ export class ToolLoader {
 
   /**
    * Load a single tool module from file path
-   * Returns array to support both primary tool and alias tool
+   * Uses require() for CommonJS compatibility in Docker/production
    */
   async loadToolModule(filePath: string): Promise<ToolModule | null> {
     // Check cache first
@@ -99,8 +98,11 @@ export class ToolLoader {
     }
 
     try {
-      const fileUrl = pathToFileURL(filePath).href;
-      const module = await import(fileUrl);
+      // Use require() for CommonJS compatibility
+      // Clear require cache to ensure fresh load in development
+      const modulePath = filePath.replace(/\.ts$/, '.js');
+      delete require.cache[require.resolve(modulePath)];
+      const module = require(modulePath);
 
       if (!module.tool || !module.handler) {
         console.warn(`Invalid tool module (missing tool or handler): ${filePath}`);
