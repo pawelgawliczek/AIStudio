@@ -76,8 +76,15 @@ export class McpSessionService {
     };
 
     // Store in Redis with TTL
+    // Note: Serialize non-primitive fields (arrays, booleans) for Redis hash storage
     const redisKey = `${MCP_SESSION_PREFIX}${sessionId}`;
-    await this.redis.hset(redisKey, session as any);
+    const redisData = {
+      ...session,
+      capabilities: JSON.stringify(session.capabilities),
+      apiKeyRevoked: String(session.apiKeyRevoked),
+      reconnectCount: String(session.reconnectCount),
+    };
+    await this.redis.hset(redisKey, redisData as any);
     await this.redis.expire(redisKey, MCP_SESSION_TTL);
 
     this.logger.log(
@@ -514,11 +521,18 @@ export class McpSessionService {
 
   /**
    * List available MCP tools (delegated to ToolRegistry in Phase 2)
-   * Placeholder for now
+   * Placeholder for now - returns empty list
    */
   async listTools(sessionId: string, category?: string, query?: string): Promise<any> {
-    // This will be implemented in Phase 2 by delegating to the existing ToolRegistry
-    throw new Error('Tool listing not implemented yet - Phase 2');
+    // TODO: Phase 2 - Delegate to existing ToolRegistry
+    // For now, return stub response
+    return {
+      tools: [],
+      totalCount: 0,
+      category: category || 'all',
+      query: query || null,
+      message: 'Tool listing not implemented yet - Phase 2 will integrate with ToolRegistry',
+    };
   }
 }
 
