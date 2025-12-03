@@ -202,6 +202,12 @@ export class McpHttpGateway implements OnGatewayConnection, OnGatewayDisconnect 
    * @param event - Tool event data
    */
   emitToSession(sessionId: string, event: ToolEvent): void {
+    // Server may not be initialized if no WebSocket clients connected
+    if (!this.server) {
+      this.logger.debug(`WebSocket server not initialized, skipping event ${event.type}`);
+      return;
+    }
+
     // Ensure timestamp is set
     if (!event.timestamp) {
       event.timestamp = new Date().toISOString();
@@ -225,6 +231,12 @@ export class McpHttpGateway implements OnGatewayConnection, OnGatewayDisconnect 
    * @param data - Event payload
    */
   emitGenericEvent(sessionId: string, eventType: string, data: any): void {
+    // Server may not be initialized if no WebSocket clients connected
+    if (!this.server) {
+      this.logger.debug(`WebSocket server not initialized, skipping event ${eventType}`);
+      return;
+    }
+
     this.server.to(`session:${sessionId}`).emit(eventType, {
       sessionId,
       timestamp: new Date().toISOString(),
