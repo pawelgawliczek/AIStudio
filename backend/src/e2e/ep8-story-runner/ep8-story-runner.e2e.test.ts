@@ -405,6 +405,7 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
       const result = await startWorkflowRun(prisma, {
         workflowId: ctx.workflowId!,
         triggeredBy: 'e2e-test',
+        cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
         context: {
           testRun: true,
           timestamp: Date.now(),
@@ -426,8 +427,8 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
       });
 
       expect(result.runId).toBe(ctx.workflowRunId);
-      expect(result.coordinator).toBeDefined();
-      console.log(`  ✓ Context retrieved: coordinator=${result.coordinator.name}`);
+      expect(result.workflowName).toBeDefined();
+      console.log(`  ✓ Context retrieved: workflow=${result.workflowName}`);
     });
 
     it('should record component start', async () => {
@@ -776,6 +777,7 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
       const runResult = await startWorkflowRun(prisma, {
         workflowId: ctx.workflowId!,
         triggeredBy: 'ep8-e2e-breakpoint-test',
+        cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
       });
       breakpointRunId = runResult.runId;
       console.log(`  ✓ Created breakpoint test run: ${breakpointRunId}`);
@@ -1049,6 +1051,7 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
         const runResult = await startWorkflowRun(prisma, {
           workflowId: ctx.workflowId!,
           triggeredBy: 'ep8-e2e-step-test',
+          cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
         });
         stepTestRunId = runResult.runId;
 
@@ -1088,6 +1091,7 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
         const runResult = await startWorkflowRun(prisma, {
           workflowId: ctx.workflowId!,
           triggeredBy: 'ep8-e2e-step-validation',
+          cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
         });
 
         // Keep it in running state without isPaused

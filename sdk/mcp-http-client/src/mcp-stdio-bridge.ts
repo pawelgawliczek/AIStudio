@@ -155,32 +155,35 @@ async function handleRequest(request: any): Promise<any> {
 async function main() {
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout,
+    // Don't use output - we write directly to stdout for MCP protocol
     terminal: false,
   });
 
-  rl.on('line', async (line) => {
+  rl.on('line', (line) => {
     if (!line.trim()) return;
 
-    try {
-      const request = JSON.parse(line);
-      const response = await handleRequest(request);
+    // Handle async in a separate function to avoid blocking readline
+    (async () => {
+      try {
+        const request = JSON.parse(line);
+        const response = await handleRequest(request);
 
-      // Only send response if not a notification
-      if (response !== null) {
-        process.stdout.write(JSON.stringify(response) + '\n');
+        // Only send response if not a notification
+        if (response !== null) {
+          process.stdout.write(JSON.stringify(response) + '\n');
+        }
+      } catch (error: any) {
+        const errorResponse = {
+          jsonrpc: '2.0',
+          error: {
+            code: -32700,
+            message: `Parse error: ${error.message}`,
+          },
+          id: null,
+        };
+        process.stdout.write(JSON.stringify(errorResponse) + '\n');
       }
-    } catch (error: any) {
-      const errorResponse = {
-        jsonrpc: '2.0',
-        error: {
-          code: -32700,
-          message: `Parse error: ${error.message}`,
-        },
-        id: null,
-      };
-      process.stdout.write(JSON.stringify(errorResponse) + '\n');
-    }
+    })();
   });
 
   rl.on('close', () => {

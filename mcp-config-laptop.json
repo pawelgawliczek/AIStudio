@@ -1,17 +1,15 @@
 {
   "mcpServers": {
     "vibestudio": {
-      "command": "npx",
+      "command": "node",
       "args": [
-        "tsx",
-        "backend/src/mcp/server.ts"
+        "/Users/pawelgawliczek/projects/AIStudio/sdk/mcp-http-client/dist/mcp-stdio-bridge.js"
       ],
-      "cwd": "/Users/pawelgawliczek/projects/AIStudio",
       "env": {
-        "DATABASE_URL": "postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5433/vibestudio?schema=public",
-        "NODE_ENV": "development"
+        "VIBESTUDIO_API_KEY": "proj_345a29ee_S2lBFKyGRor6x0tuyVgSauS7P85--bY2zenzNoR4Vu0",
+        "VIBESTUDIO_BASE_URL": "https://vibestudio.example.com"
       },
-      "description": "Vibe Studio MCP Server for project and story management (laptop)"
+      "description": "Vibe Studio MCP Server via HTTP Transport (laptop → production)"
     }
   }
 }
