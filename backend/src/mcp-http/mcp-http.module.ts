@@ -19,10 +19,9 @@
 
 import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER } from '@nestjs/core';
 import Redis from 'ioredis';
 import { PrismaModule } from '../prisma/prisma.module';
-import { PrismaService } from '../prisma/prisma.service';
 import { McpExceptionFilter } from './filters/mcp-exception.filter';
 import { McpAuthGuard } from './guards/mcp-auth.guard';
 import { McpRateLimitGuard } from './guards/mcp-rate-limit.guard';
@@ -82,29 +81,8 @@ const gatewayProvider = {
   inject: [McpSessionService],
 };
 
-/**
- * Auth guard provider with PrismaService and Redis injection
- * Task 2.3: API Key Authentication Guard
- */
-const authGuardProvider = {
-  provide: McpAuthGuard,
-  useFactory: (prisma: PrismaService, redis: Redis) => {
-    return new McpAuthGuard(prisma, redis);
-  },
-  inject: [PrismaService, 'REDIS_CLIENT'],
-};
-
-/**
- * Rate limit guard provider with Redis injection
- * Task 2.5: Multi-dimensional rate limiting
- */
-const rateLimitGuardProvider = {
-  provide: McpRateLimitGuard,
-  useFactory: (redis: Redis) => {
-    return new McpRateLimitGuard(redis);
-  },
-  inject: ['REDIS_CLIENT'],
-};
+// Guards are now @Injectable with @Inject('REDIS_CLIENT') decorators
+// so they can be provided as simple classes
 
 @Module({
   imports: [
@@ -116,8 +94,8 @@ const rateLimitGuardProvider = {
     redisProvider,
     sessionServiceProvider,
     gatewayProvider,
-    authGuardProvider,
-    rateLimitGuardProvider,
+    McpAuthGuard,
+    McpRateLimitGuard,
     {
       provide: APP_FILTER,
       useClass: McpExceptionFilter,

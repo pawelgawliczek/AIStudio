@@ -19,6 +19,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
@@ -63,7 +64,7 @@ interface RateLimitResult {
 export class McpRateLimitGuard implements CanActivate {
   private readonly logger = new Logger(McpRateLimitGuard.name);
 
-  constructor(private readonly redis: Redis) {}
+  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

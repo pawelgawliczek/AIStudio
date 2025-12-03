@@ -19,6 +19,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Redis } from 'ioredis';
@@ -36,7 +37,7 @@ export class McpAuthGuard implements CanActivate {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: Redis,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
