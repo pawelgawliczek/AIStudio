@@ -338,6 +338,7 @@ describe('ST-161: Real MCP Commands E2E Tests', () => {
       const res = await mcp.execute('start_team_run', {
         teamId: ctx.workflowId,
         triggeredBy: 'st161-e2e-test',
+        cwd: process.cwd(), // Required for transcript tracking
         context: {
           testRun: true,
           timestamp: Date.now(),
