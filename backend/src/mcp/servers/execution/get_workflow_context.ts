@@ -1,6 +1,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { truncateWithMetadata, teamRunResultsFetchCommand } from '../../truncation-utils';
+import { buildMasterSessionInstructions, ComponentInfo } from './master-session-instructions';
 
 export const tool: Tool = {
   name: 'get_team_context',
@@ -151,6 +152,35 @@ export async function handler(prisma: PrismaClient, params: any) {
         ? Math.round((completedComponentRuns.length / workflowComponentIds.length) * 100)
         : 0,
     },
+    // ST-167: Master session instructions for orchestrator
+    masterSessionInstructions: buildMasterSessionInstructions({
+      runId: workflowRun.id,
+      workflowId: workflowRun.workflowId,
+      workflowName: workflowRun.workflow.name,
+      components: [
+        // Completed components
+        ...completedComponentRuns.map((cr, index) => ({
+          componentId: cr.componentId,
+          componentName: cr.component.name,
+          description: cr.component.description || null,
+          order: index + 1,
+          status: cr.status as 'completed' | 'failed',
+        })),
+        // Remaining components
+        ...remainingComponents.map((c, index) => ({
+          componentId: c.id,
+          componentName: c.name,
+          description: c.description,
+          order: completedComponentRuns.length + index + 1,
+          status: 'pending' as const,
+        })),
+      ],
+      storyContext: {
+        storyId: (workflowRun.metadata as any)?.storyId,
+        storyKey: (workflowRun.metadata as any)?.storyKey,
+        title: (workflowRun.metadata as any)?.title,
+      },
+    }),
     message: `Workflow context retrieved. ${completedComponentRuns.length}/${workflowComponentIds.length} components completed.`,
   };
 }

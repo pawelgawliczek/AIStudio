@@ -11,6 +11,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { buildMasterSessionInstructions, ComponentInfo } from '../execution/master-session-instructions';
 
 export const tool: Tool = {
   name: 'get_orchestration_context',
@@ -146,19 +147,33 @@ export async function handler(
 
   const completedStateIds = checkpoint?.completedStates || [];
 
-  // Build the re-initialization prompt (matches MasterSession.start())
-  const reinitPrompt = buildReinitPrompt(
+  // Build components list from states for the shared instruction builder
+  const components: ComponentInfo[] = states.map((state, index) => ({
+    componentId: state.component?.id || state.id,
+    componentName: state.component?.name || state.name,
+    description: null,
+    order: index + 1,
+    status: completedStateIds.includes(state.id)
+      ? 'completed' as const
+      : state.id === currentState?.id
+        ? 'in_progress' as const
+        : 'pending' as const,
+  }));
+
+  // Build the re-initialization prompt using shared utility
+  const reinitPrompt = buildMasterSessionInstructions({
     runId,
-    run.workflowId,
-    run.workflow.name,
-    currentState,
-    currentStateIndex,
-    states.length,
-    completedStateIds,
-    checkpoint?.currentPhase || 'pre',
-    storyContext,
-    checkpoint?.resourceUsage
-  );
+    workflowId: run.workflowId,
+    workflowName: run.workflow.name,
+    components,
+    storyContext: storyContext ? {
+      storyId: storyContext.id,
+      storyKey: storyContext.key,
+      title: storyContext.title,
+    } : undefined,
+    currentPhase: checkpoint?.currentPhase || 'pre',
+    isRecovery: true,
+  });
 
   return {
     success: true,
@@ -215,75 +230,4 @@ export async function handler(
 
     message: `MasterSession context restored for "${run.workflow.name}". Currently at state "${currentState?.name}" (${checkpoint?.currentPhase || 'pre'} phase). ${completedStateIds.length}/${states.length} states completed.`,
   };
-}
-
-/**
- * Build the re-initialization prompt for MasterSession
- * This matches the format used in MasterSession.start() and buildMasterPrompt()
- */
-function buildReinitPrompt(
-  runId: string,
-  workflowId: string,
-  workflowName: string,
-  currentState: any,
-  currentStateIndex: number,
-  totalStates: number,
-  completedStates: string[],
-  currentPhase: 'pre' | 'agent' | 'post',
-  storyContext: any,
-  resourceUsage?: any
-): string {
-  return `# MasterSession Context Restored (Post-Compaction)
-
-You are the **Story Runner Master session**.
-Your role is to execute pre/post instructions for workflow states.
-
-## Current Workflow Run
-- **Run ID**: \`${runId}\`
-- **Workflow**: ${workflowName} (\`${workflowId}\`)
-- **Progress**: ${completedStates.length}/${totalStates} states completed
-
-## Current State
-- **State**: ${currentState?.name || 'Unknown'} (order: ${currentState?.order || 0})
-- **Phase**: ${currentPhase}
-- **Component**: ${currentState?.component?.name || 'None'}
-
-${
-  storyContext
-    ? `## Story Context
-- **Story**: ${storyContext.key} - ${storyContext.title}
-- **Type**: ${storyContext.type}
-- **Status**: ${storyContext.status}
-${storyContext.summary ? `- **Summary**: ${storyContext.summary}` : ''}
-`
-    : ''
-}
-
-## Resource Usage
-- Tokens: ${resourceUsage?.tokensUsed || 0}
-- Agent Spawns: ${resourceUsage?.agentSpawns || 0}
-- State Transitions: ${resourceUsage?.stateTransitions || 0}
-- Duration: ${Math.round((resourceUsage?.durationMs || 0) / 1000)}s
-
-## Response Format
-After each instruction, you MUST respond with a JSON block:
-
-\`\`\`json:master-response
-{
-  "action": "proceed|spawn_agent|pause|stop|retry|skip|wait|rerun_state",
-  "status": "success|error|warning|info",
-  "message": "What you did and why",
-  "output": { ... },
-  "control": { ... }
-}
-\`\`\`
-
-## Recovery Note
-If context is lost again, call:
-\`\`\`
-get_orchestration_context({ runId: "${runId}" })
-\`\`\`
-
----
-**Context restored. Ready to continue executing instructions.**`;
 }

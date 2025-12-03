@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
+import { buildMasterSessionInstructions } from './master-session-instructions';
 
 export const tool: Tool = {
   name: 'start_team_run',
@@ -202,6 +203,27 @@ export async function handler(prisma: PrismaClient, params: any) {
     console.warn(`[ST-164] Failed to register workflow on laptop: ${error.message}`);
   }
 
+  // Build component list for master session instructions
+  const componentList = components.map((c, index) => ({
+    componentId: c.id,
+    componentName: c.name,
+    description: c.description,
+    order: index + 1,
+  }));
+
+  // Build master session instructions
+  const masterSessionInstructions = buildMasterSessionInstructions({
+    runId: workflowRun.id,
+    workflowId: workflowRun.workflowId,
+    workflowName: workflow.name,
+    components: componentList,
+    storyContext: {
+      storyId: storyId,
+      storyKey: params.context?.storyKey,
+      title: params.context?.title,
+    },
+  });
+
   return {
     success: true,
     runId: workflowRun.id,
@@ -211,15 +233,12 @@ export async function handler(prisma: PrismaClient, params: any) {
     // ST-105: Name→UUID mapping to resolve component names
     componentMap,
     // ST-99: Component references only - agents call get_component_instructions({ componentId }) for full instructions
-    components: components.map((c, index) => ({
-      componentId: c.id,
-      componentName: c.name,
-      description: c.description,
-      order: index + 1,
-    })),
+    components: componentList,
     status: workflowRun.status,
     startedAt: workflowRun.startedAt.toISOString(),
     context: workflowRun.metadata,
+    // ST-167: Master session instructions for orchestrator
+    masterSessionInstructions,
     // ST-164: Include workflow tracking status
     workflowTracking: workflowTrackerResult ? {
       registered: workflowTrackerResult.success,
