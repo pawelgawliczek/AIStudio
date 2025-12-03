@@ -13,8 +13,6 @@ import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
 import { LayersComponentsPage } from './pages/LayersComponentsPage';
 import { AgentLibraryView } from './pages/AgentLibraryView';
 import { AgentDetailPage } from './pages/AgentDetailPage';
-import { ProjectManagerLibraryView } from './pages/ProjectManagerLibraryView';
-import { ProjectManagerDetailPage } from './pages/ProjectManagerDetailPage';
 import { TeamManagementView } from './pages/TeamManagementView';
 import { TeamDetailPage } from './pages/TeamDetailPage';
 import { TeamComparisonPage } from './pages/TeamComparisonPage';
@@ -68,8 +66,6 @@ function AppContent() {
               {/* New user-friendly routes */}
               <Route path="agents" element={<AgentLibraryView />} />
               <Route path="agents/:id" element={<AgentDetailPage />} />
-              <Route path="project-managers" element={<ProjectManagerLibraryView />} />
-              <Route path="project-managers/:id" element={<ProjectManagerDetailPage />} />
               <Route path="teams" element={<TeamManagementView />} />
               <Route path="teams/:id" element={<TeamDetailPage />} />
               <Route path="teams/:id/compare" element={<TeamComparisonPage />} />
@@ -85,8 +81,8 @@ function AppContent() {
               {/* Backwards compatibility redirects (old routes → new routes) */}
               <Route path="components" element={<Navigate to="/agents" replace />} />
               <Route path="components/:id" element={<RedirectWithId to="/agents/:id" />} />
-              <Route path="coordinators" element={<Navigate to="/project-managers" replace />} />
-              <Route path="coordinators/:id" element={<RedirectWithId to="/project-managers/:id" />} />
+              <Route path="coordinators" element={<Navigate to="/teams" replace />} />
+              <Route path="coordinators/:id" element={<Navigate to="/teams" replace />} />
               <Route path="workflows" element={<Navigate to="/teams" replace />} />
               <Route path="workflow-runs/:runId/results" element={<RedirectWithRunId to="/team-runs/:runId/results" />} />
               <Route path="workflow-runs/:runId/monitor" element={<RedirectWithRunId to="/team-runs/:runId/monitor" />} />

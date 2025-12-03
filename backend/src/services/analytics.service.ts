@@ -220,6 +220,7 @@ export class AnalyticsService {
 
   /**
    * Get coordinator execution history
+   * @deprecated ST-164: Coordinators are deprecated. This method is kept for backwards compatibility but returns empty array.
    */
   async getCoordinatorExecutionHistory(
     coordinatorId: string,
@@ -228,23 +229,9 @@ export class AnalyticsService {
     limit: number = 100,
     offset: number = 0,
   ): Promise<ExecutionHistory[]> {
-    const targetId = versionId || coordinatorId;
-    const timeFilter = this.buildTimeRangeFilter(timeRange);
-
-    const runs = await this.prisma.workflowRun.findMany({
-      where: {
-        coordinatorId: targetId,
-        ...(timeFilter && { startedAt: timeFilter }),
-      },
-      include: {
-        workflow: true,
-      },
-      orderBy: { startedAt: 'desc' },
-      take: limit,
-      skip: offset,
-    });
-
-    return runs.map((run) => this.mapWorkflowRunToExecutionHistory(run));
+    // ST-164: Coordinators are deprecated, return empty array
+    this.logger.warn('getCoordinatorExecutionHistory called but coordinators are deprecated (ST-164)');
+    return [];
   }
 
   /**
@@ -334,89 +321,28 @@ export class AnalyticsService {
 
   /**
    * Get workflows using a coordinator
+   * @deprecated ST-164: Coordinators are deprecated. This method is kept for backwards compatibility but returns empty array.
    */
   async getWorkflowsUsingCoordinator(
     coordinatorId: string,
     versionId?: string,
   ): Promise<WorkflowUsage[]> {
-    const targetId = versionId || coordinatorId;
-
-    const workflows = await this.prisma.workflow.findMany({
-      where: { coordinatorId: targetId },
-    });
-
-    // Get execution counts for each workflow
-    const workflowUsage = await Promise.all(
-      workflows.map(async (workflow) => {
-        const lastRun = await this.prisma.workflowRun.findFirst({
-          where: { workflowId: workflow.id },
-          orderBy: { startedAt: 'desc' },
-        });
-
-        const executionCount = await this.prisma.workflowRun.count({
-          where: { workflowId: workflow.id },
-        });
-
-        return {
-          workflowId: workflow.id,
-          workflowName: workflow.name,
-          version: `${workflow.versionMajor}.${workflow.versionMinor}`,
-          lastUsed: lastRun?.startedAt?.toISOString() || workflow.createdAt.toISOString(),
-          executionCount,
-        };
-      }),
-    );
-
-    return workflowUsage;
+    // ST-164: Coordinators are deprecated, return empty array
+    this.logger.warn('getWorkflowsUsingCoordinator called but coordinators are deprecated (ST-164)');
+    return [];
   }
 
   /**
    * Get component usage by coordinator
+   * @deprecated ST-164: Coordinators are deprecated. This method is kept for backwards compatibility but returns empty array.
    */
   async getCoordinatorComponentUsage(
     coordinatorId: string,
     versionId?: string,
   ): Promise<ComponentUsageDetail[]> {
-    const targetId = versionId || coordinatorId;
-
-    // Find all workflow runs for this coordinator
-    const workflowRuns = await this.prisma.workflowRun.findMany({
-      where: { coordinatorId: targetId },
-      include: {
-        componentRuns: {
-          include: {
-            component: true,
-          },
-        },
-      },
-    });
-
-    // Aggregate component usage
-    const componentMap = new Map<string, { name: string; count: number }>();
-
-    for (const run of workflowRuns) {
-      for (const componentRun of run.componentRuns) {
-        if (!componentRun.component) continue;
-
-        const key = componentRun.componentId;
-        if (componentMap.has(key)) {
-          componentMap.get(key)!.count++;
-        } else {
-          componentMap.set(key, {
-            name: componentRun.component.name,
-            count: 1,
-          });
-        }
-      }
-    }
-
-    return Array.from(componentMap.entries())
-      .map(([componentId, data]) => ({
-        componentId,
-        componentName: data.name,
-        usageCount: data.count,
-      }))
-      .sort((a, b) => b.usageCount - a.usageCount);
+    // ST-164: Coordinators are deprecated, return empty array
+    this.logger.warn('getCoordinatorComponentUsage called but coordinators are deprecated (ST-164)');
+    return [];
   }
 
   /**

@@ -86,7 +86,6 @@ export function Layout() {
                       items={[
                         { label: terminology.workflows, icon: '⚡', path: '/workflows' },
                         { label: terminology.components, icon: '🧩', path: '/components' },
-                        { label: terminology.coordinators, icon: '🤖', path: '/coordinators' },
                         { label: 'Performance', icon: '📊', path: '/analytics/performance' },
                       ]}
                     />

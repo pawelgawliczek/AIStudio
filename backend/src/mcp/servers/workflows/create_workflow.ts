@@ -16,7 +16,6 @@ import {
 
 export interface CreateWorkflowParams {
   projectId: string;
-  coordinatorId: string;
   name: string;
   description?: string;
   triggerConfig: {
@@ -31,7 +30,6 @@ export interface CreateWorkflowParams {
 export interface WorkflowResponse {
   id: string;
   projectId: string;
-  coordinatorId: string;
   name: string;
   description: string | null;
   version: string;
@@ -43,17 +41,13 @@ export interface WorkflowResponse {
 
 export const tool: Tool = {
   name: 'create_team',
-  description: 'Create a new team linking a project manager with trigger configuration. A team is a group of agents working together.',
+  description: 'Create a new team with trigger configuration. A team is a group of agents working together.',
   inputSchema: {
     type: 'object',
     properties: {
       projectId: {
         type: 'string',
         description: 'Project UUID',
-      },
-      coordinatorId: {
-        type: 'string',
-        description: 'Project Manager UUID (coordinator that orchestrates the team)',
       },
       name: {
         type: 'string',
@@ -91,7 +85,7 @@ export const tool: Tool = {
         description: 'Version (default: v1.0)',
       },
     },
-    required: ['projectId', 'coordinatorId', 'name', 'triggerConfig'],
+    required: ['projectId', 'name', 'triggerConfig'],
   },
 };
 
@@ -110,7 +104,6 @@ export async function handler(
   try {
     validateRequired(params, [
       'projectId',
-      'coordinatorId',
       'name',
       'triggerConfig',
     ]);
@@ -124,26 +117,6 @@ export async function handler(
       throw new NotFoundError('Project', params.projectId);
     }
 
-    // Verify coordinator exists and belongs to project
-    const coordinator = await prisma.component.findUnique({
-      where: { id: params.coordinatorId },
-    });
-
-    if (!coordinator) {
-      throw new NotFoundError('Coordinator', params.coordinatorId);
-    }
-
-    if (coordinator.projectId !== params.projectId) {
-      throw new ValidationError('Coordinator does not belong to the specified project');
-    }
-
-    // Validate coordinator is active
-    if (!coordinator.active) {
-      throw new ValidationError(
-        `Cannot assign inactive coordinator '${coordinator.name}' v${coordinator.version} to workflow. Please select an active coordinator version.`
-      );
-    }
-
     // Validate triggerConfig
     if (!params.triggerConfig.type) {
       throw new ValidationError('triggerConfig.type is required');
@@ -153,7 +126,6 @@ export async function handler(
     const workflow = await prisma.workflow.create({
       data: {
         projectId: params.projectId,
-        coordinatorId: params.coordinatorId,
         name: params.name,
         description: params.description,
         triggerConfig: params.triggerConfig,
@@ -165,7 +137,6 @@ export async function handler(
     return {
       id: workflow.id,
       projectId: workflow.projectId,
-      coordinatorId: workflow.coordinatorId,
       name: workflow.name,
       description: workflow.description,
       version: workflow.version,

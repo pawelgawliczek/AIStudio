@@ -607,15 +607,13 @@ model Component {
   createdFromVersion   String?   @map("created_from_version")
 
   // Relations
-  project                   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  componentRuns             ComponentRun[]
-  defects                   DefectNew[]
-  workflowsAsCoordinator    Workflow[]      @relation("WorkflowCoordinator")
-  workflowRunsAsCoordinator WorkflowRun[]   @relation("WorkflowRunCoordinator")
-  parent                    Component?      @relation("ComponentVersions", fields: [parentId], references: [id], onDelete: SetNull)
-  children                  Component[]     @relation("ComponentVersions")
-  workflowStates            WorkflowState[] // ST-143: States that use this component
-  createdArtifacts          Artifact[]      // ST-151: Artifacts created by this component
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  componentRuns    ComponentRun[]
+  defects          DefectNew[]
+  parent           Component?      @relation("ComponentVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  children         Component[]     @relation("ComponentVersions")
+  workflowStates   WorkflowState[] // ST-143: States that use this component
+  createdArtifacts Artifact[]      // ST-151: Artifacts created by this component
 
   @@index([projectId])
   @@index([projectId, active])
@@ -630,14 +628,14 @@ model Component {
 // This model is kept for reference but the table has been dropped.
 // Relations updated to point to Component model instead.
 
-// Workflow - Links coordinator + trigger configuration
+// Workflow - Links states/agents + trigger configuration
+// ST-164: coordinatorId removed - coordinators are deprecated, states define execution order
 model Workflow {
-  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId     String  @map("project_id") @db.Uuid
-  coordinatorId String  @map("coordinator_id") @db.Uuid
-  name          String
-  description   String?
-  version       String  @default("v1.0")
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String  @map("project_id") @db.Uuid
+  name        String
+  description String?
+  version     String  @default("v1.0")
 
   // Trigger configuration
   triggerConfig Json @map("trigger_config") // { type, filters, notifications }
@@ -666,7 +664,6 @@ model Workflow {
 
   // Relations
   project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  coordinator         Component            @relation("WorkflowCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
   stories             Story[]
   workflowRuns        WorkflowRun[]
   activeWorkflows     ActiveWorkflow[]
@@ -676,7 +673,6 @@ model Workflow {
   artifactDefinitions ArtifactDefinition[] // ST-151: Artifact definitions for this workflow
 
   @@index([projectId])
-  @@index([coordinatorId])
   @@index([projectId, active])
   @@index([parentId])
   @@index([projectId, active, versionMajor])
@@ -685,13 +681,13 @@ model Workflow {
 }
 
 // WorkflowRun - Execution of a workflow
+// ST-164: coordinatorId removed - coordinators are deprecated
 model WorkflowRun {
-  id            String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  projectId     String  @map("project_id") @db.Uuid
-  workflowId    String  @map("workflow_id") @db.Uuid
-  storyId       String? @map("story_id") @db.Uuid
-  epicId        String? @map("epic_id") @db.Uuid
-  coordinatorId String? @map("coordinator_id") @db.Uuid
+  id         String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId  String  @map("project_id") @db.Uuid
+  workflowId String  @map("workflow_id") @db.Uuid
+  storyId    String? @map("story_id") @db.Uuid
+  epicId     String? @map("epic_id") @db.Uuid
 
   // Trigger info
   triggeredBy String? @map("triggered_by") // User ID or "system"
@@ -760,7 +756,6 @@ model WorkflowRun {
   workflow      Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   story         Story?         @relation(fields: [storyId], references: [id], onDelete: SetNull)
   epic          Epic?          @relation(fields: [epicId], references: [id], onDelete: SetNull)
-  coordinator   Component?     @relation("WorkflowRunCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
   componentRuns ComponentRun[]
   defects       DefectNew[]
   otelEvents    OtelEvent[]
@@ -779,7 +774,6 @@ model WorkflowRun {
   @@index([projectId])
   @@index([workflowId])
   @@index([storyId])
-  @@index([coordinatorId])
   @@index([startedAt])
   @@index([status])
   @@index([currentStateId]) // ST-143: Index for state queries

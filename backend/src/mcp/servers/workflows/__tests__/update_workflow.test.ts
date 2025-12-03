@@ -9,10 +9,6 @@ describe('update_workflow MCP tool', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
-    // Component table is used for coordinator/component lookups
-    component: {
-      findUnique: jest.fn(),
-    },
   };
 
   beforeEach(() => {
@@ -44,7 +40,6 @@ describe('update_workflow MCP tool', () => {
     const existingWorkflow = {
       id: 'workflow-1',
       projectId: 'proj-1',
-      coordinatorId: 'coord-1',
       name: 'Software Development Workflow',
       description: 'Main development workflow',
       version: 'v1.0',
@@ -110,70 +105,6 @@ describe('update_workflow MCP tool', () => {
       });
 
       expect(result.description).toBe('Updated workflow description');
-    });
-
-    it('should update coordinatorId', async () => {
-      const mockCoordinator = {
-        id: 'coord-2',
-        projectId: 'proj-1',
-        name: 'New Coordinator',
-      };
-
-      const updatedWorkflow = {
-        ...existingWorkflow,
-        coordinatorId: 'coord-2',
-        updatedAt: new Date('2025-11-14T12:00:00Z'),
-      };
-
-      mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.component.findUnique.mockResolvedValue(
-        mockCoordinator,
-      );
-      mockPrismaClient.workflow.update.mockResolvedValue(updatedWorkflow);
-
-      const result = await handler(prisma, {
-        workflowId: 'workflow-1',
-        coordinatorId: 'coord-2',
-      });
-
-      expect(result.coordinatorId).toBe('coord-2');
-      expect(mockPrismaClient.component.findUnique).toHaveBeenCalledWith(
-        {
-          where: { id: 'coord-2' },
-        },
-      );
-    });
-
-    it('should throw error when coordinator does not exist', async () => {
-      mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.component.findUnique.mockResolvedValue(null);
-
-      await expect(
-        handler(prisma, {
-          workflowId: 'workflow-1',
-          coordinatorId: 'coord-999',
-        }),
-      ).rejects.toThrow('Coordinator with ID coord-999 not found');
-    });
-
-    it('should throw error when coordinator belongs to different project', async () => {
-      const differentProjectCoordinator = {
-        id: 'coord-2',
-        projectId: 'proj-2',
-        name: 'Other Project Coordinator',
-      };
-
-      mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.component.findUnique.mockResolvedValue(
-        differentProjectCoordinator,
-      );
-
-      await expect(
-        handler(prisma, {
-          workflowId: 'workflow-1',
-          coordinatorId: 'coord-2',
-        }),
-      ).rejects.toThrow('Coordinator does not belong to the same project as the workflow');
     });
 
     it('should update triggerConfig', async () => {
@@ -252,12 +183,6 @@ describe('update_workflow MCP tool', () => {
     });
 
     it('should update multiple fields at once', async () => {
-      const mockCoordinator = {
-        id: 'coord-2',
-        projectId: 'proj-1',
-        name: 'New Coordinator',
-      };
-
       const newTriggerConfig = {
         type: 'webhook',
         filters: { source: 'github' },
@@ -268,7 +193,6 @@ describe('update_workflow MCP tool', () => {
         ...existingWorkflow,
         name: 'Workflow v2',
         description: 'Updated description',
-        coordinatorId: 'coord-2',
         triggerConfig: newTriggerConfig,
         version: 'v2.0',
         active: false,
@@ -276,16 +200,12 @@ describe('update_workflow MCP tool', () => {
       };
 
       mockPrismaClient.workflow.findUnique.mockResolvedValue(existingWorkflow);
-      mockPrismaClient.component.findUnique.mockResolvedValue(
-        mockCoordinator,
-      );
       mockPrismaClient.workflow.update.mockResolvedValue(updatedWorkflow);
 
       const result = await handler(prisma, {
         workflowId: 'workflow-1',
         name: 'Workflow v2',
         description: 'Updated description',
-        coordinatorId: 'coord-2',
         triggerConfig: newTriggerConfig,
         version: 'v2.0',
         active: false,
@@ -293,7 +213,6 @@ describe('update_workflow MCP tool', () => {
 
       expect(result.name).toBe('Workflow v2');
       expect(result.description).toBe('Updated description');
-      expect(result.coordinatorId).toBe('coord-2');
       expect(result.triggerConfig).toEqual(newTriggerConfig);
       expect(result.version).toBe('v2.0');
       expect(result.active).toBe(false);

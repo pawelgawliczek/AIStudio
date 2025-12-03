@@ -124,27 +124,41 @@ export async function handler(
       _count: {
         select: {
           children: true,
-          workflowsAsCoordinator: true,
         },
       },
     },
   });
 
-  const data: CoordinatorWithVersionInfo[] = coordinators.map((c) => ({
-    id: c.id,
-    name: c.name,
-    description: c.description,
-    versionMajor: c.versionMajor,
-    versionMinor: c.versionMinor,
-    versionLabel: `${c.versionMajor}.${c.versionMinor}`,
-    active: c.active,
-    isDeprecated: c.isDeprecated,
-    hasParent: !!c.parentId,
-    childCount: c._count.children,
-    workflowCount: c._count.workflowsAsCoordinator,
-    createdAt: c.createdAt.toISOString(),
-    updatedAt: c.updatedAt.toISOString(),
-  }));
+  // For each coordinator, count workflows that use it (via workflow states)
+  const data: CoordinatorWithVersionInfo[] = await Promise.all(
+    coordinators.map(async (c) => {
+      const workflowCount = await prisma.workflow.count({
+        where: {
+          states: {
+            some: {
+              componentId: c.id,
+            },
+          },
+        },
+      });
+
+      return {
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        versionMajor: c.versionMajor,
+        versionMinor: c.versionMinor,
+        versionLabel: `${c.versionMajor}.${c.versionMinor}`,
+        active: c.active,
+        isDeprecated: c.isDeprecated,
+        hasParent: !!c.parentId,
+        childCount: c._count.children,
+        workflowCount,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString(),
+      };
+    }),
+  );
 
   const totalPages = Math.ceil(total / pageSize);
 

@@ -15,12 +15,11 @@ import {
 import { WorkflowWizardProvider, useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
 import { WorkflowShellForm } from './WorkflowShellForm';
 import { ComponentVersionSelector } from './ComponentVersionSelector';
-import { CoordinatorSelector } from './CoordinatorSelector';
 import { VersionBumpModal } from '../VersionBumpModal';
 import { apiClient } from '../../services/api.client';
 import { terminology } from '../../utils/terminology';
 
-const STEPS = [`${terminology.team} Information`, `Select ${terminology.agents}`, `Choose ${terminology.projectManager}`];
+const STEPS = [`${terminology.team} Information`, `Select ${terminology.agents}`];
 
 interface WorkflowCreationWizardProps {
   open: boolean;
@@ -61,8 +60,6 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
           updateState({
             name: team.name,
             description: team.description || '',
-            coordinatorId: team.coordinatorId,
-            coordinatorMode: 'existing',
             componentAssignments: team.componentAssignments || [],
           });
 
@@ -79,7 +76,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   }, [editMode, teamId, open, dataLoaded, state.projectId, updateState]);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 2) {
       nextStep();
     }
   };
@@ -106,44 +103,10 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
     setError(null);
 
     try {
-      // Create coordinator if in "new" mode
-      let coordinatorId = state.coordinatorId;
-
-      if (state.coordinatorMode === 'new' && state.newCoordinator) {
-        const coordinatorData = {
-          name: state.newCoordinator.name,
-          description: `Coordinator for ${state.name}`,
-          inputInstructions: 'Receive workflow context and story information',
-          operationInstructions: state.newCoordinator.instructions,
-          outputInstructions: 'Produce workflow execution results',
-          config: {
-            modelId: state.newCoordinator.modelId,
-            temperature: state.newCoordinator.temperature,
-            decisionStrategy: state.newCoordinator.decisionStrategy,
-            maxRetries: state.newCoordinator.maxRetries,
-            timeout: state.newCoordinator.timeout,
-            costLimit: state.newCoordinator.costLimit,
-          },
-          tools: ['mcp__vibestudio__*'], // Allow all vibestudio MCP tools
-          tags: ['coordinator'],
-        };
-
-        const coordinatorResponse = await apiClient.post(
-          `/projects/${state.projectId}/components`,
-          coordinatorData
-        );
-        coordinatorId = coordinatorResponse.data.id;
-      }
-
-      if (!coordinatorId) {
-        throw new Error(`No ${terminology.projectManager.toLowerCase()} selected or created`);
-      }
-
       // Create workflow
       const workflowData = {
         name: state.name,
         description: state.description,
-        coordinatorId,
         componentAssignments: state.componentAssignments,
         triggerConfig: state.triggerConfig,
         active: state.active,
@@ -170,7 +133,6 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
       const workflowData = {
         name: state.name,
         description: state.description,
-        coordinatorId: state.coordinatorId,
         componentAssignments: state.componentAssignments,
       };
 
@@ -189,15 +151,8 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
   };
 
   const canSubmit = () => {
-    if (state.coordinatorMode === 'existing') {
-      return !!state.coordinatorId;
-    } else if (state.coordinatorMode === 'new' && state.newCoordinator) {
-      return (
-        state.newCoordinator.name.trim().length > 0 &&
-        state.newCoordinator.instructions.trim().length > 0
-      );
-    }
-    return false;
+    // Team can be submitted if it has a name and at least one agent
+    return state.name.trim().length > 0 && state.componentAssignments.length > 0;
   };
 
   return (
@@ -223,7 +178,6 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
 
           {currentStep === 1 && <WorkflowShellForm projects={projects} />}
           {currentStep === 2 && <ComponentVersionSelector />}
-          {currentStep === 3 && <CoordinatorSelector />}
         </Box>
       </DialogContent>
 
@@ -238,7 +192,7 @@ const WizardContent: React.FC<Omit<WorkflowCreationWizardProps, 'projectId'>> = 
           </Button>
         )}
 
-        {currentStep < 3 ? (
+        {currentStep < 2 ? (
           <Button
             variant="contained"
             onClick={handleNext}

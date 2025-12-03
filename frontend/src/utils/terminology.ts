@@ -5,36 +5,31 @@
  * terminology to user-friendly names across the application.
  *
  * Design Decision (ST-109 Option A):
- * - Database schema remains technical (workflows, components, coordinators)
+ * - Database schema remains technical (workflows, components)
  * - Internal code uses technical terms (easier for AI agents to understand)
  * - UI layer translates to user-friendly names via this utility
  *
- * Mapping:
+ * Mapping (ST-164: Coordinators removed):
  * - Workflow → Team (a team of agents working together)
  * - Component → Agent (AI agents executing tasks)
- * - Coordinator → Project Manager (orchestrates agents like a PM)
  */
 
 export const terminology = {
   // Singular forms (technical → user-friendly)
   workflow: 'Team',
   component: 'Agent',
-  coordinator: 'Project Manager',
 
   // User-friendly singular forms (for direct access)
   team: 'Team',
   agent: 'Agent',
-  projectManager: 'Project Manager',
 
   // Plural forms (technical → user-friendly)
   workflows: 'Teams',
   components: 'Agents',
-  coordinators: 'Project Managers',
 
   // User-friendly plural forms (for direct access)
   teams: 'Teams',
   agents: 'Agents',
-  projectManagers: 'Project Managers',
 
   // Action verbs (Create/Edit/Delete patterns)
   createWorkflow: 'Create Team',
@@ -43,9 +38,6 @@ export const terminology = {
   createComponent: 'Create Agent',
   editComponent: 'Edit Agent',
   deleteComponent: 'Delete Agent',
-  createCoordinator: 'Create Project Manager',
-  editCoordinator: 'Edit Project Manager',
-  deleteCoordinator: 'Delete Project Manager',
 
   // Status messages
   workflowCreated: 'Team created successfully',
@@ -54,14 +46,10 @@ export const terminology = {
   componentCreated: 'Agent created successfully',
   componentUpdated: 'Agent updated successfully',
   componentDeleted: 'Agent deleted successfully',
-  coordinatorCreated: 'Project Manager created successfully',
-  coordinatorUpdated: 'Project Manager updated successfully',
-  coordinatorDeleted: 'Project Manager deleted successfully',
 
   // Descriptions
   workflowDescription: 'A team is a group of agents working together to accomplish a goal',
   componentDescription: 'An agent is an AI worker that executes specific tasks',
-  coordinatorDescription: 'A project manager orchestrates agents and manages the workflow',
 } as const;
 
 /**
@@ -90,8 +78,6 @@ export const reverseTerminology: Record<string, string> = {
   'Teams': 'workflows',
   'Agent': 'component',
   'Agents': 'components',
-  'Project Manager': 'coordinator',
-  'Project Managers': 'coordinators',
 };
 
 /**

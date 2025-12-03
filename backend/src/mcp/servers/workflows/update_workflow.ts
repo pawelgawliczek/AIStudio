@@ -16,7 +16,6 @@ import {
 
 export interface UpdateWorkflowParams {
   workflowId: string;
-  coordinatorId?: string;
   name?: string;
   description?: string;
   triggerConfig?: {
@@ -32,7 +31,6 @@ export interface UpdateWorkflowParams {
 export interface WorkflowResponse {
   id: string;
   projectId: string;
-  coordinatorId: string;
   name: string;
   description: string | null;
   version: string;
@@ -56,10 +54,6 @@ export const tool: Tool = {
       workflowId: {
         type: 'string',
         description: 'Team UUID (workflowId parameter) to update',
-      },
-      coordinatorId: {
-        type: 'string',
-        description: 'Project Manager UUID (coordinatorId parameter) (optional)',
       },
       name: {
         type: 'string',
@@ -126,13 +120,10 @@ export async function handler(
     }
 
     // Check if structural changes require auto-versioning
-    const coordinatorChanged = params.coordinatorId !== undefined &&
-      params.coordinatorId !== existingWorkflow.coordinatorId;
-
     const triggerConfigChanged = params.triggerConfig !== undefined &&
       JSON.stringify(params.triggerConfig) !== JSON.stringify(existingWorkflow.triggerConfig);
 
-    const requiresAutoVersion = coordinatorChanged || triggerConfigChanged;
+    const requiresAutoVersion = triggerConfigChanged;
 
     // Build update data object with only provided fields
     const updateData: any = {};
@@ -141,31 +132,6 @@ export async function handler(
     if (params.description !== undefined) updateData.description = params.description;
     if (params.active !== undefined) updateData.active = params.active;
     if (params.version !== undefined) updateData.version = params.version;
-
-    // Handle coordinatorId update (requires validation)
-    if (params.coordinatorId !== undefined) {
-      // Verify coordinator exists and belongs to same project
-      const coordinator = await prisma.component.findUnique({
-        where: { id: params.coordinatorId },
-      });
-
-      if (!coordinator) {
-        throw new NotFoundError('Coordinator', params.coordinatorId);
-      }
-
-      if (coordinator.projectId !== existingWorkflow.projectId) {
-        throw new ValidationError('Coordinator does not belong to the same project as the workflow');
-      }
-
-      // Validate coordinator is active
-      if (!coordinator.active) {
-        throw new ValidationError(
-          `Cannot assign inactive coordinator '${coordinator.name}' v${coordinator.version} to workflow. Please select an active coordinator version.`
-        );
-      }
-
-      updateData.coordinatorId = params.coordinatorId;
-    }
 
     // Handle triggerConfig update (requires validation)
     if (params.triggerConfig !== undefined) {
@@ -185,14 +151,7 @@ export async function handler(
       const versioningService = new VersioningService(prisma as any);
 
       // Build change description
-      const changes: string[] = [];
-      if (coordinatorChanged) {
-        changes.push(`Updated coordinator from ${existingWorkflow.coordinatorId} to ${params.coordinatorId}`);
-      }
-      if (triggerConfigChanged) {
-        changes.push('Updated trigger configuration');
-      }
-      const changeDescription = changes.join('; ');
+      const changeDescription = 'Updated trigger configuration';
 
       // Create new version
       const newWorkflow = await versioningService.createMinorVersion(
@@ -217,7 +176,6 @@ export async function handler(
       return {
         id: finalWorkflow.id,
         projectId: finalWorkflow.projectId,
-        coordinatorId: finalWorkflow.coordinatorId,
         name: finalWorkflow.name,
         description: finalWorkflow.description,
         version: finalWorkflow.version,
@@ -242,7 +200,6 @@ export async function handler(
     return {
       id: workflow.id,
       projectId: workflow.projectId,
-      coordinatorId: workflow.coordinatorId,
       name: workflow.name,
       description: workflow.description,
       version: workflow.version,

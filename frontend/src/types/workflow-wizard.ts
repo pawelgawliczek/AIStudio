@@ -29,23 +29,7 @@ export interface WizardState {
   // Step 2: Component Assignments
   componentAssignments: ComponentAssignment[];
 
-  // Step 3: Coordinator Selection
-  coordinatorMode: 'existing' | 'new';
-  coordinatorId?: string; // For existing coordinator
-
-  // For new coordinator
-  newCoordinator?: {
-    name: string;
-    instructions: string;
-    modelId: string;
-    temperature: number;
-    decisionStrategy: 'sequential' | 'adaptive' | 'parallel' | 'conditional';
-    maxRetries: number;
-    timeout: number;
-    costLimit: number;
-  };
-
-  // Workflow settings
+  // Workflow settings (ST-164: Coordinator selection removed)
   triggerConfig: TriggerConfig;
   active: boolean;
 }
@@ -89,22 +73,6 @@ export interface Component {
   tags: string[];
 }
 
-export interface Coordinator {
-  id: string;
-  name: string;
-  description?: string;
-  version: string;
-  versionMajor: number;
-  versionMinor: number;
-  operationInstructions: string;
-  config: {
-    modelId: string;
-    temperature: number;
-    decisionStrategy: 'sequential' | 'adaptive' | 'parallel' | 'conditional';
-    maxRetries?: number;
-    timeout?: number;
-    costLimit?: number;
-  };
-}
+// Coordinator type removed - workflows no longer use coordinators (ST-164)
 
-export type WizardStep = 1 | 2 | 3;
+export type WizardStep = 1 | 2;

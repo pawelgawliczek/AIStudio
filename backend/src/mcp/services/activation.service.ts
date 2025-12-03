@@ -73,7 +73,6 @@ export class ActivationService {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id: workflowId },
       include: {
-        coordinator: true,
         project: true,
       },
     });
@@ -86,9 +85,9 @@ export class ActivationService {
       throw new BadRequestException('Workflow does not belong to this project');
     }
 
-    // 3. Fetch components for the coordinator
-    const coordinatorConfig = (workflow.coordinator.config as any) || {};
-    const componentIds = coordinatorConfig.componentIds || [];
+    // 3. Fetch components from workflow component assignments
+    const componentAssignments = (workflow.componentAssignments as any[]) || [];
+    const componentIds = componentAssignments.map((ca: any) => ca.componentId).filter(Boolean);
     const components = await this.prisma.component.findMany({
       where: {
         id: { in: componentIds as string[] },
@@ -98,10 +97,7 @@ export class ActivationService {
     // 4. Validate workflow is complete
     const validationResult = WorkflowMetadataValidator.validateWorkflowComplete({
       ...workflow,
-      coordinator: {
-        ...workflow.coordinator,
-        components,
-      },
+      components,
     });
 
     if (!validationResult.valid) {
@@ -140,16 +136,8 @@ export class ActivationService {
     const filesGenerated: string[] = [];
 
     try {
-      // Generate coordinator agent file
-      const coordinatorFile = CoordinatorAgentGenerator.generate(
-        {
-          ...workflow.coordinator,
-          components,
-        },
-        workflow.name,
-      );
-      await fs.writeFile(path.join(projectRoot, coordinatorFile.filename), coordinatorFile.content);
-      filesGenerated.push(coordinatorFile.filename);
+      // Generate workflow metadata file (coordinators are deprecated - ST-164)
+      // Note: This section may need refactoring based on new workflow architecture
 
       // Generate component agent files
       for (const component of components) {
@@ -162,7 +150,6 @@ export class ActivationService {
       const workflowFile = WorkflowSkillGenerator.generate(
         {
           ...workflow,
-          coordinator: workflow.coordinator,
           components,
         },
         new Date(),
@@ -275,11 +262,7 @@ export class ActivationService {
     const activeWorkflow = await this.prisma.activeWorkflow.findUnique({
       where: { projectId },
       include: {
-        workflow: {
-          include: {
-            coordinator: true,
-          },
-        },
+        workflow: true,
       },
     });
 

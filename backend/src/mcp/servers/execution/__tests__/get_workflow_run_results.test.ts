@@ -34,7 +34,6 @@ describe('UC-EXEC-003: Query Workflow Results - Unit Tests', () => {
         ...fixtures.workflowRun,
         componentRuns: mockComponentRuns,
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
         story: fixtures.story,
         epic: fixtures.epic,
       } as any);

@@ -17,13 +17,6 @@ export function TeamCard({
   const navigate = useNavigate();
 
   // Stop propagation for nested navigation links
-  const handlePMClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (workflow.coordinatorId) {
-      navigate(`/project-managers/${workflow.coordinatorId}`);
-    }
-  };
-
   const handleAgentClick = (e: React.MouseEvent, componentId: string) => {
     e.stopPropagation();
     navigate(`/agents/${componentId}`);
@@ -51,24 +44,6 @@ export function TeamCard({
       {/* Description */}
       {workflow.description && (
         <p className="text-sm text-muted mb-3 line-clamp-2">{workflow.description}</p>
-      )}
-
-      {/* PM Info */}
-      {workflow.coordinator && (
-        <div className="mb-2">
-          <div className="text-xs font-medium text-fg mb-1">PM:</div>
-          <button
-            onClick={handlePMClick}
-            className="px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors inline-flex items-center gap-1"
-          >
-            {workflow.coordinator.name}
-            {workflow.coordinator.version && (
-              <span className="text-[10px] px-1 py-0 bg-purple-200 dark:bg-purple-800/50 rounded">
-                {workflow.coordinator.version}
-              </span>
-            )}
-          </button>
-        </div>
       )}
 
       {/* Agents Info */}

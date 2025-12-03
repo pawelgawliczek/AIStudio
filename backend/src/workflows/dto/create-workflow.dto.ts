@@ -59,10 +59,6 @@ export class CreateWorkflowDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'Coordinator ID to use for this workflow' })
-  @IsString()
-  coordinatorId: string;
-
   @ApiProperty({ description: 'Trigger configuration', type: TriggerConfigDto })
   @IsObject()
   @ValidateNested()

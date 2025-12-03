@@ -7,9 +7,6 @@ export class WorkflowResponseDto {
   @ApiProperty({ description: 'Project ID' })
   projectId: string;
 
-  @ApiProperty({ description: 'Coordinator ID' })
-  coordinatorId: string;
-
   @ApiProperty({ description: 'Workflow name' })
   name: string;
 
@@ -61,35 +58,11 @@ export class WorkflowResponseDto {
   @ApiProperty({ description: 'Updated at' })
   updatedAt: Date;
 
-  @ApiPropertyOptional({ description: 'Coordinator details' })
-  coordinator?: {
-    id: string;
-    name: string;
-    domain: string;
-    version?: string;
-    versionMajor?: number;
-    versionMinor?: number;
-    flowDiagram?: string;
-    componentIds?: string[];
-    components?: Array<{
-      id: string;
-      name: string;
-    }>;
-  };
-
   @ApiPropertyOptional({ description: 'Usage statistics' })
   usageStats?: {
     totalRuns: number;
     avgRuntime: number;
     avgCost: number;
     successRate: number;
-  };
-
-  @ApiPropertyOptional({ description: 'Activation status' })
-  activationStatus?: {
-    isActivated: boolean;
-    activatedAt?: Date;
-    activatedBy?: string;
-    filesGenerated?: string[];
   };
 }

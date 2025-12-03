@@ -277,7 +277,6 @@ describe('RunnerService', () => {
               component: { id: 'comp-1', name: 'Component 1' },
             },
           ],
-          coordinator: null,
         },
         story: {
           id: 'story-789',
@@ -308,7 +307,7 @@ describe('RunnerService', () => {
     it('should build previousOutputs from completed runs', async () => {
       const mockRun = {
         id: 'run-123',
-        workflow: { id: 'wf-1', states: [], coordinator: null },
+        workflow: { id: 'wf-1', states: [] },
         story: null,
         componentRuns: [
           {
@@ -365,7 +364,6 @@ describe('RunnerService', () => {
             component: { id: 'comp-1', name: 'Component 1' },
           },
         ],
-        coordinator: null,
       };
 
       prisma.workflow.findUnique.mockResolvedValue(mockWorkflow as any);

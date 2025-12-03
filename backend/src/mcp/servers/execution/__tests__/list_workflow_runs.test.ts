@@ -40,7 +40,6 @@ describe('UC-EXEC-006: List Workflow Runs - Unit Tests', () => {
           ...fixtures.workflowRun,
           status: 'failed',
           workflow: fixtures.workflow,
-          coordinator: fixtures.coordinator,
           _count: { componentRuns: 5 },
         },
       ] as any);

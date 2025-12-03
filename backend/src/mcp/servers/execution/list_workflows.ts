@@ -77,16 +77,6 @@ export async function handler(prisma: PrismaClient, params: any) {
   const workflows = await prisma.workflow.findMany({
     where,
     include: {
-      coordinator: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          config: true,
-          tools: true,
-          tags: true,
-        },
-      },
       _count: {
         select: {
           workflowRuns: true,
@@ -97,7 +87,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     orderBy: { name: 'asc' },
   });
 
-  // Transform workflows with coordinator details
+  // Transform workflows
   const workflowsWithComponents = workflows.map((workflow) => {
     return {
       id: workflow.id,
@@ -108,15 +98,6 @@ export async function handler(prisma: PrismaClient, params: any) {
       triggerConfig: workflow.triggerConfig,
       createdAt: workflow.createdAt.toISOString(),
       updatedAt: workflow.updatedAt.toISOString(),
-
-      coordinator: {
-        id: workflow.coordinator.id,
-        name: workflow.coordinator.name,
-        description: workflow.coordinator.description,
-        config: workflow.coordinator.config,
-        tools: workflow.coordinator.tools,
-        tags: workflow.coordinator.tags,
-      },
 
       usageStats: {
         totalRuns: workflow._count.workflowRuns,

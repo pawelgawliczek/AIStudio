@@ -761,57 +761,7 @@ export interface UpdateComponentDto {
   version?: string;
 }
 
-export interface CoordinatorAgent {
-  id: string;
-  projectId: string;
-  name: string;
-  description: string;
-  domain: string;
-  coordinatorInstructions: string;
-  flowDiagram?: string;
-  config: ExecutionConfig;
-  tools: string[];
-  decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
-  componentIds: string[];
-  components?: Component[];
-  active: boolean;
-  version: string;
-  createdAt: string;
-  updatedAt: string;
-  usageStats?: {
-    totalRuns: number;
-    avgRuntime: number;
-    avgCost: number;
-    successRate: number;
-    avgComponentsUsed: number;
-  };
-}
-
-export interface CreateCoordinatorDto {
-  name: string;
-  description: string;
-  domain: string;
-  coordinatorInstructions: string;
-  config: ExecutionConfig;
-  tools: string[];
-  decisionStrategy: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
-  componentIds: string[];
-  active?: boolean;
-  version?: string;
-}
-
-export interface UpdateCoordinatorDto {
-  name?: string;
-  description?: string;
-  domain?: string;
-  coordinatorInstructions?: string;
-  config?: ExecutionConfig;
-  tools?: string[];
-  decisionStrategy?: 'sequential' | 'parallel' | 'conditional' | 'adaptive';
-  componentIds?: string[];
-  active?: boolean;
-  version?: string;
-}
+// Coordinator types removed - workflows now link directly to components (ST-164)
 
 export interface TriggerConfig {
   type: 'manual' | 'story_status_change' | 'scheduled' | 'webhook';
@@ -825,7 +775,6 @@ export interface TriggerConfig {
 export interface Workflow {
   id: string;
   projectId: string;
-  coordinatorId: string;
   name: string;
   description?: string;
   version: string;
@@ -841,17 +790,6 @@ export interface Workflow {
   active: boolean;
   createdAt: string;
   updatedAt: string;
-  coordinator?: {
-    id: string;
-    name: string;
-    domain: string;
-    version?: string;
-    versionMajor?: number;
-    versionMinor?: number;
-    flowDiagram?: string;
-    componentIds?: string[];
-    components?: Component[];
-  } | CoordinatorAgent;
   usageStats?: {
     totalRuns: number;
     avgRuntime: number;
@@ -869,7 +807,6 @@ export interface Workflow {
 export interface CreateWorkflowDto {
   name: string;
   description?: string;
-  coordinatorId: string;
   triggerConfig: TriggerConfig;
   active?: boolean;
   version?: string;
@@ -878,7 +815,6 @@ export interface CreateWorkflowDto {
 export interface UpdateWorkflowDto {
   name?: string;
   description?: string;
-  coordinatorId?: string;
   triggerConfig?: TriggerConfig;
   active?: boolean;
   version?: string;

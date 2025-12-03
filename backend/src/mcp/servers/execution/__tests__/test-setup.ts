@@ -76,26 +76,11 @@ export const fixtures = {
     updatedAt: new Date('2025-01-01'),
   },
 
-  coordinator: {
-    id: 'coord-test-001',
-    projectId: 'proj-test-001',
-    name: 'Test Coordinator',
-    description: 'Test coordinator agent',
-    domain: 'software-development',
-    coordinatorInstructions: 'Test instructions',
-    decisionStrategy: 'sequential' as const,
-    active: true,
-    config: { modelId: 'claude-3-5-sonnet-20241022', temperature: 0.7 },
-    tools: ['read', 'write'],
-    version: 'v1.0',
-    createdAt: new Date('2025-01-01'),
-    updatedAt: new Date('2025-01-01'),
-  },
+  // ST-164: Coordinator entity removed - workflows use WorkflowState for execution order
 
   workflow: {
     id: 'workflow-test-001',
     projectId: 'proj-test-001',
-    coordinatorId: 'coord-test-001',
     name: 'Test Workflow',
     description: 'Test workflow for execution',
     active: true,
@@ -109,7 +94,6 @@ export const fixtures = {
   workflowInactive: {
     id: 'workflow-test-002',
     projectId: 'proj-test-001',
-    coordinatorId: 'coord-test-001',
     name: 'Inactive Workflow',
     description: 'Inactive workflow',
     active: false,
@@ -124,7 +108,6 @@ export const fixtures = {
     id: 'run-test-001',
     projectId: 'proj-test-001',
     workflowId: 'workflow-test-001',
-    coordinatorId: 'coord-test-001',
     storyId: 'story-test-001',
     epicId: 'epic-test-001',
     status: 'running' as const,
@@ -206,10 +189,10 @@ export function createEpicWithStories(count: number = 3) {
 }
 
 // Helper to create workflow with components
+// ST-164: Coordinator removed - workflows use WorkflowState for execution order
 export function createWorkflowWithComponents() {
   return {
     workflow: fixtures.workflow,
-    coordinator: fixtures.coordinator,
     components: [
       { ...fixtures.component, id: 'comp-1', name: 'Component 1' },
       { ...fixtures.component, id: 'comp-2', name: 'Component 2' },

@@ -70,7 +70,6 @@ export async function handler(
         },
         _count: {
           select: {
-            workflowsAsCoordinator: true,
             componentRuns: true,
           },
         },
@@ -125,7 +124,7 @@ export async function handler(
       },
       versionHistory,
       usageStats: {
-        workflowCount: component._count.workflowsAsCoordinator,
+        workflowCount: 0, // Deprecated: Coordinators are now components with 'coordinator' tag
         totalRuns: component._count.componentRuns,
         lastUsedAt: lastRun?.startedAt.toISOString() || null,
       },

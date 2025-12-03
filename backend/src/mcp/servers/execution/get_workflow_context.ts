@@ -41,7 +41,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     where: { id: params.runId },
     include: {
       workflow: true,
-      coordinator: true,
     },
   });
 
@@ -63,11 +62,13 @@ export async function handler(prisma: PrismaClient, params: any) {
     },
   });
 
-  // Get coordinator's component IDs to determine remaining components
-  const coordinatorConfig = (workflowRun.coordinator.config as any) || {};
-  const coordinatorComponentIds = coordinatorConfig.componentIds || [];
+  // Get workflow's component IDs to determine remaining components
+  const componentAssignments = (workflowRun.workflow.componentAssignments as any) || [];
+  const workflowComponentIds = Array.isArray(componentAssignments)
+    ? componentAssignments.map((assignment: any) => assignment.componentId).filter(Boolean)
+    : [];
   const completedComponentIds = completedComponentRuns.map((cr) => cr.componentId);
-  const remainingComponentIds = coordinatorComponentIds.filter((id) => !completedComponentIds.includes(id));
+  const remainingComponentIds = workflowComponentIds.filter((id) => !completedComponentIds.includes(id));
 
   // Get remaining component references (WITHOUT full instructions - use get_component_instructions for those)
   const remainingComponents = await prisma.component.findMany({
@@ -91,15 +92,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     workflowName: workflowRun.workflow.name,
     status: workflowRun.status,
     context: workflowRun.metadata,
-    coordinator: {
-      id: workflowRun.coordinator.id,
-      name: workflowRun.coordinator.name,
-      instructions: workflowRun.coordinator.operationInstructions,
-      strategy: coordinatorConfig.decisionStrategy || 'adaptive',
-      config: workflowRun.coordinator.config,
-      tools: workflowRun.coordinator.tools,
-      flowDiagram: coordinatorConfig.flowDiagram,
-    },
     completedComponents: completedComponentRuns.map((cr) => {
       // Truncate outputs if truncateOutputs parameter is set
       let output = cr.outputData;
@@ -154,11 +146,11 @@ export async function handler(prisma: PrismaClient, params: any) {
       totalUserPrompts: workflowRun.totalUserPrompts,
       totalIterations: workflowRun.totalIterations,
       componentsCompleted: completedComponentRuns.length,
-      componentsTotal: coordinatorComponentIds.length,
-      percentComplete: coordinatorComponentIds.length
-        ? Math.round((completedComponentRuns.length / coordinatorComponentIds.length) * 100)
+      componentsTotal: workflowComponentIds.length,
+      percentComplete: workflowComponentIds.length
+        ? Math.round((completedComponentRuns.length / workflowComponentIds.length) * 100)
         : 0,
     },
-    message: `Workflow context retrieved. ${completedComponentRuns.length}/${coordinatorComponentIds.length} components completed.`,
+    message: `Workflow context retrieved. ${completedComponentRuns.length}/${workflowComponentIds.length} components completed.`,
   };
 }

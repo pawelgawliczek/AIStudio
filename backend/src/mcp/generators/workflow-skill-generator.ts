@@ -1,7 +1,8 @@
 import { Workflow } from '@prisma/client';
 
 export interface WorkflowWithRelations extends Workflow {
-  coordinator: {
+  // ST-164: Coordinators are deprecated, this field is optional for backwards compatibility
+  coordinator?: {
     id: string;
     name: string;
     description: string;
@@ -66,13 +67,15 @@ version: ${workflow.version}
     sections.push(workflow.description || 'No description');
     sections.push('');
 
-    // Coordinator
-    sections.push('## Coordinator');
-    sections.push('');
-    sections.push(`**Uses**: ${workflow.coordinator.name}`);
-    sections.push('');
-    sections.push(workflow.coordinator.description);
-    sections.push('');
+    // Coordinator (deprecated ST-164)
+    if (workflow.coordinator) {
+      sections.push('## Coordinator');
+      sections.push('');
+      sections.push(`**Uses**: ${workflow.coordinator.name}`);
+      sections.push('');
+      sections.push(workflow.coordinator.description);
+      sections.push('');
+    }
 
     // Components
     if (workflow.components && workflow.components.length > 0) {
@@ -103,8 +106,13 @@ version: ${workflow.version}
     sections.push('');
     sections.push('To use this workflow:');
     sections.push('');
-    sections.push(`1. The coordinator agent **${workflow.coordinator.name}** will orchestrate the workflow`);
-    sections.push('2. Components will be invoked as determined by the coordinator');
+    if (workflow.coordinator) {
+      sections.push(`1. The coordinator agent **${workflow.coordinator.name}** will orchestrate the workflow`);
+      sections.push('2. Components will be invoked as determined by the coordinator');
+    } else {
+      sections.push('1. Workflow states will be executed sequentially');
+      sections.push('2. Components will be invoked as defined in workflow states');
+    }
     sections.push('3. Results will be tracked and stored for analysis');
     sections.push('');
 

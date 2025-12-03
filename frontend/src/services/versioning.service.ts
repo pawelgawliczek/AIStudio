@@ -28,33 +28,7 @@ export interface ComponentVersion {
   createdBy?: string;
 }
 
-export interface CoordinatorVersion {
-  id: string;
-  coordinatorId: string;
-  versionMajor: number;
-  versionMinor: number;
-  version: string;
-  coordinatorInstructions: string;
-  decisionStrategy: 'sequential' | 'adaptive' | 'parallel' | 'conditional';
-  config: {
-    modelId: string;
-    temperature: number;
-    maxInputTokens?: number;
-    maxOutputTokens?: number;
-    timeout?: number;
-    maxRetries?: number;
-    costLimit?: number;
-  };
-  tools: string[];
-  componentIds?: string[];
-  active: boolean;
-  checksum?: string;
-  checksumAlgorithm?: string;
-  changeDescription?: string;
-  createdAt: string;
-  updatedAt: string;
-  createdBy?: string;
-}
+// CoordinatorVersion removed - coordinators no longer exist (ST-164)
 
 export interface AutoDiff {
   pmChanges?: {
@@ -77,8 +51,6 @@ export interface WorkflowVersion {
   versionMajor: number;
   versionMinor: number;
   version: string;
-  coordinatorId: string;
-  coordinatorVersion: string;
   triggerConfig: {
     type: string;
     filters?: any;
@@ -113,9 +85,9 @@ export interface WorkflowVersion {
 }
 
 export interface VersionComparison {
-  entityType: 'component' | 'coordinator' | 'workflow';
-  version1: ComponentVersion | CoordinatorVersion | WorkflowVersion;
-  version2: ComponentVersion | CoordinatorVersion | WorkflowVersion;
+  entityType: 'component' | 'workflow';
+  version1: ComponentVersion | WorkflowVersion;
+  version2: ComponentVersion | WorkflowVersion;
   diff: {
     summary: {
       fieldsAdded: number;
@@ -208,71 +180,6 @@ export const versioningService = {
   async verifyComponentChecksum(versionId: string): Promise<ChecksumVerification> {
     const response = await apiClient.post<ChecksumVerification>(
       `/versioning/components/versions/${versionId}/verify-checksum`
-    );
-    return response.data;
-  },
-
-  /**
-   * Coordinator Versioning
-   */
-  async getCoordinatorVersionHistory(coordinatorId: string): Promise<CoordinatorVersion[]> {
-    const response = await apiClient.get<CoordinatorVersion[]>(
-      `/versioning/coordinators/${coordinatorId}/versions`
-    );
-    return response.data;
-  },
-
-  async getCoordinatorVersion(versionId: string): Promise<CoordinatorVersion> {
-    const response = await apiClient.get<CoordinatorVersion>(
-      `/versioning/coordinators/versions/${versionId}`
-    );
-    return response.data;
-  },
-
-  async createCoordinatorVersion(
-    coordinatorId: string,
-    data: {
-      majorVersion?: number;
-      changeDescription?: string;
-    }
-  ): Promise<CoordinatorVersion> {
-    const response = await apiClient.post<CoordinatorVersion>(
-      `/versioning/coordinators/${coordinatorId}/versions`,
-      data
-    );
-    return response.data;
-  },
-
-  async activateCoordinatorVersion(versionId: string): Promise<CoordinatorVersion> {
-    const response = await apiClient.post<CoordinatorVersion>(
-      `/versioning/coordinators/versions/${versionId}/activate`
-    );
-    return response.data;
-  },
-
-  async deactivateCoordinatorVersion(versionId: string): Promise<CoordinatorVersion> {
-    const response = await apiClient.post<CoordinatorVersion>(
-      `/versioning/coordinators/versions/${versionId}/deactivate`
-    );
-    return response.data;
-  },
-
-  async compareCoordinatorVersions(
-    versionId1: string,
-    versionId2: string
-  ): Promise<VersionComparison> {
-    const response = await apiClient.get<VersionComparison>(
-      `/versioning/coordinators/versions/compare`,
-      {
-        params: { versionId1, versionId2 },
-      }
-    );
-    return response.data;
-  },
-
-  async verifyCoordinatorChecksum(versionId: string): Promise<ChecksumVerification> {
-    const response = await apiClient.post<ChecksumVerification>(
-      `/versioning/coordinators/versions/${versionId}/verify-checksum`
     );
     return response.data;
   },

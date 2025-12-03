@@ -1,6 +1,22 @@
-import { apiClient } from './api.client';
-import type { CoordinatorAgent, CreateCoordinatorDto, UpdateCoordinatorDto } from '../types';
+/**
+ * @deprecated (ST-164) Coordinators have been removed from the system.
+ * Workflows now execute component states directly via the Story Runner.
+ * This service will be removed in a future version.
+ *
+ * Backend endpoints no longer exist - this file is kept only for compilation
+ * compatibility during migration.
+ */
 
+import { apiClient } from './api.client';
+
+// Types removed - no longer exist in types/index.ts (ST-164)
+type CoordinatorAgent = any;
+type CreateCoordinatorDto = any;
+type UpdateCoordinatorDto = any;
+
+/**
+ * @deprecated This service is no longer functional. All methods will throw errors.
+ */
 export const coordinatorsService = {
   /**
    * Get all coordinators for a project

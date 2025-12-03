@@ -7,7 +7,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 interface VersionComparisonModalProps {
   isOpen: boolean;
   onClose: () => void;
-  entityType: 'component' | 'coordinator' | 'workflow';
+  entityType: 'component' | 'workflow';
   versionId1: string;
   versionId2: string;
   version1Label?: string;
@@ -33,8 +33,6 @@ export function VersionComparisonModal({
     queryFn: async () => {
       if (entityType === 'component') {
         return versioningService.compareComponentVersions(versionId1, versionId2);
-      } else if (entityType === 'coordinator') {
-        return versioningService.compareCoordinatorVersions(versionId1, versionId2);
       } else {
         return versioningService.compareWorkflowVersions(versionId1, versionId2);
       }
@@ -212,26 +210,6 @@ export function VersionComparisonModal({
           </div>
         </div>
       );
-    } else if (entityType === 'coordinator') {
-      return (
-        <div className="space-y-6">
-          <h3 className="text-sm font-semibold text-fg mb-2">Coordinator Instructions</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-xs text-fg mb-1">{version1Label || 'Version 1'}</div>
-              <pre className="text-xs text-fg whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
-                {v1.coordinatorInstructions}
-              </pre>
-            </div>
-            <div>
-              <div className="text-xs text-fg mb-1">{version2Label || 'Version 2'}</div>
-              <pre className="text-xs text-fg whitespace-pre-wrap bg-bg-secondary p-3 rounded border border-border">
-                {v2.coordinatorInstructions}
-              </pre>
-            </div>
-          </div>
-        </div>
-      );
     }
 
     return (
@@ -344,23 +322,6 @@ export function VersionComparisonModal({
                     </span>
                   ))}
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Decision Strategy (Coordinator only) */}
-        {entityType === 'coordinator' && (
-          <div>
-            <h3 className="text-sm font-semibold text-fg mb-2">Decision Strategy</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-sm text-fg">
-                <span className="font-medium">{version1Label || 'Version 1'}:</span>{' '}
-                {v1.decisionStrategy}
-              </div>
-              <div className="text-sm text-fg">
-                <span className="font-medium">{version2Label || 'Version 2'}:</span>{' '}
-                {v2.decisionStrategy}
               </div>
             </div>
           </div>

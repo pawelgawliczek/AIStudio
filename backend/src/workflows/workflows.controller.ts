@@ -54,23 +54,17 @@ export class WorkflowsController {
   @Get()
   @ApiOperation({ summary: 'Get all workflows for a project' })
   @ApiQuery({ name: 'active', required: false, type: Boolean })
-  @ApiQuery({ name: 'coordinatorId', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Workflows retrieved successfully', type: [WorkflowResponseDto] })
   async findAll(
     @Param('projectId') projectId: string,
     @Query('active') active?: string,
-    @Query('coordinatorId') coordinatorId?: string,
     @Query('search') search?: string,
   ): Promise<WorkflowResponseDto[]> {
     const options: any = {};
 
     if (active !== undefined) {
       options.active = active === 'true';
-    }
-
-    if (coordinatorId) {
-      options.coordinatorId = coordinatorId;
     }
 
     if (search) {

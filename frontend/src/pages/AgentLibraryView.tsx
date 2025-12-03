@@ -102,12 +102,9 @@ export function AgentLibraryView() {
 
     // Workflow filter
     if (filters.selectedWorkflowFilter !== 'all') {
-      const workflow = workflows.find((w) => w.id === filters.selectedWorkflowFilter);
-      if (workflow?.coordinator?.componentIds) {
-        filtered = filtered.filter((c) =>
-          workflow.coordinator!.componentIds!.includes(c.id)
-        );
-      }
+      // Note: Workflow filtering by component IDs may need to be reimplemented
+      // based on new workflow structure without coordinators
+      filtered = filtered;
     }
 
     return filtered;

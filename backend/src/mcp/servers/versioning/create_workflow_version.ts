@@ -53,16 +53,6 @@ async function generateAutoDiff(
   // Fetch source workflow to get old configuration
   const sourceWorkflow = await prisma.workflow.findUnique({
     where: { id: sourceWorkflowId },
-    include: {
-      coordinator: {
-        select: {
-          id: true,
-          name: true,
-          versionMajor: true,
-          versionMinor: true,
-        },
-      },
-    },
   });
 
   if (!sourceWorkflow) {
@@ -73,16 +63,6 @@ async function generateAutoDiff(
   const parentWorkflow = sourceWorkflow.parentId
     ? await prisma.workflow.findUnique({
         where: { id: sourceWorkflow.parentId },
-        include: {
-          coordinator: {
-            select: {
-              id: true,
-              name: true,
-              versionMajor: true,
-              versionMinor: true,
-            },
-          },
-        },
       })
     : null;
 
@@ -95,45 +75,7 @@ async function generateAutoDiff(
     agentChanges: [],
   };
 
-  // Compare PM (coordinator)
-  if (parentWorkflow.coordinatorId !== sourceWorkflow.coordinatorId) {
-    autoDiff.pmChanges = {
-      type: sourceWorkflow.coordinatorId ? 'added' : 'removed',
-      oldPM: parentWorkflow.coordinator
-        ? {
-            id: parentWorkflow.coordinator.id,
-            name: parentWorkflow.coordinator.name,
-            version: `v${parentWorkflow.coordinator.versionMajor}.${parentWorkflow.coordinator.versionMinor}`,
-          }
-        : undefined,
-      newPM: sourceWorkflow.coordinator
-        ? {
-            id: sourceWorkflow.coordinator.id,
-            name: sourceWorkflow.coordinator.name,
-            version: `v${sourceWorkflow.coordinator.versionMajor}.${sourceWorkflow.coordinator.versionMinor}`,
-          }
-        : undefined,
-    };
-  } else if (
-    sourceWorkflow.coordinator &&
-    parentWorkflow.coordinator &&
-    (sourceWorkflow.coordinator.versionMajor !== parentWorkflow.coordinator.versionMajor ||
-      sourceWorkflow.coordinator.versionMinor !== parentWorkflow.coordinator.versionMinor)
-  ) {
-    autoDiff.pmChanges = {
-      type: 'version_changed',
-      oldPM: {
-        id: parentWorkflow.coordinator.id,
-        name: parentWorkflow.coordinator.name,
-        version: `v${parentWorkflow.coordinator.versionMajor}.${parentWorkflow.coordinator.versionMinor}`,
-      },
-      newPM: {
-        id: sourceWorkflow.coordinator.id,
-        name: sourceWorkflow.coordinator.name,
-        version: `v${sourceWorkflow.coordinator.versionMajor}.${sourceWorkflow.coordinator.versionMinor}`,
-      },
-    };
-  }
+  // Note: PM (coordinator) comparison removed - coordinatorId field no longer exists (ST-164)
 
   // Compare component assignments (agents)
   const oldAssignments = (parentWorkflow.componentAssignments as any[]) || [];
@@ -244,7 +186,6 @@ export async function handler(
     return {
       id: newWorkflow.id,
       projectId: newWorkflow.projectId,
-      coordinatorId: newWorkflow.coordinatorId,
       name: newWorkflow.name,
       description: newWorkflow.description,
       versionMajor: newWorkflow.versionMajor,

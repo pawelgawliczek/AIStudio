@@ -87,7 +87,6 @@ async function validateWorkflowRun(runId: string): Promise<{
     where: { id: runId },
     include: {
       workflow: true,
-      coordinator: true,
       story: true,
       componentRuns: {
         select: {

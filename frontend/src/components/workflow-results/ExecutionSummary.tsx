@@ -1,5 +1,4 @@
 import { WorkflowRunResults, RunStatus } from '../../services/workflow-runs.service';
-import { CoordinatorMetrics } from './CoordinatorMetrics';
 
 interface ExecutionSummaryProps {
   results: WorkflowRunResults;
@@ -45,13 +44,6 @@ export function ExecutionSummary({ results }: ExecutionSummaryProps) {
 
   return (
     <>
-      {/* Coordinator Metrics Section - Shows BEFORE ExecutionSummary */}
-      <CoordinatorMetrics
-        metrics={workflowRun.coordinatorMetrics}
-        totalWorkflowTokens={summary.totalTokens}
-        totalWorkflowCost={summary.estimatedCost}
-      />
-
       {/* Existing ExecutionSummary */}
       <div className="bg-card rounded-lg shadow p-6 mb-6">
         <div className="flex items-center justify-between mb-4">

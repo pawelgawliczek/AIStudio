@@ -62,9 +62,6 @@ export async function handler(
     const component = await prisma.component.findUnique({
       where: { id: params.componentId },
       include: {
-        workflowsAsCoordinator: {
-          select: { id: true, name: true, active: true },
-        },
         _count: {
           select: {
             componentRuns: true,
@@ -84,15 +81,18 @@ export async function handler(
       select: { startedAt: true },
     });
 
+    // Note: Workflows no longer have coordinatorId field (ST-164)
+    const workflows: Array<{ id: string; name: string; active: boolean }> = [];
+
     return {
       success: true,
       componentId: component.id,
       name: component.name,
       active: component.active,
-      workflows: component.workflowsAsCoordinator,
+      workflows,
       executionCount: component._count.componentRuns,
       lastUsed: lastRun?.startedAt.toISOString() || null,
-      message: `Component '${component.name}' has ${component.workflowsAsCoordinator.length} workflow(s) and ${component._count.componentRuns} execution(s)`,
+      message: `Component '${component.name}' has ${workflows.length} workflow(s) and ${component._count.componentRuns} execution(s)`,
     };
   } catch (error: any) {
     if (error.name === 'MCPError') throw error;

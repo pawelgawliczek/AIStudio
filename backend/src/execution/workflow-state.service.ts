@@ -109,7 +109,6 @@ export class WorkflowStateService {
       where: { id: runId },
       include: {
         workflow: true,
-        coordinator: true,
         componentRuns: {
           include: {
             component: true,
@@ -125,13 +124,12 @@ export class WorkflowStateService {
       throw new Error(`Workflow run with ID ${runId} not found`);
     }
 
-    const coordinatorConfig = (workflowRun.coordinator?.config as any) || {};
-    const coordinatorComponentIds = coordinatorConfig.componentIds || [];
     const componentsCompleted = workflowRun.componentRuns.filter(
       (cr) => cr.status === 'completed' || cr.status === 'failed'
     ).length;
-    const percentComplete = coordinatorComponentIds.length
-      ? Math.round((componentsCompleted / coordinatorComponentIds.length) * 100)
+    const componentsTotal = workflowRun.componentRuns.length;
+    const percentComplete = componentsTotal > 0
+      ? Math.round((componentsCompleted / componentsTotal) * 100)
       : 0;
 
     // Calculate aggregated ST-27 metrics across all component runs
@@ -172,7 +170,7 @@ export class WorkflowStateService {
       runId: workflowRun.id,
       workflowId: workflowRun.workflowId,
       workflowName: workflowRun.workflow.name,
-      coordinatorName: workflowRun.coordinator?.name || 'Unknown',
+      coordinatorName: 'N/A',
       status: workflowRun.status,
       startedAt: workflowRun.startedAt.toISOString(),
       completedAt: workflowRun.finishedAt?.toISOString(),
@@ -205,7 +203,7 @@ export class WorkflowStateService {
         totalIterations: workflowRun.totalIterations,
         totalInterventions: workflowRun.totalInterventions,
         componentsCompleted,
-        componentsTotal: coordinatorComponentIds.length,
+        componentsTotal,
         percentComplete,
       },
       componentRuns: workflowRun.componentRuns.map((cr) => ({
@@ -308,7 +306,6 @@ export class WorkflowStateService {
       where: { id: runId },
       include: {
         workflow: true,
-        coordinator: true,
         componentRuns: {
           include: {
             component: true,
@@ -327,28 +324,12 @@ export class WorkflowStateService {
       throw new Error(`Workflow run with ID ${runId} not found`);
     }
 
-    const coordConfig = (workflowRun.coordinator?.config as any) || {};
-    const coordinatorComponentIds = coordConfig.componentIds || [];
-    const completedComponentIds = workflowRun.componentRuns.map((cr) => cr.componentId);
-    const remainingComponentIds = coordinatorComponentIds.filter((id) => !completedComponentIds.includes(id));
-
-    const remainingComponents = await this.prisma.component.findMany({
-      where: {
-        id: { in: remainingComponentIds },
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-      },
-    });
-
     return {
       runId: workflowRun.id,
       workflowId: workflowRun.workflowId,
       workflowName: workflowRun.workflow.name,
       status: workflowRun.status,
-      coordinatorStrategy: coordConfig.decisionStrategy || 'sequential',
+      coordinatorStrategy: 'sequential',
       completedComponents: workflowRun.componentRuns.map((cr) => ({
         componentRunId: cr.id,
         componentId: cr.componentId,
@@ -358,18 +339,13 @@ export class WorkflowStateService {
         startedAt: cr.startedAt.toISOString(),
         completedAt: cr.finishedAt?.toISOString(),
       })),
-      remainingComponents: remainingComponents.map((c, index) => ({
-        componentId: c.id,
-        componentName: c.name,
-        description: c.description,
-        order: workflowRun.componentRuns.length + index + 1,
-      })),
+      remainingComponents: [],
       aggregatedMetrics: {
         totalTokens: workflowRun.totalTokens,
         totalCost: workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null,
         totalDuration: workflowRun.durationSeconds,
         componentsCompleted: workflowRun.componentRuns.length,
-        componentsTotal: coordinatorComponentIds.length,
+        componentsTotal: workflowRun.componentRuns.length,
       },
     };
   }
@@ -388,7 +364,6 @@ export class WorkflowStateService {
         where,
         include: {
           workflow: true,
-          coordinator: true,
           _count: {
             select: {
               componentRuns: true,
@@ -409,7 +384,7 @@ export class WorkflowStateService {
         runId: run.id,
         workflowId: run.workflowId,
         workflowName: run.workflow.name,
-        coordinatorName: run.coordinator?.name || 'Unknown',
+        coordinatorName: 'N/A',
         status: run.status,
         startedAt: run.startedAt.toISOString(),
         completedAt: run.finishedAt?.toISOString(),

@@ -127,7 +127,7 @@ export const ComponentVersionSelector: React.FC = () => {
     removeComponentAssignment(index);
   };
 
-  const isValid = canProceedToStep(3);
+  const isValid = canProceedToStep(2);
 
   return (
     <Paper elevation={0} sx={{ p: 3 }}>
@@ -246,7 +246,7 @@ export const ComponentVersionSelector: React.FC = () => {
 
       {isValid && (
         <Alert severity="success" sx={{ mt: 3 }}>
-          Ready to proceed to {terminology.projectManager.toLowerCase()} selection!
+          Ready to proceed!
         </Alert>
       )}
 

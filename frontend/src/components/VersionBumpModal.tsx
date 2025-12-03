@@ -7,7 +7,7 @@ import { VersionBadge } from './VersionBadge';
 export interface VersionBumpModalProps {
   isOpen: boolean;
   onClose: () => void;
-  entityType: 'component' | 'coordinator' | 'workflow';
+  entityType: 'component' | 'workflow';
   entityId: string;
   entityName: string;
   currentVersion: string;
@@ -150,8 +150,6 @@ export function VersionBumpModal({
       let newVersion;
       if (entityType === 'component') {
         newVersion = await versioningService.createComponentVersion(entityId, requestData);
-      } else if (entityType === 'coordinator') {
-        newVersion = await versioningService.createCoordinatorVersion(entityId, requestData);
       } else {
         newVersion = await versioningService.createWorkflowVersion(entityId, requestData);
       }

@@ -64,9 +64,6 @@ export async function handler(
         children: {
           select: { id: true, name: true, versionMajor: true, versionMinor: true },
         },
-        workflowsAsCoordinator: {
-          select: { id: true, name: true, active: true },
-        },
       },
     });
 
@@ -82,6 +79,19 @@ export async function handler(
     // Get version history
     const versioningService = new VersioningService(prisma as any);
     const versionHistory = await versioningService.getVersionHistory('component', params.coordinatorId);
+
+    // Fetch workflows that use this coordinator (via workflow states)
+    const workflows = await prisma.workflow.findMany({
+      where: {
+        states: {
+          some: {
+            componentId: params.coordinatorId,
+          },
+        },
+      },
+      select: { id: true, name: true, active: true },
+      distinct: ['id'],
+    });
 
     return {
       coordinator: {
@@ -115,7 +125,7 @@ export async function handler(
         updatedAt: coordinator.updatedAt.toISOString(),
       },
       versionHistory,
-      assignedWorkflows: coordinator.workflowsAsCoordinator.map((w) => ({
+      assignedWorkflows: workflows.map((w) => ({
         id: w.id,
         name: w.name,
         active: w.active,

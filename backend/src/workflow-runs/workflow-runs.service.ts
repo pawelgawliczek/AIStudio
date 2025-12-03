@@ -480,11 +480,7 @@ export class WorkflowRunsService {
         },
       },
       include: {
-        workflow: {
-          include: {
-            coordinator: true,
-          },
-        },
+        workflow: true,
         story: {
           select: {
             id: true,

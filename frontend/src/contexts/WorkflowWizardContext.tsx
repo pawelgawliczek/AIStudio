@@ -22,7 +22,6 @@ const initialState: WizardState = {
   description: '',
   projectId: '',
   componentAssignments: [],
-  coordinatorMode: 'existing',
   triggerConfig: {
     type: 'manual',
   },

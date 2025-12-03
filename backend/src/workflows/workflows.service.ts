@@ -20,15 +20,6 @@ export class WorkflowsService {
       throw new NotFoundException(`Project with ID ${projectId} not found`);
     }
 
-    // Verify coordinator exists and belongs to the project
-    const coordinator = await this.prisma.component.findUnique({
-      where: { id: dto.coordinatorId },
-    });
-
-    if (!coordinator || coordinator.projectId !== projectId) {
-      throw new BadRequestException('Invalid coordinator ID or coordinator does not belong to this project');
-    }
-
     // Validate component assignments if provided
     if (dto.componentAssignments && dto.componentAssignments.length > 0) {
       this.validateComponentAssignments(dto.componentAssignments);
@@ -47,35 +38,15 @@ export class WorkflowsService {
       }
     }
 
-    // Validate coordinator instructions against component assignments
-    if (dto.componentAssignments && dto.componentAssignments.length > 0) {
-      const coordinatorInstructions = coordinator.operationInstructions || '';
-      const validation = this.templateParser.validateReferences(
-        coordinatorInstructions,
-        dto.componentAssignments as any,
-      );
-
-      if (!validation.valid) {
-        throw new BadRequestException({
-          message: 'Coordinator instructions contain invalid template references',
-          errors: validation.errors,
-        });
-      }
-    }
-
     const workflow = await this.prisma.workflow.create({
       data: {
         projectId,
-        coordinatorId: dto.coordinatorId,
         name: dto.name,
         description: dto.description,
         version: dto.version ?? 'v1.0',
         triggerConfig: dto.triggerConfig,
         componentAssignments: (dto.componentAssignments || []) as any,
         active: dto.active ?? true,
-      },
-      include: {
-        coordinator: true,
       },
     });
 
@@ -103,7 +74,6 @@ export class WorkflowsService {
     projectId: string,
     options?: {
       active?: boolean;
-      coordinatorId?: string;
       search?: string;
     },
   ): Promise<WorkflowResponseDto[]> {
@@ -116,10 +86,6 @@ export class WorkflowsService {
       where.active = options.active;
     }
 
-    if (options?.coordinatorId) {
-      where.coordinatorId = options.coordinatorId;
-    }
-
     if (options?.search) {
       where.OR = [
         { name: { contains: options.search, mode: 'insensitive' } },
@@ -130,9 +96,6 @@ export class WorkflowsService {
     // Get all workflows and group by base name to find latest versions
     const allWorkflows = await this.prisma.workflow.findMany({
       where,
-      include: {
-        coordinator: true,
-      },
       orderBy: [
         { versionMajor: 'desc' },
         { versionMinor: 'desc' },
@@ -152,43 +115,12 @@ export class WorkflowsService {
 
     const workflows = Array.from(workflowsByName.values());
 
-    // Fetch component names for coordinators
-    const workflowsWithComponents = await Promise.all(
-      workflows.map(async (workflow) => {
-        const coordinatorConfig = (workflow.coordinator?.config as any) || {};
-        const componentIds = coordinatorConfig.componentIds || [];
-        if (componentIds.length > 0) {
-          const components = await this.prisma.component.findMany({
-            where: {
-              id: { in: componentIds },
-            },
-            select: {
-              id: true,
-              name: true,
-            },
-          });
-          return {
-            ...workflow,
-            coordinator: {
-              ...workflow.coordinator,
-              components,
-            },
-          };
-        }
-        return workflow;
-      }),
-    );
-
-    return workflowsWithComponents.map((w) => this.mapToResponseDto(w));
+    return workflows.map((w) => this.mapToResponseDto(w));
   }
 
   async findOne(id: string, includeStats = false): Promise<WorkflowResponseDto> {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
-      include: {
-        coordinator: true,
-        activeWorkflows: true,
-      },
     });
 
     if (!workflow) {
@@ -199,16 +131,6 @@ export class WorkflowsService {
 
     if (includeStats) {
       response.usageStats = await this.getWorkflowStats(id);
-    }
-
-    if (workflow.activeWorkflows && workflow.activeWorkflows.length > 0) {
-      const activeWorkflow = workflow.activeWorkflows[0];
-      response.activationStatus = {
-        isActivated: true,
-        activatedAt: activeWorkflow.activatedAt,
-        activatedBy: activeWorkflow.activatedBy,
-        filesGenerated: activeWorkflow.filesGenerated,
-      };
     }
 
     return response;
@@ -223,30 +145,15 @@ export class WorkflowsService {
       throw new NotFoundException(`Workflow with ID ${id} not found`);
     }
 
-    // Verify coordinator if provided
-    if (dto.coordinatorId) {
-      const coordinator = await this.prisma.component.findUnique({
-        where: { id: dto.coordinatorId },
-      });
-
-      if (!coordinator || coordinator.projectId !== existing.projectId) {
-        throw new BadRequestException('Invalid coordinator ID or coordinator does not belong to this project');
-      }
-    }
-
     const updated = await this.prisma.workflow.update({
       where: { id },
       data: {
-        coordinatorId: dto.coordinatorId,
         name: dto.name,
         description: dto.description,
         version: dto.version,
         triggerConfig: dto.triggerConfig,
         componentAssignments: dto.componentAssignments ? (dto.componentAssignments as any) : undefined,
         active: dto.active,
-      },
-      include: {
-        coordinator: true,
       },
     });
 
@@ -258,19 +165,11 @@ export class WorkflowsService {
       where: { id },
       include: {
         workflowRuns: { take: 1 },
-        activeWorkflows: true,
       },
     });
 
     if (!workflow) {
       throw new NotFoundException(`Workflow with ID ${id} not found`);
-    }
-
-    // Check if workflow is activated
-    if (workflow.activeWorkflows && workflow.activeWorkflows.length > 0) {
-      throw new BadRequestException(
-        'Cannot delete an activated workflow. Deactivate it first using the deactivate endpoint.',
-      );
     }
 
     // Check if workflow has any execution history
@@ -288,7 +187,6 @@ export class WorkflowsService {
   async deactivate(id: string): Promise<WorkflowResponseDto> {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
-      include: { coordinator: true },
     });
 
     if (!workflow) {
@@ -298,7 +196,6 @@ export class WorkflowsService {
     const updated = await this.prisma.workflow.update({
       where: { id },
       data: { active: false },
-      include: { coordinator: true },
     });
 
     return this.mapToResponseDto(updated);
@@ -307,7 +204,6 @@ export class WorkflowsService {
   async activate(id: string): Promise<WorkflowResponseDto> {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
-      include: { coordinator: true },
     });
 
     if (!workflow) {
@@ -317,7 +213,6 @@ export class WorkflowsService {
     const updated = await this.prisma.workflow.update({
       where: { id },
       data: { active: true },
-      include: { coordinator: true },
     });
 
     return this.mapToResponseDto(updated);
@@ -350,14 +245,9 @@ export class WorkflowsService {
   }
 
   private mapToResponseDto(workflow: any): WorkflowResponseDto {
-    // Extract coordinator-specific fields from config
-    const coordinatorConfig = (workflow.coordinator?.config as any) || {};
-    const componentIds = coordinatorConfig.componentIds || [];
-
     return {
       id: workflow.id,
       projectId: workflow.projectId,
-      coordinatorId: workflow.coordinatorId,
       name: workflow.name,
       description: workflow.description,
       version: `v${workflow.versionMajor}.${workflow.versionMinor}`, // Construct version from versionMajor/versionMinor
@@ -368,17 +258,6 @@ export class WorkflowsService {
       active: workflow.active,
       createdAt: workflow.createdAt,
       updatedAt: workflow.updatedAt,
-      coordinator: workflow.coordinator
-        ? {
-            id: workflow.coordinator.id,
-            name: workflow.coordinator.name,
-            version: `v${workflow.coordinator.versionMajor}.${workflow.coordinator.versionMinor}`,
-            domain: coordinatorConfig.domain,
-            flowDiagram: coordinatorConfig.flowDiagram,
-            componentIds: componentIds,
-            components: workflow.coordinator.components,
-          }
-        : undefined,
     };
   }
 }

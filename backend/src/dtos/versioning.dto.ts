@@ -59,7 +59,6 @@ export interface ComponentVersionResponse {
 
 export interface CoordinatorVersionResponse {
   id: string;
-  coordinatorId: string;
   versionMajor: number;
   versionMinor: number;
   version: string;
@@ -87,12 +86,9 @@ export interface CoordinatorVersionResponse {
 
 export interface WorkflowVersionResponse {
   id: string;
-  workflowId: string;
   versionMajor: number;
   versionMinor: number;
   version: string;
-  coordinatorId: string;
-  coordinatorVersion: string;
   triggerConfig: {
     type: string;
     filters?: any;

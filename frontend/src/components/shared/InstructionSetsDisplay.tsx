@@ -10,8 +10,6 @@ export interface InstructionSetsDisplayProps {
   inputInstructions?: string;
   operationInstructions?: string;
   outputInstructions?: string;
-  // Coordinator instruction (single instruction)
-  coordinatorInstructions?: string;
   // Edit mode
   isEditing: boolean;
   onChange?: (field: string, value: string) => void;
@@ -86,31 +84,10 @@ export function InstructionSetsDisplay({
   inputInstructions,
   operationInstructions,
   outputInstructions,
-  coordinatorInstructions,
   isEditing,
   onChange,
   errors = {},
 }: InstructionSetsDisplayProps) {
-  // Check if this is a coordinator (has coordinatorInstructions) or component (has 3 instruction sets)
-  const isCoordinator = coordinatorInstructions !== undefined;
-
-  if (isCoordinator) {
-    // Project Manager: Single instruction field
-    return (
-      <div className="space-y-4">
-        <InstructionField
-          label={`${terminology.projectManager} Instructions`}
-          field="coordinatorInstructions"
-          value={coordinatorInstructions || ''}
-          isEditing={isEditing}
-          onChange={onChange}
-          error={errors.coordinatorInstructions}
-          required
-        />
-      </div>
-    );
-  }
-
   // Agent: Three instruction sets
   return (
     <div className="space-y-4">

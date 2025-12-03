@@ -67,23 +67,10 @@ export async function handler(
 
     const component = await prisma.component.findUnique({
       where: { id: params.componentId },
-      include: {
-        workflowsAsCoordinator: {
-          where: { active: true },
-          select: { id: true, name: true, active: true },
-        },
-      },
     });
 
     if (!component) {
       throw new NotFoundError('Component', params.componentId);
-    }
-
-    // Check for active workflows if not forced
-    if (!params.force && component.workflowsAsCoordinator.length > 0) {
-      throw new ValidationError(
-        `Cannot deactivate component with ${component.workflowsAsCoordinator.length} active workflows. Use force=true to override.`
-      );
     }
 
     const updated = await prisma.component.update({
@@ -91,11 +78,8 @@ export async function handler(
       data: { active: false },
     });
 
-    // Get all affected workflows (both active and inactive)
-    const allWorkflows = await prisma.workflow.findMany({
-      where: { coordinatorId: params.componentId },
-      select: { id: true, name: true, active: true },
-    });
+    // Note: Workflows no longer have coordinatorId field (ST-164)
+    const allWorkflows: Array<{ id: string; name: string; active: boolean }> = [];
 
     return {
       success: true,

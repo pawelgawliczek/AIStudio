@@ -24,7 +24,6 @@ interface WorkflowRunStatus {
   runId: string;
   workflowId: string;
   workflowName: string;
-  coordinatorName: string;
   status: string;
   startedAt: string;
   completedAt?: string;
@@ -270,9 +269,6 @@ const WorkflowExecutionMonitor: React.FC = () => {
           <Box>
             <Typography variant="h4" gutterBottom>
               {liveStatus.workflowName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Coordinator: {liveStatus.coordinatorName}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Run ID: {liveStatus.runId}

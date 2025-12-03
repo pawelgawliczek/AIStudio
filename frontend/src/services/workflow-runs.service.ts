@@ -8,22 +8,7 @@ export enum RunStatus {
   CANCELLED = 'CANCELLED',
 }
 
-export interface CoordinatorMetrics {
-  tokensInput?: number; // Total context tokens from /context
-  tokensOutput?: number;
-  totalTokens?: number;
-  costUsd?: number;
-  toolCalls?: number;
-  userPrompts?: number;
-  iterations?: number;
-  dataSource?: 'context' | 'otel' | 'transcript'; // ST-110: Added 'context' for /context-based metrics
-  // ST-110: Token breakdown from /context command (replaces cache metrics)
-  tokensSystemPrompt?: number;
-  tokensSystemTools?: number;
-  tokensMcpTools?: number;
-  tokensMemoryFiles?: number;
-  tokensMessages?: number;
-}
+// CoordinatorMetrics removed - workflows execute component states directly (ST-164)
 
 export interface WorkflowRun {
   id: string;
@@ -45,8 +30,6 @@ export interface WorkflowRun {
   estimatedCost?: number;
   status: RunStatus;
   errorMessage?: string;
-  coordinatorDecisions?: any;
-  coordinatorMetrics?: CoordinatorMetrics;
   createdAt: string;
   updatedAt: string;
   workflow?: {
@@ -104,7 +87,6 @@ export interface WorkflowRunResults {
     runtimePerLoc?: string;
     runtimePerToken?: string;
   };
-  coordinatorDecisions?: any;
 }
 
 export interface ComponentRunDetails {

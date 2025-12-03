@@ -273,7 +273,6 @@ export class VersioningController {
       history.map(async (item) => {
         const workflow = await this.prisma.workflow.findUnique({
           where: { id: item.id },
-          include: { coordinator: true },
         });
         if (!workflow) {
           throw new NotFoundException(`Workflow version ${item.id} not found`);
@@ -295,11 +294,9 @@ export class VersioningController {
     const [version1, version2] = await Promise.all([
       this.prisma.workflow.findUnique({
         where: { id: query.versionId1 },
-        include: { coordinator: true },
       }),
       this.prisma.workflow.findUnique({
         where: { id: query.versionId2 },
-        include: { coordinator: true },
       }),
     ]);
 
@@ -318,7 +315,6 @@ export class VersioningController {
 
     const workflow = await this.prisma.workflow.findUnique({
       where: { id: versionId },
-      include: { coordinator: true },
     });
 
     if (!workflow) {
@@ -353,7 +349,6 @@ export class VersioningController {
 
     const workflow = await this.prisma.workflow.findUnique({
       where: { id: newVersion.id },
-      include: { coordinator: true },
     });
 
     return this.mapWorkflowToVersionResponse(workflow!);
@@ -416,7 +411,6 @@ export class VersioningController {
 
     return {
       id: component.id,
-      coordinatorId: component.parentId || component.id,
       versionMajor: component.versionMajor,
       versionMinor: component.versionMinor,
       version: `${component.versionMajor}.${component.versionMinor}`,
@@ -440,14 +434,10 @@ export class VersioningController {
 
     return {
       id: workflow.id,
-      workflowId: workflow.parentId || workflow.id,
       versionMajor: workflow.versionMajor,
       versionMinor: workflow.versionMinor,
       version: `${workflow.versionMajor}.${workflow.versionMinor}`,
-      coordinatorId: workflow.coordinatorId,
-      coordinatorVersion: workflow.coordinator
-        ? `${workflow.coordinator.versionMajor}.${workflow.coordinator.versionMinor}`
-        : '1.0',
+      // Note: coordinatorId and coordinatorVersion fields removed (ST-164)
       triggerConfig,
       active: workflow.active,
       checksum: workflow.instructionsChecksum,
@@ -524,13 +514,7 @@ export class VersioningController {
         'Tools changed',
       );
     } else if (entityType === 'workflow') {
-      this.compareField(
-        changes,
-        'coordinatorId',
-        version1.coordinatorId,
-        version2.coordinatorId,
-        'Coordinator changed',
-      );
+      // Note: coordinatorId comparison removed (ST-164)
       this.compareField(
         changes,
         'triggerConfig',
@@ -597,13 +581,12 @@ export class VersioningController {
     // Breaking changes:
     // - Removed tools
     // - Changed model ID
-    // - Changed coordinator
+    // Note: Removed coordinatorId check (ST-164)
     return changes.some(
       (change) =>
         (change.field === 'tools' && change.changeType === 'removed') ||
         (change.field === 'config' &&
-          change.oldValue?.modelId !== change.newValue?.modelId) ||
-        change.field === 'coordinatorId',
+          change.oldValue?.modelId !== change.newValue?.modelId),
     );
   }
 
@@ -631,8 +614,8 @@ export class VersioningController {
         outputInstructions: entity.outputInstructions,
       });
     } else {
+      // Note: Removed coordinatorId from checksum calculation (ST-164)
       actualChecksum = this.checksumService.calculateChecksum({
-        coordinatorId: entity.coordinatorId,
         triggerConfig: entity.triggerConfig,
       });
     }

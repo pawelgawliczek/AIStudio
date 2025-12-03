@@ -78,9 +78,6 @@ export async function handler(prisma: PrismaClient, params: any) {
   // Verify workflow exists
   const workflow = await prisma.workflow.findUnique({
     where: { id: params.workflowId },
-    include: {
-      coordinator: true,
-    },
   });
 
   if (!workflow) {
@@ -183,7 +180,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     workflow: {
       id: workflow.id,
       name: workflow.name,
-      coordinator: workflowRunResult.coordinator,
     },
     // ST-105: Name→UUID mapping for coordinator to resolve component names
     componentMap: workflowRunResult.componentMap,

@@ -16,10 +16,6 @@ describe('UC-EXEC-004: List Workflows - Unit Tests', () => {
         {
           ...fixtures.workflow,
           active: true,
-          coordinator: {
-            ...fixtures.coordinator,
-            componentIds: ['comp-1', 'comp-2'],
-          },
           _count: { workflowRuns: 5, stories: 3 },
         },
       ];

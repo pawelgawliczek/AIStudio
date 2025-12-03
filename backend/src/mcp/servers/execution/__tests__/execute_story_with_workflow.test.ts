@@ -90,7 +90,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflowInactive,
-        coordinator: fixtures.coordinator,
       } as any);
 
       // Act & Assert
@@ -114,7 +113,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -127,7 +125,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.create.mockResolvedValue({
         ...fixtures.workflowRun,
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
@@ -176,7 +173,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -189,7 +185,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.create.mockResolvedValue({
         ...fixtures.workflowRun,
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
@@ -218,7 +213,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       // Mock existing running workflow
@@ -255,7 +249,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -268,7 +261,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.create.mockResolvedValue({
         ...fixtures.workflowRun,
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
@@ -296,7 +288,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       // Previous run is completed (not running/pending/paused)
@@ -310,7 +301,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.create.mockResolvedValue({
         ...fixtures.workflowRun,
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
@@ -341,7 +331,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -349,7 +338,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.create.mockResolvedValue({
         id: 'run-001',
         workflowId: fixtures.workflow.id,
-        coordinatorId: fixtures.coordinator.id,
         projectId: fixtures.project.id,
         status: 'running',
         startedAt: new Date('2025-01-01T10:00:00Z'),
@@ -359,7 +347,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
           },
         },
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
       prismaMock.workflowRun.update.mockResolvedValue({} as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
@@ -396,7 +383,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -404,7 +390,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.create.mockResolvedValue({
         id: 'run-001',
         workflowId: fixtures.workflow.id,
-        coordinatorId: fixtures.coordinator.id,
         projectId: fixtures.project.id,
         status: 'running',
         startedAt: new Date('2025-01-01T10:00:00Z'),
@@ -414,7 +399,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
           },
         },
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
       prismaMock.workflowRun.update.mockResolvedValue({} as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
@@ -451,7 +435,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -459,7 +442,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.create.mockResolvedValue({
         id: 'run-001',
         workflowId: fixtures.workflow.id,
-        coordinatorId: fixtures.coordinator.id,
         projectId: fixtures.project.id,
         status: 'running',
         startedAt: new Date('2025-01-01T10:00:00Z'),
@@ -469,7 +451,6 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
           },
         },
         workflow: fixtures.workflow,
-        coordinator: fixtures.coordinator,
       } as any);
       prismaMock.workflowRun.update.mockResolvedValue({} as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);

@@ -9,14 +9,12 @@ export const workflowsService = {
     projectId: string,
     options?: {
       active?: boolean;
-      coordinatorId?: string;
       search?: string;
       includeStats?: boolean;
     }
   ): Promise<Workflow[]> {
     const params: any = {};
     if (options?.active !== undefined) params.active = options.active;
-    if (options?.coordinatorId) params.coordinatorId = options.coordinatorId;
     if (options?.search) params.search = options.search;
 
     const response = await apiClient.get<Workflow[]>(

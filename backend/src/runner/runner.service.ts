@@ -157,7 +157,6 @@ export class RunnerService {
                 component: true,
               },
             },
-            coordinator: true,
           },
         },
         story: true,
@@ -203,7 +202,6 @@ export class RunnerService {
             component: true,
           },
         },
-        coordinator: true,
       },
     });
 

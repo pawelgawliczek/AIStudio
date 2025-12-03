@@ -128,18 +128,6 @@ export function WorkflowResultsView() {
           >
             Component Breakdown
           </button>
-          {workflowRun.coordinatorDecisions && (
-            <button
-              onClick={() => setActiveTab('decisions')}
-              className={`pb-3 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'decisions'
-                  ? 'border-accent text-accent'
-                  : 'border-transparent text-muted hover:text-fg hover:border-border'
-              }`}
-            >
-              Coordinator Decisions
-            </button>
-          )}
         </nav>
       </div>
 
@@ -150,17 +138,6 @@ export function WorkflowResultsView() {
         {activeTab === 'timeline' && <ComponentTimeline componentRuns={componentRuns} />}
 
         {activeTab === 'breakdown' && <ComponentBreakdown componentRuns={componentRuns} />}
-
-        {activeTab === 'decisions' && workflowRun.coordinatorDecisions && (
-          <div className="bg-card rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold text-fg mb-4">Coordinator Decisions</h2>
-            <div className="bg-bg-secondary rounded p-4 max-h-96 overflow-y-auto">
-              <pre className="text-sm text-fg whitespace-pre-wrap">
-                {JSON.stringify(workflowRun.coordinatorDecisions, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Export Actions */}

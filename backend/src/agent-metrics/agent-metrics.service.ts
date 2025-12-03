@@ -892,11 +892,7 @@ export class AgentMetricsService {
     const workflowRuns = await this.prisma.workflowRun.findMany({
       where: workflowRunsWhere,
       include: {
-        workflow: {
-          include: {
-            coordinator: true,
-          },
-        },
+        workflow: true,
         story: {
           include: {
             epic: true,

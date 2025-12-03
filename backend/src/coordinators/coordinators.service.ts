@@ -175,17 +175,26 @@ export class CoordinatorsService {
   async remove(id: string): Promise<void> {
     const coordinator = await this.prisma.component.findUnique({
       where: { id },
-      include: {
-        workflowRunsAsCoordinator: { take: 1 },
-      },
     });
 
     if (!coordinator || !coordinator.tags.includes('coordinator')) {
       throw new NotFoundException(`Coordinator with ID ${id} not found`);
     }
 
-    // Check if coordinator has any execution history
-    if (coordinator.workflowRunsAsCoordinator.length > 0) {
+    // Check if coordinator has any execution history via workflow runs
+    const executionCount = await this.prisma.workflowRun.count({
+      where: {
+        workflow: {
+          states: {
+            some: {
+              componentId: id,
+            },
+          },
+        },
+      },
+    });
+
+    if (executionCount > 0) {
       throw new BadRequestException(
         'Cannot delete coordinator with execution history. Consider deactivating instead.',
       );
@@ -232,7 +241,15 @@ export class CoordinatorsService {
 
   private async getCoordinatorStats(coordinatorId: string) {
     const runs = await this.prisma.workflowRun.findMany({
-      where: { coordinatorId },
+      where: {
+        workflow: {
+          states: {
+            some: {
+              componentId: coordinatorId,
+            },
+          },
+        },
+      },
       include: {
         componentRuns: true,
       },

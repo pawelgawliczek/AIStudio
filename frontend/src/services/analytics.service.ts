@@ -47,20 +47,7 @@ export interface ComponentUsageAnalytics {
   costTrend: TimeSeriesDataPoint[];
 }
 
-export interface CoordinatorUsageAnalytics {
-  versionId: string;
-  version: string;
-  metrics: UsageMetrics;
-  workflowsUsing: WorkflowUsage[];
-  executionHistory: ExecutionHistory[];
-  executionTrend: TimeSeriesDataPoint[];
-  costTrend: TimeSeriesDataPoint[];
-  componentUsage: Array<{
-    componentId: string;
-    componentName: string;
-    usageCount: number;
-  }>;
-}
+// CoordinatorUsageAnalytics removed - coordinators no longer exist (ST-164)
 
 export interface WorkflowUsageAnalytics {
   versionId: string;
@@ -130,67 +117,6 @@ export const analyticsService = {
   },
 
   /**
-   * Coordinator Analytics
-   */
-  async getCoordinatorAnalytics(
-    coordinatorId: string,
-    versionId?: string,
-    timeRange: TimeRange = '30d'
-  ): Promise<CoordinatorUsageAnalytics> {
-    const params: any = { timeRange };
-    if (versionId) params.versionId = versionId;
-
-    const response = await apiClient.get<CoordinatorUsageAnalytics>(
-      `/analytics/coordinators/${coordinatorId}`,
-      { params }
-    );
-    return response.data;
-  },
-
-  async getCoordinatorExecutionHistory(
-    coordinatorId: string,
-    options?: {
-      versionId?: string;
-      timeRange?: TimeRange;
-      limit?: number;
-      offset?: number;
-    }
-  ): Promise<ExecutionHistory[]> {
-    const response = await apiClient.get<ExecutionHistory[]>(
-      `/analytics/coordinators/${coordinatorId}/executions`,
-      { params: options }
-    );
-    return response.data;
-  },
-
-  async getCoordinatorWorkflowsUsing(
-    coordinatorId: string,
-    versionId?: string
-  ): Promise<WorkflowUsage[]> {
-    const params: any = {};
-    if (versionId) params.versionId = versionId;
-
-    const response = await apiClient.get<WorkflowUsage[]>(
-      `/analytics/coordinators/${coordinatorId}/workflows`,
-      { params }
-    );
-    return response.data;
-  },
-
-  async getCoordinatorComponentUsage(
-    coordinatorId: string,
-    versionId?: string
-  ): Promise<Array<{ componentId: string; componentName: string; usageCount: number }>> {
-    const params: any = {};
-    if (versionId) params.versionId = versionId;
-
-    const response = await apiClient.get<
-      Array<{ componentId: string; componentName: string; usageCount: number }>
-    >(`/analytics/coordinators/${coordinatorId}/components`, { params });
-    return response.data;
-  },
-
-  /**
    * Workflow Analytics
    */
   async getWorkflowAnalytics(
@@ -252,10 +178,10 @@ export const analyticsService = {
   },
 
   /**
-   * Export Data
+   * Export Data (ST-164: Coordinator entity type removed)
    */
   async exportExecutionHistory(
-    entityType: 'component' | 'coordinator' | 'workflow',
+    entityType: 'component' | 'workflow',
     entityId: string,
     format: 'csv' | 'json' = 'csv',
     options?: {

@@ -111,18 +111,11 @@ export class WorkflowMetadataValidator {
       return { valid: false, errors };
     }
 
-    if (!workflow.coordinator) {
+    // ST-164: Coordinators are deprecated, check for components instead
+    if (!workflow.components || workflow.components.length === 0) {
       errors.push({
         file: 'workflow',
-        error: 'Workflow has no coordinator assigned',
-        severity: 'error',
-      });
-    }
-
-    if (!workflow.coordinator?.componentIds || workflow.coordinator.componentIds.length === 0) {
-      errors.push({
-        file: 'workflow',
-        error: 'Coordinator has no components assigned',
+        error: 'Workflow has no components assigned',
         severity: 'error',
       });
     }

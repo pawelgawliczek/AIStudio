@@ -95,12 +95,6 @@ export async function handler(prisma: PrismaClient, params: any) {
           name: true,
         },
       },
-      coordinator: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
       story: {
         select: {
           id: true,
@@ -137,7 +131,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     durationSeconds: run.durationSeconds,
 
     workflow: run.workflow,
-    coordinator: run.coordinator,
     story: run.story,
     epic: run.epic,
 

@@ -1,13 +1,13 @@
 import { ClockIcon, PlusIcon, MinusIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { ComponentVersion, CoordinatorVersion, WorkflowVersion } from '../../services/versioning.service';
+import { ComponentVersion, WorkflowVersion } from '../../services/versioning.service';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
 
 export interface VersionHistoryTimelineProps {
-  versions: (ComponentVersion | CoordinatorVersion | WorkflowVersion)[];
-  entityType: 'component' | 'coordinator' | 'workflow';
+  versions: (ComponentVersion | WorkflowVersion)[];
+  entityType: 'component' | 'workflow';
   selectedVersions: [string | null, string | null];
   onVersionSelect: (versionId: string, checked: boolean) => void;
   onCompare: () => void;
@@ -57,7 +57,7 @@ export function VersionHistoryTimeline({
           {versions.map((version, index) => {
             const isLatest = index === 0;
             const isSelected = selectedVersion1 === version.id || selectedVersion2 === version.id;
-            const decisionStrategy = 'decisionStrategy' in version ? version.decisionStrategy : undefined;
+            const decisionStrategy: string | undefined = 'decisionStrategy' in version ? (version as any).decisionStrategy : undefined;
 
             return (
               <div key={version.id} className="relative flex items-start gap-4">
@@ -114,36 +114,6 @@ export function VersionHistoryTimeline({
                     <div className="mb-3 p-3 bg-bg-secondary rounded border border-border">
                       <div className="text-xs font-semibold text-fg mb-2">Automatic Change Detection:</div>
                       <div className="space-y-1">
-                        {/* PM Changes */}
-                        {version.metadata.autoDiff.pmChanges && (
-                          <div className="flex items-center gap-2 text-xs">
-                            {version.metadata.autoDiff.pmChanges.type === 'added' && (
-                              <>
-                                <PlusIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                <span className="text-fg">
-                                  PM added: {version.metadata.autoDiff.pmChanges.newPM?.name} {version.metadata.autoDiff.pmChanges.newPM?.version}
-                                </span>
-                              </>
-                            )}
-                            {version.metadata.autoDiff.pmChanges.type === 'removed' && (
-                              <>
-                                <MinusIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
-                                <span className="text-fg">
-                                  PM removed: {version.metadata.autoDiff.pmChanges.oldPM?.name} {version.metadata.autoDiff.pmChanges.oldPM?.version}
-                                </span>
-                              </>
-                            )}
-                            {version.metadata.autoDiff.pmChanges.type === 'version_changed' && (
-                              <>
-                                <ArrowPathIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                <span className="text-fg">
-                                  PM version: {version.metadata.autoDiff.pmChanges.oldPM?.version} → {version.metadata.autoDiff.pmChanges.newPM?.version}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        )}
-
                         {/* Agent Changes */}
                         {version.metadata.autoDiff.agentChanges.map((change, idx) => (
                           <div key={idx} className="flex items-center gap-2 text-xs">
