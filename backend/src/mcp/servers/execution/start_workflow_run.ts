@@ -126,10 +126,15 @@ export async function handler(prisma: PrismaClient, params: any) {
 
   // Create WorkflowRun record with transcript tracking info
   // ST-105: Removed existingTranscriptsAtStart - use orchestratorStartTime for timestamp-based filtering
+  // ST-167: Extract storyId from context to link properly to Story table
+  const storyId = params.context?.storyId as string | undefined;
+
   const workflowRun = await prisma.workflowRun.create({
     data: {
       workflowId: workflowId,
       projectId: workflow.projectId,
+      // ST-167: Link to Story table if storyId provided (enables status bar tracking)
+      ...(storyId && { storyId }),
       status: 'running',
       metadata: {
         ...params.context,
@@ -187,7 +192,7 @@ export async function handler(prisma: PrismaClient, params: any) {
 
   // ST-164: Register workflow on laptop for context recovery after compaction
   // This is a best-effort operation - don't fail the workflow if laptop agent is offline
-  const storyId = params.context?.storyId;
+  // Note: storyId already extracted above at line 130 for Story table linking
   // Extract Claude session ID from transcript filename (e.g., "8f9fc948-1234-5678-abcd.jsonl" → "8f9fc948-1234-5678-abcd")
   const claudeSessionId = orchestratorTranscript?.replace('.jsonl', '') || undefined;
   let workflowTrackerResult: { success: boolean; agentOffline?: boolean; error?: string } | null = null;
