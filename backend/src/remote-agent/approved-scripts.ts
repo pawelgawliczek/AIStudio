@@ -14,6 +14,7 @@ export interface ApprovedScript {
   description: string; // Human-readable description
   allowedParams: string[]; // Allowed parameter names (without values)
   timeout: number; // Max execution time in milliseconds
+  positionalArgs?: boolean; // ST-164: If true, only validate first param (action), allow any positional args after
 }
 
 /**
@@ -58,6 +59,7 @@ export const APPROVED_SCRIPTS: Record<string, ApprovedScript> = {
     description: 'Manage running workflow tracking for context recovery',
     allowedParams: ['register', 'unregister', 'set-current', 'get-current', 'list'],
     timeout: 5000, // 5 seconds
+    positionalArgs: true, // First param is action, rest are positional (runId, workflowId, storyId)
   },
 };
 
@@ -82,6 +84,21 @@ export function validateParams(
       valid: false,
       error: `Script '${scriptName}' not in whitelist`
     };
+  }
+
+  // ST-164: For positional args scripts, only validate first param (the action)
+  if (approved.positionalArgs) {
+    if (params.length === 0) {
+      return { valid: true }; // No params is OK (will show help)
+    }
+    const action = params[0];
+    if (!approved.allowedParams.includes(action)) {
+      return {
+        valid: false,
+        error: `Action '${action}' not allowed for script '${scriptName}'`,
+      };
+    }
+    return { valid: true };
   }
 
   // Extract parameter keys (without values)
