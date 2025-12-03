@@ -184,12 +184,15 @@ export async function handler(prisma: PrismaClient, params: any) {
   // ST-164: Register workflow on laptop for context recovery after compaction
   // This is a best-effort operation - don't fail the workflow if laptop agent is offline
   const storyId = params.context?.storyId;
+  // Extract Claude session ID from transcript filename (e.g., "8f9fc948-1234-5678-abcd.jsonl" → "8f9fc948-1234-5678-abcd")
+  const claudeSessionId = orchestratorTranscript?.replace('.jsonl', '') || undefined;
   let workflowTrackerResult: { success: boolean; agentOffline?: boolean; error?: string } | null = null;
   try {
     workflowTrackerResult = await registerWorkflowOnLaptop(
       workflowRun.id,
       workflowId,
-      storyId || undefined
+      storyId || undefined,
+      claudeSessionId // Pass Claude session ID for session-aware tracking
     );
   } catch (error: any) {
     // Non-fatal - log but don't fail
@@ -218,6 +221,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     workflowTracking: workflowTrackerResult ? {
       registered: workflowTrackerResult.success,
       agentOffline: workflowTrackerResult.agentOffline || false,
+      claudeSessionId: claudeSessionId || null,
       error: workflowTrackerResult.error,
     } : null,
     message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Use componentMap to resolve names to UUIDs.`,
