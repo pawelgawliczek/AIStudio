@@ -2,17 +2,19 @@
  * MCP HTTP Controller (Tasks 1.5, 2.4, 2.4a)
  *
  * RESTful endpoints for MCP protocol over HTTP:
- * - POST /api/mcp/v1/initialize - Create new session
- * - POST /api/mcp/v1/call-tool - Execute MCP tool
- * - GET /api/mcp/v1/list-tools - List available tools
- * - GET /api/mcp/v1/session/:id - Get session status
- * - POST /api/mcp/v1/session/:id/heartbeat - Update heartbeat
- * - DELETE /api/mcp/v1/session/:id - Close session
+ * - POST /mcp/v1/initialize - Create new session
+ * - POST /mcp/v1/call-tool - Execute MCP tool
+ * - GET /mcp/v1/list-tools - List available tools
+ * - GET /mcp/v1/session/:id - Get session status
+ * - POST /mcp/v1/session/:id/heartbeat - Update heartbeat
+ * - DELETE /mcp/v1/session/:id - Close session
  *
  * Admin endpoints (Task 2.4, 2.4a):
- * - POST /api/mcp/v1/admin/keys - Generate new API key
- * - GET /api/mcp/v1/admin/keys/:projectId - List project's API keys
- * - DELETE /api/mcp/v1/admin/keys/:id - Revoke API key
+ * - POST /mcp/v1/admin/keys - Generate new API key
+ * - GET /mcp/v1/admin/keys/:projectId - List project's API keys
+ * - DELETE /mcp/v1/admin/keys/:id - Revoke API key
+ *
+ * Note: With global prefix 'api', routes become /api/mcp/v1/*
  *
  * @see ST-163 Task 1.5: Implement HTTP Controller
  * @see ST-163 Task 2.4: Create API Key Management Endpoints
@@ -47,7 +49,7 @@ import { McpSessionService } from './mcp-session.service';
 
 @ApiTags('MCP HTTP Transport')
 @UseInterceptors(ResponseSigningInterceptor)
-@Controller('api/mcp/v1')
+@Controller('mcp/v1')
 export class McpHttpController {
   constructor(
     private readonly sessionService: McpSessionService,
