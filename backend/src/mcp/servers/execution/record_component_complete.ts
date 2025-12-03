@@ -276,6 +276,9 @@ export async function handler(prisma: PrismaClient, params: any) {
   let discoveredAgentId: string | undefined;
   let discoveredTranscriptPath: string | undefined;
 
+  // ST-147: Turn metrics - declared here so RemoteRunner can populate it
+  let turnMetrics: { totalTurns: number; manualPrompts: number; autoContinues: number } | null = null;
+
   if (!contextMetrics) {
     // Get the project path from WorkflowRun.metadata._transcriptTracking.projectPath
     const workflowRun = await prisma.workflowRun.findUnique({
@@ -381,9 +384,9 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   // ST-147: Extract turn metrics from various sources
-  let turnMetrics: { totalTurns: number; manualPrompts: number; autoContinues: number } | null = null;
+  // Note: turnMetrics may already be set by RemoteRunner above
 
-  // Priority 1: Direct turnMetrics parameter
+  // Priority 1: Direct turnMetrics parameter (overrides RemoteRunner)
   if (params.turnMetrics && typeof params.turnMetrics === 'object') {
     turnMetrics = {
       totalTurns: params.turnMetrics.totalTurns || 0,
@@ -392,7 +395,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     };
     console.log(`[ST-147] Direct turn metrics for component ${params.componentId}:`, turnMetrics);
   }
-  // Priority 2: Turn metrics from transcriptMetrics.turns
+  // Priority 2: Turn metrics from transcriptMetrics.turns (overrides RemoteRunner)
   else if (params.transcriptMetrics?.turns && typeof params.transcriptMetrics.turns === 'object') {
     turnMetrics = {
       totalTurns: params.transcriptMetrics.turns.totalTurns || 0,
@@ -401,6 +404,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     };
     console.log(`[ST-147] Turn metrics from transcriptMetrics for component ${params.componentId}:`, turnMetrics);
   }
+  // Priority 3: Turn metrics from RemoteRunner (set above in contextMetrics block)
 
   // Update ComponentRun record with /context or transcript metrics
   const updatedComponentRun = await prisma.componentRun.update({
