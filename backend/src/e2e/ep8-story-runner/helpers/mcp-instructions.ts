@@ -189,9 +189,7 @@ export const MCP_INSTRUCTIONS = {
   respond_to_approval: (p: object) =>
     `${NO_FIX_CONSTRAINTS}\nCall mcp__vibestudio__respond_to_approval(${JSON.stringify(p)}). Return result.`,
 
-  // Session Telemetry
-  get_transcript_metrics: (p: object) =>
-    `${NO_FIX_CONSTRAINTS}\nCall mcp__vibestudio__get_transcript_metrics(${JSON.stringify(p)}). Return result.`,
+  // ST-165/ST-166: get_transcript_metrics was removed - telemetry auto-discovered via record_agent_complete
 } as const;
 
 /**

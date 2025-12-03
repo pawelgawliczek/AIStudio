@@ -3,6 +3,9 @@
  * Removed ALL transcript parsing (1,457 lines) and replaced with simple /context parsing
  * ST-112: Added transcriptPath parameter for spawned agent token tracking
  * ST-165: Added auto-discovery of metrics from RemoteJob.result and transcript search
+ * ST-166: REMOVED transcriptMetrics parameter - caused master session to pass its own metrics
+ *         instead of the spawned agent's metrics. Auto-discovery via RemoteRunner is now
+ *         the primary method for getting spawned agent metrics.
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -51,29 +54,9 @@ export const tool: Tool = {
         description:
           'Path to agent transcript JSONL file (for spawned agents). When provided, token metrics will be parsed from transcript. Only works when MCP server runs locally.',
       },
-      transcriptMetrics: {
-        type: 'object',
-        description:
-          'Direct token metrics from get_transcript_metrics or local parse-transcript.ts script. Use this when MCP server runs remotely.',
-        properties: {
-          inputTokens: { type: 'number' },
-          outputTokens: { type: 'number' },
-          cacheCreationTokens: { type: 'number' },
-          cacheReadTokens: { type: 'number' },
-          totalTokens: { type: 'number' },
-          model: { type: 'string' },
-          // ST-147: Turn metrics (optional, included when using parseTranscriptWithTurns)
-          turns: {
-            type: 'object',
-            properties: {
-              totalTurns: { type: 'number' },
-              manualPrompts: { type: 'number' },
-              autoContinues: { type: 'number' },
-            },
-          },
-        },
-      },
-      // ST-147: Direct turn metrics (alternative to transcriptMetrics.turns)
+      // ST-166: Removed transcriptMetrics parameter - caused master session to pass its own metrics instead of agent's
+      // Auto-discovery via RemoteRunner (Priority 5) handles transcript lookup correctly using componentId search
+      // ST-147: Direct turn metrics (alternative to auto-discovered turns)
       turnMetrics: {
         type: 'object',
         description: 'ST-147: Turn tracking metrics for session telemetry',
@@ -175,32 +158,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       tokensMessages: contextMetrics.tokensMessages,
     });
   }
-  // Priority 2: transcriptMetrics (direct metrics from get_transcript_metrics or local script)
-  else if (params.transcriptMetrics && typeof params.transcriptMetrics === 'object') {
-    const tm = params.transcriptMetrics;
-    contextMetrics = {
-      tokensInput: tm.inputTokens || 0,
-      tokensOutput: tm.outputTokens || 0,
-      tokensSystemPrompt: null,
-      tokensSystemTools: null,
-      tokensMcpTools: null,
-      tokensMemoryFiles: null,
-      tokensMessages: null,
-      tokensCacheCreation: tm.cacheCreationTokens || 0,
-      tokensCacheRead: tm.cacheReadTokens || 0,
-      sessionId: null,
-    };
-    dataSource = 'transcript_metrics';
-    console.log(`[transcript_metrics] Direct metrics for component ${params.componentId}:`, {
-      inputTokens: tm.inputTokens,
-      outputTokens: tm.outputTokens,
-      cacheCreationTokens: tm.cacheCreationTokens,
-      cacheReadTokens: tm.cacheReadTokens,
-      totalTokens: tm.totalTokens,
-      model: tm.model,
-    });
-  }
-  // Priority 3: transcriptPath (spawned agents - ST-112 pattern, only works locally)
+  // ST-166: Removed Priority 2 (transcriptMetrics) - caused master session to pass its own metrics
+  // Priority 2: transcriptPath (spawned agents - ST-112 pattern, only works locally)
   else if (params.transcriptPath && typeof params.transcriptPath === 'string') {
     const transcriptParser = new TranscriptParserService();
     const transcriptMetrics = await transcriptParser.parseAgentTranscript(params.transcriptPath);
@@ -386,7 +345,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   // ST-147: Extract turn metrics from various sources
   // Note: turnMetrics may already be set by RemoteRunner above
 
-  // Priority 1: Direct turnMetrics parameter (overrides RemoteRunner)
+  // Priority 1: Direct turnMetrics parameter (overrides RemoteRunner auto-discovery)
   if (params.turnMetrics && typeof params.turnMetrics === 'object') {
     turnMetrics = {
       totalTurns: params.turnMetrics.totalTurns || 0,
@@ -395,16 +354,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     };
     console.log(`[ST-147] Direct turn metrics for component ${params.componentId}:`, turnMetrics);
   }
-  // Priority 2: Turn metrics from transcriptMetrics.turns (overrides RemoteRunner)
-  else if (params.transcriptMetrics?.turns && typeof params.transcriptMetrics.turns === 'object') {
-    turnMetrics = {
-      totalTurns: params.transcriptMetrics.turns.totalTurns || 0,
-      manualPrompts: params.transcriptMetrics.turns.manualPrompts || 0,
-      autoContinues: params.transcriptMetrics.turns.autoContinues || 0,
-    };
-    console.log(`[ST-147] Turn metrics from transcriptMetrics for component ${params.componentId}:`, turnMetrics);
-  }
-  // Priority 3: Turn metrics from RemoteRunner (set above in contextMetrics block)
+  // ST-166: Removed Priority 2 (transcriptMetrics.turns) - transcriptMetrics parameter removed
+  // Priority 2: Turn metrics from RemoteRunner (set above in contextMetrics block)
 
   // Update ComponentRun record with /context or transcript metrics
   const updatedComponentRun = await prisma.componentRun.update({
