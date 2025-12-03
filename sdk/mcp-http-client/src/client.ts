@@ -377,15 +377,16 @@ export class McpHttpClient {
     this.log('Listing tools', { sessionId: this.sessionId, options });
 
     try {
-      const response = await this.httpClient.get<ToolInfo[]>('/api/mcp/v1/list-tools', {
+      const response = await this.httpClient.get<{ tools: ToolInfo[] }>('/api/mcp/v1/list-tools', {
         params: {
           sessionId: this.sessionId,
           ...options,
         },
       });
 
-      this.log('List tools successful', { count: response.data.length });
-      return response.data;
+      const tools = response.data.tools || [];
+      this.log('List tools successful', { count: tools.length });
+      return tools;
     } catch (error: any) {
       this.log('List tools failed', { error: error.message });
       throw this.handleHttpError(error);
