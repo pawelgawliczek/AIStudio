@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ApprovalService } from './approval.service';
+import { BreakpointService } from './breakpoint.service';
 import { RunnerController } from './runner.controller';
 import { RunnerService } from './runner.service';
-import { BreakpointService } from './breakpoint.service';
-import { ApprovalService } from './approval.service';
 
 /**
  * Runner Module

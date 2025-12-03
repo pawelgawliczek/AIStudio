@@ -23,6 +23,16 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { handler as createComponent } from '../../mcp/servers/components/create_component';
+import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
+import { handler as getTranscriptMetrics } from '../../mcp/servers/execution/get_transcript_metrics';
+import { handler as getWorkflowRunResults } from '../../mcp/servers/execution/get_workflow_run_results';
+import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
+import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
+import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
+import { handler as createProject } from '../../mcp/servers/projects/create_project';
+import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
+import { handler as createStory } from '../../mcp/servers/stories/create_story';
 import { TEST_CONFIG, testName } from './config/test-config';
 import { TestContext, createTestContext } from './helpers/test-context';
 import {
@@ -36,23 +46,13 @@ import {
 import { cleanupTestData } from './helpers/cleanup-utils';
 
 // MCP Handler Imports - Core setup
-import { handler as createProject } from '../../mcp/servers/projects/create_project';
-import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
-import { handler as createStory } from '../../mcp/servers/stories/create_story';
-import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
 import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
 
 // MCP Handler Imports - Remote Agents
-import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
 import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
 
 // MCP Handler Imports - Execution
-import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
-import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
-import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
-import { handler as getTranscriptMetrics } from '../../mcp/servers/execution/get_transcript_metrics';
-import { handler as getWorkflowRunResults } from '../../mcp/servers/execution/get_workflow_run_results';
 
 const prisma = new PrismaClient();
 

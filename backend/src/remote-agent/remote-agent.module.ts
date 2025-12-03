@@ -1,13 +1,13 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
+import { setRemoteExecutionService } from '../mcp/servers/git/git_utils';
 import { PrismaModule } from '../prisma/prisma.module';
+import { OrphanDetectorService } from './orphan-detector.service';
+import { RemoteAgentController } from './remote-agent.controller';
 import { RemoteAgentGateway } from './remote-agent.gateway';
 import { RemoteExecutionService } from './remote-execution.service';
-import { RemoteAgentController } from './remote-agent.controller';
 import { StreamEventService } from './stream-event.service';
-import { OrphanDetectorService } from './orphan-detector.service';
-import { setRemoteExecutionService } from '../mcp/servers/git/git_utils';
 
 /**
  * ST-133: Remote Agent Module

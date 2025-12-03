@@ -3,8 +3,8 @@
  * ST-146: Breakpoint System - Pause/Resume/Step Control
  */
 
-import { handler } from '../clear_breakpoint';
 import { PrismaClient } from '@prisma/client';
+import { handler } from '../clear_breakpoint';
 
 describe('clear_breakpoint MCP Tool', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;

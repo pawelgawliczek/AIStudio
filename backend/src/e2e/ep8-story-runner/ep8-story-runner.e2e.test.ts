@@ -20,6 +20,16 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { handler as createArtifactDefinition } from '../../mcp/servers/artifacts/create_artifact_definition';
+import { handler as deleteArtifactDefinition } from '../../mcp/servers/artifacts/delete_artifact_definition';
+import { handler as getArtifact } from '../../mcp/servers/artifacts/get_artifact';
+import { handler as listArtifactDefinitions } from '../../mcp/servers/artifacts/list_artifact_definitions';
+import { handler as removeArtifactAccess } from '../../mcp/servers/artifacts/remove_artifact_access';
+import { handler as setArtifactAccess } from '../../mcp/servers/artifacts/set_artifact_access';
+import { handler as updateArtifactDefinition } from '../../mcp/servers/artifacts/update_artifact_definition';
+import { handler as createComponent } from '../../mcp/servers/components/create_component';
+import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
+import { handler as createProject } from '../../mcp/servers/projects/create_project';
 import { TEST_CONFIG } from './config/test-config';
 import { TestContext, createTestContext, hasPhase1Entities, hasWorkflowReady } from './helpers/test-context';
 import {
@@ -36,16 +46,13 @@ import {
 import { cleanupTestData } from './helpers/cleanup-utils';
 
 // MCP Handler Imports - Projects
-import { handler as createProject } from '../../mcp/servers/projects/create_project';
 
 // MCP Handler Imports - Epics
-import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
 
 // MCP Handler Imports - Stories
 import { handler as createStory } from '../../mcp/servers/stories/create_story';
 
 // MCP Handler Imports - Components (Agents)
-import { handler as createComponent } from '../../mcp/servers/components/create_component';
 
 // MCP Handler Imports - Workflows (Teams)
 import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
@@ -69,15 +76,8 @@ import { handler as getWorkflowRunResults } from '../../mcp/servers/execution/ge
 import { handler as listWorkflowRuns } from '../../mcp/servers/execution/list_workflow_runs';
 
 // MCP Handler Imports - Artifacts (ST-151)
-import { handler as createArtifactDefinition } from '../../mcp/servers/artifacts/create_artifact_definition';
-import { handler as updateArtifactDefinition } from '../../mcp/servers/artifacts/update_artifact_definition';
-import { handler as listArtifactDefinitions } from '../../mcp/servers/artifacts/list_artifact_definitions';
-import { handler as setArtifactAccess } from '../../mcp/servers/artifacts/set_artifact_access';
-import { handler as removeArtifactAccess } from '../../mcp/servers/artifacts/remove_artifact_access';
 import { handler as uploadArtifact } from '../../mcp/servers/artifacts/upload_artifact';
-import { handler as getArtifact } from '../../mcp/servers/artifacts/get_artifact';
 import { handler as listArtifacts } from '../../mcp/servers/artifacts/list_artifacts';
-import { handler as deleteArtifactDefinition } from '../../mcp/servers/artifacts/delete_artifact_definition';
 
 // MCP Handler Imports - Runner Control
 import { handler as getRunnerStatus } from '../../mcp/servers/runner/get_runner_status';

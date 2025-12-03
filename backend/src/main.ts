@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { WinstonLoggerService, AllExceptionsFilter, LoggingInterceptor } from './common';
 import { setSharedWebSocketGateway } from './mcp/services/websocket-gateway.instance';
@@ -26,6 +27,37 @@ async function bootstrap() {
 
   // Global logging interceptor
   app.useGlobalInterceptors(new LoggingInterceptor(logger));
+
+  // Task 5.1: Security Headers (Helmet)
+  // Protects against common web vulnerabilities
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'wss:', 'ws:'], // Allow WebSocket connections
+        },
+      },
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      },
+      // Disable X-Powered-By header to prevent tech stack disclosure
+      hidePoweredBy: true,
+      // Prevent MIME type sniffing
+      noSniff: true,
+      // Enable XSS protection
+      xssFilter: true,
+      // Prevent clickjacking
+      frameguard: {
+        action: 'deny',
+      },
+    }),
+  );
 
   // Enable CORS
   app.enableCors({

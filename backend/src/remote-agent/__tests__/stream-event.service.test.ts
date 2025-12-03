@@ -3,8 +3,8 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { StreamEventService } from '../stream-event.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StreamEventService } from '../stream-event.service';
 
 describe('StreamEventService', () => {
   let service: StreamEventService;

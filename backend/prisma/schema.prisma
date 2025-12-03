@@ -69,8 +69,38 @@ model Project {
   fileUseCaseLinks     FileUseCaseLink[]
   otelEvents           OtelEvent[]
   approvalRequests     ApprovalRequest[]  // ST-148: Approval gates
+  apiKeys              ApiKey[]           // ST-163: MCP HTTP API keys
 
   @@map("projects")
+}
+
+// ============================================================================
+// ST-163: MCP HTTP API KEYS
+// ============================================================================
+
+// ApiKey - API keys for MCP HTTP transport authentication
+model ApiKey {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  keyHash     String    @unique @map("key_hash")     // bcrypt hash of the full key
+  keyPrefix   String    @unique @map("key_prefix")   // First 12 chars for fast lookup
+
+  name        String
+  description String?
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime? @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")           // Soft delete
+
+  createdBy   String?   @map("created_by")
+  metadata    Json?                                   // Rate limits, IP whitelist, allowed tools
+
+  @@index([keyPrefix])
+  @@index([projectId])
+  @@map("api_keys")
 }
 
 model Epic {

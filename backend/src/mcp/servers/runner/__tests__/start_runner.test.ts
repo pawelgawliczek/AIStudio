@@ -2,10 +2,10 @@
  * Tests for start_runner MCP tool
  */
 
-import { handler } from '../start_runner';
-import { PrismaClient } from '@prisma/client';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
+import { PrismaClient } from '@prisma/client';
+import { handler } from '../start_runner';
 
 // Mock child_process
 jest.mock('child_process');

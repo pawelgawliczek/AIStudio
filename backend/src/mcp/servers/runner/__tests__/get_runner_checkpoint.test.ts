@@ -2,8 +2,8 @@
  * Tests for get_runner_checkpoint MCP tool
  */
 
-import { handler } from '../get_runner_checkpoint';
 import { PrismaClient } from '@prisma/client';
+import { handler } from '../get_runner_checkpoint';
 
 describe('get_runner_checkpoint MCP Tool', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;

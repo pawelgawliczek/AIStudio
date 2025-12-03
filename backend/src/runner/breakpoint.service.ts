@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { BreakpointPosition, Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * Breakpoint data structure

@@ -3,10 +3,10 @@
  */
 
 import { handler as createHandler } from '../create_workflow_state';
-import { handler as listHandler } from '../list_workflow_states';
-import { handler as updateHandler } from '../update_workflow_state';
 import { handler as deleteHandler } from '../delete_workflow_state';
+import { handler as listHandler } from '../list_workflow_states';
 import { handler as reorderHandler } from '../reorder_workflow_states';
+import { handler as updateHandler } from '../update_workflow_state';
 import {
   prismaMock,
   resetPrismaMock,

@@ -4,9 +4,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler as uploadHandler } from '../upload_artifact';
 import { handler as getHandler } from '../get_artifact';
 import { handler as listHandler } from '../list_artifacts';
+import { handler as uploadHandler } from '../upload_artifact';
 
 // Mock Prisma
 const mockPrisma = {

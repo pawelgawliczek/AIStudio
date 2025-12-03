@@ -15,11 +15,20 @@
  * - For MCP-orchestrated tests: laptop agent must be online
  */
 
-import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+
+// MCP Handler Imports
+import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
+import { handler as gitCreateWorktree } from '../../mcp/servers/git/git_create_worktree';
+import { handler as gitDeleteWorktree } from '../../mcp/servers/git/git_delete_worktree';
+import { handler as gitGetWorktreeStatus } from '../../mcp/servers/git/git_get_worktree_status';
+import { handler as recordWorktreeCreated } from '../../mcp/servers/git/record_worktree_created';
+import { handler as createProject } from '../../mcp/servers/projects/create_project';
+import { handler as createStory } from '../../mcp/servers/stories/create_story';
 import { TEST_CONFIG, testName } from './config/test-config';
 import { TestContext, createTestContext } from './helpers/test-context';
 import {
@@ -27,15 +36,6 @@ import {
   createTestEpicParams,
   createTestStoryParams,
 } from './helpers/test-data-factory';
-
-// MCP Handler Imports
-import { handler as createProject } from '../../mcp/servers/projects/create_project';
-import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
-import { handler as createStory } from '../../mcp/servers/stories/create_story';
-import { handler as gitCreateWorktree } from '../../mcp/servers/git/git_create_worktree';
-import { handler as recordWorktreeCreated } from '../../mcp/servers/git/record_worktree_created';
-import { handler as gitDeleteWorktree } from '../../mcp/servers/git/git_delete_worktree';
-import { handler as gitGetWorktreeStatus } from '../../mcp/servers/git/git_get_worktree_status';
 
 // Prisma client with production database
 const prisma = new PrismaClient();

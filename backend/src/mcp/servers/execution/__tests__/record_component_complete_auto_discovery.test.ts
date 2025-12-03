@@ -3,8 +3,8 @@
  * Tests for automatic token metrics discovery from RemoteJob.result and transcript files
  */
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
 
 // Test helper functions that mirror the implementation
 function getTranscriptDir(projectPath: string): string {

@@ -15,6 +15,16 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { handler as createComponent } from '../../mcp/servers/components/create_component';
+import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
+import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
+import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
+import { handler as createProject } from '../../mcp/servers/projects/create_project';
+import { handler as getApprovalDetails } from '../../mcp/servers/runner/get_approval_details';
+import { handler as getPendingApprovals } from '../../mcp/servers/runner/get_pending_approvals';
+import { handler as respondToApproval } from '../../mcp/servers/runner/respond_to_approval';
+import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
+import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
 import { TEST_CONFIG } from './config/test-config';
 import { TestContext, createTestContext, hasPhase1Entities, hasWorkflowReady } from './helpers/test-context';
 import {
@@ -27,21 +37,11 @@ import {
 import { cleanupTestData } from './helpers/cleanup-utils';
 
 // MCP Handler Imports - Core
-import { handler as createProject } from '../../mcp/servers/projects/create_project';
-import { handler as createComponent } from '../../mcp/servers/components/create_component';
-import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
-import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
 import { handler as updateWorkflowState } from '../../mcp/servers/workflow-states/update_workflow_state';
 
 // MCP Handler Imports - Execution
-import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
-import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
-import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
 
 // MCP Handler Imports - Approval Gates (ST-148)
-import { handler as respondToApproval } from '../../mcp/servers/runner/respond_to_approval';
-import { handler as getPendingApprovals } from '../../mcp/servers/runner/get_pending_approvals';
-import { handler as getApprovalDetails } from '../../mcp/servers/runner/get_approval_details';
 
 // Prisma client
 const prisma = new PrismaClient();

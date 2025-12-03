@@ -5,9 +5,9 @@
  * ST-148: Approval Gates - Human-in-the-Loop
  */
 
+import { spawn } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient, ApprovalResolution, ReExecutionMode } from '@prisma/client';
-import { spawn } from 'child_process';
 import { broadcastApprovalResolved } from '../../services/websocket-gateway.instance';
 
 export const tool: Tool = {

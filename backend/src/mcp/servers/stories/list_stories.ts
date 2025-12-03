@@ -5,6 +5,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { storyFetchCommand } from '../../truncation-utils';
 import {
   ListStoriesParams,
   StoryResponse,
@@ -14,7 +15,6 @@ import {
   formatStory,
   handlePrismaError,
 } from '../../utils';
-import { storyFetchCommand } from '../../truncation-utils';
 
 export const tool: Tool = {
   name: 'list_stories',

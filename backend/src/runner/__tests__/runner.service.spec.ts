@@ -2,10 +2,10 @@
  * Tests for RunnerService
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { RunnerService, RunnerCheckpoint, RunnerStatus } from '../runner.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RunnerService, RunnerCheckpoint, RunnerStatus } from '../runner.service';
 
 describe('RunnerService', () => {
   let service: RunnerService;

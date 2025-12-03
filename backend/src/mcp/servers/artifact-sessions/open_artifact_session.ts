@@ -6,15 +6,15 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import {
+  isCapabilityApproved,
+  validateInstructions,
+} from '../../../remote-agent/approved-scripts';
+import {
   NotFoundError,
   ValidationError,
 } from '../../types';
 import { handlePrismaError } from '../../utils';
 import { handler as getArtifactHandler } from '../artifacts/get_artifact';
-import {
-  isCapabilityApproved,
-  validateInstructions,
-} from '../../../remote-agent/approved-scripts';
 
 export const tool: Tool = {
   name: 'open_artifact_session',

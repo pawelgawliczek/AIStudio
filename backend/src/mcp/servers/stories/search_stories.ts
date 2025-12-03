@@ -5,6 +5,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { storyFetchCommand } from '../../truncation-utils';
 import {
   StoryResponse,
 } from '../../types';
@@ -12,7 +13,6 @@ import {
   formatStory,
   handlePrismaError,
 } from '../../utils';
-import { storyFetchCommand } from '../../truncation-utils';
 
 export interface SearchStoriesParams {
   projectId?: string;

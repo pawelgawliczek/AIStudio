@@ -11,8 +11,8 @@
 
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import { ValidationError, MCPError } from '../../types';
 import { PrismaClient } from '@prisma/client';
+import { ValidationError, MCPError } from '../../types';
 
 /**
  * Git status information parsed from git status --porcelain --branch

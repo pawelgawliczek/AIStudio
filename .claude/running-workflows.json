@@ -1,4 +1,47 @@
 {
-  "currentRunId": null,
-  "sessions": {}
+  "currentRunId": "run-001",
+  "sessions": {
+    "no-transcript-run-test-001": {
+      "runId": "run-test-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-03T12:49:29Z"
+    },
+    "no-transcript-run-001": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-03T12:49:40Z"
+    },
+    "0d53c345-bbab-4451-ac9f-348e2f831561": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-03T11:55:26Z"
+    },
+    "agent-22b9ff5f": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-03T12:12:18Z"
+    },
+    "agent-08861046": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-03T12:43:20Z"
+    },
+    "agent-5b62fc78": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-03T12:49:40Z"
+    },
+    "e2ad6037-8220-4301-8132-4d6ff60a3e86": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-03T13:04:03Z"
+    }
+  }
 }

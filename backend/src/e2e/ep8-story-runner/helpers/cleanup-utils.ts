@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { TestContext } from './test-context';
 import { TEST_CONFIG } from '../config/test-config';
+import { TestContext } from './test-context';
 
 /**
  * Main cleanup function - deletes all test data

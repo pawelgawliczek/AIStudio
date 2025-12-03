@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler as setHandler } from '../set_artifact_access';
 import { handler as removeHandler } from '../remove_artifact_access';
+import { handler as setHandler } from '../set_artifact_access';
 
 // Mock Prisma
 const mockPrisma = {

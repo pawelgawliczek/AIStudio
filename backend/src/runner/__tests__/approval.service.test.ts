@@ -3,10 +3,10 @@
  * ST-148: Approval Gates - Human-in-the-Loop
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { ApprovalService, CreateApprovalParams, RespondToApprovalParams } from '../approval.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ApprovalService, CreateApprovalParams, RespondToApprovalParams } from '../approval.service';
 
 describe('ApprovalService', () => {
   let service: ApprovalService;

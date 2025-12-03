@@ -12,7 +12,13 @@ import {
   validateCapabilityParams,
   validateInstructions,
   validateAllowedTools,
-} from '../approved-scripts';
+
+  APPROVED_GIT_OPERATIONS,
+  FORBIDDEN_GIT_PATTERNS,
+  isGitOperationApproved,
+  getGitOperation,
+  validateGitCommand,
+  getGitOperationTimeout} from '../approved-scripts';
 
 describe('Approved Scripts', () => {
   describe('APPROVED_SCRIPTS configuration', () => {
@@ -561,14 +567,6 @@ describe('ST-150: Claude Code Capabilities', () => {
 // ST-153: Git Operations Tests
 // =============================================================================
 
-import {
-  APPROVED_GIT_OPERATIONS,
-  FORBIDDEN_GIT_PATTERNS,
-  isGitOperationApproved,
-  getGitOperation,
-  validateGitCommand,
-  getGitOperationTimeout,
-} from '../approved-scripts';
 
 describe('ST-153: Git Operations', () => {
   describe('APPROVED_GIT_OPERATIONS configuration', () => {

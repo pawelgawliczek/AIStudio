@@ -5,9 +5,9 @@
 
 import { PrismaClient } from '@prisma/client';
 import { handler as createHandler } from '../create_artifact_definition';
-import { handler as updateHandler } from '../update_artifact_definition';
 import { handler as deleteHandler } from '../delete_artifact_definition';
 import { handler as listHandler } from '../list_artifact_definitions';
+import { handler as updateHandler } from '../update_artifact_definition';
 
 // Mock Prisma
 const mockPrisma = {

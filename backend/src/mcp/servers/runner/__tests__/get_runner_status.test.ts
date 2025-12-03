@@ -2,8 +2,8 @@
  * Tests for get_runner_status MCP tool
  */
 
-import { handler } from '../get_runner_status';
 import { PrismaClient } from '@prisma/client';
+import { handler } from '../get_runner_status';
 
 interface RunnerStatusResult {
   success: boolean;

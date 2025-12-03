@@ -5,9 +5,9 @@
  * ST-145: Story Runner - Terminal First Implementation
  */
 
+import { spawn } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { spawn } from 'child_process';
 
 export const tool: Tool = {
   name: 'resume_runner',

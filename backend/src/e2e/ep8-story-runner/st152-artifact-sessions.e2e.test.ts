@@ -16,30 +16,30 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { TEST_CONFIG, testName } from './config/test-config';
 
 // MCP Handler Imports - Setup
-import { handler as createProject } from '../../mcp/servers/projects/create_project';
-import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
-import { handler as createStory } from '../../mcp/servers/stories/create_story';
+import { handler as closeArtifactSession } from '../../mcp/servers/artifact-sessions/close_artifact_session';
+import { handler as openArtifactSession } from '../../mcp/servers/artifact-sessions/open_artifact_session';
+import { handler as saveArtifactChanges } from '../../mcp/servers/artifact-sessions/save_artifact_changes';
+import { handler as createArtifactDefinition } from '../../mcp/servers/artifacts/create_artifact_definition';
+import { handler as getArtifact } from '../../mcp/servers/artifacts/get_artifact';
+import { handler as setArtifactAccess } from '../../mcp/servers/artifacts/set_artifact_access';
+import { handler as uploadArtifact } from '../../mcp/servers/artifacts/upload_artifact';
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
-import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
+import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
+import { handler as createProject } from '../../mcp/servers/projects/create_project';
+import { handler as createStory } from '../../mcp/servers/stories/create_story';
 import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
+import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
 import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
 
 // MCP Handler Imports - Artifacts
-import { handler as createArtifactDefinition } from '../../mcp/servers/artifacts/create_artifact_definition';
-import { handler as setArtifactAccess } from '../../mcp/servers/artifacts/set_artifact_access';
-import { handler as uploadArtifact } from '../../mcp/servers/artifacts/upload_artifact';
-import { handler as getArtifact } from '../../mcp/servers/artifacts/get_artifact';
 
 // MCP Handler Imports - Artifact Sessions (ST-152)
-import { handler as openArtifactSession } from '../../mcp/servers/artifact-sessions/open_artifact_session';
-import { handler as saveArtifactChanges } from '../../mcp/servers/artifact-sessions/save_artifact_changes';
-import { handler as closeArtifactSession } from '../../mcp/servers/artifact-sessions/close_artifact_session';
 
 // MCP Handler Imports - Remote Agents
 import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
+import { TEST_CONFIG, testName } from './config/test-config';
 
 const prisma = new PrismaClient();
 

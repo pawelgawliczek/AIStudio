@@ -5,6 +5,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { markOmitted, artifactFetchCommand } from '../../truncation-utils';
 import {
   GetArtifactParams,
   ArtifactResponse,
@@ -13,7 +14,6 @@ import {
 } from '../../types';
 import { handlePrismaError } from '../../utils';
 import { formatArtifact } from './upload_artifact';
-import { markOmitted, artifactFetchCommand } from '../../truncation-utils';
 
 export const tool: Tool = {
   name: 'get_artifact',

@@ -3,8 +3,8 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrphanDetectorService } from '../orphan-detector.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { OrphanDetectorService } from '../orphan-detector.service';
 
 describe('OrphanDetectorService', () => {
   let service: OrphanDetectorService;

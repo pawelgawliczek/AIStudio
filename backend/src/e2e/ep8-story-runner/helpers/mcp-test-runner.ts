@@ -12,12 +12,11 @@
  * - Token-optimized instructions
  */
 
-import { spawn } from 'child_process';
-import { PrismaClient } from '@prisma/client';
+import { spawn , exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { exec } from 'child_process';
 import { promisify } from 'util';
+import { PrismaClient } from '@prisma/client';
 
 const execAsync = promisify(exec);
 

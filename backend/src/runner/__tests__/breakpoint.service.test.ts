@@ -4,9 +4,9 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BreakpointService, BreakpointContext } from '../breakpoint.service';
-import { PrismaService } from '../../prisma/prisma.service';
 import { BreakpointPosition } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { BreakpointService, BreakpointContext } from '../breakpoint.service';
 
 describe('BreakpointService', () => {
   let service: BreakpointService;

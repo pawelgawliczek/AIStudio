@@ -1,0 +1,40 @@
+{
+  "name": "@vibestudio/mcp-http-client",
+  "version": "1.0.0",
+  "description": "HTTP client for VibeStudio MCP server with auto-reconnect",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
+  },
+  "peerDependencies": {},
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vibestudio/mcp-http-client"
+  },
+  "keywords": [
+    "mcp",
+    "vibestudio",
+    "http",
+    "client",
+    "auto-reconnect"
+  ],
+  "license": "MIT"
+}

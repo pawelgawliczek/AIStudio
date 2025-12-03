@@ -71,7 +71,7 @@ export async function handler(
     }
 
     let sessionId = params.sessionId;
-    let questionId = params.questionId;
+    const questionId = params.questionId;
 
     // 2. If questionId provided, look up the session
     if (questionId && !sessionId) {

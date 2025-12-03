@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, RunStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * Checkpoint data structure

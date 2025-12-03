@@ -5,8 +5,8 @@ import { TestExecutionsModule } from '../test-executions/test-executions.module'
 import { WebSocketModule } from '../websocket/websocket.module';
 import { TestAnalyticsController } from './test-analytics.controller';
 import { TestAnalyticsService } from './test-analytics.service';
-import { TestResultsController } from './test-results.controller';
 import { TestResultsReporterService } from './test-results-reporter.service';
+import { TestResultsController } from './test-results.controller';
 
 /**
  * Test Execution Module (ST-128)

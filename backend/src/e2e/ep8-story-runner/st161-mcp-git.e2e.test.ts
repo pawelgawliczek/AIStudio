@@ -14,10 +14,10 @@
  * Cleanup is critical to avoid orphaned worktrees.
  */
 
-import { PrismaClient } from '@prisma/client';
-import { MCPTestRunner, createMCPTestRunner } from './helpers/mcp-test-runner';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+import { MCPTestRunner, createMCPTestRunner } from './helpers/mcp-test-runner';
 
 // Increase timeout for git operations
 jest.setTimeout(300000);

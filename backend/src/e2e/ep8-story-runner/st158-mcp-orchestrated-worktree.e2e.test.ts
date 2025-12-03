@@ -20,9 +20,21 @@
  *   npx jest st158-mcp-orchestrated-worktree.e2e.test.ts --runInBand
  */
 
-import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+
+// MCP Handler Imports
+import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
+import { handler as checkForConflicts } from '../../mcp/servers/git/check_for_conflicts';
+import { handler as detectSchemaChanges } from '../../mcp/servers/git/detect_schema_changes';
+import { handler as gitCreateWorktree } from '../../mcp/servers/git/git_create_worktree';
+import { handler as gitDeleteWorktree } from '../../mcp/servers/git/git_delete_worktree';
+import { handler as gitGetWorktreeStatus } from '../../mcp/servers/git/git_get_worktree_status';
+import { handler as rebaseOnMain } from '../../mcp/servers/git/rebase_on_main';
+import { handler as createProject } from '../../mcp/servers/projects/create_project';
+import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
+import { handler as createStory } from '../../mcp/servers/stories/create_story';
 import { TEST_CONFIG, testName } from './config/test-config';
 import { TestContext, createTestContext } from './helpers/test-context';
 import {
@@ -30,18 +42,6 @@ import {
   createTestEpicParams,
   createTestStoryParams,
 } from './helpers/test-data-factory';
-
-// MCP Handler Imports
-import { handler as createProject } from '../../mcp/servers/projects/create_project';
-import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
-import { handler as createStory } from '../../mcp/servers/stories/create_story';
-import { handler as gitCreateWorktree } from '../../mcp/servers/git/git_create_worktree';
-import { handler as gitDeleteWorktree } from '../../mcp/servers/git/git_delete_worktree';
-import { handler as gitGetWorktreeStatus } from '../../mcp/servers/git/git_get_worktree_status';
-import { handler as checkForConflicts } from '../../mcp/servers/git/check_for_conflicts';
-import { handler as detectSchemaChanges } from '../../mcp/servers/git/detect_schema_changes';
-import { handler as rebaseOnMain } from '../../mcp/servers/git/rebase_on_main';
-import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
 
 // Prisma client
 const prisma = new PrismaClient();

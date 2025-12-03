@@ -12,9 +12,9 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { broadcastComponentCompleted } from '../../services/websocket-gateway.instance';
 import { ValidationError } from '../../types';
+import { RemoteRunner } from '../../utils/remote-runner';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
 import { TranscriptParserService } from './services/transcript-parser.service';
-import { RemoteRunner } from '../../utils/remote-runner';
 
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {

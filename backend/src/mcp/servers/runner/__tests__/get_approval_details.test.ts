@@ -3,8 +3,8 @@
  * ST-148: Approval Gates - Human-in-the-Loop
  */
 
-import { handler, tool } from '../get_approval_details';
 import { PrismaClient } from '@prisma/client';
+import { handler, tool } from '../get_approval_details';
 
 describe('get_approval_details', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;

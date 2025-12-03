@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { ApprovalStatus, ApprovalResolution, ReExecutionMode, Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * Approval request data structure

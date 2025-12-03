@@ -24,9 +24,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { cleanupTestData } from './helpers/cleanup-utils';
 import { createMCPTestRunner, MCPTestRunner, MCPTestResult } from './helpers/mcp-test-runner';
 import { TestContext, createTestContext, hasPhase1Entities, hasWorkflowReady } from './helpers/test-context';
-import { cleanupTestData } from './helpers/cleanup-utils';
 
 // Type helper for MCP results - all results are treated as 'any' for test assertions
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

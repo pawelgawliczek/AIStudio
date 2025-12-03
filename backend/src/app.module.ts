@@ -14,6 +14,7 @@ import { EpicsModule } from './epics/epics.module';
 import { HealthController } from './health.controller';
 import { ImpactAnalysisModule } from './impact-analysis/impact-analysis.module';
 import { InternalModule } from './internal/internal.module';
+import { McpHttpModule } from './mcp-http/mcp-http.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -78,6 +79,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     AnalyticsModule,
     RemoteAgentModule, // ST-133: Remote execution agent
     RunnerModule, // ST-145: Story Runner REST API endpoints
+    McpHttpModule, // ST-163: MCP HTTP Transport
   ],
   controllers: [HealthController],
 })

@@ -8,9 +8,9 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient, AgentQuestionStatus } from '@prisma/client';
+import { sendAnswerToRemoteAgent, broadcastQuestionAnswered } from '../../services/websocket-gateway.instance';
 import { NotFoundError, ValidationError } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
-import { sendAnswerToRemoteAgent, broadcastQuestionAnswered } from '../../services/websocket-gateway.instance';
 
 export interface AnswerQuestionParams {
   questionId: string;
