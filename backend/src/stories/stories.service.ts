@@ -301,7 +301,6 @@ export class StoriesService {
           workflowRuns: {
             include: {
               workflow: true,
-              coordinator: true,
               componentRuns: {
                 include: {
                   component: true,
@@ -371,7 +370,6 @@ export class StoriesService {
       workflowRuns: {
         include: {
           workflow: true,
-          coordinator: true,
           componentRuns: {
             include: {
               component: true,
