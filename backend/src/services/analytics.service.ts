@@ -575,8 +575,8 @@ export class AnalyticsService {
   }
 
   private mapWorkflowRunToExecutionHistory(run: any): ExecutionHistory {
-    const duration = run.endTime && run.startTime
-      ? (run.endTime.getTime() - run.startTime.getTime()) / 1000
+    const duration = run.endTime && run.startedAt
+      ? (run.endTime.getTime() - run.startedAt.getTime()) / 1000
       : undefined;
 
     return {
@@ -584,7 +584,7 @@ export class AnalyticsService {
       workflowRunId: run.id,
       workflowName: run.workflow?.name || 'Unknown',
       status: run.status,
-      startTime: run.startTime.toISOString(),
+      startTime: run.startedAt?.toISOString() || new Date().toISOString(),
       endTime: run.endTime?.toISOString(),
       duration,
       cost: this.extractCost(run),

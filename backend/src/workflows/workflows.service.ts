@@ -121,6 +121,14 @@ export class WorkflowsService {
   async findOne(id: string, includeStats = false): Promise<WorkflowResponseDto> {
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
+      include: {
+        states: {
+          include: {
+            component: true,
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
     if (!workflow) {
@@ -128,6 +136,22 @@ export class WorkflowsService {
     }
 
     const response = this.mapToResponseDto(workflow);
+
+    // Populate componentAssignments from states if empty (ST-164 migration)
+    if ((!response.componentAssignments || response.componentAssignments.length === 0) && workflow.states) {
+      response.componentAssignments = workflow.states
+        .filter((state: any) => state.component)
+        .map((state: any) => ({
+          componentName: state.component.name,
+          componentId: state.component.id,
+          versionId: state.component.id, // Use component ID as version ID for now
+          version: `v${state.component.versionMajor}.${state.component.versionMinor}`,
+          versionMajor: state.component.versionMajor,
+          versionMinor: state.component.versionMinor,
+          stateName: state.name,
+          stateOrder: state.order,
+        }));
+    }
 
     if (includeStats) {
       response.usageStats = await this.getWorkflowStats(id);
