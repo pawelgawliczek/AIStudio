@@ -26,7 +26,6 @@ describe('ST-161: MCP Story Runner E2E Tests', () => {
     epicId?: string;
     storyId?: string;
     agentId?: string;
-    coordinatorId?: string;
     teamId?: string;
     stateId?: string;
     runId?: string;
@@ -66,11 +65,6 @@ describe('ST-161: MCP Story Runner E2E Tests', () => {
       // Delete team/workflow
       if (ctx.teamId) {
         await prisma.workflow.delete({ where: { id: ctx.teamId } }).catch(() => {});
-      }
-
-      // Delete coordinator
-      if (ctx.coordinatorId) {
-        await prisma.component.delete({ where: { id: ctx.coordinatorId } }).catch(() => {});
       }
 
       // Delete agent

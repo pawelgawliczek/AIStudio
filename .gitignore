@@ -71,3 +71,5 @@ mcp-config.json
 mcp-config-dev.json
 backup/
 worktrees/
+.claude/.current-run-id
+.claude/.session-workflow
