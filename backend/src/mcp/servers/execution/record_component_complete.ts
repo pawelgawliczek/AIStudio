@@ -55,7 +55,7 @@ export const tool: Tool = {
           'Path to agent transcript JSONL file (for spawned agents). When provided, token metrics will be parsed from transcript. Only works when MCP server runs locally.',
       },
       // ST-166: Removed transcriptMetrics parameter - caused master session to pass its own metrics instead of agent's
-      // Auto-discovery via RemoteRunner (Priority 5) handles transcript lookup correctly using componentId search
+      // Auto-discovery via RemoteRunner (Priority 6) handles transcript lookup correctly using componentId search
       // ST-147: Direct turn metrics (alternative to auto-discovered turns)
       turnMetrics: {
         type: 'object',
@@ -194,7 +194,101 @@ export async function handler(prisma: PrismaClient, params: any) {
     }
   }
 
-  // ST-172: Priority 3: Look up transcript from WorkflowRun's stored paths
+  // ST-172: Variables for discovered agent info (used across multiple priorities)
+  let discoveredAgentId: string | undefined;
+  let discoveredTranscriptPath: string | undefined;
+  let turnMetrics: { totalTurns: number; manualPrompts: number; autoContinues: number } | null = null;
+
+  // ST-172: Priority 3: Construct transcript path from claudeAgentId
+  // If claudeAgentId is provided, we can construct the path directly without add_transcript
+  // Path format: ~/.claude/projects/{escapedProjectPath}/agent-{agentId}.jsonl
+  if (!contextMetrics && params.claudeAgentId) {
+    const workflowRunForPath = await prisma.workflowRun.findUnique({
+      where: { id: params.runId },
+      select: { metadata: true },
+    });
+
+    const metadata = workflowRunForPath?.metadata as Record<string, any> | null;
+    const transcriptTracking = metadata?._transcriptTracking as Record<string, string> | undefined;
+    const projectPath = transcriptTracking?.projectPath;
+
+    if (projectPath) {
+      // Construct the transcript path from agentId
+      // Path escaping: /Users/pawel/projects/AIStudio → -Users-pawel-projects-AIStudio
+      const escapedPath = projectPath.replace(/^\//, '-').replace(/\//g, '-');
+      const constructedTranscriptPath = `${process.env.HOME || '/root'}/.claude/projects/${escapedPath}/agent-${params.claudeAgentId}.jsonl`;
+
+      console.log(`[ST-172] Constructing agent transcript path from claudeAgentId: ${constructedTranscriptPath}`);
+
+      // Use RemoteRunner to parse the transcript on the laptop
+      const runner = new RemoteRunner();
+      const scriptParams = [`--file=${constructedTranscriptPath}`];
+
+      interface RemoteMetrics {
+        inputTokens: number;
+        outputTokens: number;
+        cacheCreationTokens: number;
+        cacheReadTokens: number;
+        totalTokens: number;
+        model: string;
+        transcriptPath: string;
+        agentId?: string;
+        sessionId?: string;
+        turns?: {
+          totalTurns: number;
+          manualPrompts: number;
+          autoContinues: number;
+        };
+      }
+
+      const result = await runner.execute<RemoteMetrics>('parse-transcript', scriptParams, {
+        requestedBy: 'record_agent_complete',
+      });
+
+      if (result.executed && result.success && result.result) {
+        const metrics = result.result;
+        contextMetrics = {
+          tokensInput: metrics.inputTokens,
+          tokensOutput: metrics.outputTokens,
+          tokensSystemPrompt: null,
+          tokensSystemTools: null,
+          tokensMcpTools: null,
+          tokensMemoryFiles: null,
+          tokensMessages: null,
+          tokensCacheCreation: metrics.cacheCreationTokens,
+          tokensCacheRead: metrics.cacheReadTokens,
+          sessionId: metrics.sessionId || null,
+        };
+        dataSource = 'transcript';
+        discoveredAgentId = params.claudeAgentId;
+        discoveredTranscriptPath = constructedTranscriptPath;
+
+        // Extract turn metrics if available
+        if (metrics.turns && !turnMetrics) {
+          turnMetrics = {
+            totalTurns: metrics.turns.totalTurns,
+            manualPrompts: metrics.turns.manualPrompts,
+            autoContinues: metrics.turns.autoContinues,
+          };
+        }
+
+        console.log(`[ST-172] Parsed agent transcript via claudeAgentId for component ${params.componentId}:`, {
+          claudeAgentId: params.claudeAgentId,
+          transcriptPath: constructedTranscriptPath,
+          inputTokens: metrics.inputTokens,
+          outputTokens: metrics.outputTokens,
+        });
+      } else {
+        console.log(`[ST-172] Failed to parse transcript for claudeAgentId ${params.claudeAgentId}:`, {
+          executed: result.executed,
+          success: result.success,
+          error: result.error,
+        });
+      }
+    }
+  }
+
+  // ST-172: Priority 4: Look up transcript from WorkflowRun's stored paths (fallback)
   // - spawnedAgentTranscripts: for spawned agents (match by componentId)
   // - masterTranscriptPaths: for orchestrator/master session
   if (!contextMetrics) {
@@ -240,7 +334,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     }
   }
 
-  // ST-165: Priority 4: Check RemoteJob.result for laptop-executed agents
+  // ST-165: Priority 5: Check RemoteJob.result for laptop-executed agents
   if (!contextMetrics && componentRun.remoteJobId) {
     const remoteJob = await prisma.remoteJob.findUnique({
       where: { id: componentRun.remoteJobId },
@@ -277,14 +371,10 @@ export async function handler(prisma: PrismaClient, params: any) {
     }
   }
 
-  // ST-165: Priority 5: Auto-search for transcript via RemoteRunner
+  // ST-165: Priority 6: Auto-search for transcript via RemoteRunner
   // Executes parse-transcript.ts on laptop where transcripts live
   // Stores: metrics + agentId + sessionId + transcriptPath
-  let discoveredAgentId: string | undefined;
-  let discoveredTranscriptPath: string | undefined;
-
-  // ST-147: Turn metrics - declared here so RemoteRunner can populate it
-  let turnMetrics: { totalTurns: number; manualPrompts: number; autoContinues: number } | null = null;
+  // Note: discoveredAgentId, discoveredTranscriptPath, turnMetrics declared above at Priority 3
 
   if (!contextMetrics) {
     // Get the project path from WorkflowRun.metadata._transcriptTracking.projectPath
