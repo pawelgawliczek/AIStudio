@@ -17,6 +17,46 @@ import { PrismaClient } from '@prisma/client';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
 
+// ============================================================================
+// LOGGING UTILITY
+// ============================================================================
+
+/**
+ * Debug mode - enables verbose logging when MCP_DEBUG=1 or MCP_DEBUG=true
+ * Basic info/error logs are always enabled for production visibility
+ */
+const MCP_DEBUG = process.env.MCP_DEBUG === '1' || process.env.MCP_DEBUG === 'true';
+
+type LogLevel = 'info' | 'debug' | 'warn' | 'error';
+
+/**
+ * Structured logging utility for MCP server
+ *
+ * Levels:
+ * - info: Always enabled (server lifecycle, connections)
+ * - debug: Enabled via MCP_DEBUG=1 (tool calls, timing, sizes)
+ * - warn: Always enabled (non-fatal issues)
+ * - error: Always enabled (failures)
+ *
+ * All output goes to stderr (stdout reserved for MCP protocol)
+ */
+function log(level: LogLevel, message: string, data?: Record<string, unknown>): void {
+  // Skip debug logs unless MCP_DEBUG is enabled
+  if (level === 'debug' && !MCP_DEBUG) {
+    return;
+  }
+
+  const timestamp = new Date().toISOString();
+  const levelTag = level.toUpperCase().padEnd(5);
+  const prefix = `[${timestamp}] [MCP] [${levelTag}]`;
+  const logLine = data ? `${prefix} ${message} ${JSON.stringify(data)}` : `${prefix} ${message}`;
+  process.stderr.write(logLine + '\n');
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
 // Get __dirname for CommonJS (TypeScript will compile to CommonJS, so __dirname is available)
 // If running as ES module, this will be undefined but servers path will still work
 const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.resolve();
@@ -25,7 +65,7 @@ const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.resolve()
 // Force the correct DATABASE_URL for MCP server (port 5433)
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes(':5432/')) {
   process.env.DATABASE_URL = 'postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5433/vibestudio?schema=public';
-  console.error('⚠️  Overriding DATABASE_URL to port 5433 (Claude Code env vars not working)');
+  log('warn', 'DATABASE_URL override', { reason: 'Claude Code env vars not working', port: 5433 });
 }
 
 // Initialize Prisma client
@@ -71,11 +111,11 @@ server.setRequestHandler(ListToolsRequestSchema, async (request) => {
     // (Claude Code creates functions based on ListToolsRequest response)
     const tools = await registry.listTools();
 
-    console.error(`📋 Listing ${tools.length} tools (all available for Claude Code)`);
+    log('debug', 'Listing tools', { count: tools.length });
 
     return { tools };
   } catch (error: any) {
-    console.error('Error listing tools:', error);
+    log('error', 'Failed to list tools', { error: error.message });
     throw error;
   }
 });
@@ -88,23 +128,20 @@ server.setRequestHandler(ListToolsRequestSchema, async (request) => {
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+  const startTime = Date.now();
 
   try {
-    console.error(`🔧 Executing tool: ${name}`);
-    console.error(`📋 Arguments: ${JSON.stringify(args)}`);
+    log('debug', 'Executing tool', { name, args });
 
     let result: any;
 
     // Special case: search_tools needs registry access instead of prisma
     if (name === 'search_tools') {
-      console.error(`🔍 Special handling for search_tools`);
+      log('debug', 'Special handling for search_tools');
       const toolModule = await registry.discoverTools('meta');
-      console.error(`🔍 Found ${toolModule.length} meta tools`);
       const searchTool = toolModule.find((t) => t.tool.name === 'search_tools');
       if (searchTool) {
-        console.error(`🔍 Calling search_tools handler`);
         result = await searchTool.handler(registry, args);
-        console.error(`🔍 search_tools handler returned, preparing response`);
       } else {
         throw new Error('search_tools not found');
       }
@@ -113,11 +150,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       result = await registry.executeTool(name, args);
     }
 
-    console.error(`📤 Serializing result to JSON`);
     const jsonResult = JSON.stringify(result, null, 2);
-    console.error(`📤 JSON size: ${jsonResult.length} bytes`);
+    const durationMs = Date.now() - startTime;
 
-    console.error(`✅ Returning result for tool: ${name}`);
+    log('debug', 'Tool completed', { name, durationMs, responseSizeBytes: jsonResult.length });
+
     return {
       content: [
         {
@@ -127,8 +164,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
     };
   } catch (error: any) {
+    const durationMs = Date.now() - startTime;
     const formattedError = formatError(error);
-    console.error(`❌ Error executing tool ${name}:`, formattedError);
+
+    log('error', 'Tool failed', { name, durationMs, error: formattedError });
 
     return {
       content: [
@@ -149,39 +188,49 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   // Connect to database
   await prisma.$connect();
-  console.error('✅ Connected to database');
+  log('info', 'Database connected');
 
   // Discover available tools
   const allTools = await registry.discoverTools();
-  console.error(`✅ Discovered ${allTools.length} tools from filesystem`);
+  const categories = Array.from(new Set(allTools.map((t) => t.metadata?.category).filter(Boolean)));
 
-  // Log categories
-  const categories = new Set(allTools.map((t) => t.metadata?.category).filter(Boolean));
-  console.error(`📂 Categories: ${Array.from(categories).join(', ')}`);
+  log('info', 'Server starting', { toolCount: allTools.length, categories });
 
   // Start MCP server with stdio transport
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('✅ Vibe Studio MCP Server started');
-  console.error('💡 Use search_tools for progressive discovery');
-  console.error('Listening for MCP requests...\n');
+
+  // Connection lifecycle handlers
+  server.oninitialized = () => {
+    log('info', 'Client connected');
+  };
+
+  transport.onclose = () => {
+    log('info', 'Client disconnected');
+  };
+
+  transport.onerror = (error: Error) => {
+    log('error', 'Transport error', { message: error.message, stack: error.stack });
+  };
+
+  log('info', 'Server started', { version: '0.2.0', debug: MCP_DEBUG });
 }
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.error('\n🛑 Shutting down MCP server...');
+  log('info', 'Shutting down', { signal: 'SIGINT' });
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.error('\n🛑 Shutting down MCP server...');
+  log('info', 'Shutting down', { signal: 'SIGTERM' });
   await prisma.$disconnect();
   process.exit(0);
 });
 
 // Start server
 main().catch((error) => {
-  console.error('❌ Failed to start MCP server:', error);
+  log('error', 'Failed to start server', { error: error.message, stack: error.stack });
   process.exit(1);
 });

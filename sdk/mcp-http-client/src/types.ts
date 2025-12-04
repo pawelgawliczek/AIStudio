@@ -17,7 +17,7 @@ export interface McpHttpClientOptions {
   /** Enable auto-reconnect on WebSocket disconnect (default: true) */
   autoReconnect?: boolean;
 
-  /** Maximum reconnection attempts (default: 10) */
+  /** Maximum reconnection attempts for WebSocket (default: 10) */
   maxReconnectAttempts?: number;
 
   /** Initial reconnection delay in milliseconds (default: 1000) */
@@ -31,6 +31,17 @@ export interface McpHttpClientOptions {
 
   /** Enable debug logging (default: false) */
   debug?: boolean;
+
+  // HTTP Retry Configuration (ST-171)
+
+  /** Maximum HTTP retry attempts for transient failures (default: 3) */
+  maxHttpRetries?: number;
+
+  /** Initial HTTP retry delay in milliseconds (default: 1000) */
+  initialHttpRetryDelay?: number;
+
+  /** Maximum HTTP retry delay in milliseconds (default: 10000) */
+  maxHttpRetryDelay?: number;
 }
 
 /**

@@ -33,12 +33,17 @@ export class McpHttpClient {
   private socket: Socket | null = null;
   private httpClient: AxiosInstance;
 
-  // Reconnection state
+  // WebSocket reconnection state
   private reconnectAttempts = 0;
   private readonly maxReconnectAttempts: number;
   private readonly initialReconnectDelay: number;
   private readonly maxReconnectDelay: number;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+
+  // HTTP retry configuration (ST-171)
+  private readonly maxHttpRetries: number;
+  private readonly initialHttpRetryDelay: number;
+  private readonly maxHttpRetryDelay: number;
 
   // Heartbeat state
   private heartbeatInterval: NodeJS.Timeout | null = null;
@@ -67,6 +72,11 @@ export class McpHttpClient {
     this.maxReconnectDelay = options.maxReconnectDelay ?? 30000;
     this.heartbeatIntervalMs = options.heartbeatInterval ?? 30000;
     this.debug = options.debug ?? false;
+
+    // HTTP retry configuration (ST-171)
+    this.maxHttpRetries = options.maxHttpRetries ?? 3;
+    this.initialHttpRetryDelay = options.initialHttpRetryDelay ?? 1000;
+    this.maxHttpRetryDelay = options.maxHttpRetryDelay ?? 10000;
 
     // Create HTTP client with default headers
     this.httpClient = axios.create({
@@ -350,19 +360,20 @@ export class McpHttpClient {
 
     this.log('Calling tool', { toolName, sessionId: this.sessionId });
 
-    try {
-      const response = await this.httpClient.post<ToolResult>('/api/mcp/v1/call-tool', {
-        sessionId: this.sessionId,
-        toolName,
-        arguments: args,
-      });
+    return this.executeWithRetry(
+      async () => {
+        const response = await this.httpClient.post<ToolResult>('/api/mcp/v1/call-tool', {
+          sessionId: this.sessionId,
+          toolName,
+          arguments: args,
+        });
 
-      this.log('Tool call successful', { toolName });
-      return response.data;
-    } catch (error: any) {
-      this.log('Tool call failed', { toolName, error: error.message });
-      throw this.handleHttpError(error);
-    }
+        this.log('Tool call successful', { toolName });
+        return response.data;
+      },
+      `callTool(${toolName})`,
+      true // Can re-init session on auth errors
+    );
   }
 
   /**
@@ -376,21 +387,22 @@ export class McpHttpClient {
 
     this.log('Listing tools', { sessionId: this.sessionId, options });
 
-    try {
-      const response = await this.httpClient.get<{ tools: ToolInfo[] }>('/api/mcp/v1/list-tools', {
-        params: {
-          sessionId: this.sessionId,
-          ...options,
-        },
-      });
+    return this.executeWithRetry(
+      async () => {
+        const response = await this.httpClient.get<{ tools: ToolInfo[] }>('/api/mcp/v1/list-tools', {
+          params: {
+            sessionId: this.sessionId,
+            ...options,
+          },
+        });
 
-      const tools = response.data.tools || [];
-      this.log('List tools successful', { count: tools.length });
-      return tools;
-    } catch (error: any) {
-      this.log('List tools failed', { error: error.message });
-      throw this.handleHttpError(error);
-    }
+        const tools = response.data.tools || [];
+        this.log('List tools successful', { count: tools.length });
+        return tools;
+      },
+      'listTools',
+      true // Can re-init session on auth errors
+    );
   }
 
   /**
@@ -403,19 +415,14 @@ export class McpHttpClient {
 
     this.log('Sending heartbeat', { sessionId: this.sessionId });
 
-    try {
-      await this.httpClient.post(`/api/mcp/v1/session/${this.sessionId}/heartbeat`);
-      this.log('Heartbeat successful');
-    } catch (error: any) {
-      this.log('Heartbeat failed', { error: error.message });
-
-      // If session expired, emit event
-      if (error.response?.status === 410) {
-        this.emitClientEvent('session:expired', { sessionId: this.sessionId });
-      }
-
-      throw this.handleHttpError(error);
-    }
+    return this.executeWithRetry(
+      async () => {
+        await this.httpClient.post(`/api/mcp/v1/session/${this.sessionId}/heartbeat`);
+        this.log('Heartbeat successful');
+      },
+      'heartbeat',
+      true // Can re-init session on auth errors (will emit session:expired)
+    );
   }
 
   /**
@@ -553,5 +560,130 @@ export class McpHttpClient {
     if (this.debug) {
       console.log(`[McpHttpClient] ${message}`, data || '');
     }
+  }
+
+  // ============================================================================
+  // HTTP RETRY LOGIC (ST-171)
+  // ============================================================================
+
+  /**
+   * Check if an error is retryable (transient failure)
+   *
+   * @private
+   * @param error - Axios error
+   * @returns true if the error is retryable
+   */
+  private isRetryableError(error: any): boolean {
+    // Network errors (no response received)
+    if (!error.response) {
+      const retryableCodes = ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET', 'EPIPE'];
+      return retryableCodes.includes(error.code);
+    }
+
+    // Server errors that are typically transient
+    const retryableStatuses = [429, 502, 503, 504];
+    return retryableStatuses.includes(error.response?.status);
+  }
+
+  /**
+   * Check if error requires session re-initialization
+   *
+   * @private
+   * @param error - Axios error
+   * @returns true if session needs re-initialization
+   */
+  private needsReInit(error: any): boolean {
+    const reInitStatuses = [401, 410]; // Unauthorized or Gone (session expired)
+    return reInitStatuses.includes(error.response?.status);
+  }
+
+  /**
+   * Calculate retry delay with exponential backoff
+   *
+   * @private
+   * @param attempt - Current attempt number (1-indexed)
+   * @returns Delay in milliseconds
+   */
+  private calculateRetryDelay(attempt: number): number {
+    const delay = this.initialHttpRetryDelay * Math.pow(2, attempt - 1);
+    return Math.min(delay, this.maxHttpRetryDelay);
+  }
+
+  /**
+   * Sleep for specified milliseconds
+   *
+   * @private
+   * @param ms - Milliseconds to sleep
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Execute HTTP operation with retry logic
+   *
+   * Implements exponential backoff retry for transient failures.
+   * Can optionally re-initialize session on auth errors.
+   *
+   * @private
+   * @param operation - Async operation to execute
+   * @param operationName - Name for logging
+   * @param canReInit - Whether to attempt session re-init on auth errors
+   * @returns Operation result
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    canReInit = false
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= this.maxHttpRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        this.log(`${operationName} failed`, {
+          attempt,
+          maxAttempts: this.maxHttpRetries,
+          error: error.message,
+          code: error.code,
+          status: error.response?.status,
+        });
+
+        // Check if session needs re-initialization
+        if (this.needsReInit(error) && canReInit) {
+          this.log(`${operationName}: Session invalid, re-initializing...`);
+          try {
+            await this.initialize('re-init-after-error');
+            // Retry immediately after re-init
+            return await operation();
+          } catch (reInitError: any) {
+            this.log(`${operationName}: Re-initialization failed`, { error: reInitError.message });
+            throw this.handleHttpError(error);
+          }
+        }
+
+        // Check if error is retryable
+        if (!this.isRetryableError(error)) {
+          this.log(`${operationName}: Non-retryable error, failing immediately`);
+          throw this.handleHttpError(error);
+        }
+
+        // Don't retry if we've exhausted attempts
+        if (attempt === this.maxHttpRetries) {
+          this.log(`${operationName}: Max retries exhausted`);
+          throw this.handleHttpError(error);
+        }
+
+        // Calculate and apply delay
+        const delay = this.calculateRetryDelay(attempt);
+        this.log(`${operationName}: Retrying in ${delay}ms`, { attempt, nextAttempt: attempt + 1 });
+        await this.sleep(delay);
+      }
+    }
+
+    // Should never reach here, but TypeScript needs it
+    throw this.handleHttpError(lastError);
   }
 }

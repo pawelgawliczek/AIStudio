@@ -484,6 +484,71 @@ curl http://127.0.0.1:3001/api/projects/{projectId}/components
 
 ---
 
+## MCP Debug Logging (ST-171)
+
+The MCP server and HTTP bridge support configurable debug logging for troubleshooting connection issues.
+
+### MCP Server Debug Mode
+
+Enable verbose logging by setting the `MCP_DEBUG` environment variable:
+
+```bash
+# Enable debug logging for MCP server
+MCP_DEBUG=1
+
+# Or
+MCP_DEBUG=true
+```
+
+**Log Levels:**
+- `info` - Always enabled: server start, client connect/disconnect, errors
+- `debug` - Enabled with `MCP_DEBUG=1`: tool calls, timing, response sizes
+- `warn` - Always enabled: non-fatal issues (e.g., DATABASE_URL override)
+- `error` - Always enabled: failures with stack traces
+
+**Log Format:**
+```
+[2025-01-15T10:30:00.000Z] [MCP] [INFO ] Server started {"toolCount":150,"categories":["stories","epics"]}
+[2025-01-15T10:30:01.000Z] [MCP] [DEBUG] Executing tool {"name":"list_stories","args":{}}
+```
+
+All logs go to stderr (stdout is reserved for MCP protocol).
+
+### MCP HTTP Bridge Debug Mode
+
+For the laptop HTTP bridge (`mcp-stdio-bridge.ts`):
+
+```bash
+# Enable debug logging
+VIBESTUDIO_DEBUG=1
+
+# Or via command line
+npx ts-node mcp-stdio-bridge.ts --api-key=<key> --debug
+```
+
+### HTTP Retry Configuration
+
+The HTTP client automatically retries transient failures with exponential backoff:
+
+- **Retryable errors**: 429 (rate limit), 502, 503, 504 (server errors), network errors (ECONNRESET, ETIMEDOUT)
+- **Auto re-init**: On 401/410 (session expired), automatically re-initializes session and retries
+- **Defaults**: 3 retries, 1s initial delay, 10s max delay
+
+Configure via `McpHttpClientOptions`:
+
+```typescript
+const client = new McpHttpClient({
+  baseUrl: 'https://vibestudio.example.com',
+  apiKey: 'your-api-key',
+  debug: true,
+  maxHttpRetries: 3,           // Max retry attempts
+  initialHttpRetryDelay: 1000, // Initial delay (ms)
+  maxHttpRetryDelay: 10000,    // Max delay (ms)
+});
+```
+
+---
+
 ## Remote Agent (Laptop ↔ KVM Communication) - ST-133
 
 The remote agent enables the KVM server to execute scripts on the developer's laptop (where Claude Code runs) via WebSocket.
