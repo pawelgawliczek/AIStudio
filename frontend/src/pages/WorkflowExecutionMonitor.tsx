@@ -144,11 +144,12 @@ const WorkflowExecutionMonitor: React.FC = () => {
   });
 
   // ST-168: Fetch artifacts for the workflow run
+  // Use consistent URL pattern: base URL without /api suffix + /api/... path
   const { data: artifactsData } = useQuery<{ runId: string; artifacts: any[]; total: number }>({
     queryKey: ['workflow-run-artifacts', runId],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/projects/${projectId}/workflow-runs/${runId}/artifacts`,
+        `${import.meta.env.VITE_API_URL || '/api'}/projects/${projectId}/workflow-runs/${runId}/artifacts`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -250,8 +251,9 @@ const WorkflowExecutionMonitor: React.FC = () => {
 
     try {
       // ST-168: Use the correct REST API endpoint for breakpoints
+      // Use consistent URL pattern: base URL without /api suffix + /api/... path
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/runner/breakpoints`,
+        `${import.meta.env.VITE_API_URL || '/api'}/runner/breakpoints`,
         {
           method: 'POST',
           headers: {
