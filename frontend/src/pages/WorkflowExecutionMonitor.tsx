@@ -31,6 +31,8 @@ import ComponentProgressTracker from '../components/execution/ComponentProgressT
 // Use direct imports to avoid potential circular dependency issues with barrel exports
 import { FullStatePanel } from '../components/workflow-viz/FullStatePanel';
 import { useWorkflowRun } from '../components/workflow-viz/hooks/useWorkflowRun';
+import { useApprovals } from '../components/workflow-viz/hooks/useApprovals';
+import { ApprovalGate } from '../components/workflow-viz/ApprovalGate';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -143,6 +145,17 @@ const WorkflowExecutionMonitor: React.FC = () => {
     refetchInterval: 5000,
   });
 
+  // ST-168: Fetch pending approvals for this workflow run
+  const {
+    pendingApproval,
+    respondToApproval,
+    isResponding: isRespondingToApproval,
+    refetch: refetchApprovals,
+  } = useApprovals({
+    runId: runId || '',
+    enabled: !!runId,
+  });
+
   // ST-168: Fetch artifacts for the workflow run
   // Use consistent URL pattern: base URL without /api suffix + /api/... path
   const { data: artifactsData } = useQuery<{ runId: string; artifacts: any[]; total: number }>({
@@ -246,6 +259,49 @@ const WorkflowExecutionMonitor: React.FC = () => {
     console.log('View artifact:', artifactId);
   }, []);
 
+  // ST-168: Approval gate handlers
+  const handleApprove = useCallback(async () => {
+    try {
+      await respondToApproval({
+        action: 'approve',
+        decidedBy: 'web-user',
+      });
+      refetchApprovals();
+      refetch();
+    } catch (error) {
+      console.error('Failed to approve:', error);
+    }
+  }, [respondToApproval, refetchApprovals, refetch]);
+
+  const handleRerun = useCallback(async (feedback: string) => {
+    try {
+      await respondToApproval({
+        action: 'rerun',
+        decidedBy: 'web-user',
+        feedback,
+      });
+      refetchApprovals();
+      refetch();
+    } catch (error) {
+      console.error('Failed to rerun:', error);
+    }
+  }, [respondToApproval, refetchApprovals, refetch]);
+
+  const handleReject = useCallback(async (reason: string, mode: 'cancel' | 'pause') => {
+    try {
+      await respondToApproval({
+        action: 'reject',
+        decidedBy: 'web-user',
+        reason,
+        rejectMode: mode,
+      });
+      refetchApprovals();
+      refetch();
+    } catch (error) {
+      console.error('Failed to reject:', error);
+    }
+  }, [respondToApproval, refetchApprovals, refetch]);
+
   const handleAddBreakpoint = useCallback(async () => {
     if (!selectedStateForBreakpoint || !runId) return;
 
@@ -325,6 +381,18 @@ const WorkflowExecutionMonitor: React.FC = () => {
 
     newSocket.on('metrics:updated', (data: any) => {
       console.log('Metrics updated:', data);
+      refetch();
+    });
+
+    // ST-172: Agent question events
+    newSocket.on('question:detected', (data: any) => {
+      console.log('Agent question detected:', data);
+      refetch();
+      // Could show a notification/toast here in the future
+    });
+
+    newSocket.on('question:answered', (data: any) => {
+      console.log('Agent question answered:', data);
       refetch();
     });
 
@@ -459,6 +527,29 @@ const WorkflowExecutionMonitor: React.FC = () => {
                 </Box>
               ) : workflowRun?.states && workflowRun.states.length > 0 ? (
                 <>
+                  {/* ST-168: Approval Gate - Show when there's a pending approval */}
+                  {pendingApproval && (
+                    <Box mb={3}>
+                      <ApprovalGate
+                        approval={pendingApproval}
+                        stateName={
+                          workflowRun.states.find((s: any) => s.id === pendingApproval.stateId)?.name ||
+                          'Unknown State'
+                        }
+                        artifacts={(artifactsData?.artifacts || []).map((a: any) => ({
+                          id: a.s3Key || a.id,
+                          key: a.artifactType || a.definitionKey || 'artifact',
+                          name: a.filename || a.definitionName || 'Artifact',
+                          type: a.format === 'md' ? 'markdown' :
+                                a.format === 'json' ? 'json' : 'other',
+                        }))}
+                        contextSummary={liveStatus?.context ? JSON.stringify(liveStatus.context, null, 2) : undefined}
+                        onApprove={handleApprove}
+                        onRerun={handleRerun}
+                        onReject={handleReject}
+                      />
+                    </Box>
+                  )}
                   <FullStatePanel
                     states={workflowRun.states}
                     componentRuns={workflowRun.componentRuns}

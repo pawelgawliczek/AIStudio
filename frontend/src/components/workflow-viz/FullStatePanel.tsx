@@ -95,11 +95,43 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
             className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
           >
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-              Artifacts
+              Artifacts ({artifacts.length})
             </h3>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              No artifacts yet
-            </div>
+            {artifacts.length > 0 ? (
+              <div className="space-y-2">
+                {artifacts.map((artifact) => (
+                  <div
+                    key={artifact.id}
+                    className="p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-pointer"
+                    onClick={() => onViewArtifact?.(artifact.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {artifact.type === 'markdown' ? '📄' :
+                           artifact.type === 'json' ? '📋' :
+                           artifact.type === 'code' ? '💻' :
+                           artifact.type === 'image' ? '🖼️' : '📁'}
+                        </span>
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {artifact.definitionName}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        v{artifact.version}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {artifact.definitionKey}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                No artifacts yet
+              </div>
+            )}
           </div>
         )}
 

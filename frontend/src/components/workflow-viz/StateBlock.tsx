@@ -196,7 +196,10 @@ export const StateBlock: React.FC<ExtendedStateBlockProps> = ({
                   👤 Approval
                 </span>
               )}
-              <span className="text-xs text-gray-500 dark:text-gray-500">
+              <span
+                className="text-xs text-gray-500 dark:text-gray-500"
+                data-testid={state.runLocation === 'laptop' ? 'laptop-icon' : 'local-icon'}
+              >
                 {state.runLocation === 'laptop' ? '💻 laptop' : '🖥 local'}
               </span>
             </div>
