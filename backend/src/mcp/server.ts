@@ -6,6 +6,15 @@
  * Implements progressive disclosure pattern with file-based tool discovery.
  */
 
+// ============================================================================
+// CRITICAL: Redirect console.log to stderr (ST-171)
+// MCP protocol uses stdout for JSON-RPC. Any non-JSON output breaks the protocol.
+// This ensures ALL console.log calls in tool handlers go to stderr instead.
+// ============================================================================
+console.log = (...args: unknown[]) => {
+  console.error(...args);
+};
+
 import path from 'path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
