@@ -40,28 +40,10 @@ if [ "$SOURCE" = "compact" ]; then
         else . end' \
        "$WORKFLOWS_FILE" > "$WORKFLOWS_FILE.tmp" && mv "$WORKFLOWS_FILE.tmp" "$WORKFLOWS_FILE"
 
-    # ST-172: Call MCP API to add transcript to WorkflowRun in DB
-    # Read API config from mcp-config-laptop.json
-    MCP_CONFIG="$CLAUDE_PROJECT_DIR/mcp-config-laptop.json"
-    if [ -f "$MCP_CONFIG" ]; then
-      API_KEY=$(jq -r '.mcpServers.vibestudio.env.VIBESTUDIO_API_KEY // empty' "$MCP_CONFIG")
-      BASE_URL=$(jq -r '.mcpServers.vibestudio.env.VIBESTUDIO_BASE_URL // empty' "$MCP_CONFIG")
-
-      if [ -n "$API_KEY" ] && [ -n "$BASE_URL" ]; then
-        # Call add_transcript MCP tool via HTTP API
-        curl -s -X POST "$BASE_URL/api/mcp/v1/call-tool" \
-          -H "Content-Type: application/json" \
-          -H "X-API-Key: $API_KEY" \
-          -d "{
-            \"name\": \"add_transcript\",
-            \"arguments\": {
-              \"runId\": \"$RUN_ID\",
-              \"transcriptPath\": \"$TRANSCRIPT_PATH\",
-              \"type\": \"master\"
-            }
-          }" > /dev/null 2>&1 || true
-      fi
-    fi
+    # ST-172: Transcript path stored in local JSON
+    # The orchestrator should call add_transcript MCP tool after compaction recovery
+    # to persist the new transcript path to the database
+    # (Hooks can't easily call MCP API due to session requirements)
 
     # Update session-workflow with new session ID (same runId)
     echo "$SESSION_ID:$RUN_ID" > "$SESSION_WORKFLOW_FILE"
@@ -85,13 +67,16 @@ fi
 
 # Prime context for ALL sessions (startup, resume, compact)
 # This injects VibeStudio workflow awareness into Claude's context
-cat <<'PRIME_EOF'
+# IMPORTANT: Use EOF (not 'EOF') to enable variable expansion for session identity
+cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "## VibeStudio Development Workflow\n\nThis project uses VibeStudio for structured development. When implementing features or making code changes:\n\n1. **Create a Story** - Use `create_story` MCP tool to track the work\n2. **Create Worktree** - Use `git_create_worktree` for isolated development\n3. **Assign Team** - Select appropriate team for execution\n4. **Upload Artifacts** - Store analysis/design in artifacts for the workflow\n5. **Execute with Team** - Let the team's agents handle implementation\n\nAvailable MCP tools: list_projects, list_teams, create_story, git_create_worktree, upload_artifact, execute_story_with_team\n\nWhen user requests implementation after planning, automatically transition to this workflow."
+    "sessionId": "$SESSION_ID",
+    "transcriptPath": "$TRANSCRIPT_PATH",
+    "additionalContext": "## VibeStudio Development Workflow\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n\\nThis project uses VibeStudio for structured development. When implementing features or making code changes:\\n\\n1. **Create a Story** - Use \`create_story\` MCP tool to track the work\\n2. **Create Worktree** - Use \`git_create_worktree\` for isolated development\\n3. **Assign Team** - Select appropriate team for execution\\n4. **Upload Artifacts** - Store analysis/design in artifacts for the workflow\\n5. **Execute with Team** - Let the team's agents handle implementation\\n\\nAvailable MCP tools: list_projects, list_teams, create_story, git_create_worktree, upload_artifact, execute_story_with_team\\n\\nWhen user requests implementation after planning, automatically transition to this workflow."
   }
 }
-PRIME_EOF
+EOF
 
 exit 0
