@@ -76,6 +76,8 @@ export const tool: Tool = {
         type: 'string',
         description: 'Claude Code agent ID (8-char hex like "b6ebed38"). Transcript filename is agent-{claudeAgentId}.jsonl. Pass this when spawning subagents via Task tool.',
       },
+      // ST-172: Transcript paths are now stored in WorkflowRun (masterTranscriptPaths, spawnedAgentTranscripts)
+      // and looked up automatically - no need to pass them as parameters
     },
     required: ['runId', 'componentId'],
   },
@@ -189,6 +191,52 @@ export async function handler(prisma: PrismaClient, params: any) {
       });
     } else {
       console.warn(`[ST-112] Failed to parse transcript at ${params.transcriptPath}`);
+    }
+  }
+
+  // ST-172: Priority 3: Look up transcript from WorkflowRun's stored paths
+  // - spawnedAgentTranscripts: for spawned agents (match by componentId)
+  // - masterTranscriptPaths: for orchestrator/master session
+  if (!contextMetrics) {
+    const workflowRunForTranscript = await prisma.workflowRun.findUnique({
+      where: { id: params.runId },
+      select: {
+        masterTranscriptPaths: true,
+        spawnedAgentTranscripts: true,
+      },
+    });
+
+    if (workflowRunForTranscript) {
+      // First check if this component has a spawned agent transcript
+      const spawnedAgents = (workflowRunForTranscript.spawnedAgentTranscripts as any[] | null) || [];
+      const agentEntry = spawnedAgents.find((a: any) => a.componentId === params.componentId);
+
+      if (agentEntry?.transcriptPath) {
+        // Found spawned agent transcript - parse it
+        const transcriptParser = new TranscriptParserService();
+        const transcriptMetrics = await transcriptParser.parseAgentTranscript(agentEntry.transcriptPath);
+
+        if (transcriptMetrics) {
+          contextMetrics = {
+            tokensInput: transcriptMetrics.inputTokens,
+            tokensOutput: transcriptMetrics.outputTokens,
+            tokensSystemPrompt: null,
+            tokensSystemTools: null,
+            tokensMcpTools: null,
+            tokensMemoryFiles: null,
+            tokensMessages: null,
+            tokensCacheCreation: transcriptMetrics.cacheCreationTokens,
+            tokensCacheRead: transcriptMetrics.cacheReadTokens,
+            sessionId: transcriptMetrics.sessionId,
+          };
+          dataSource = 'transcript';
+          console.log(`[ST-172] Parsed spawned agent transcript from DB for component ${params.componentId}:`, {
+            transcriptPath: agentEntry.transcriptPath,
+            inputTokens: transcriptMetrics.inputTokens,
+            outputTokens: transcriptMetrics.outputTokens,
+          });
+        }
+      }
     }
   }
 
@@ -419,6 +467,12 @@ export async function handler(prisma: PrismaClient, params: any) {
   };
 
   const componentCount = allComponentRuns.length;
+
+  // ST-172: Transcript paths are stored in WorkflowRun when:
+  // - start_team_run is called (initial master transcript)
+  // - compact hook fires (adds new transcript to masterTranscriptPaths)
+  // - Task hook fires (adds spawned agent to spawnedAgentTranscripts)
+  // No need to update them here - they're already in the DB
 
   await prisma.workflowRun.update({
     where: { id: params.runId },

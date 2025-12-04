@@ -32,6 +32,7 @@ import ComponentProgressTracker from '../components/execution/ComponentProgressT
 import { FullStatePanel } from '../components/workflow-viz/FullStatePanel';
 import { useWorkflowRun } from '../components/workflow-viz/hooks/useWorkflowRun';
 import { useApprovals } from '../components/workflow-viz/hooks/useApprovals';
+import { useArtifacts, useArtifactAccess } from '../components/workflow-viz/hooks/useArtifacts';
 import { ApprovalGate } from '../components/workflow-viz/ApprovalGate';
 
 interface WorkflowRunStatus {
@@ -156,26 +157,16 @@ const WorkflowExecutionMonitor: React.FC = () => {
     enabled: !!runId,
   });
 
-  // ST-168: Fetch artifacts for the workflow run
-  // Use consistent URL pattern: base URL without /api suffix + /api/... path
-  const { data: artifactsData } = useQuery<{ runId: string; artifacts: any[]; total: number }>({
-    queryKey: ['workflow-run-artifacts', runId],
-    queryFn: async () => {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || '/api'}/projects/${projectId}/workflow-runs/${runId}/artifacts`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch artifacts');
-      }
-      return response.json();
-    },
-    enabled: !!runId && !!projectId,
-    refetchInterval: 10000, // Refresh every 10 seconds
+  // ST-168: Fetch artifacts for the workflow run using new hook
+  const { artifacts: artifactsData } = useArtifacts({
+    runId: runId || '',
+    enabled: !!runId,
+  });
+
+  // ST-168: Fetch artifact access rules (expected artifacts per state)
+  const { artifactAccess } = useArtifactAccess({
+    runId: runId || '',
+    enabled: !!runId,
   });
 
   // Fetch initial status (moved here to make refetch available for callbacks)
@@ -536,12 +527,11 @@ const WorkflowExecutionMonitor: React.FC = () => {
                           workflowRun.states.find((s: any) => s.id === pendingApproval.stateId)?.name ||
                           'Unknown State'
                         }
-                        artifacts={(artifactsData?.artifacts || []).map((a: any) => ({
-                          id: a.s3Key || a.id,
-                          key: a.artifactType || a.definitionKey || 'artifact',
-                          name: a.filename || a.definitionName || 'Artifact',
-                          type: a.format === 'md' ? 'markdown' :
-                                a.format === 'json' ? 'json' : 'other',
+                        artifacts={artifactsData.map((a) => ({
+                          id: a.id,
+                          key: a.definitionKey,
+                          name: a.definitionName,
+                          type: a.type as 'markdown' | 'json' | 'code' | 'report' | 'image' | 'other',
                         }))}
                         contextSummary={liveStatus?.context ? JSON.stringify(liveStatus.context, null, 2) : undefined}
                         onApprove={handleApprove}
@@ -561,17 +551,16 @@ const WorkflowExecutionMonitor: React.FC = () => {
                     onViewLiveFeed={handleViewLiveFeed}
                     onViewTranscript={handleViewTranscript}
                     onViewArtifact={handleViewArtifact}
-                    artifacts={(artifactsData?.artifacts || []).map((a: any) => ({
-                      id: a.s3Key || a.id,
-                      definitionKey: a.artifactType || a.definitionKey || 'artifact',
-                      definitionName: a.filename || a.definitionName || 'Artifact',
-                      type: a.format === 'md' ? 'markdown' :
-                            a.format === 'json' ? 'json' :
-                            a.format === 'png' || a.format === 'jpg' ? 'image' : 'other',
-                      version: 1,
-                      createdAt: a.uploadedAt || new Date().toISOString(),
-                      updatedAt: a.uploadedAt || new Date().toISOString(),
+                    artifacts={artifactsData.map((a) => ({
+                      id: a.id,
+                      definitionKey: a.definitionKey,
+                      definitionName: a.definitionName,
+                      type: a.type as 'markdown' | 'json' | 'code' | 'report' | 'image' | 'other',
+                      version: a.version,
+                      createdAt: a.createdAt,
+                      updatedAt: a.updatedAt,
                     }))}
+                    artifactAccess={artifactAccess}
                   />
                   {/* Add Breakpoint Button */}
                   <Box mt={2}>

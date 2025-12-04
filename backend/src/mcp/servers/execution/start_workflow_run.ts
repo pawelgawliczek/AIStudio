@@ -27,6 +27,15 @@ export const tool: Tool = {
         type: 'string',
         description: 'REQUIRED: Current working directory of the orchestrator session (e.g., /Users/you/projects/AIStudio). Used to locate Claude Code transcripts for metrics. Must be the HOST path where Claude Code is running, NOT a Docker path.',
       },
+      // ST-172: Session tracking from hooks
+      sessionId: {
+        type: 'string',
+        description: 'ST-172: Claude Code session ID from SessionStart hook. Used to look up transcript path from running-workflows.json.',
+      },
+      transcriptPath: {
+        type: 'string',
+        description: 'ST-172: Exact transcript path from SessionStart hook (stdin.transcript_path). Stored in WorkflowRun.masterTranscriptPaths.',
+      },
       // ST-148: Approval override options
       approvalOverrides: {
         type: 'object',
@@ -129,6 +138,19 @@ export async function handler(prisma: PrismaClient, params: any) {
   // ST-167: Extract storyId from context to link properly to Story table
   const storyId = params.context?.storyId as string | undefined;
 
+  // ST-172: Build initial masterTranscriptPaths from provided transcriptPath or discovered orchestrator transcript
+  const initialTranscriptPaths: string[] = [];
+  if (params.transcriptPath) {
+    // Hook provided exact path (preferred)
+    initialTranscriptPaths.push(params.transcriptPath);
+    console.log(`[ST-172] Using hook-provided transcript path: ${params.transcriptPath}`);
+  } else if (orchestratorTranscript) {
+    // Fallback: construct path from discovered filename
+    const fullPath = path.join(transcriptDirectory, orchestratorTranscript);
+    initialTranscriptPaths.push(fullPath);
+    console.log(`[ST-172] Using discovered transcript path: ${fullPath}`);
+  }
+
   const workflowRun = await prisma.workflowRun.create({
     data: {
       workflowId: workflowId,
@@ -136,6 +158,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       // ST-167: Link to Story table if storyId provided (enables status bar tracking)
       ...(storyId && { storyId }),
       status: 'running',
+      // ST-172: Store initial transcript path(s)
+      masterTranscriptPaths: initialTranscriptPaths,
       metadata: {
         ...params.context,
         _transcriptTracking: {
@@ -143,6 +167,8 @@ export async function handler(prisma: PrismaClient, params: any) {
           transcriptDirectory,
           orchestratorStartTime: new Date().toISOString(),
           orchestratorTranscript, // Specific filename (e.g., "8f9fc948-....jsonl")
+          // ST-172: sessionId for linking additional transcripts after compaction
+          sessionId: params.sessionId || null,
           // ST-105: Use orchestratorStartTime for filtering instead of file list
         },
         // ST-148: Store approval override settings for this run
@@ -251,6 +277,12 @@ export async function handler(prisma: PrismaClient, params: any) {
       claudeSessionId: claudeSessionId || null,
       error: workflowTrackerResult.error,
     } : null,
+    // ST-172: Transcript tracking info
+    transcriptTracking: {
+      masterTranscriptPaths: initialTranscriptPaths,
+      sessionId: params.sessionId || null,
+      transcriptDirectory,
+    },
     message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Use componentMap to resolve names to UUIDs.`,
   };
 }

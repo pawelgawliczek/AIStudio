@@ -762,6 +762,10 @@ model WorkflowRun {
   runnerTokensOutput   Int?    @default(0) @map("runner_tokens_output")
   totalRunnerTokens    Int?    @default(0) @map("total_runner_tokens")
 
+  // ST-172: Hook-based transcript tracking
+  masterTranscriptPaths    String[] @default([]) @map("master_transcript_paths") // All master session transcripts (including post-compact)
+  spawnedAgentTranscripts  Json?    @map("spawned_agent_transcripts") // [{componentId, agentId, transcriptPath, spawnedAt}]
+
   // ST-147: Turn Tracking (distinguish all turns vs manual input)
   totalTurns         Int? @default(0) @map("total_turns") // All human messages in transcripts
   totalManualPrompts Int? @default(0) @map("total_manual_prompts") // Actual user-typed input only
