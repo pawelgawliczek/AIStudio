@@ -68,7 +68,27 @@ fi
 # Prime context for ALL sessions (startup, resume, compact)
 # This injects VibeStudio workflow awareness into Claude's context
 # IMPORTANT: Use EOF (not 'EOF') to enable variable expansion for session identity
-cat <<EOF
+
+# ST-172: For compact, include explicit action for orchestrator to call add_transcript
+if [ "$SOURCE" = "compact" ] && [ -n "$RUN_ID" ]; then
+  cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart:compact",
+    "sessionId": "$SESSION_ID",
+    "transcriptPath": "$TRANSCRIPT_PATH",
+    "compactionInfo": {
+      "runId": "$RUN_ID",
+      "previousSessionId": "$OLD_SID",
+      "newTranscriptPath": "$TRANSCRIPT_PATH"
+    },
+    "action": "ORCHESTRATOR: Context was compacted. Call add_transcript({ type: 'master', runId: '$RUN_ID', transcriptPath: '$TRANSCRIPT_PATH' }) to register the new transcript, then call get_orchestration_context({ runId: '$RUN_ID' }) to restore workflow state.",
+    "additionalContext": "## Context Compaction Recovery\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n**Workflow Run**: \`$RUN_ID\`\\n\\n⚠️ **Context was compacted.** You are the MasterSession orchestrator. Call \`add_transcript\` to register this transcript, then \`get_orchestration_context\` to restore your workflow state."
+  }
+}
+EOF
+else
+  cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
@@ -78,5 +98,6 @@ cat <<EOF
   }
 }
 EOF
+fi
 
 exit 0

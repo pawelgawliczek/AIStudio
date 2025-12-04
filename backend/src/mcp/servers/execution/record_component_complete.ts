@@ -1,11 +1,13 @@
 /**
  * ST-110: Refactored record_component_complete to use /context command
- * Removed ALL transcript parsing (1,457 lines) and replaced with simple /context parsing
- * ST-112: Added transcriptPath parameter for spawned agent token tracking
- * ST-165: Added auto-discovery of metrics from RemoteJob.result and transcript search
- * ST-166: REMOVED transcriptMetrics parameter - caused master session to pass its own metrics
- *         instead of the spawned agent's metrics. Auto-discovery via RemoteRunner is now
- *         the primary method for getting spawned agent metrics.
+ * ST-172: Simplified to use registry-based transcript lookup (single source of truth)
+ *
+ * Two data sources for metrics:
+ * 1. contextOutput - For orchestrator's own /context command output
+ * 2. spawned_agent_transcripts registry - For spawned agents (populated by orchestrator calling add_transcript)
+ *
+ * The orchestrator must call add_transcript({ type: 'agent', componentId, transcriptPath })
+ * BEFORE calling record_agent_complete. This ensures the registry is the single source of truth.
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -14,13 +16,12 @@ import { broadcastComponentCompleted } from '../../services/websocket-gateway.in
 import { ValidationError } from '../../types';
 import { RemoteRunner } from '../../utils/remote-runner';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
-import { TranscriptParserService } from './services/transcript-parser.service';
 
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'record_agent_complete',
   description: 'Log the completion of an agent execution with output and metrics. Call this after agent logic finishes.',
-    inputSchema: {
+  inputSchema: {
     type: 'object',
     properties: {
       runId: {
@@ -44,19 +45,13 @@ export const tool: Tool = {
         type: 'string',
         description: 'Error message if status is failed',
       },
+      // ST-172: For orchestrator's own metrics (runs /context command in its session)
       contextOutput: {
         type: 'string',
         description:
-          'Raw /context command output from Claude Code. When provided, token metrics will be parsed from this output.',
+          'Raw /context command output from Claude Code. Use ONLY for orchestrator components that run /context in their own session.',
       },
-      transcriptPath: {
-        type: 'string',
-        description:
-          'Path to agent transcript JSONL file (for spawned agents). When provided, token metrics will be parsed from transcript. Only works when MCP server runs locally.',
-      },
-      // ST-166: Removed transcriptMetrics parameter - caused master session to pass its own metrics instead of agent's
-      // Auto-discovery via RemoteRunner (Priority 6) handles transcript lookup correctly using componentId search
-      // ST-147: Direct turn metrics (alternative to auto-discovered turns)
+      // ST-147: Direct turn metrics
       turnMetrics: {
         type: 'object',
         description: 'ST-147: Turn tracking metrics for session telemetry',
@@ -71,13 +66,9 @@ export const tool: Tool = {
         type: 'string',
         description: 'ST-147: AI-generated summary of what this agent accomplished',
       },
-      // Claude Code agent ID for transcript lookup
-      claudeAgentId: {
-        type: 'string',
-        description: 'Claude Code agent ID (8-char hex like "b6ebed38"). Transcript filename is agent-{claudeAgentId}.jsonl. Pass this when spawning subagents via Task tool.',
-      },
-      // ST-172: Transcript paths are now stored in WorkflowRun (masterTranscriptPaths, spawnedAgentTranscripts)
-      // and looked up automatically - no need to pass them as parameters
+      // ST-172: Transcript paths come from spawned_agent_transcripts registry
+      // The orchestrator MUST call add_transcript({ type: 'agent', componentId, transcriptPath })
+      // BEFORE calling record_agent_complete. This tool reads from the registry.
     },
     required: ['runId', 'componentId'],
   },
@@ -143,348 +134,112 @@ export async function handler(prisma: PrismaClient, params: any) {
     (completedAt.getTime() - componentRun.startedAt.getTime()) / 1000,
   );
 
-  // Parse metrics from contextOutput, transcriptMetrics, or transcriptPath
+  // ST-172: Simplified metric discovery - two sources only
   let contextMetrics: ContextMetrics | null = null;
-  let dataSource: 'context' | 'transcript' | 'transcript_metrics' | 'none' = 'none';
-
-  // Priority 1: contextOutput (orchestrator agents - ST-110 pattern)
-  if (params.contextOutput && typeof params.contextOutput === 'string') {
-    contextMetrics = parseContextOutput(params.contextOutput);
-    dataSource = 'context';
-    console.log(`[ST-110] Parsed /context output for component ${params.componentId}:`, {
-      tokensInput: contextMetrics.tokensInput,
-      tokensSystemPrompt: contextMetrics.tokensSystemPrompt,
-      tokensSystemTools: contextMetrics.tokensSystemTools,
-      tokensMcpTools: contextMetrics.tokensMcpTools,
-      tokensMemoryFiles: contextMetrics.tokensMemoryFiles,
-      tokensMessages: contextMetrics.tokensMessages,
-    });
-  }
-  // ST-166: Removed Priority 2 (transcriptMetrics) - caused master session to pass its own metrics
-  // Priority 2: transcriptPath (spawned agents - ST-112 pattern, only works locally)
-  else if (params.transcriptPath && typeof params.transcriptPath === 'string') {
-    const transcriptParser = new TranscriptParserService();
-    const transcriptMetrics = await transcriptParser.parseAgentTranscript(params.transcriptPath);
-
-    if (transcriptMetrics) {
-      // Map transcript metrics to ContextMetrics format for consistency
-      contextMetrics = {
-        tokensInput: transcriptMetrics.inputTokens,
-        tokensOutput: transcriptMetrics.outputTokens,
-        tokensSystemPrompt: null, // Not available in transcript
-        tokensSystemTools: null,  // Not available in transcript
-        tokensMcpTools: null,     // Not available in transcript
-        tokensMemoryFiles: null,  // Not available in transcript
-        tokensMessages: null,     // Not available in transcript
-        tokensCacheCreation: transcriptMetrics.cacheCreationTokens,
-        tokensCacheRead: transcriptMetrics.cacheReadTokens,
-        sessionId: transcriptMetrics.sessionId,
-      };
-      dataSource = 'transcript';
-      console.log(`[ST-112] Parsed transcript for component ${params.componentId}:`, {
-        agentId: transcriptMetrics.agentId,
-        inputTokens: transcriptMetrics.inputTokens,
-        outputTokens: transcriptMetrics.outputTokens,
-        cacheCreationTokens: transcriptMetrics.cacheCreationTokens,
-        cacheReadTokens: transcriptMetrics.cacheReadTokens,
-        totalTokens: transcriptMetrics.totalTokens,
-      });
-    } else {
-      console.warn(`[ST-112] Failed to parse transcript at ${params.transcriptPath}`);
-    }
-  }
-
-  // ST-172: Variables for discovered agent info (used across multiple priorities)
+  let dataSource: 'context' | 'transcript' | 'none' = 'none';
   let discoveredAgentId: string | undefined;
   let discoveredTranscriptPath: string | undefined;
   let turnMetrics: { totalTurns: number; manualPrompts: number; autoContinues: number } | null = null;
 
-  // ST-172: Priority 3: Construct transcript path from claudeAgentId
-  // If claudeAgentId is provided, we can construct the path directly without add_transcript
-  // Path format: ~/.claude/projects/{escapedProjectPath}/agent-{agentId}.jsonl
-  if (!contextMetrics && params.claudeAgentId) {
-    const workflowRunForPath = await prisma.workflowRun.findUnique({
-      where: { id: params.runId },
-      select: { metadata: true },
+  // Source 1: contextOutput (for orchestrator's own /context output)
+  if (params.contextOutput && typeof params.contextOutput === 'string') {
+    contextMetrics = parseContextOutput(params.contextOutput);
+    dataSource = 'context';
+    console.log(`[ST-172] Parsed /context output for component ${params.componentId}:`, {
+      tokensInput: contextMetrics.tokensInput,
+      tokensOutput: contextMetrics.tokensOutput,
     });
-
-    const metadata = workflowRunForPath?.metadata as Record<string, any> | null;
-    const transcriptTracking = metadata?._transcriptTracking as Record<string, string> | undefined;
-    const projectPath = transcriptTracking?.projectPath;
-
-    if (projectPath) {
-      // Construct the transcript path from agentId
-      // Path escaping: /Users/pawel/projects/AIStudio → -Users-pawel-projects-AIStudio
-      const escapedPath = projectPath.replace(/^\//, '-').replace(/\//g, '-');
-
-      // FIX: Extract laptop's home directory from projectPath, not server's process.env.HOME
-      // projectPath format: /Users/{username}/... (macOS) or /home/{username}/... (Linux)
-      // We need the first 3 path components to get the home directory
-      const pathParts = projectPath.split('/').filter(Boolean); // ['Users', 'pawelgawliczek', 'projects', ...]
-      let laptopHome: string;
-      if (pathParts[0] === 'Users' || pathParts[0] === 'home') {
-        // macOS: /Users/username or Linux: /home/username
-        laptopHome = `/${pathParts[0]}/${pathParts[1]}`;
-      } else {
-        // Fallback: assume first two components form the home
-        laptopHome = `/${pathParts.slice(0, 2).join('/')}`;
-      }
-
-      const constructedTranscriptPath = `${laptopHome}/.claude/projects/${escapedPath}/agent-${params.claudeAgentId}.jsonl`;
-
-      console.log(`[ST-172] Constructing agent transcript path from claudeAgentId: ${constructedTranscriptPath} (derived laptopHome: ${laptopHome})`);
-
-      // Use RemoteRunner to parse the transcript on the laptop
-      const runner = new RemoteRunner();
-      const scriptParams = [`--file=${constructedTranscriptPath}`];
-
-      interface RemoteMetrics {
-        inputTokens: number;
-        outputTokens: number;
-        cacheCreationTokens: number;
-        cacheReadTokens: number;
-        totalTokens: number;
-        model: string;
-        transcriptPath: string;
-        agentId?: string;
-        sessionId?: string;
-        turns?: {
-          totalTurns: number;
-          manualPrompts: number;
-          autoContinues: number;
-        };
-      }
-
-      const result = await runner.execute<RemoteMetrics>('parse-transcript', scriptParams, {
-        requestedBy: 'record_agent_complete',
-      });
-
-      if (result.executed && result.success && result.result) {
-        const metrics = result.result;
-        contextMetrics = {
-          tokensInput: metrics.inputTokens,
-          tokensOutput: metrics.outputTokens,
-          tokensSystemPrompt: null,
-          tokensSystemTools: null,
-          tokensMcpTools: null,
-          tokensMemoryFiles: null,
-          tokensMessages: null,
-          tokensCacheCreation: metrics.cacheCreationTokens,
-          tokensCacheRead: metrics.cacheReadTokens,
-          sessionId: metrics.sessionId || null,
-        };
-        dataSource = 'transcript';
-        discoveredAgentId = params.claudeAgentId;
-        discoveredTranscriptPath = constructedTranscriptPath;
-
-        // Extract turn metrics if available
-        if (metrics.turns && !turnMetrics) {
-          turnMetrics = {
-            totalTurns: metrics.turns.totalTurns,
-            manualPrompts: metrics.turns.manualPrompts,
-            autoContinues: metrics.turns.autoContinues,
-          };
-        }
-
-        console.log(`[ST-172] Parsed agent transcript via claudeAgentId for component ${params.componentId}:`, {
-          claudeAgentId: params.claudeAgentId,
-          transcriptPath: constructedTranscriptPath,
-          inputTokens: metrics.inputTokens,
-          outputTokens: metrics.outputTokens,
-        });
-      } else {
-        console.log(`[ST-172] Failed to parse transcript for claudeAgentId ${params.claudeAgentId}:`, {
-          executed: result.executed,
-          success: result.success,
-          error: result.error,
-        });
-      }
-    }
   }
 
-  // ST-172: Priority 4: Look up transcript from WorkflowRun's stored paths (fallback)
-  // - spawnedAgentTranscripts: for spawned agents (match by componentId)
-  // - masterTranscriptPaths: for orchestrator/master session
+  // Source 2: spawned_agent_transcripts registry (SINGLE SOURCE OF TRUTH for spawned agents)
+  // The orchestrator MUST call add_transcript({ type: 'agent', componentId, transcriptPath })
+  // BEFORE calling record_agent_complete
   if (!contextMetrics) {
     const workflowRunForTranscript = await prisma.workflowRun.findUnique({
       where: { id: params.runId },
       select: {
-        masterTranscriptPaths: true,
         spawnedAgentTranscripts: true,
+        metadata: true,
       },
     });
 
     if (workflowRunForTranscript) {
-      // First check if this component has a spawned agent transcript
       const spawnedAgents = (workflowRunForTranscript.spawnedAgentTranscripts as any[] | null) || [];
       const agentEntry = spawnedAgents.find((a: any) => a.componentId === params.componentId);
 
       if (agentEntry?.transcriptPath) {
-        // Found spawned agent transcript - parse it
-        const transcriptParser = new TranscriptParserService();
-        const transcriptMetrics = await transcriptParser.parseAgentTranscript(agentEntry.transcriptPath);
+        // Found in registry - use RemoteRunner to parse the transcript on the laptop
+        const runner = new RemoteRunner();
+        const scriptParams = [`--file=${agentEntry.transcriptPath}`];
 
-        if (transcriptMetrics) {
+        console.log(`[ST-172] Found agent transcript in registry for component ${params.componentId}: ${agentEntry.transcriptPath}`);
+
+        interface RemoteMetrics {
+          inputTokens: number;
+          outputTokens: number;
+          cacheCreationTokens: number;
+          cacheReadTokens: number;
+          totalTokens: number;
+          model: string;
+          transcriptPath: string;
+          agentId?: string;
+          sessionId?: string;
+          turns?: {
+            totalTurns: number;
+            manualPrompts: number;
+            autoContinues: number;
+          };
+        }
+
+        const result = await runner.execute<RemoteMetrics>('parse-transcript', scriptParams, {
+          requestedBy: 'record_agent_complete',
+        });
+
+        if (result.executed && result.success && result.result) {
+          const metrics = result.result;
           contextMetrics = {
-            tokensInput: transcriptMetrics.inputTokens,
-            tokensOutput: transcriptMetrics.outputTokens,
+            tokensInput: metrics.inputTokens,
+            tokensOutput: metrics.outputTokens,
             tokensSystemPrompt: null,
             tokensSystemTools: null,
             tokensMcpTools: null,
             tokensMemoryFiles: null,
             tokensMessages: null,
-            tokensCacheCreation: transcriptMetrics.cacheCreationTokens,
-            tokensCacheRead: transcriptMetrics.cacheReadTokens,
-            sessionId: transcriptMetrics.sessionId,
+            tokensCacheCreation: metrics.cacheCreationTokens,
+            tokensCacheRead: metrics.cacheReadTokens,
+            sessionId: metrics.sessionId || null,
           };
           dataSource = 'transcript';
-          console.log(`[ST-172] Parsed spawned agent transcript from DB for component ${params.componentId}:`, {
+          discoveredAgentId = agentEntry.agentId || metrics.agentId;
+          discoveredTranscriptPath = agentEntry.transcriptPath;
+
+          if (metrics.turns) {
+            turnMetrics = {
+              totalTurns: metrics.turns.totalTurns,
+              manualPrompts: metrics.turns.manualPrompts,
+              autoContinues: metrics.turns.autoContinues,
+            };
+          }
+
+          console.log(`[ST-172] Parsed agent transcript for component ${params.componentId}:`, {
+            agentId: discoveredAgentId,
             transcriptPath: agentEntry.transcriptPath,
-            inputTokens: transcriptMetrics.inputTokens,
-            outputTokens: transcriptMetrics.outputTokens,
+            inputTokens: metrics.inputTokens,
+            outputTokens: metrics.outputTokens,
+          });
+        } else {
+          console.warn(`[ST-172] Failed to parse transcript at ${agentEntry.transcriptPath}:`, {
+            executed: result.executed,
+            success: result.success,
+            error: result.error,
           });
         }
-      }
-    }
-  }
-
-  // ST-165: Priority 5: Check RemoteJob.result for laptop-executed agents
-  if (!contextMetrics && componentRun.remoteJobId) {
-    const remoteJob = await prisma.remoteJob.findUnique({
-      where: { id: componentRun.remoteJobId },
-      select: { result: true, status: true },
-    });
-
-    if (remoteJob?.status === 'completed' && remoteJob.result) {
-      const result = remoteJob.result as Record<string, unknown>;
-      const metrics = result.metrics as Record<string, number> | undefined;
-
-      if (metrics) {
-        contextMetrics = {
-          tokensInput: metrics.inputTokens || 0,
-          tokensOutput: metrics.outputTokens || 0,
-          tokensSystemPrompt: null,
-          tokensSystemTools: null,
-          tokensMcpTools: null,
-          tokensMemoryFiles: null,
-          tokensMessages: null,
-          tokensCacheCreation: metrics.cacheCreationTokens || 0,
-          tokensCacheRead: metrics.cacheReadTokens || 0,
-          sessionId: (result.sessionId as string) || null,
-        };
-        dataSource = 'transcript_metrics';
-        console.log(`[ST-165] Auto-extracted metrics from RemoteJob.result for component ${params.componentId}:`, {
-          inputTokens: metrics.inputTokens,
-          outputTokens: metrics.outputTokens,
-          cacheCreationTokens: metrics.cacheCreationTokens,
-          cacheReadTokens: metrics.cacheReadTokens,
-          totalTokens: metrics.totalTokens,
-          remoteJobId: componentRun.remoteJobId,
-        });
-      }
-    }
-  }
-
-  // ST-165: Priority 6: Auto-search for transcript via RemoteRunner
-  // Executes parse-transcript.ts on laptop where transcripts live
-  // Stores: metrics + agentId + sessionId + transcriptPath
-  // Note: discoveredAgentId, discoveredTranscriptPath, turnMetrics declared above at Priority 3
-
-  if (!contextMetrics) {
-    // Get the project path from WorkflowRun.metadata._transcriptTracking.projectPath
-    const workflowRun = await prisma.workflowRun.findUnique({
-      where: { id: params.runId },
-      select: {
-        metadata: true,
-        project: {
-          select: { hostPath: true },
-        },
-      },
-    });
-
-    // Extract projectPath from metadata._transcriptTracking (stored by start_workflow_run with cwd)
-    const metadata = workflowRun?.metadata as Record<string, any> | null;
-    const transcriptTracking = metadata?._transcriptTracking as Record<string, string> | undefined;
-    const projectPath = transcriptTracking?.projectPath ||
-                        workflowRun?.project?.hostPath ||
-                        process.env.PROJECT_HOST_PATH;
-
-    if (projectPath) {
-      // Use RemoteRunner to execute parse-transcript.ts on laptop
-      const runner = new RemoteRunner();
-
-      // Build search content - prefer componentId, fallback to runId
-      const searchContent = params.componentId || params.runId;
-      const scriptParams = [`--search=${searchContent}`, `--path=${projectPath}`];
-
-      console.log(`[ST-165] Auto-searching transcript via RemoteRunner: search=${searchContent}, path=${projectPath}`);
-
-      interface RemoteMetrics {
-        inputTokens: number;
-        outputTokens: number;
-        cacheCreationTokens: number;
-        cacheReadTokens: number;
-        totalTokens: number;
-        model: string;
-        transcriptPath: string;
-        agentId?: string;
-        sessionId?: string;
-        turns?: {
-          totalTurns: number;
-          manualPrompts: number;
-          autoContinues: number;
-        };
-      }
-
-      const result = await runner.execute<RemoteMetrics>('parse-transcript', scriptParams, {
-        requestedBy: 'record_agent_complete',
-      });
-
-      if (result.executed && result.success && result.result) {
-        const metrics = result.result;
-        contextMetrics = {
-          tokensInput: metrics.inputTokens,
-          tokensOutput: metrics.outputTokens,
-          tokensSystemPrompt: null,
-          tokensSystemTools: null,
-          tokensMcpTools: null,
-          tokensMemoryFiles: null,
-          tokensMessages: null,
-          tokensCacheCreation: metrics.cacheCreationTokens,
-          tokensCacheRead: metrics.cacheReadTokens,
-          sessionId: metrics.sessionId || null,
-        };
-        dataSource = 'transcript';
-        discoveredAgentId = metrics.agentId;
-        discoveredTranscriptPath = metrics.transcriptPath;
-
-        // Also extract turn metrics if available
-        if (metrics.turns && !turnMetrics) {
-          turnMetrics = {
-            totalTurns: metrics.turns.totalTurns,
-            manualPrompts: metrics.turns.manualPrompts,
-            autoContinues: metrics.turns.autoContinues,
-          };
-        }
-
-        console.log(`[ST-165] Auto-parsed transcript via RemoteRunner for component ${params.componentId}:`, {
-          transcriptPath: metrics.transcriptPath,
-          agentId: metrics.agentId,
-          inputTokens: metrics.inputTokens,
-          outputTokens: metrics.outputTokens,
-          cacheCreationTokens: metrics.cacheCreationTokens,
-          totalTokens: metrics.totalTokens,
-        });
       } else {
-        console.log(`[ST-165] RemoteRunner transcript search failed:`, {
-          executed: result.executed,
-          success: result.success,
-          error: result.error,
-          agentOffline: !result.executed,
-        });
+        // Not in registry - this is expected for orchestrator components that use contextOutput
+        // or indicates the orchestrator didn't call add_transcript before record_agent_complete
+        console.log(`[ST-172] No transcript in registry for component ${params.componentId}. ` +
+          `For spawned agents, ensure add_transcript({ type: 'agent', componentId, transcriptPath }) was called.`);
       }
-    } else {
-      console.log(`[ST-165] Cannot auto-search transcript: no project path available (did start_team_run receive cwd?)`);
     }
   }
 
@@ -494,10 +249,9 @@ export async function handler(prisma: PrismaClient, params: any) {
     select: { name: true },
   });
 
-  // ST-147: Extract turn metrics from various sources
-  // Note: turnMetrics may already be set by RemoteRunner above
-
-  // Priority 1: Direct turnMetrics parameter (overrides RemoteRunner auto-discovery)
+  // ST-147: Extract turn metrics
+  // Priority 1: Direct turnMetrics parameter
+  // Priority 2: From transcript parsing (set above)
   if (params.turnMetrics && typeof params.turnMetrics === 'object') {
     turnMetrics = {
       totalTurns: params.turnMetrics.totalTurns || 0,
@@ -506,8 +260,6 @@ export async function handler(prisma: PrismaClient, params: any) {
     };
     console.log(`[ST-147] Direct turn metrics for component ${params.componentId}:`, turnMetrics);
   }
-  // ST-166: Removed Priority 2 (transcriptMetrics.turns) - transcriptMetrics parameter removed
-  // Priority 2: Turn metrics from RemoteRunner (set above in contextMetrics block)
 
   // Update ComponentRun record with /context or transcript metrics
   const updatedComponentRun = await prisma.componentRun.update({
@@ -530,10 +282,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       totalTurns: turnMetrics?.totalTurns || null,
       manualPrompts: turnMetrics?.manualPrompts || null,
       autoContinues: turnMetrics?.autoContinues || null,
-      // ST-147: Transcript path, agent ID, and component summary
-      // Priority: explicit params > auto-discovered values
-      transcriptPath: params.transcriptPath || discoveredTranscriptPath || null,
-      claudeAgentId: params.claudeAgentId || discoveredAgentId || null,
+      // ST-172: Transcript path and agent ID from registry (single source of truth)
+      transcriptPath: discoveredTranscriptPath || null,
+      claudeAgentId: discoveredAgentId || null,
       componentSummary: params.componentSummary || null,
       // ST-112: Store cache tokens in metadata (no dedicated fields in schema)
       metadata: contextMetrics?.tokensCacheCreation || contextMetrics?.tokensCacheRead
