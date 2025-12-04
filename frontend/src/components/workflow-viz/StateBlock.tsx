@@ -1,6 +1,19 @@
 /**
  * StateBlock Component
- * ST-168: Individual state visualization with phases
+ * ST-168: Individual state visualization with phases matching design
+ * Theme-friendly (supports dark/light mode)
+ *
+ * Design from plan:
+ * ┌─ STATE 1: Analysis ─────────────────────────────────── ✓ COMPLETED ─────┐
+ * │                                                                         │
+ * │  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐  │
+ * │  │  PRE-EXECUTION   │───▶│   AGENT: BA      │───▶│  POST-EXECUTION  │  │
+ * │  │  ────────────    │    │   ────────────   │    │  ────────────    │  │
+ * │  │  📋 Read story   │    │  🤖 Analyze req  │    │  📄 Save artifact │  │
+ * │  └──────────────────┘    └──────────────────┘    └──────────────────┘  │
+ * │                                                                         │
+ * │  📊 Tokens: 2,450  ⏱ 45s  📁 Artifacts: BA_ANALYSIS                    │
+ * └─────────────────────────────────────────────────────────────────────────┘
  */
 
 import React, { useEffect, useState } from 'react';
@@ -17,11 +30,9 @@ export const StateBlock: React.FC<StateBlockProps> = ({
 }) => {
   const [liveDuration, setLiveDuration] = useState<string>('');
 
-  // Determine state status from componentRun or state itself (for tests/simple data)
+  // Determine state status from componentRun or state itself
   const getStateStatus = (): StateStatus => {
-    // First check componentRun (production data)
     if (componentRun?.status) return componentRun.status as StateStatus;
-    // Fallback to state.status (test data / simple mode)
     if ((state as any).status) return (state as any).status as StateStatus;
     return 'pending';
   };
@@ -34,7 +45,6 @@ export const StateBlock: React.FC<StateBlockProps> = ({
       const interval = setInterval(() => {
         setLiveDuration(formatDuration(componentRun.startedAt));
       }, 1000);
-
       return () => clearInterval(interval);
     }
   }, [status, componentRun?.startedAt]);
@@ -43,9 +53,7 @@ export const StateBlock: React.FC<StateBlockProps> = ({
   const displayName =
     variant === 'compact' ? state.name.substring(0, 4) : state.name;
 
-  const handleClick = () => {
-    onToggle();
-  };
+  const handleClick = () => onToggle();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -54,170 +62,274 @@ export const StateBlock: React.FC<StateBlockProps> = ({
     }
   };
 
+  // Get phase status based on overall state status
+  const getPhaseStatus = (phase: 'pre' | 'agent' | 'post') => {
+    if (status === 'completed') return 'completed';
+    if (status === 'failed') return phase === 'agent' ? 'failed' : 'completed';
+    if (status === 'running') {
+      if (phase === 'pre') return 'completed';
+      if (phase === 'agent') return 'running';
+      return 'pending';
+    }
+    return 'pending';
+  };
+
+  // Status icon for each phase
+  const PhaseStatusIcon: React.FC<{ phaseStatus: string }> = ({ phaseStatus }) => {
+    switch (phaseStatus) {
+      case 'completed':
+        return <span className="text-green-600 dark:text-green-400">✓</span>;
+      case 'running':
+        return <span className="text-blue-600 dark:text-blue-400 animate-pulse">▶</span>;
+      case 'failed':
+        return <span className="text-red-600 dark:text-red-400">✕</span>;
+      default:
+        return <span className="text-gray-400 dark:text-gray-500">○</span>;
+    }
+  };
+
+  // Progress calculation for running states
+  const getProgress = () => {
+    if (status === 'completed') return 100;
+    if (status === 'running') {
+      const preStatus = getPhaseStatus('pre');
+      const agentStatus = getPhaseStatus('agent');
+      if (preStatus === 'completed' && agentStatus === 'running') return 50;
+      if (preStatus === 'completed') return 33;
+      return 10;
+    }
+    return 0;
+  };
+
+  // Border color based on status (theme-aware)
+  const getBorderColor = () => {
+    switch (status) {
+      case 'completed':
+        return 'border-green-400 dark:border-green-500/50';
+      case 'running':
+        return 'border-blue-400 dark:border-blue-500/50';
+      case 'failed':
+        return 'border-red-400 dark:border-red-500/50';
+      case 'paused':
+        return 'border-yellow-400 dark:border-yellow-500/50';
+      default:
+        return 'border-gray-300 dark:border-gray-700';
+    }
+  };
+
+  // Header background based on status (theme-aware)
+  const getHeaderBg = () => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-50 dark:bg-green-500/10';
+      case 'running':
+        return 'bg-blue-50 dark:bg-blue-500/10';
+      case 'failed':
+        return 'bg-red-50 dark:bg-red-500/10';
+      case 'paused':
+        return 'bg-yellow-50 dark:bg-yellow-500/10';
+      default:
+        return 'bg-gray-50 dark:bg-gray-800/50';
+    }
+  };
+
+  // Phase box classes based on phase status (theme-aware)
+  const getPhaseBoxClasses = (phaseStatus: string) => {
+    switch (phaseStatus) {
+      case 'completed':
+        return 'border-green-300 dark:border-green-500/30 bg-green-50 dark:bg-green-500/5';
+      case 'running':
+        return 'border-blue-400 dark:border-blue-500/50 bg-blue-50 dark:bg-blue-500/10';
+      case 'failed':
+        return 'border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-500/5';
+      default:
+        return 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50';
+    }
+  };
+
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden my-2">
-      {/* Header - Always visible */}
+    <div
+      className={`rounded-lg overflow-hidden border-2 ${getBorderColor()} transition-all duration-200`}
+    >
+      {/* State Header */}
       <button
         onClick={handleClick}
         onKeyDown={handleKeyDown}
-        className="w-full p-4 flex items-center justify-between hover:bg-gray-800/50 transition-colors text-left"
+        className={`w-full p-3 flex items-center justify-between ${getHeaderBg()} hover:bg-gray-100 dark:hover:bg-gray-800/80 transition-colors text-left`}
         aria-expanded={isExpanded}
         aria-controls={`state-${state.id}`}
         role="button"
         tabIndex={0}
       >
-        <div className="flex items-center gap-3 flex-1">
-          <div className="text-gray-400">
+        <div className="flex items-center gap-3">
+          <div className="text-gray-500 dark:text-gray-400 text-sm">
             {isExpanded ? '▼' : '▶'}
           </div>
-          <div className="flex-1">
+          <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold">{displayName}</h3>
+              <span className="text-xs text-gray-500 dark:text-gray-500 font-mono">
+                STATE {state.order}:
+              </span>
+              <h3 className="font-semibold text-gray-900 dark:text-white">{displayName}</h3>
               {state.requiresApproval && (
                 <span
                   data-testid="approval-gate-icon"
-                  className="text-xs text-purple-400"
+                  className="px-1.5 py-0.5 text-xs bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded"
                   title="Approval required"
                 >
-                  👤
+                  👤 Approval
                 </span>
               )}
-              {variant === 'full' && (
-                <span className="text-xs text-gray-500">
-                  {state.runLocation === 'laptop' ? (
-                    <span data-testid="laptop-icon" title="Runs on laptop">
-                      💻 laptop
-                    </span>
-                  ) : (
-                    <span data-testid="local-icon" title="Runs locally">
-                      🖥 local
-                    </span>
-                  )}
-                </span>
-              )}
+              <span className="text-xs text-gray-500 dark:text-gray-500">
+                {state.runLocation === 'laptop' ? '💻 laptop' : '🖥 local'}
+              </span>
             </div>
-            {state.requiresApproval && !isExpanded && (
-              <div className="text-xs text-purple-400 mt-1">
-                Approval required after completion
-              </div>
-            )}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <span data-testid="state-status" className={getStatusClasses(status)}>
+            {status === 'completed' && '✓ '}
+            {status === 'running' && '▶ '}
+            {status === 'failed' && '✕ '}
+            {status === 'paused' && '⏸ '}
             {getStatusLabel(status)}
           </span>
         </div>
       </button>
 
-      {/* Expanded content */}
-      {isExpanded && (
+      {/* Progress bar for running states */}
+      {status === 'running' && (
+        <div className="h-1 bg-gray-200 dark:bg-gray-700">
+          <div
+            className="h-full bg-blue-500 transition-all duration-500 animate-pulse"
+            style={{ width: `${getProgress()}%` }}
+          />
+        </div>
+      )}
+
+      {/* Always show phase visualization for full variant, or when expanded */}
+      {(variant === 'full' || isExpanded) && (
         <div
           id={`state-${state.id}`}
           data-testid={`state-block-expanded-${state.id}`}
-          className="p-4 border-t border-gray-700 bg-gray-900/50"
+          className="p-4 bg-white dark:bg-gray-900/80"
         >
-          {/* Phase visualization */}
-          <div className="space-y-4">
-            {/* Pre-execution phase */}
-            <div className="border-l-4 border-gray-600 pl-4">
-              <div className="text-sm font-semibold text-gray-400 mb-1">
-                PRE-EXECUTION
+          {/* Three-phase horizontal layout */}
+          <div className="flex items-stretch gap-2 mb-4">
+            {/* PRE-EXECUTION Phase */}
+            <div className={`flex-1 rounded-lg border ${getPhaseBoxClasses(getPhaseStatus('pre'))} p-3`}>
+              <div className="flex items-center gap-2 mb-2">
+                <PhaseStatusIcon phaseStatus={getPhaseStatus('pre')} />
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  Pre-Execution
+                </span>
               </div>
-              {state.preExecutionInstructions && (
-                <div className="text-xs text-gray-500 mt-2">
-                  {state.preExecutionInstructions}
-                </div>
-              )}
-            </div>
-
-            {/* Agent execution phase */}
-            <div className="border-l-4 border-blue-500 pl-4">
-              <div className="text-sm font-semibold text-blue-400 mb-1">
-                AGENT EXECUTION
-              </div>
-              {componentRun && (
-                <div className="text-xs text-gray-500 mt-2">
-                  Component: {componentRun.componentName || 'Unknown'}
-                  {status === 'running' && (
-                    <span className="ml-2 text-blue-400">▶ EXECUTING...</span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Post-execution phase */}
-            <div className="border-l-4 border-gray-600 pl-4">
-              <div className="text-sm font-semibold text-gray-400 mb-1">
-                POST-EXECUTION
-              </div>
-              {state.postExecutionInstructions && (
-                <div className="text-xs text-gray-500 mt-2">
-                  {state.postExecutionInstructions}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Metrics */}
-          {componentRun && (
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="text-sm text-gray-400 space-y-1">
-                {componentRun.tokenMetrics && (
-                  <div>
-                    📊 Tokens:{' '}
-                    <span className="text-gray-200">
-                      {formatTokens(componentRun.tokenMetrics.inputTokens)}{' '}
-                    </span>
-                    in /{' '}
-                    <span className="text-gray-200">
-                      {formatTokens(componentRun.tokenMetrics.outputTokens)}
-                    </span>{' '}
-                    out /{' '}
-                    <span className="text-gray-200">
-                      {formatTokens(componentRun.tokenMetrics.totalTokens)}
-                    </span>{' '}
-                    total
-                  </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500">
+                {state.preExecutionInstructions ? (
+                  <div className="line-clamp-2">{state.preExecutionInstructions}</div>
+                ) : (
+                  <span className="italic">No pre-instructions</span>
                 )}
-                {componentRun.completedAt ? (
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex items-center text-gray-400 dark:text-gray-500">→</div>
+
+            {/* AGENT Phase */}
+            <div className={`flex-1 rounded-lg border ${getPhaseBoxClasses(getPhaseStatus('agent'))} p-3`}>
+              <div className="flex items-center gap-2 mb-2">
+                <PhaseStatusIcon phaseStatus={getPhaseStatus('agent')} />
+                <span className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
+                  🤖 Agent
+                </span>
+                {status === 'running' && (
+                  <span className="ml-auto text-xs text-blue-600 dark:text-blue-400 animate-pulse">
+                    Executing...
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500">
+                {componentRun ? (
                   <div>
-                    ⏱{' '}
-                    {formatDuration(
-                      componentRun.startedAt,
-                      componentRun.completedAt
+                    <div className="text-gray-700 dark:text-gray-300 font-medium">
+                      {componentRun.componentName || 'Component'}
+                    </div>
+                    {status === 'running' && liveDuration && (
+                      <div className="text-blue-600 dark:text-blue-400 mt-1">⏱ {liveDuration}</div>
                     )}
                   </div>
                 ) : (
-                  status === 'running' && (
-                    <div data-testid="live-duration">
-                      ⏱ {liveDuration || formatDuration(componentRun.startedAt)}
-                    </div>
-                  )
+                  <span className="italic">No agent assigned</span>
                 )}
               </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex items-center text-gray-400 dark:text-gray-500">→</div>
+
+            {/* POST-EXECUTION Phase */}
+            <div className={`flex-1 rounded-lg border ${getPhaseBoxClasses(getPhaseStatus('post'))} p-3`}>
+              <div className="flex items-center gap-2 mb-2">
+                <PhaseStatusIcon phaseStatus={getPhaseStatus('post')} />
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  Post-Execution
+                </span>
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-500">
+                {state.postExecutionInstructions ? (
+                  <div className="line-clamp-2">{state.postExecutionInstructions}</div>
+                ) : (
+                  <span className="italic">No post-instructions</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Metrics bar at bottom */}
+          {componentRun && (
+            <div className="flex items-center gap-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+              {componentRun.tokenMetrics && (
+                <div className="flex items-center gap-1">
+                  <span>📊</span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {formatTokens(componentRun.tokenMetrics.totalTokens)}
+                  </span>
+                  <span>tokens</span>
+                </div>
+              )}
+              {(componentRun.completedAt || status === 'running') && (
+                <div className="flex items-center gap-1">
+                  <span>⏱</span>
+                  <span className="text-gray-700 dark:text-gray-300" data-testid="live-duration">
+                    {componentRun.completedAt
+                      ? formatDuration(componentRun.startedAt, componentRun.completedAt)
+                      : liveDuration || formatDuration(componentRun.startedAt)}
+                  </span>
+                </div>
+              )}
+              {state.requiresApproval && (
+                <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                  <span>👤</span>
+                  <span>Approval required</span>
+                </div>
+              )}
             </div>
           )}
 
           {/* Error display */}
           {status === 'failed' && componentRun?.errorMessage && (
-            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded">
+            <div className="mt-3 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded">
               <div className="flex items-start gap-2">
-                <span data-testid="error-icon" className="text-red-400">
-                  ⚠️
-                </span>
+                <span data-testid="error-icon" className="text-red-600 dark:text-red-400">⚠️</span>
                 <div className="flex-1">
-                  <div className="text-sm text-red-400 font-semibold mb-1">
-                    Error
-                  </div>
-                  <div className="text-xs text-red-300">
-                    {componentRun.errorMessage}
-                  </div>
+                  <div className="text-sm text-red-700 dark:text-red-400 font-semibold mb-1">Error</div>
+                  <div className="text-xs text-red-600 dark:text-red-300">{componentRun.errorMessage}</div>
                 </div>
               </div>
               <button
-                className="mt-3 px-3 py-1 text-xs rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+                className="mt-3 px-3 py-1 text-xs rounded bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/30 text-blue-700 dark:text-blue-400"
                 aria-label="Retry"
               >
                 Retry

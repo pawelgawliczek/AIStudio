@@ -1,6 +1,7 @@
 /**
  * FullStatePanel Component
  * ST-168: Full-featured panel for Workflow Monitor Page
+ * Theme-friendly (supports dark/light mode)
  */
 
 import React from 'react';
@@ -20,40 +21,54 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
 
   return (
     <div data-testid="full-state-panel" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      {/* Main state list */}
-      <div className="lg:col-span-2 space-y-2">
-        {sortedStates.map((state) => {
+      {/* Main state list - takes 2 columns */}
+      <div className="lg:col-span-2 space-y-4">
+        {sortedStates.map((state, index) => {
           const componentRun = componentRuns?.find(
             (run) => run.id === state.id || run.componentId === state.componentId
           );
 
           return (
-            <StateBlock
-              key={state.id}
-              state={state}
-              componentRun={componentRun}
-              isExpanded={expandedStates.has(state.id)}
-              onToggle={() => onToggle(state.id)}
-              variant="full"
-            />
+            <React.Fragment key={state.id}>
+              {/* Breakpoint indicator between states */}
+              {index > 0 && (
+                <div className="flex justify-center py-1">
+                  <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
+                </div>
+              )}
+              <StateBlock
+                state={state}
+                componentRun={componentRun}
+                isExpanded={expandedStates.has(state.id)}
+                onToggle={() => onToggle(state.id)}
+                variant="full"
+              />
+            </React.Fragment>
           );
         })}
       </div>
 
-      {/* Side panels */}
+      {/* Side panels - 1 column */}
       <div className="space-y-4">
         {showLiveStream && (
           <div
             data-testid="live-execution-stream"
-            className="p-4 bg-gray-900 rounded-lg border border-gray-700"
+            className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
           >
-            <h3 className="text-sm font-semibold mb-2">Live Execution Stream</h3>
-            <div className="text-xs text-gray-400">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+              Live Execution Stream
+            </h3>
+            <div className="text-xs">
               <div className="flex items-center gap-2 mb-2">
-                <span data-testid="ws-status-connected" className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span>Connected</span>
+                <span
+                  data-testid="ws-status-connected"
+                  className="w-2 h-2 bg-green-500 rounded-full animate-pulse"
+                />
+                <span className="text-green-700 dark:text-green-400">Connected</span>
               </div>
-              <div className="text-gray-500">No active execution</div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-gray-500 dark:text-gray-400 min-h-[100px]">
+                No active execution
+              </div>
             </div>
           </div>
         )}
@@ -61,17 +76,23 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
         {showArtifacts && (
           <div
             data-testid="artifact-panel"
-            className="p-4 bg-gray-900 rounded-lg border border-gray-700"
+            className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
           >
-            <h3 className="text-sm font-semibold mb-2">Artifacts</h3>
-            <div className="text-xs text-gray-400">No artifacts yet</div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+              Artifacts
+            </h3>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              No artifacts yet
+            </div>
           </div>
         )}
 
         {showBreakpointControls && (
-          <div className="p-4 bg-gray-900 rounded-lg border border-gray-700">
-            <h3 className="text-sm font-semibold mb-2">Breakpoints</h3>
-            <button className="w-full px-3 py-2 text-xs rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-400">
+          <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+              Breakpoints
+            </h3>
+            <button className="w-full px-3 py-2 text-xs rounded bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/30 text-blue-700 dark:text-blue-400 transition-colors">
               Add Breakpoint
             </button>
           </div>
