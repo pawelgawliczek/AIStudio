@@ -9,6 +9,7 @@ import {
   HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
+import { IsString, IsOptional, IsBoolean, IsNumber, IsObject, IsIn } from 'class-validator';
 import { ApprovalService, CreateApprovalParams, ApprovalRequestData } from './approval.service';
 import { BreakpointService, BreakpointContext, BreakpointData } from './breakpoint.service';
 import { RunnerService, RunnerCheckpoint, RunnerStatus } from './runner.service';
@@ -67,12 +68,31 @@ class RecordBreakpointHitDto {
  * ST-168: REST API for UI breakpoint creation
  */
 class CreateBreakpointDto {
+  @IsString()
   runId: string;
+
+  @IsOptional()
+  @IsString()
   stateId?: string;
+
+  @IsOptional()
+  @IsString()
   stateName?: string;
+
+  @IsOptional()
+  @IsNumber()
   stateOrder?: number;
+
+  @IsOptional()
+  @IsIn(['before', 'after'])
   position?: 'before' | 'after';
+
+  @IsOptional()
+  @IsObject()
   condition?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsBoolean()
   isTemporary?: boolean;
 }
 
