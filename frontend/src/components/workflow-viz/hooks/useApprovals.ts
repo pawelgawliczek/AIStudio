@@ -48,6 +48,18 @@ function transformApiApproval(apiApproval: ApiApprovalRequest): ApprovalRequest 
   };
 }
 
+/**
+ * Get project ID from localStorage
+ */
+function getProjectId(): string {
+  const projectId = localStorage.getItem('selectedProjectId') ||
+                   localStorage.getItem('currentProjectId');
+  if (!projectId) {
+    throw new Error('No project selected');
+  }
+  return projectId;
+}
+
 export function useApprovals(options: UseApprovalsOptions) {
   const { runId, enabled = true } = options;
   const queryClient = useQueryClient();
@@ -56,8 +68,9 @@ export function useApprovals(options: UseApprovalsOptions) {
   const { data, isLoading, error, refetch } = useQuery<ApprovalRequest[]>({
     queryKey: ['approvals', runId],
     queryFn: async () => {
+      const projectId = getProjectId();
       const response = await axios.get<ApiApprovalRequest[]>(
-        `/api/workflow-runs/${runId}/approvals`
+        `/api/projects/${projectId}/workflow-runs/${runId}/approvals`
       );
       return response.data.map(transformApiApproval);
     },
@@ -74,8 +87,9 @@ export function useApprovals(options: UseApprovalsOptions) {
         throw new Error('No pending approval found');
       }
 
+      const projectId = getProjectId();
       const response = await axios.post(
-        `/api/workflow-runs/${runId}/approvals/${pendingApproval.id}/respond`,
+        `/api/projects/${projectId}/workflow-runs/${runId}/approvals/${pendingApproval.id}/respond`,
         {
           runId,
           ...params,

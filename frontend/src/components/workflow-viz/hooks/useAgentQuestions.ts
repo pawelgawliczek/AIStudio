@@ -52,6 +52,18 @@ function transformApiQuestion(apiQuestion: ApiAgentQuestion): AgentQuestion {
   };
 }
 
+/**
+ * Get project ID from localStorage
+ */
+function getProjectId(): string {
+  const projectId = localStorage.getItem('selectedProjectId') ||
+                   localStorage.getItem('currentProjectId');
+  if (!projectId) {
+    throw new Error('No project selected');
+  }
+  return projectId;
+}
+
 export function useAgentQuestions(options: UseAgentQuestionsOptions) {
   const { runId, enabled = true } = options;
   const queryClient = useQueryClient();
@@ -60,8 +72,9 @@ export function useAgentQuestions(options: UseAgentQuestionsOptions) {
   const { data, isLoading, error, refetch } = useQuery<AgentQuestion[]>({
     queryKey: ['agent-questions', runId],
     queryFn: async () => {
+      const projectId = getProjectId();
       const response = await axios.get<ApiAgentQuestion[]>(
-        `/api/workflow-runs/${runId}/questions`
+        `/api/projects/${projectId}/workflow-runs/${runId}/questions`
       );
       return response.data.map(transformApiQuestion);
     },
@@ -80,8 +93,9 @@ export function useAgentQuestions(options: UseAgentQuestionsOptions) {
       questionId: string;
       params: AnswerQuestionParams;
     }) => {
+      const projectId = getProjectId();
       const response = await axios.post(
-        `/api/questions/${questionId}/answer`,
+        `/api/projects/${projectId}/questions/${questionId}/answer`,
         {
           ...params,
           answeredBy: params.answeredBy || 'user',
@@ -98,7 +112,8 @@ export function useAgentQuestions(options: UseAgentQuestionsOptions) {
   // Handoff session mutation
   const handoffSession = useMutation({
     mutationFn: async (params: HandoffSessionParams) => {
-      const response = await axios.post('/api/sessions/handoff', {
+      const projectId = getProjectId();
+      const response = await axios.post(`/api/projects/${projectId}/sessions/handoff`, {
         ...params,
         handoffBy: params.handoffBy || 'user',
       });

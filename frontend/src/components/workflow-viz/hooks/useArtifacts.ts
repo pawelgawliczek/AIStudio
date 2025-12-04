@@ -64,6 +64,13 @@ export function useArtifacts(options: UseArtifactsOptions) {
   const { data, isLoading, error, refetch } = useQuery<Artifact[]>({
     queryKey: ['artifacts', runId, definitionKey, includeContent],
     queryFn: async () => {
+      // Get projectId from localStorage (set by ProjectContext)
+      const projectId = localStorage.getItem('selectedProjectId') ||
+                       localStorage.getItem('currentProjectId');
+      if (!projectId) {
+        throw new Error('No project selected');
+      }
+
       const params = new URLSearchParams();
       if (definitionKey) {
         params.append('definitionKey', definitionKey);
@@ -71,7 +78,7 @@ export function useArtifacts(options: UseArtifactsOptions) {
       params.append('includeContent', includeContent.toString());
 
       const response = await axios.get<ApiArtifact[]>(
-        `/api/workflow-runs/${runId}/artifacts?${params.toString()}`
+        `/api/projects/${projectId}/workflow-runs/${runId}/artifacts?${params.toString()}`
       );
       return response.data.map(transformApiArtifact);
     },
@@ -102,16 +109,23 @@ export function useArtifact(options: UseArtifactOptions) {
   const { data, isLoading, error, refetch } = useQuery<Artifact | null>({
     queryKey: ['artifact', artifactId, runId, definitionKey],
     queryFn: async () => {
+      // Get projectId from localStorage (set by ProjectContext)
+      const projectId = localStorage.getItem('selectedProjectId') ||
+                       localStorage.getItem('currentProjectId');
+      if (!projectId) {
+        throw new Error('No project selected');
+      }
+
       if (artifactId) {
         // Fetch by artifact ID
         const response = await axios.get<ApiArtifact>(
-          `/api/artifacts/${artifactId}?includeContent=true`
+          `/api/projects/${projectId}/artifacts/${artifactId}?includeContent=true`
         );
         return transformApiArtifact(response.data);
       } else if (runId && definitionKey) {
         // Fetch by runId + definitionKey
         const response = await axios.get<ApiArtifact>(
-          `/api/workflow-runs/${runId}/artifacts/${definitionKey}?includeContent=true`
+          `/api/projects/${projectId}/workflow-runs/${runId}/artifacts/${definitionKey}?includeContent=true`
         );
         return transformApiArtifact(response.data);
       }

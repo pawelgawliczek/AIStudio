@@ -97,8 +97,14 @@ export function useWorkflowRun(options: UseWorkflowRunOptions) {
   const { data, isLoading, error, refetch } = useQuery<WorkflowRunWithStates>({
     queryKey: ['workflow-run', runId],
     queryFn: async () => {
+      // Get projectId from localStorage (set by ProjectContext)
+      const projectId = localStorage.getItem('selectedProjectId') ||
+                       localStorage.getItem('currentProjectId');
+      if (!projectId) {
+        throw new Error('No project selected');
+      }
       const response = await axios.get<ApiWorkflowRunResponse>(
-        `/api/workflow-runs/${runId}`
+        `/api/projects/${projectId}/workflow-runs/${runId}`
       );
       return transformApiResponse(response.data);
     },
