@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { getActiveWorkflowForProject } from '../../services/api';
+import { CompactStatePipeline, useWorkflowRun } from '../workflow-viz';
 
 interface ActiveWorkflowStatus {
   runId: string;
@@ -31,6 +32,13 @@ export const GlobalWorkflowTrackingBar: React.FC = () => {
     queryFn: () => getActiveWorkflowForProject(projectId),
     refetchInterval: 3000, // Poll every 3 seconds
     retry: false,
+  });
+
+  // Fetch workflow run details for state visualization
+  const { workflowRun } = useWorkflowRun({
+    runId: activeWorkflow?.runId || '',
+    enabled: !!activeWorkflow?.runId,
+    refetchInterval: 3000,
   });
 
   // Don't render if loading or no active workflow
@@ -113,6 +121,18 @@ export const GlobalWorkflowTrackingBar: React.FC = () => {
             </Link>
           </div>
         </div>
+
+        {/* Compact State Pipeline - shown below the main bar */}
+        {workflowRun?.states && workflowRun.states.length > 0 && (
+          <div className="pb-2">
+            <div className="[&_[data-testid='compact-state-pipeline']]:bg-transparent [&_[data-testid='compact-state-pipeline']]:border-0 [&_[data-testid='compact-state-pipeline']]:p-0 [&_[data-testid='compact-state-pipeline']>div:last-child]:hidden">
+              <CompactStatePipeline
+                states={workflowRun.states}
+                componentRuns={workflowRun.componentRuns}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

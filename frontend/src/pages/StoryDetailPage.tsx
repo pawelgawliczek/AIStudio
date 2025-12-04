@@ -11,6 +11,7 @@ import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
 import { ReviewDashboard } from '../components/story/ReviewDashboard';
 import { StoryDetailTabs } from '../components/story/StoryDetailTabs';
 import { StoryDeploymentsTab } from '../components/story/StoryDeploymentsTab';
+import { StandardStateList, useWorkflowRun } from '../components/workflow-viz';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -69,6 +70,7 @@ export function StoryDetailPage() {
   const [layerFilter, setLayerFilter] = useState<SubtaskLayer | ''>('');
   const [showAddSubtask, setShowAddSubtask] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState<string | null>(null);
+  const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
 
   // New subtask form
   const [newSubtask, setNewSubtask] = useState<CreateSubtaskDto>({
@@ -81,6 +83,26 @@ export function StoryDetailPage() {
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isAdmin = currentUser.role === 'admin';
+
+  // Get the latest workflow run for this story
+  const latestWorkflowRunId = (story as any)?.workflowRuns?.[0]?.id;
+  const { workflowRun, isLoading: isWorkflowRunLoading } = useWorkflowRun({
+    runId: latestWorkflowRunId || '',
+    enabled: !!latestWorkflowRunId,
+    refetchInterval: 5000,
+  });
+
+  const handleToggleState = (stateId: string) => {
+    setExpandedStates(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(stateId)) {
+        newSet.delete(stateId);
+      } else {
+        newSet.add(stateId);
+      }
+      return newSet;
+    });
+  };
 
   const loadStory = async () => {
     if (!storyIdOrKey || storyIdOrKey === 'new') {
@@ -407,6 +429,30 @@ export function StoryDetailPage() {
         }
         executionContent={
           <>
+            {/* Workflow State Visualization */}
+            {workflowRun?.states && workflowRun.states.length > 0 && (
+              <div className="mb-6">
+                <div className="bg-card border border-border rounded-lg shadow-md p-6">
+                  <h2 className="text-xl font-bold text-fg mb-4">Workflow Execution</h2>
+                  {isWorkflowRunLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto"></div>
+                    </div>
+                  ) : (
+                    <StandardStateList
+                      states={workflowRun.states}
+                      componentRuns={workflowRun.componentRuns}
+                      expandedStates={expandedStates}
+                      onToggle={handleToggleState}
+                      onStateClick={(stateId) => {
+                        console.log('State clicked:', stateId);
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Token Metrics Section */}
             {story?.id && (
               <div className="mb-6">

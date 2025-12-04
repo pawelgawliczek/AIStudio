@@ -19,6 +19,7 @@ import ExecutionTimeline from '../components/execution/ExecutionTimeline';
 import LiveMetricsDisplay from '../components/execution/LiveMetricsDisplay';
 import ArtifactViewer from '../components/execution/ArtifactViewer';
 import ComponentProgressTracker from '../components/execution/ComponentProgressTracker';
+import { FullStatePanel, useWorkflowRun } from '../components/workflow-viz';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -110,11 +111,31 @@ const WorkflowExecutionMonitor: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [liveStatus, setLiveStatus] = useState<WorkflowRunStatus | null>(null);
+  const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
 
   // Get project ID from context or localStorage
   const projectId = localStorage.getItem('selectedProjectId') ||
                     localStorage.getItem('currentProjectId') ||
                     '345a29ee-d6ab-477d-8079-c5dda0844d77'; // Fallback to AI Studio project
+
+  // Fetch workflow run with states using the new hook
+  const { workflowRun, isLoading: isWorkflowRunLoading } = useWorkflowRun({
+    runId: runId || '',
+    enabled: !!runId,
+    refetchInterval: 5000,
+  });
+
+  const handleToggleState = (stateId: string) => {
+    setExpandedStates(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(stateId)) {
+        newSet.delete(stateId);
+      } else {
+        newSet.add(stateId);
+      }
+      return newSet;
+    });
+  };
 
   // Fetch initial status
   const {
@@ -302,6 +323,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
       {/* Tabs */}
       <Paper sx={{ mt: 3 }}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+          <Tab label="Workflow States" />
           <Tab label="Timeline" />
           <Tab label="Agent Details" />
           <Tab label="Artifacts" />
@@ -310,13 +332,36 @@ const WorkflowExecutionMonitor: React.FC = () => {
 
         <Box p={3}>
           {activeTab === 0 && (
+            <>
+              {isWorkflowRunLoading ? (
+                <Box display="flex" justifyContent="center" py={4}>
+                  <CircularProgress />
+                </Box>
+              ) : workflowRun?.states && workflowRun.states.length > 0 ? (
+                <FullStatePanel
+                  states={workflowRun.states}
+                  componentRuns={workflowRun.componentRuns}
+                  expandedStates={expandedStates}
+                  onToggle={handleToggleState}
+                  showLiveStream={true}
+                  showArtifacts={true}
+                  showBreakpointControls={true}
+                />
+              ) : (
+                <Alert severity="info">
+                  No workflow states available for this run.
+                </Alert>
+              )}
+            </>
+          )}
+          {activeTab === 1 && (
             <ExecutionTimeline
               componentRuns={liveStatus.componentRuns}
               startedAt={liveStatus.startedAt}
               completedAt={liveStatus.completedAt}
             />
           )}
-          {activeTab === 1 && (
+          {activeTab === 2 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Agent Execution Details
@@ -471,8 +516,8 @@ const WorkflowExecutionMonitor: React.FC = () => {
               ))}
             </Box>
           )}
-          {activeTab === 2 && <ArtifactViewer runId={liveStatus.runId} />}
-          {activeTab === 3 && (
+          {activeTab === 3 && <ArtifactViewer runId={liveStatus.runId} />}
+          {activeTab === 4 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Workflow Context
