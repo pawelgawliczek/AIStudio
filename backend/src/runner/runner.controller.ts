@@ -63,6 +63,20 @@ class RecordBreakpointHitDto {
 }
 
 /**
+ * DTO for creating a breakpoint
+ * ST-168: REST API for UI breakpoint creation
+ */
+class CreateBreakpointDto {
+  runId: string;
+  stateId?: string;
+  stateName?: string;
+  stateOrder?: number;
+  position?: 'before' | 'after';
+  condition?: Record<string, unknown>;
+  isTemporary?: boolean;
+}
+
+/**
  * DTO for creating approval request
  * ST-148: Approval Gates
  */
@@ -192,6 +206,34 @@ export class RunnerController {
   // ========================================
   // ST-146: Breakpoint Endpoints
   // ========================================
+
+  /**
+   * Create a breakpoint
+   * ST-168: REST API for UI breakpoint creation
+   */
+  @Post('breakpoints')
+  @HttpCode(HttpStatus.CREATED)
+  async createBreakpoint(@Body() dto: CreateBreakpointDto): Promise<{
+    success: boolean;
+    status: string;
+    breakpoint: BreakpointData;
+    message: string;
+  }> {
+    return await this.breakpointService.createBreakpoint(dto);
+  }
+
+  /**
+   * Delete a breakpoint
+   * ST-168: REST API for UI breakpoint deletion
+   */
+  @Delete('breakpoints/:breakpointId')
+  @HttpCode(HttpStatus.OK)
+  async deleteBreakpoint(@Param('breakpointId') breakpointId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return await this.breakpointService.deleteBreakpoint(breakpointId);
+  }
 
   /**
    * Get breakpoints for a workflow run

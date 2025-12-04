@@ -141,6 +141,27 @@ const WorkflowExecutionMonitor: React.FC = () => {
     refetchInterval: 5000,
   });
 
+  // ST-168: Fetch artifacts for the workflow run
+  const { data: artifactsData } = useQuery<{ runId: string; artifacts: any[]; total: number }>({
+    queryKey: ['workflow-run-artifacts', runId],
+    queryFn: async () => {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || ''}/api/projects/${projectId}/workflow-runs/${runId}/artifacts`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch artifacts');
+      }
+      return response.json();
+    },
+    enabled: !!runId && !!projectId,
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
   // Auto-expand running/paused states when workflow data loads
   useEffect(() => {
     if (!workflowRun?.states || !workflowRun?.componentRuns) return;
@@ -199,8 +220,9 @@ const WorkflowExecutionMonitor: React.FC = () => {
     if (!selectedStateForBreakpoint || !runId) return;
 
     try {
+      // ST-168: Use the correct REST API endpoint for breakpoints
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/mcp/set_breakpoint`,
+        `${import.meta.env.VITE_API_URL || ''}/api/runner/breakpoints`,
         {
           method: 'POST',
           headers: {
@@ -216,17 +238,20 @@ const WorkflowExecutionMonitor: React.FC = () => {
       );
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('Breakpoint created:', result);
         setBreakpointModalOpen(false);
         setSelectedStateForBreakpoint('');
         // Trigger refetch
         refetch();
       } else {
-        console.error('Failed to set breakpoint');
+        const errorText = await response.text();
+        console.error('Failed to set breakpoint:', errorText);
       }
     } catch (error) {
       console.error('Error setting breakpoint:', error);
     }
-  }, [selectedStateForBreakpoint, runId, breakpointPosition]);
+  }, [selectedStateForBreakpoint, runId, breakpointPosition, refetch]);
 
   // Fetch initial status
   const {
@@ -441,6 +466,17 @@ const WorkflowExecutionMonitor: React.FC = () => {
                     onViewLiveFeed={handleViewLiveFeed}
                     onViewTranscript={handleViewTranscript}
                     onViewArtifact={handleViewArtifact}
+                    artifacts={(artifactsData?.artifacts || []).map((a: any) => ({
+                      id: a.s3Key || a.id,
+                      definitionKey: a.artifactType || a.definitionKey || 'artifact',
+                      definitionName: a.filename || a.definitionName || 'Artifact',
+                      type: a.format === 'md' ? 'markdown' :
+                            a.format === 'json' ? 'json' :
+                            a.format === 'png' || a.format === 'jpg' ? 'image' : 'other',
+                      version: 1,
+                      createdAt: a.uploadedAt || new Date().toISOString(),
+                      updatedAt: a.uploadedAt || new Date().toISOString(),
+                    }))}
                   />
                   {/* Add Breakpoint Button */}
                   <Box mt={2}>

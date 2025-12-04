@@ -41,11 +41,16 @@ interface ApiWorkflowRunResponse {
     finishedAt: string | null;
     output: any;
     errorMessage: string | null;
+    // Token metrics can come in different formats from the API
     tokenMetrics?: {
       inputTokens: number;
       outputTokens: number;
       totalTokens: number;
     };
+    // ST-168: Also support flat token fields from backend
+    tokensInput?: number;
+    tokensOutput?: number;
+    totalTokens?: number;
   }>;
 }
 
@@ -66,17 +71,28 @@ function transformApiResponse(apiRun: ApiWorkflowRunResponse): WorkflowRunWithSt
     offlineFallback: s.offlineFallback,
   }));
 
-  const componentRuns: ComponentRunWithMetrics[] = apiRun.componentRuns.map(cr => ({
-    id: cr.id,
-    componentId: cr.componentId,
-    componentName: cr.componentName,
-    status: cr.status,
-    startedAt: cr.startedAt,
-    completedAt: cr.finishedAt,
-    output: cr.output,
-    errorMessage: cr.errorMessage,
-    tokenMetrics: cr.tokenMetrics,
-  }));
+  const componentRuns: ComponentRunWithMetrics[] = apiRun.componentRuns.map(cr => {
+    // ST-168: Map token metrics from either nested structure or flat fields
+    const inputTokens = cr.tokenMetrics?.inputTokens ?? cr.tokensInput ?? 0;
+    const outputTokens = cr.tokenMetrics?.outputTokens ?? cr.tokensOutput ?? 0;
+    const totalTokens = cr.tokenMetrics?.totalTokens ?? cr.totalTokens ?? (inputTokens + outputTokens);
+
+    return {
+      id: cr.id,
+      componentId: cr.componentId,
+      componentName: cr.componentName,
+      status: cr.status,
+      startedAt: cr.startedAt,
+      completedAt: cr.finishedAt,
+      output: cr.output,
+      errorMessage: cr.errorMessage,
+      tokenMetrics: totalTokens > 0 ? {
+        inputTokens,
+        outputTokens,
+        totalTokens,
+      } : undefined,
+    };
+  });
 
   return {
     id: apiRun.id,

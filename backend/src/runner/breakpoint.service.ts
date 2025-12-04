@@ -357,6 +357,205 @@ export class BreakpointService {
   }
 
   /**
+   * Create a breakpoint
+   * ST-168: REST API for UI breakpoint creation
+   */
+  async createBreakpoint(params: {
+    runId: string;
+    stateId?: string;
+    stateName?: string;
+    stateOrder?: number;
+    position?: 'before' | 'after';
+    condition?: Record<string, unknown>;
+    isTemporary?: boolean;
+  }): Promise<{
+    success: boolean;
+    status: 'created' | 'reactivated' | 'updated' | 'already_exists';
+    breakpoint: BreakpointData;
+    message: string;
+  }> {
+    const { runId, stateId, stateName, stateOrder, position = 'before', condition, isTemporary = false } = params;
+
+    // Validate at least one state identifier provided
+    if (!stateId && !stateName && stateOrder === undefined) {
+      throw new Error('Must provide stateId, stateName, or stateOrder');
+    }
+
+    // Get workflow run with workflow info
+    const run = await this.prisma.workflowRun.findUnique({
+      where: { id: runId },
+      include: {
+        workflow: {
+          include: {
+            states: {
+              orderBy: { order: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!run) {
+      throw new Error(`WorkflowRun not found: ${runId}`);
+    }
+
+    // Resolve state ID
+    let resolvedStateId: string;
+    let resolvedStateName: string;
+    let resolvedStateOrder: number;
+
+    if (stateId) {
+      // Direct state ID lookup
+      const state = run.workflow.states.find(s => s.id === stateId);
+      if (!state) {
+        throw new Error(`State ${stateId} not found in workflow ${run.workflowId}`);
+      }
+      resolvedStateId = state.id;
+      resolvedStateName = state.name;
+      resolvedStateOrder = state.order;
+    } else if (stateName) {
+      // Lookup by name
+      const state = run.workflow.states.find(s => s.name.toLowerCase() === stateName.toLowerCase());
+      if (!state) {
+        throw new Error(`State '${stateName}' not found in workflow. Available states: ${run.workflow.states.map(s => s.name).join(', ')}`);
+      }
+      resolvedStateId = state.id;
+      resolvedStateName = state.name;
+      resolvedStateOrder = state.order;
+    } else {
+      // Lookup by order (1-indexed)
+      const state = run.workflow.states.find(s => s.order === stateOrder);
+      if (!state) {
+        throw new Error(`State at order ${stateOrder} not found. Workflow has ${run.workflow.states.length} states.`);
+      }
+      resolvedStateId = state.id;
+      resolvedStateName = state.name;
+      resolvedStateOrder = state.order;
+    }
+
+    // Check if breakpoint already exists (upsert behavior)
+    const existingBreakpoint = await this.prisma.runnerBreakpoint.findUnique({
+      where: {
+        workflowRunId_stateId_position: {
+          workflowRunId: runId,
+          stateId: resolvedStateId,
+          position: position as BreakpointPosition,
+        },
+      },
+    });
+
+    let result;
+    let status: 'created' | 'reactivated' | 'updated' | 'already_exists';
+
+    if (existingBreakpoint) {
+      if (existingBreakpoint.isActive && !condition) {
+        // Already active with no condition change
+        return {
+          success: true,
+          status: 'already_exists',
+          breakpoint: {
+            id: existingBreakpoint.id,
+            stateId: resolvedStateId,
+            stateName: resolvedStateName,
+            stateOrder: resolvedStateOrder,
+            position: existingBreakpoint.position,
+            isActive: true,
+            isTemporary: existingBreakpoint.isTemporary,
+            condition: existingBreakpoint.condition as Record<string, unknown> | null,
+            hitAt: existingBreakpoint.hitAt,
+            createdAt: existingBreakpoint.createdAt,
+          },
+          message: `Breakpoint already exists at ${position} ${resolvedStateName}`,
+        };
+      }
+
+      // Reactivate or update condition
+      result = await this.prisma.runnerBreakpoint.update({
+        where: { id: existingBreakpoint.id },
+        data: {
+          isActive: true,
+          condition: condition ? (condition as Prisma.InputJsonValue) : existingBreakpoint.condition,
+          hitAt: null, // Reset hit timestamp on reactivation
+        },
+      });
+      status = existingBreakpoint.isActive ? 'updated' : 'reactivated';
+    } else {
+      // Create new breakpoint
+      result = await this.prisma.runnerBreakpoint.create({
+        data: {
+          workflowRunId: runId,
+          stateId: resolvedStateId,
+          position: position as BreakpointPosition,
+          isActive: true,
+          condition: condition ? (condition as Prisma.InputJsonValue) : undefined,
+          isTemporary,
+        },
+      });
+      status = 'created';
+    }
+
+    // Update breakpointsModifiedAt in run metadata for sync
+    await this.prisma.workflowRun.update({
+      where: { id: runId },
+      data: {
+        metadata: {
+          ...(run.metadata as Record<string, unknown> || {}),
+          breakpointsModifiedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Invalidate cache
+    this.breakpointCache.delete(runId);
+
+    this.logger.log(`Breakpoint ${status} at ${position} ${resolvedStateName}`);
+
+    return {
+      success: true,
+      status,
+      breakpoint: {
+        id: result.id,
+        stateId: resolvedStateId,
+        stateName: resolvedStateName,
+        stateOrder: resolvedStateOrder,
+        position: result.position,
+        isActive: result.isActive,
+        isTemporary: result.isTemporary,
+        condition: result.condition as Record<string, unknown> | null,
+        hitAt: result.hitAt,
+        createdAt: result.createdAt,
+      },
+      message: `Breakpoint ${status} at ${position} ${resolvedStateName}`,
+    };
+  }
+
+  /**
+   * Delete a breakpoint by ID
+   * ST-168: REST API for UI breakpoint deletion
+   */
+  async deleteBreakpoint(breakpointId: string): Promise<{ success: boolean; message: string }> {
+    const breakpoint = await this.prisma.runnerBreakpoint.findUnique({
+      where: { id: breakpointId },
+      select: { workflowRunId: true },
+    });
+
+    if (!breakpoint) {
+      throw new Error(`Breakpoint not found: ${breakpointId}`);
+    }
+
+    await this.prisma.runnerBreakpoint.delete({
+      where: { id: breakpointId },
+    });
+
+    // Invalidate cache
+    this.breakpointCache.delete(breakpoint.workflowRunId);
+
+    this.logger.log(`Deleted breakpoint ${breakpointId}`);
+
+    return { success: true, message: 'Breakpoint deleted' };
+  }
+
+  /**
    * Get all breakpoints for display (used by list_breakpoints MCP tool)
    */
   async getAllBreakpoints(
