@@ -16,8 +16,10 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id')
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path')
 SOURCE=$(echo "$INPUT" | jq -r '.source // "startup"')
 
-WORKFLOWS_FILE="$CLAUDE_PROJECT_DIR/.claude/running-workflows.json"
-SESSION_WORKFLOW_FILE="$CLAUDE_PROJECT_DIR/.claude/.session-workflow"
+# ST-172: Fallback to PWD if CLAUDE_PROJECT_DIR not set (happens during compaction)
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
+WORKFLOWS_FILE="$PROJECT_DIR/.claude/running-workflows.json"
+SESSION_WORKFLOW_FILE="$PROJECT_DIR/.claude/.session-workflow"
 
 # Ensure workflows file exists
 if [ ! -f "$WORKFLOWS_FILE" ]; then
