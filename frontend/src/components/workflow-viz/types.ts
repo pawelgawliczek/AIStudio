@@ -10,7 +10,7 @@ export interface ComponentRunWithMetrics {
   id: string;
   componentId: string;
   componentName: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
   startedAt: string | null;
   completedAt: string | null;
   output: any;
@@ -125,6 +125,13 @@ export interface FullStatePanelProps {
   showLiveStream?: boolean;
   showArtifacts?: boolean;
   showBreakpointControls?: boolean;
+  // Artifact and transcript callbacks
+  artifacts?: ArtifactInstance[];
+  artifactAccess?: Record<string, ArtifactAccess[]>; // keyed by stateId
+  transcriptIds?: Record<string, string>; // keyed by componentRunId
+  onViewLiveFeed?: (componentRunId: string) => void;
+  onViewTranscript?: (transcriptId: string) => void;
+  onViewArtifact?: (artifactId: string) => void;
 }
 
 export type StateStatus = 'completed' | 'running' | 'failed' | 'pending' | 'paused';
@@ -133,4 +140,32 @@ export interface StatePhase {
   type: 'pre' | 'agent' | 'post';
   status: StateStatus;
   instructions?: string;
+}
+
+// Artifact definitions for state access
+export interface ArtifactAccess {
+  definitionKey: string;
+  definitionName: string;
+  accessType: 'read' | 'write' | 'required';
+}
+
+// Artifact instance for display
+export interface ArtifactInstance {
+  id: string;
+  definitionKey: string;
+  definitionName: string;
+  type: 'markdown' | 'json' | 'code' | 'report' | 'image' | 'other';
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Extended StateBlock props with artifacts and transcript
+export interface StateBlockExtendedProps extends StateBlockProps {
+  artifacts?: ArtifactInstance[];
+  artifactAccess?: ArtifactAccess[];
+  transcriptId?: string;
+  onViewLiveFeed?: (componentRunId: string) => void;
+  onViewTranscript?: (transcriptId: string) => void;
+  onViewArtifact?: (artifactId: string) => void;
 }

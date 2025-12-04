@@ -3,9 +3,9 @@
  * ST-168: Main orchestrator for workflow state visualization
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { WorkflowStateVizProps, WorkflowState, ComponentRunWithMetrics } from './types';
+import { WorkflowStateVizProps, WorkflowState, ComponentRunWithMetrics, ArtifactInstance, ArtifactAccess } from './types';
 import { CompactStatePipeline } from './CompactStatePipeline';
 import { StandardStateList } from './StandardStateList';
 import { FullStatePanel } from './FullStatePanel';
@@ -54,22 +54,22 @@ export const WorkflowStateViz: React.FC<WorkflowStateVizProps> = ({
         workflowRun.states.forEach((state) => newExpanded.add(state.id));
         break;
       case 'active':
-        const activeState = workflowRun.states.find(
-          (state: any) => {
-            // Check status directly on state object (for tests/simple data)
-            if (state.status === 'running') {
-              return true;
-            }
-            // Check status in componentRuns (for real API data)
-            const run = workflowRun.componentRuns?.find(
-              (r) => r.id === state.id || r.componentId === state.componentId
-            );
-            return run?.status === 'running';
+        // Find all active states (running or paused) and expand them
+        workflowRun.states.forEach((state: any) => {
+          // Check status directly on state object (for tests/simple data)
+          if (state.status === 'running' || state.status === 'paused') {
+            newExpanded.add(state.id);
+            return;
           }
-        );
-        if (activeState) {
-          newExpanded.add(activeState.id);
-        }
+          // Check status in componentRuns (for real API data)
+          const run = workflowRun.componentRuns?.find(
+            (r) => r.id === state.id || r.componentId === state.componentId
+          );
+          if (run?.status === 'running' || run?.status === 'paused') {
+            newExpanded.add(run.id);
+            newExpanded.add(state.id);
+          }
+        });
         break;
       case 'none':
         // Leave empty
@@ -106,6 +106,25 @@ export const WorkflowStateViz: React.FC<WorkflowStateVizProps> = ({
     handleToggle(stateId);
     onStateClick?.(stateId);
   };
+
+  // Callback handlers for live feed, transcript, and artifact viewing
+  const handleViewLiveFeed = useCallback((componentRunId: string) => {
+    // TODO: Open live feed modal or navigate to live feed page
+    console.log('View live feed for component run:', componentRunId);
+    // Future: window.open(`/workflow-runs/${runId}/live/${componentRunId}`, '_blank');
+  }, []);
+
+  const handleViewTranscript = useCallback((transcriptId: string) => {
+    // TODO: Open transcript modal or navigate to transcript page
+    console.log('View transcript:', transcriptId);
+    // Future: window.open(`/transcripts/${transcriptId}`, '_blank');
+  }, []);
+
+  const handleViewArtifact = useCallback((artifactId: string) => {
+    // TODO: Open artifact modal or navigate to artifact editor
+    console.log('View artifact:', artifactId);
+    // Future: Open artifact editor modal
+  }, []);
 
   if (isLoading) {
     return (
@@ -183,6 +202,9 @@ export const WorkflowStateViz: React.FC<WorkflowStateVizProps> = ({
             showLiveStream={showLiveStream}
             showArtifacts={showArtifacts}
             showBreakpointControls={showBreakpointControls}
+            onViewLiveFeed={handleViewLiveFeed}
+            onViewTranscript={handleViewTranscript}
+            onViewArtifact={handleViewArtifact}
           />
         </div>
       );

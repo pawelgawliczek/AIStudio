@@ -17,16 +17,32 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { StateBlockProps, StateStatus } from './types';
+import { StateBlockProps, StateStatus, ArtifactInstance, ArtifactAccess } from './types';
 import { getStatusClasses, getStatusLabel } from './utils/status-colors';
 import { formatDuration, formatTokens } from './utils/format-duration';
 
-export const StateBlock: React.FC<StateBlockProps> = ({
+// Extended props for artifact and transcript support
+interface ExtendedStateBlockProps extends StateBlockProps {
+  artifacts?: ArtifactInstance[];
+  artifactAccess?: ArtifactAccess[];
+  transcriptId?: string;
+  onViewLiveFeed?: (componentRunId: string) => void;
+  onViewTranscript?: (transcriptId: string) => void;
+  onViewArtifact?: (artifactId: string) => void;
+}
+
+export const StateBlock: React.FC<ExtendedStateBlockProps> = ({
   state,
   componentRun,
   isExpanded,
   onToggle,
   variant,
+  artifacts = [],
+  artifactAccess = [],
+  transcriptId,
+  onViewLiveFeed,
+  onViewTranscript,
+  onViewArtifact,
 }) => {
   const [liveDuration, setLiveDuration] = useState<string>('');
 
@@ -237,8 +253,22 @@ export const StateBlock: React.FC<StateBlockProps> = ({
             {/* Arrow */}
             <div className="flex items-center text-gray-400 dark:text-gray-500">→</div>
 
-            {/* AGENT Phase */}
-            <div className={`flex-1 rounded-lg border ${getPhaseBoxClasses(getPhaseStatus('agent'))} p-3`}>
+            {/* AGENT Phase - Clickable for live feed or transcript */}
+            <div
+              className={`flex-1 rounded-lg border ${getPhaseBoxClasses(getPhaseStatus('agent'))} p-3 ${
+                componentRun ? 'cursor-pointer hover:ring-2 hover:ring-blue-400/50 transition-all' : ''
+              }`}
+              onClick={() => {
+                if (!componentRun) return;
+                if (status === 'running' && onViewLiveFeed) {
+                  onViewLiveFeed(componentRun.id);
+                } else if ((status === 'completed' || status === 'failed') && transcriptId && onViewTranscript) {
+                  onViewTranscript(transcriptId);
+                }
+              }}
+              role={componentRun ? 'button' : undefined}
+              tabIndex={componentRun ? 0 : undefined}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <PhaseStatusIcon phaseStatus={getPhaseStatus('agent')} />
                 <span className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wider">
@@ -259,6 +289,30 @@ export const StateBlock: React.FC<StateBlockProps> = ({
                     {status === 'running' && liveDuration && (
                       <div className="text-blue-600 dark:text-blue-400 mt-1">⏱ {liveDuration}</div>
                     )}
+                    {/* Action button for live feed or transcript */}
+                    <div className="mt-2">
+                      {status === 'running' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewLiveFeed?.(componentRun.id);
+                          }}
+                          className="px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/30 text-blue-700 dark:text-blue-400 transition-colors"
+                        >
+                          📡 Live Feed
+                        </button>
+                      ) : (status === 'completed' || status === 'failed') && transcriptId ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewTranscript?.(transcriptId);
+                          }}
+                          className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                        >
+                          📜 View Transcript
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : (
                   <span className="italic">No agent assigned</span>
@@ -315,6 +369,61 @@ export const StateBlock: React.FC<StateBlockProps> = ({
                   <span>Approval required</span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Artifacts section */}
+          {(artifacts.length > 0 || artifactAccess.length > 0) && (
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2">
+                📁 Artifacts
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {/* Show artifact access rules */}
+                {artifactAccess.map((access) => {
+                  const existingArtifact = artifacts.find(a => a.definitionKey === access.definitionKey);
+                  return (
+                    <button
+                      key={access.definitionKey}
+                      onClick={() => existingArtifact && onViewArtifact?.(existingArtifact.id)}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        existingArtifact
+                          ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-500/30 cursor-pointer'
+                          : access.accessType === 'write'
+                          ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      }`}
+                      disabled={!existingArtifact}
+                      title={
+                        existingArtifact
+                          ? `View ${access.definitionName} (v${existingArtifact.version})`
+                          : access.accessType === 'write'
+                          ? `Will create: ${access.definitionName}`
+                          : `Requires: ${access.definitionName}`
+                      }
+                    >
+                      {access.accessType === 'read' && '📥 '}
+                      {access.accessType === 'write' && '📤 '}
+                      {access.accessType === 'required' && '🔒 '}
+                      {access.definitionKey}
+                      {existingArtifact && ` v${existingArtifact.version}`}
+                    </button>
+                  );
+                })}
+                {/* Show artifacts without access rules (created by this state) */}
+                {artifacts
+                  .filter(a => !artifactAccess.find(acc => acc.definitionKey === a.definitionKey))
+                  .map((artifact) => (
+                    <button
+                      key={artifact.id}
+                      onClick={() => onViewArtifact?.(artifact.id)}
+                      className="px-2 py-1 text-xs rounded bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-500/30 cursor-pointer transition-colors"
+                      title={`View ${artifact.definitionName} (v${artifact.version})`}
+                    >
+                      📄 {artifact.definitionKey} v{artifact.version}
+                    </button>
+                  ))}
+              </div>
             </div>
           )}
 

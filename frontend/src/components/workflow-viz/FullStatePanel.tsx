@@ -16,6 +16,12 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
   showLiveStream,
   showArtifacts,
   showBreakpointControls,
+  artifacts = [],
+  artifactAccess = {},
+  transcriptIds = {},
+  onViewLiveFeed,
+  onViewTranscript,
+  onViewArtifact,
 }) => {
   const sortedStates = [...states].sort((a, b) => a.order - b.order);
 
@@ -42,6 +48,16 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
                 isExpanded={expandedStates.has(state.id)}
                 onToggle={() => onToggle(state.id)}
                 variant="full"
+                artifacts={artifacts.filter(a => {
+                  // Filter artifacts that belong to this state (via artifactAccess)
+                  const stateAccess = artifactAccess[state.id] || [];
+                  return stateAccess.some(acc => acc.definitionKey === a.definitionKey);
+                })}
+                artifactAccess={artifactAccess[state.id]}
+                transcriptId={componentRun ? transcriptIds[componentRun.id] : undefined}
+                onViewLiveFeed={onViewLiveFeed}
+                onViewTranscript={onViewTranscript}
+                onViewArtifact={onViewArtifact}
               />
             </React.Fragment>
           );
