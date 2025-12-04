@@ -216,9 +216,23 @@ export async function handler(prisma: PrismaClient, params: any) {
       // Construct the transcript path from agentId
       // Path escaping: /Users/pawel/projects/AIStudio → -Users-pawel-projects-AIStudio
       const escapedPath = projectPath.replace(/^\//, '-').replace(/\//g, '-');
-      const constructedTranscriptPath = `${process.env.HOME || '/root'}/.claude/projects/${escapedPath}/agent-${params.claudeAgentId}.jsonl`;
 
-      console.log(`[ST-172] Constructing agent transcript path from claudeAgentId: ${constructedTranscriptPath}`);
+      // FIX: Extract laptop's home directory from projectPath, not server's process.env.HOME
+      // projectPath format: /Users/{username}/... (macOS) or /home/{username}/... (Linux)
+      // We need the first 3 path components to get the home directory
+      const pathParts = projectPath.split('/').filter(Boolean); // ['Users', 'pawelgawliczek', 'projects', ...]
+      let laptopHome: string;
+      if (pathParts[0] === 'Users' || pathParts[0] === 'home') {
+        // macOS: /Users/username or Linux: /home/username
+        laptopHome = `/${pathParts[0]}/${pathParts[1]}`;
+      } else {
+        // Fallback: assume first two components form the home
+        laptopHome = `/${pathParts.slice(0, 2).join('/')}`;
+      }
+
+      const constructedTranscriptPath = `${laptopHome}/.claude/projects/${escapedPath}/agent-${params.claudeAgentId}.jsonl`;
+
+      console.log(`[ST-172] Constructing agent transcript path from claudeAgentId: ${constructedTranscriptPath} (derived laptopHome: ${laptopHome})`);
 
       // Use RemoteRunner to parse the transcript on the laptop
       const runner = new RemoteRunner();
