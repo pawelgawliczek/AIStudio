@@ -24,16 +24,15 @@ import {
   MenuItem,
 } from '@mui/material';
 import { ArrowBack, Refresh } from '@mui/icons-material';
-import ExecutionTimeline from '../components/execution/ExecutionTimeline';
 import LiveMetricsDisplay from '../components/execution/LiveMetricsDisplay';
-import ArtifactViewer from '../components/execution/ArtifactViewer';
-import ComponentProgressTracker from '../components/execution/ComponentProgressTracker';
 // Use direct imports to avoid potential circular dependency issues with barrel exports
 import { FullStatePanel } from '../components/workflow-viz/FullStatePanel';
 import { useWorkflowRun } from '../components/workflow-viz/hooks/useWorkflowRun';
 import { useApprovals } from '../components/workflow-viz/hooks/useApprovals';
 import { useArtifacts, useArtifactAccess } from '../components/workflow-viz/hooks/useArtifacts';
 import { ApprovalGate } from '../components/workflow-viz/ApprovalGate';
+import { ArtifactPanel } from '../components/workflow-viz/ArtifactPanel';
+import { ArtifactViewerModal } from '../components/workflow-viz/ArtifactViewerModal';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -133,6 +132,9 @@ const WorkflowExecutionMonitor: React.FC = () => {
   const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
   const [selectedComponentRunId, setSelectedComponentRunId] = useState<string>('');
   const [selectedTranscriptId, setSelectedTranscriptId] = useState<string>('');
+  const [artifactModalOpen, setArtifactModalOpen] = useState(false);
+  const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
+  const [artifactModalMode, setArtifactModalMode] = useState<'view' | 'edit'>('view');
 
   // Get project ID from context or localStorage
   const projectId = localStorage.getItem('selectedProjectId') ||
@@ -245,10 +247,14 @@ const WorkflowExecutionMonitor: React.FC = () => {
   }, []);
 
   const handleViewArtifact = useCallback((artifactId: string) => {
-    // Switch to artifacts tab and scroll to artifact
-    setActiveTab(3);
-    console.log('View artifact:', artifactId);
-  }, []);
+    // Find the artifact and open modal
+    const artifact = artifactsData.find((a) => a.id === artifactId);
+    if (artifact) {
+      setSelectedArtifact(artifact);
+      setArtifactModalMode('view');
+      setArtifactModalOpen(true);
+    }
+  }, [artifactsData]);
 
   // ST-168: Approval gate handlers
   const handleApprove = useCallback(async () => {
@@ -493,20 +499,11 @@ const WorkflowExecutionMonitor: React.FC = () => {
       {/* Metrics Overview */}
       <LiveMetricsDisplay metrics={liveStatus.metrics} status={liveStatus.status} />
 
-      {/* Progress Tracker */}
-      <ComponentProgressTracker
-        componentRuns={liveStatus.componentRuns}
-        totalComponents={liveStatus.metrics.componentsTotal}
-      />
-
       {/* Tabs */}
       <Paper sx={{ mt: 3 }}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
           <Tab label="Workflow States" />
-          <Tab label="Timeline" />
-          <Tab label="Agent Details" />
-          <Tab label="Artifacts" />
-          <Tab label="Context" />
+          <Tab label={`Artifacts (${artifactsData.length})`} />
         </Tabs>
 
         <Box p={3}>
@@ -582,179 +579,48 @@ const WorkflowExecutionMonitor: React.FC = () => {
             </>
           )}
           {activeTab === 1 && (
-            <ExecutionTimeline
-              componentRuns={liveStatus.componentRuns}
-              startedAt={liveStatus.startedAt}
-              completedAt={liveStatus.completedAt}
+            <ArtifactPanel
+              artifacts={artifactsData.map((a) => ({
+                id: a.id,
+                definitionKey: a.definitionKey,
+                name: a.definitionName,
+                type: a.type as 'markdown' | 'json' | 'code' | 'report' | 'image' | 'other',
+                version: a.version,
+                status: 'complete' as const,
+                size: a.size,
+                createdBy: a.createdBy || undefined,
+                createdAt: a.createdAt,
+                preview: a.contentPreview || undefined,
+              }))}
+              onView={(artifactId) => handleViewArtifact(artifactId)}
+              onEdit={(artifactId) => {
+                const artifact = artifactsData.find((a) => a.id === artifactId);
+                if (artifact) {
+                  setSelectedArtifact(artifact);
+                  setArtifactModalMode('edit');
+                  setArtifactModalOpen(true);
+                }
+              }}
+              onDownload={(artifactId) => {
+                const artifact = artifactsData.find((a) => a.id === artifactId);
+                if (artifact) {
+                  const content = artifact.content || artifact.contentPreview || '';
+                  const blob = new Blob([content], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  const ext = artifact.type === 'markdown' ? 'md' : artifact.type === 'json' ? 'json' : 'txt';
+                  link.download = `${artifact.definitionKey}_v${artifact.version}.${ext}`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }
+              }}
+              onViewHistory={(artifactId) => {
+                console.log('View history for:', artifactId);
+              }}
             />
-          )}
-          {activeTab === 2 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Agent Execution Details
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Detailed input/output data and tool usage for each component agent
-              </Typography>
-              {liveStatus.componentRuns.map((cr) => (
-                <Paper key={cr.componentRunId} variant="outlined" sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    {cr.componentName}
-                  </Typography>
-                  <Box display="flex" gap={3} flexWrap="wrap" mb={2}>
-                    {cr.modelId && (
-                      <Typography variant="body2">
-                        <strong>Model:</strong> {cr.modelId}
-                      </Typography>
-                    )}
-                    {cr.temperature !== undefined && (
-                      <Typography variant="body2">
-                        <strong>Temperature:</strong> {cr.temperature}
-                      </Typography>
-                    )}
-                    {cr.tokensPerSecond !== undefined && (
-                      <Typography variant="body2">
-                        <strong>Throughput:</strong> {cr.tokensPerSecond.toFixed(1)} tok/s
-                      </Typography>
-                    )}
-                    {cr.timeToFirstToken !== undefined && (
-                      <Typography variant="body2">
-                        <strong>Time to First Token:</strong> {cr.timeToFirstToken}ms
-                      </Typography>
-                    )}
-                  </Box>
-
-                  {/* Token Breakdown */}
-                  {(cr.tokensInput || cr.tokensOutput || cr.tokensCacheRead) && (
-                    <Box mb={2}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Token Usage
-                      </Typography>
-                      <Box display="flex" gap={2} flexWrap="wrap">
-                        {cr.tokensInput !== undefined && (
-                          <Chip
-                            label={`Input: ${cr.tokensInput.toLocaleString()}`}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
-                        {cr.tokensOutput !== undefined && (
-                          <Chip
-                            label={`Output: ${cr.tokensOutput.toLocaleString()}`}
-                            size="small"
-                            color="secondary"
-                            variant="outlined"
-                          />
-                        )}
-                        {cr.tokensCacheRead !== undefined && cr.tokensCacheRead > 0 && (
-                          <Chip
-                            label={`Cache Read: ${cr.tokensCacheRead.toLocaleString()}`}
-                            size="small"
-                            color="success"
-                            variant="outlined"
-                          />
-                        )}
-                        {cr.cacheHitRate !== undefined && (
-                          <Chip
-                            label={`Cache Hit: ${(cr.cacheHitRate * 100).toFixed(1)}%`}
-                            size="small"
-                            color="info"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
-                    </Box>
-                  )}
-
-                  {/* Tool Usage */}
-                  {cr.toolBreakdown && Object.keys(cr.toolBreakdown).length > 0 && (
-                    <Box mb={2}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Tool Usage
-                      </Typography>
-                      <Box display="flex" gap={1} flexWrap="wrap">
-                        {Object.entries(cr.toolBreakdown).map(([tool, count]) => (
-                          <Chip
-                            key={tool}
-                            label={`${tool}: ${count}`}
-                            size="small"
-                            variant="filled"
-                          />
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-
-                  {/* Files Modified */}
-                  {cr.filesModified && cr.filesModified.length > 0 && (
-                    <Box mb={2}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Files Modified ({cr.filesModified.length})
-                      </Typography>
-                      <Paper variant="outlined" sx={{ p: 1, maxHeight: 150, overflow: 'auto' }}>
-                        {cr.filesModified.map((file, idx) => (
-                          <Typography key={idx} variant="caption" display="block" fontFamily="monospace">
-                            {file}
-                          </Typography>
-                        ))}
-                      </Paper>
-                    </Box>
-                  )}
-
-                  {/* Input Data (Prompt Content) */}
-                  {cr.inputData && (
-                    <Box mb={2}>
-                      <Typography variant="subtitle2" gutterBottom color="info.main">
-                        Input / Prompt Content
-                      </Typography>
-                      <Paper
-                        variant="outlined"
-                        sx={{ p: 2, bgcolor: 'action.hover', maxHeight: 300, overflow: 'auto' }}
-                      >
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem' }}>
-                          {typeof cr.inputData === 'string'
-                            ? cr.inputData
-                            : JSON.stringify(cr.inputData, null, 2)}
-                        </pre>
-                      </Paper>
-                    </Box>
-                  )}
-
-                  {/* Output Data */}
-                  {cr.outputData && (
-                    <Box>
-                      <Typography variant="subtitle2" gutterBottom color="success.main">
-                        Output / Response Content
-                      </Typography>
-                      <Paper
-                        variant="outlined"
-                        sx={{ p: 2, bgcolor: 'action.hover', maxHeight: 300, overflow: 'auto' }}
-                      >
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.8rem' }}>
-                          {typeof cr.outputData === 'string'
-                            ? cr.outputData
-                            : JSON.stringify(cr.outputData, null, 2)}
-                        </pre>
-                      </Paper>
-                    </Box>
-                  )}
-                </Paper>
-              ))}
-            </Box>
-          )}
-          {activeTab === 3 && <ArtifactViewer runId={liveStatus.runId} />}
-          {activeTab === 4 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Workflow Context
-              </Typography>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <pre style={{ margin: 0, overflow: 'auto' }}>
-                  {JSON.stringify(liveStatus.context, null, 2)}
-                </pre>
-              </Paper>
-            </Box>
           )}
         </Box>
       </Paper>
@@ -895,6 +761,18 @@ const WorkflowExecutionMonitor: React.FC = () => {
           <Button variant="outlined">Download JSONL</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Artifact Viewer Modal */}
+      <ArtifactViewerModal
+        open={artifactModalOpen}
+        artifact={selectedArtifact}
+        mode={artifactModalMode}
+        onClose={() => {
+          setArtifactModalOpen(false);
+          setSelectedArtifact(null);
+        }}
+        onModeChange={setArtifactModalMode}
+      />
     </Container>
   );
 };

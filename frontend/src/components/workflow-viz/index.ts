@@ -38,6 +38,8 @@ export type {
 export { ArtifactPanel } from './ArtifactPanel';
 export type { ArtifactPanelProps, Artifact } from './ArtifactPanel';
 
+export { ArtifactViewerModal } from './ArtifactViewerModal';
+
 export { ExecutionHistory } from './ExecutionHistory';
 export type { ExecutionHistoryProps, ExecutionRun, StateExecution } from './ExecutionHistory';
 
