@@ -70,7 +70,7 @@ export function useApprovals(options: UseApprovalsOptions) {
     queryFn: async () => {
       const projectId = getProjectId();
       const response = await axios.get<ApiApprovalRequest[]>(
-        `/api/projects/${projectId}/workflow-runs/${runId}/approvals`
+        `/projects/${projectId}/workflow-runs/${runId}/approvals`
       );
       return response.data.map(transformApiApproval);
     },
@@ -89,7 +89,7 @@ export function useApprovals(options: UseApprovalsOptions) {
 
       const projectId = getProjectId();
       const response = await axios.post(
-        `/api/projects/${projectId}/workflow-runs/${runId}/approvals/${pendingApproval.id}/respond`,
+        `/projects/${projectId}/workflow-runs/${runId}/approvals/${pendingApproval.id}/respond`,
         {
           runId,
           ...params,

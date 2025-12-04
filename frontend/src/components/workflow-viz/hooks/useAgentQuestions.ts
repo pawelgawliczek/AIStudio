@@ -74,7 +74,7 @@ export function useAgentQuestions(options: UseAgentQuestionsOptions) {
     queryFn: async () => {
       const projectId = getProjectId();
       const response = await axios.get<ApiAgentQuestion[]>(
-        `/api/projects/${projectId}/workflow-runs/${runId}/questions`
+        `/projects/${projectId}/workflow-runs/${runId}/questions`
       );
       return response.data.map(transformApiQuestion);
     },
@@ -95,7 +95,7 @@ export function useAgentQuestions(options: UseAgentQuestionsOptions) {
     }) => {
       const projectId = getProjectId();
       const response = await axios.post(
-        `/api/projects/${projectId}/questions/${questionId}/answer`,
+        `/projects/${projectId}/questions/${questionId}/answer`,
         {
           ...params,
           answeredBy: params.answeredBy || 'user',
@@ -113,7 +113,7 @@ export function useAgentQuestions(options: UseAgentQuestionsOptions) {
   const handoffSession = useMutation({
     mutationFn: async (params: HandoffSessionParams) => {
       const projectId = getProjectId();
-      const response = await axios.post(`/api/projects/${projectId}/sessions/handoff`, {
+      const response = await axios.post(`/projects/${projectId}/sessions/handoff`, {
         ...params,
         handoffBy: params.handoffBy || 'user',
       });

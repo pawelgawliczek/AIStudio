@@ -76,7 +76,7 @@ export function useBreakpoints(options: UseBreakpointsOptions) {
     queryFn: async () => {
       const projectId = getProjectId();
       const response = await axios.get<ApiBreakpoint[]>(
-        `/api/projects/${projectId}/workflow-runs/${runId}/breakpoints`
+        `/projects/${projectId}/workflow-runs/${runId}/breakpoints`
       );
       return response.data.map(transformApiBreakpoint);
     },
@@ -88,7 +88,7 @@ export function useBreakpoints(options: UseBreakpointsOptions) {
     mutationFn: async (params: SetBreakpointParams) => {
       const projectId = getProjectId();
       const response = await axios.post<ApiBreakpoint>(
-        `/api/projects/${projectId}/workflow-runs/${runId}/breakpoints`,
+        `/projects/${projectId}/workflow-runs/${runId}/breakpoints`,
         {
           runId,
           ...params,
@@ -108,11 +108,11 @@ export function useBreakpoints(options: UseBreakpointsOptions) {
       if (params.breakpointId) {
         // Clear specific breakpoint by ID
         await axios.delete(
-          `/api/projects/${projectId}/workflow-runs/${runId}/breakpoints/${params.breakpointId}`
+          `/projects/${projectId}/workflow-runs/${runId}/breakpoints/${params.breakpointId}`
         );
       } else {
         // Clear by state/position or clear all
-        await axios.post(`/api/projects/${projectId}/workflow-runs/${runId}/breakpoints/clear`, {
+        await axios.post(`/projects/${projectId}/workflow-runs/${runId}/breakpoints/clear`, {
           runId,
           ...params,
         });
@@ -127,7 +127,7 @@ export function useBreakpoints(options: UseBreakpointsOptions) {
   const clearAllBreakpoints = useMutation({
     mutationFn: async () => {
       const projectId = getProjectId();
-      await axios.post(`/api/projects/${projectId}/workflow-runs/${runId}/breakpoints/clear`, {
+      await axios.post(`/projects/${projectId}/workflow-runs/${runId}/breakpoints/clear`, {
         runId,
         clearAll: true,
       });

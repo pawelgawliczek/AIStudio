@@ -78,7 +78,7 @@ export function useArtifacts(options: UseArtifactsOptions) {
       params.append('includeContent', includeContent.toString());
 
       const response = await axios.get<ApiArtifact[]>(
-        `/api/projects/${projectId}/workflow-runs/${runId}/artifacts?${params.toString()}`
+        `/projects/${projectId}/workflow-runs/${runId}/artifacts?${params.toString()}`
       );
       return response.data.map(transformApiArtifact);
     },
@@ -119,13 +119,13 @@ export function useArtifact(options: UseArtifactOptions) {
       if (artifactId) {
         // Fetch by artifact ID
         const response = await axios.get<ApiArtifact>(
-          `/api/projects/${projectId}/artifacts/${artifactId}?includeContent=true`
+          `/projects/${projectId}/artifacts/${artifactId}?includeContent=true`
         );
         return transformApiArtifact(response.data);
       } else if (runId && definitionKey) {
         // Fetch by runId + definitionKey
         const response = await axios.get<ApiArtifact>(
-          `/api/projects/${projectId}/workflow-runs/${runId}/artifacts/${definitionKey}?includeContent=true`
+          `/projects/${projectId}/workflow-runs/${runId}/artifacts/${definitionKey}?includeContent=true`
         );
         return transformApiArtifact(response.data);
       }

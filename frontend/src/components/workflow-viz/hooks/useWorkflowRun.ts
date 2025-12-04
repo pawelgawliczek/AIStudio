@@ -104,7 +104,7 @@ export function useWorkflowRun(options: UseWorkflowRunOptions) {
         throw new Error('No project selected');
       }
       const response = await axios.get<ApiWorkflowRunResponse>(
-        `/api/projects/${projectId}/workflow-runs/${runId}`
+        `/projects/${projectId}/workflow-runs/${runId}`
       );
       return transformApiResponse(response.data);
     },
