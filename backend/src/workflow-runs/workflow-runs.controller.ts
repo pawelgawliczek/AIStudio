@@ -119,13 +119,30 @@ export class WorkflowRunsController {
 
   @Get(':id/artifacts')
   @ApiOperation({ summary: 'Get artifacts for a workflow run' })
+  @ApiQuery({ name: 'includeContent', required: false, type: Boolean })
+  @ApiQuery({ name: 'definitionKey', required: false, type: String })
   @ApiResponse({
     status: 200,
     description: 'Workflow run artifacts retrieved successfully',
   })
   @ApiResponse({ status: 404, description: 'Workflow run not found' })
-  async getArtifacts(@Param('id') id: string): Promise<any> {
-    return this.workflowRunsService.getArtifacts(id);
+  async getArtifacts(
+    @Param('id') id: string,
+    @Query('includeContent') includeContent?: string,
+    @Query('definitionKey') definitionKey?: string,
+  ): Promise<any[]> {
+    return this.workflowRunsService.getArtifacts(id, includeContent === 'true', definitionKey);
+  }
+
+  @Get(':id/artifact-access')
+  @ApiOperation({ summary: 'Get artifact access rules (expected artifacts per state)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Artifact access rules retrieved successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async getArtifactAccess(@Param('id') id: string): Promise<Record<string, any[]>> {
+    return this.workflowRunsService.getArtifactAccess(id);
   }
 
   @Get(':id/context')

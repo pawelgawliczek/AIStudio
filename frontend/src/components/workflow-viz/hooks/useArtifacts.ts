@@ -17,10 +17,14 @@ interface Artifact {
   id: string;
   definitionId: string;
   definitionKey: string;
+  definitionName: string;
+  type: string;
   workflowRunId: string;
   version: number;
   content: string | null;
+  contentPreview: string | null;
   contentType: string;
+  size: number;
   createdAt: string;
   updatedAt: string;
   createdBy: string | null;
@@ -30,10 +34,14 @@ interface ApiArtifact {
   id: string;
   definitionId: string;
   definitionKey: string;
+  definitionName: string;
+  type: string;
   workflowRunId: string;
   version: number;
   content: string | null;
+  contentPreview: string | null;
   contentType: string;
+  size: number;
   createdAt: string;
   updatedAt: string;
   createdBy: string | null;
@@ -47,10 +55,14 @@ function transformApiArtifact(apiArtifact: ApiArtifact): Artifact {
     id: apiArtifact.id,
     definitionId: apiArtifact.definitionId,
     definitionKey: apiArtifact.definitionKey,
+    definitionName: apiArtifact.definitionName,
+    type: apiArtifact.type,
     workflowRunId: apiArtifact.workflowRunId,
     version: apiArtifact.version,
     content: apiArtifact.content,
+    contentPreview: apiArtifact.contentPreview,
     contentType: apiArtifact.contentType,
+    size: apiArtifact.size,
     createdAt: apiArtifact.createdAt,
     updatedAt: apiArtifact.updatedAt,
     createdBy: apiArtifact.createdBy,
@@ -136,6 +148,53 @@ export function useArtifact(options: UseArtifactOptions) {
 
   return {
     artifact: data,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+/**
+ * Artifact access info for expected artifacts per state
+ */
+interface ArtifactAccessInfo {
+  definitionKey: string;
+  definitionName: string;
+  definitionType: string;
+  accessType: 'read' | 'write' | 'required';
+}
+
+/**
+ * Hook for fetching artifact access rules (expected artifacts per state)
+ * ST-168: Shows which artifacts each state should read/write
+ */
+interface UseArtifactAccessOptions {
+  runId: string;
+  enabled?: boolean;
+}
+
+export function useArtifactAccess(options: UseArtifactAccessOptions) {
+  const { runId, enabled = true } = options;
+
+  const { data, isLoading, error, refetch } = useQuery<Record<string, ArtifactAccessInfo[]>>({
+    queryKey: ['artifact-access', runId],
+    queryFn: async () => {
+      const projectId = localStorage.getItem('selectedProjectId') ||
+                       localStorage.getItem('currentProjectId');
+      if (!projectId) {
+        throw new Error('No project selected');
+      }
+
+      const response = await axios.get<Record<string, ArtifactAccessInfo[]>>(
+        `/projects/${projectId}/workflow-runs/${runId}/artifact-access`
+      );
+      return response.data;
+    },
+    enabled: enabled && !!runId,
+  });
+
+  return {
+    artifactAccess: data || {},
     isLoading,
     error,
     refetch,

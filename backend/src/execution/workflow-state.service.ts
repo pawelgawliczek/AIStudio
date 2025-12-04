@@ -86,15 +86,30 @@ export interface WorkflowRunStatus {
   }>;
 }
 
+// New interface matching frontend expectations and actual artifacts table
 export interface ArtifactInfo {
-  s3Key: string;
-  artifactType: string;
-  filename: string;
-  format: string;
+  id: string;
+  definitionId: string;
+  definitionKey: string;
+  definitionName: string;
+  type: string;
+  workflowRunId: string;
+  version: number;
+  content: string | null;
+  contentPreview: string | null;
+  contentType: string;
   size: number;
-  uploadedAt: string;
-  downloadUrl?: string;
-  data?: any; // Temporary until S3 is set up
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string | null;
+}
+
+// Artifact access info for expected artifacts per state
+export interface ArtifactAccessInfo {
+  definitionKey: string;
+  definitionName: string;
+  definitionType: string;
+  accessType: 'read' | 'write' | 'required';
 }
 
 @Injectable()
@@ -254,48 +269,95 @@ export class WorkflowStateService {
   }
 
   /**
-   * Get artifacts for a workflow run
+   * Get artifacts for a workflow run from the artifacts table
+   * ST-168: Query actual artifacts table instead of componentRun.output.artifacts
    */
-  async getWorkflowArtifacts(runId: string): Promise<ArtifactInfo[]> {
-    const componentRuns = await this.prisma.componentRun.findMany({
+  async getWorkflowArtifacts(runId: string, includeContent = false): Promise<ArtifactInfo[]> {
+    const artifacts = await this.prisma.artifact.findMany({
       where: {
         workflowRunId: runId,
       },
       include: {
-        component: true,
+        definition: true,
+        createdByComponent: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
 
-    const artifacts: ArtifactInfo[] = [];
-
-    for (const cr of componentRuns) {
-      // Extract artifacts from output (temporary until S3 is set up)
-      const output = cr.output as any;
-      if (output?.artifacts && Array.isArray(output.artifacts)) {
-        artifacts.push(
-          ...output.artifacts.map((artifact: any) => ({
-            s3Key: artifact.s3Key,
-            artifactType: artifact.artifactType,
-            filename: artifact.filename,
-            format: artifact.format,
-            size: artifact.size,
-            uploadedAt: artifact.uploadedAt,
-            downloadUrl: artifact.downloadUrl || undefined,
-            data: artifact.data, // Temporary
-          }))
-        );
-      }
-    }
-
-    return artifacts;
+    return artifacts.map((artifact) => ({
+      id: artifact.id,
+      definitionId: artifact.definitionId,
+      definitionKey: artifact.definition.key,
+      definitionName: artifact.definition.name,
+      type: artifact.definition.type,
+      workflowRunId: artifact.workflowRunId,
+      version: artifact.version,
+      content: includeContent ? artifact.content : null,
+      contentPreview: artifact.contentPreview,
+      contentType: artifact.contentType,
+      size: artifact.size,
+      createdAt: artifact.createdAt.toISOString(),
+      updatedAt: artifact.updatedAt.toISOString(),
+      createdBy: artifact.createdByComponent?.name || null,
+    }));
   }
 
   /**
-   * Get artifact by S3 key
+   * Get artifact access rules (expected artifacts) for a workflow run
+   * ST-168: Returns what artifacts each state should read/write
    */
-  async getArtifact(runId: string, s3Key: string): Promise<ArtifactInfo | null> {
-    const artifacts = await this.getWorkflowArtifacts(runId);
-    return artifacts.find((a) => a.s3Key === s3Key) || null;
+  async getArtifactAccess(runId: string): Promise<Record<string, ArtifactAccessInfo[]>> {
+    // Get the workflow run to find the workflow
+    const workflowRun = await this.prisma.workflowRun.findUnique({
+      where: { id: runId },
+      include: {
+        workflow: {
+          include: {
+            states: {
+              include: {
+                artifactAccess: {
+                  include: {
+                    definition: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!workflowRun) {
+      return {};
+    }
+
+    // Build a map of stateId -> artifact access info
+    const accessByState: Record<string, ArtifactAccessInfo[]> = {};
+
+    for (const state of workflowRun.workflow.states) {
+      if (state.artifactAccess.length > 0) {
+        accessByState[state.id] = state.artifactAccess.map((access) => ({
+          definitionKey: access.definition.key,
+          definitionName: access.definition.name,
+          definitionType: access.definition.type,
+          accessType: access.accessType as 'read' | 'write' | 'required',
+        }));
+      }
+    }
+
+    return accessByState;
+  }
+
+  /**
+   * Get artifact by ID or definition key
+   * ST-168: Updated to use new artifact table structure
+   */
+  async getArtifact(runId: string, identifier: string): Promise<ArtifactInfo | null> {
+    const artifacts = await this.getWorkflowArtifacts(runId, true);
+    // Try to find by ID first, then by definitionKey
+    return artifacts.find((a) => a.id === identifier || a.definitionKey === identifier) || null;
   }
 
   /**

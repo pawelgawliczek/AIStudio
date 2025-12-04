@@ -458,15 +458,30 @@ export class WorkflowRunsService {
 
   /**
    * Get artifacts for a workflow run
+   * ST-168: Returns array directly (not wrapped object) to match frontend expectations
    */
-  async getArtifacts(id: string): Promise<any> {
+  async getArtifacts(id: string, includeContent = false, definitionKey?: string): Promise<any[]> {
     try {
-      const artifacts = await this.workflowStateService.getWorkflowArtifacts(id);
-      return {
-        runId: id,
-        artifacts,
-        total: artifacts.length,
-      };
+      const artifacts = await this.workflowStateService.getWorkflowArtifacts(id, includeContent);
+
+      // Filter by definitionKey if provided
+      if (definitionKey) {
+        return artifacts.filter(a => a.definitionKey === definitionKey);
+      }
+
+      return artifacts;
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
+  /**
+   * Get artifact access rules (expected artifacts per state)
+   * ST-168: Returns what artifacts each state should read/write
+   */
+  async getArtifactAccess(id: string): Promise<Record<string, any[]>> {
+    try {
+      return await this.workflowStateService.getArtifactAccess(id);
     } catch (error) {
       throw new NotFoundException(error.message);
     }
