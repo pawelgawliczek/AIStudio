@@ -118,6 +118,42 @@ export class WorkflowRunResponseDto {
 
   @ApiProperty({ required: false })
   componentRuns?: ComponentRunSummaryDto[];
+
+  // Workflow states (from related workflow, for workflow-viz components)
+  @ApiProperty({ required: false })
+  states?: WorkflowStateSummaryDto[];
+}
+
+export class WorkflowStateSummaryDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  order: number;
+
+  @ApiProperty({ required: false })
+  componentId?: string;
+
+  @ApiProperty({ required: false })
+  preExecutionInstructions?: string;
+
+  @ApiProperty({ required: false })
+  postExecutionInstructions?: string;
+
+  @ApiProperty()
+  mandatory: boolean;
+
+  @ApiProperty()
+  requiresApproval: boolean;
+
+  @ApiProperty({ required: false })
+  runLocation?: string;
+
+  @ApiProperty({ required: false })
+  offlineFallback?: string;
 }
 
 export class ComponentRunSummaryDto {

@@ -166,6 +166,23 @@ export class WorkflowRunsService {
                 id: true,
                 name: true,
                 version: true,
+                states: {
+                  select: {
+                    id: true,
+                    name: true,
+                    order: true,
+                    componentId: true,
+                    preExecutionInstructions: true,
+                    postExecutionInstructions: true,
+                    mandatory: true,
+                    requiresApproval: true,
+                    runLocation: true,
+                    offlineFallback: true,
+                  },
+                  orderBy: {
+                    order: 'asc',
+                  },
+                },
               },
             }
           : false,
@@ -585,6 +602,8 @@ export class WorkflowRunsService {
       updatedAt: workflowRun.updatedAt?.toISOString() || workflowRun.finishedAt?.toISOString() || new Date().toISOString(),
       workflow: workflowRun.workflow,
       story: workflowRun.story,
+      // Expose states at top level for frontend workflow-viz components
+      states: workflowRun.workflow?.states || [],
       componentRuns: workflowRun.componentRuns?.map((run: any) => ({
         id: run.id,
         componentId: run.componentId,
