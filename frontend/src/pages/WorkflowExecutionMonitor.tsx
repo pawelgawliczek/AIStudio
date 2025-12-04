@@ -28,7 +28,9 @@ import ExecutionTimeline from '../components/execution/ExecutionTimeline';
 import LiveMetricsDisplay from '../components/execution/LiveMetricsDisplay';
 import ArtifactViewer from '../components/execution/ArtifactViewer';
 import ComponentProgressTracker from '../components/execution/ComponentProgressTracker';
-import { FullStatePanel, useWorkflowRun } from '../components/workflow-viz';
+// Use direct imports to avoid potential circular dependency issues with barrel exports
+import { FullStatePanel } from '../components/workflow-viz/FullStatePanel';
+import { useWorkflowRun } from '../components/workflow-viz/hooks/useWorkflowRun';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -162,6 +164,33 @@ const WorkflowExecutionMonitor: React.FC = () => {
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
+  // Fetch initial status (moved here to make refetch available for callbacks)
+  const {
+    data: status,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<WorkflowRunStatus>({
+    queryKey: ['workflow-run-status', runId],
+    queryFn: async () => {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || '/api'}/projects/${projectId}/workflow-runs/${runId}/status`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch workflow run status:', response.status, errorText);
+        throw new Error(`Failed to fetch workflow run status: ${response.status}`);
+      }
+      return response.json();
+    },
+    refetchInterval: 5000, // Fallback polling every 5 seconds
+  });
+
   // Auto-expand running/paused states when workflow data loads
   useEffect(() => {
     if (!workflowRun?.states || !workflowRun?.componentRuns) return;
@@ -252,33 +281,6 @@ const WorkflowExecutionMonitor: React.FC = () => {
       console.error('Error setting breakpoint:', error);
     }
   }, [selectedStateForBreakpoint, runId, breakpointPosition, refetch]);
-
-  // Fetch initial status
-  const {
-    data: status,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<WorkflowRunStatus>({
-    queryKey: ['workflow-run-status', runId],
-    queryFn: async () => {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || '/api'}/projects/${projectId}/workflow-runs/${runId}/status`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to fetch workflow run status:', response.status, errorText);
-        throw new Error(`Failed to fetch workflow run status: ${response.status}`);
-      }
-      return response.json();
-    },
-    refetchInterval: 5000, // Fallback polling every 5 seconds
-  });
 
   // Set up WebSocket connection
   useEffect(() => {
