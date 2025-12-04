@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import io, { Socket } from 'socket.io-client';
@@ -13,6 +13,15 @@ import {
   Alert,
   CircularProgress,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { ArrowBack, Refresh } from '@mui/icons-material';
 import ExecutionTimeline from '../components/execution/ExecutionTimeline';
@@ -112,6 +121,13 @@ const WorkflowExecutionMonitor: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [liveStatus, setLiveStatus] = useState<WorkflowRunStatus | null>(null);
   const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
+  const [breakpointModalOpen, setBreakpointModalOpen] = useState(false);
+  const [selectedStateForBreakpoint, setSelectedStateForBreakpoint] = useState<string>('');
+  const [breakpointPosition, setBreakpointPosition] = useState<'before' | 'after'>('before');
+  const [liveFeedModalOpen, setLiveFeedModalOpen] = useState(false);
+  const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
+  const [selectedComponentRunId, setSelectedComponentRunId] = useState<string>('');
+  const [selectedTranscriptId, setSelectedTranscriptId] = useState<string>('');
 
   // Get project ID from context or localStorage
   const projectId = localStorage.getItem('selectedProjectId') ||
@@ -125,6 +141,31 @@ const WorkflowExecutionMonitor: React.FC = () => {
     refetchInterval: 5000,
   });
 
+  // Auto-expand running/paused states when workflow data loads
+  useEffect(() => {
+    if (!workflowRun?.states || !workflowRun?.componentRuns) return;
+
+    const newExpanded = new Set<string>();
+    workflowRun.states.forEach((state: any) => {
+      // Check status in componentRuns
+      const componentRun = workflowRun.componentRuns?.find(
+        (r: any) => r.id === state.id || r.componentId === state.componentId
+      );
+      if (componentRun?.status === 'running' || componentRun?.status === 'paused') {
+        newExpanded.add(state.id);
+      }
+      // Also check state's own status if available
+      if (state.status === 'running' || state.status === 'paused') {
+        newExpanded.add(state.id);
+      }
+    });
+
+    // Only update if there are running/paused states
+    if (newExpanded.size > 0) {
+      setExpandedStates(newExpanded);
+    }
+  }, [workflowRun]);
+
   const handleToggleState = (stateId: string) => {
     setExpandedStates(prev => {
       const newSet = new Set(prev);
@@ -136,6 +177,56 @@ const WorkflowExecutionMonitor: React.FC = () => {
       return newSet;
     });
   };
+
+  // Callback handlers for workflow-viz components
+  const handleViewLiveFeed = useCallback((componentRunId: string) => {
+    setSelectedComponentRunId(componentRunId);
+    setLiveFeedModalOpen(true);
+  }, []);
+
+  const handleViewTranscript = useCallback((transcriptId: string) => {
+    setSelectedTranscriptId(transcriptId);
+    setTranscriptModalOpen(true);
+  }, []);
+
+  const handleViewArtifact = useCallback((artifactId: string) => {
+    // Switch to artifacts tab and scroll to artifact
+    setActiveTab(3);
+    console.log('View artifact:', artifactId);
+  }, []);
+
+  const handleAddBreakpoint = useCallback(async () => {
+    if (!selectedStateForBreakpoint || !runId) return;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || ''}/api/mcp/set_breakpoint`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+          body: JSON.stringify({
+            runId,
+            stateId: selectedStateForBreakpoint,
+            position: breakpointPosition,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        setBreakpointModalOpen(false);
+        setSelectedStateForBreakpoint('');
+        // Trigger refetch
+        refetch();
+      } else {
+        console.error('Failed to set breakpoint');
+      }
+    } catch (error) {
+      console.error('Error setting breakpoint:', error);
+    }
+  }, [selectedStateForBreakpoint, runId, breakpointPosition]);
 
   // Fetch initial status
   const {
@@ -338,15 +429,31 @@ const WorkflowExecutionMonitor: React.FC = () => {
                   <CircularProgress />
                 </Box>
               ) : workflowRun?.states && workflowRun.states.length > 0 ? (
-                <FullStatePanel
-                  states={workflowRun.states}
-                  componentRuns={workflowRun.componentRuns}
-                  expandedStates={expandedStates}
-                  onToggle={handleToggleState}
-                  showLiveStream={true}
-                  showArtifacts={true}
-                  showBreakpointControls={true}
-                />
+                <>
+                  <FullStatePanel
+                    states={workflowRun.states}
+                    componentRuns={workflowRun.componentRuns}
+                    expandedStates={expandedStates}
+                    onToggle={handleToggleState}
+                    showLiveStream={true}
+                    showArtifacts={true}
+                    showBreakpointControls={true}
+                    onViewLiveFeed={handleViewLiveFeed}
+                    onViewTranscript={handleViewTranscript}
+                    onViewArtifact={handleViewArtifact}
+                  />
+                  {/* Add Breakpoint Button */}
+                  <Box mt={2}>
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      onClick={() => setBreakpointModalOpen(true)}
+                      startIcon={<span>🛑</span>}
+                    >
+                      Add Breakpoint
+                    </Button>
+                  </Box>
+                </>
               ) : (
                 <Alert severity="info">
                   No workflow states available for this run.
@@ -531,6 +638,143 @@ const WorkflowExecutionMonitor: React.FC = () => {
           )}
         </Box>
       </Paper>
+
+      {/* Breakpoint Modal */}
+      <Dialog
+        open={breakpointModalOpen}
+        onClose={() => setBreakpointModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Breakpoint</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>Select State</InputLabel>
+              <Select
+                value={selectedStateForBreakpoint}
+                label="Select State"
+                onChange={(e) => setSelectedStateForBreakpoint(e.target.value)}
+              >
+                {workflowRun?.states?.map((state: any) => (
+                  <MenuItem key={state.id} value={state.id}>
+                    {state.name} (Order: {state.order})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Position</InputLabel>
+              <Select
+                value={breakpointPosition}
+                label="Position"
+                onChange={(e) => setBreakpointPosition(e.target.value as 'before' | 'after')}
+              >
+                <MenuItem value="before">Before state execution</MenuItem>
+                <MenuItem value="after">After state completion</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBreakpointModalOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleAddBreakpoint}
+            variant="contained"
+            color="warning"
+            disabled={!selectedStateForBreakpoint}
+          >
+            Add Breakpoint
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Live Feed Modal */}
+      <Dialog
+        open={liveFeedModalOpen}
+        onClose={() => setLiveFeedModalOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <span>🔴</span>
+            Live Execution Stream
+            <Chip label="Connected" color="success" size="small" sx={{ ml: 'auto' }} />
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ minHeight: 400 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Component Run ID: {selectedComponentRunId}
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                bgcolor: 'grey.900',
+                color: 'grey.100',
+                fontFamily: 'monospace',
+                fontSize: '0.85rem',
+                minHeight: 300,
+                maxHeight: 500,
+                overflow: 'auto',
+              }}
+            >
+              {/* WebSocket stream would render here */}
+              <Typography variant="body2" sx={{ color: 'grey.500' }}>
+                Connecting to live stream...
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'grey.400', mt: 1 }}>
+                {'>'} Waiting for agent output...
+              </Typography>
+            </Paper>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLiveFeedModalOpen(false)}>Close</Button>
+          <Button variant="outlined">Pause Stream</Button>
+          <Button variant="outlined">Download Transcript</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Transcript Modal */}
+      <Dialog
+        open={transcriptModalOpen}
+        onClose={() => setTranscriptModalOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Agent Transcript</DialogTitle>
+        <DialogContent>
+          <Box sx={{ minHeight: 400 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Transcript ID: {selectedTranscriptId}
+            </Typography>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                bgcolor: 'grey.900',
+                color: 'grey.100',
+                fontFamily: 'monospace',
+                fontSize: '0.85rem',
+                minHeight: 300,
+                maxHeight: 500,
+                overflow: 'auto',
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'grey.500' }}>
+                Loading transcript...
+              </Typography>
+            </Paper>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTranscriptModalOpen(false)}>Close</Button>
+          <Button variant="outlined">Download JSONL</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
