@@ -23,12 +23,24 @@ export const tool: Tool = {
 - Story context
 - Checkpoint information
 
+**ST-172: Automatic Transcript Registration**
+If \`sessionId\` and \`transcriptPath\` are provided, this tool will automatically
+register the new master transcript (if not already registered) before returning context.
+
 The Node.js Runner orchestrates the workflow. This tool restores the
 MasterSession's understanding of its role so it can continue executing
 pre/post instructions.
 
 **Usage:**
 \`\`\`typescript
+// After compaction (automatic transcript registration)
+get_orchestration_context({
+  runId: "uuid-here",
+  sessionId: "session-uuid",
+  transcriptPath: "/path/to/transcript.jsonl"
+})
+
+// Normal recovery (no transcript registration)
 get_orchestration_context({ runId: "uuid-here" })
 \`\`\``,
   inputSchema: {
@@ -37,6 +49,14 @@ get_orchestration_context({ runId: "uuid-here" })
       runId: {
         type: 'string',
         description: 'WorkflowRun ID (required)',
+      },
+      sessionId: {
+        type: 'string',
+        description: 'Current session ID (optional - for automatic transcript registration after compaction)',
+      },
+      transcriptPath: {
+        type: 'string',
+        description: 'Current transcript path (optional - for automatic transcript registration after compaction)',
       },
     },
     required: ['runId'],
@@ -81,9 +101,11 @@ export async function handler(
   prisma: PrismaClient,
   params: {
     runId: string;
+    sessionId?: string;
+    transcriptPath?: string;
   }
 ) {
-  const { runId } = params;
+  const { runId, sessionId, transcriptPath } = params;
 
   // Get workflow run with all related data
   const run = await prisma.workflowRun.findUnique({
@@ -109,6 +131,25 @@ export async function handler(
 
   if (!run) {
     throw new Error(`WorkflowRun not found: ${runId}`);
+  }
+
+  // ST-172: Automatic transcript registration after compaction
+  // If sessionId and transcriptPath provided, register the new master transcript
+  let transcriptAutoRegistered = false;
+  if (sessionId && transcriptPath) {
+    const existingPaths = run.masterTranscriptPaths || [];
+
+    // Check if transcript already registered
+    if (!existingPaths.includes(transcriptPath)) {
+      // Add new transcript to array
+      await prisma.workflowRun.update({
+        where: { id: runId },
+        data: {
+          masterTranscriptPaths: [...existingPaths, transcriptPath],
+        },
+      });
+      transcriptAutoRegistered = true;
+    }
   }
 
   // Extract checkpoint from metadata
@@ -175,6 +216,13 @@ export async function handler(
     isRecovery: true,
   });
 
+  // Build message with transcript registration info
+  let message = `MasterSession context restored for "${run.workflow.name}". Currently at state "${currentState?.name}" (${checkpoint?.currentPhase || 'pre'} phase). ${completedStateIds.length}/${states.length} states completed.`;
+
+  if (transcriptAutoRegistered) {
+    message += ` New master transcript registered: ${transcriptPath}`;
+  }
+
   return {
     success: true,
 
@@ -221,6 +269,16 @@ export async function handler(
     // THE KEY PART - re-initialization prompt for MasterSession
     reinitPrompt,
 
+    // ST-172: Transcript registration info
+    transcriptRegistration: transcriptAutoRegistered
+      ? {
+          registered: true,
+          sessionId,
+          transcriptPath,
+          totalMasterTranscripts: (run.masterTranscriptPaths?.length || 0) + 1,
+        }
+      : null,
+
     // Recovery info
     _recovery: {
       command: 'get_orchestration_context',
@@ -228,6 +286,6 @@ export async function handler(
       slashCommand: `/orchestrate ${runId}`,
     },
 
-    message: `MasterSession context restored for "${run.workflow.name}". Currently at state "${currentState?.name}" (${checkpoint?.currentPhase || 'pre'} phase). ${completedStateIds.length}/${states.length} states completed.`,
+    message,
   };
 }

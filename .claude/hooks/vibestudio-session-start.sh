@@ -84,8 +84,8 @@ if [ "$SOURCE" = "compact" ] && [ -n "$RUN_ID" ]; then
       "previousSessionId": "$OLD_SID",
       "newTranscriptPath": "$TRANSCRIPT_PATH"
     },
-    "action": "ORCHESTRATOR: Context was compacted. Call add_transcript({ type: 'master', runId: '$RUN_ID', transcriptPath: '$TRANSCRIPT_PATH' }) to register the new transcript, then call get_orchestration_context({ runId: '$RUN_ID' }) to restore workflow state.",
-    "additionalContext": "## Context Compaction Recovery\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n**Workflow Run**: \`$RUN_ID\`\\n\\n⚠️ **Context was compacted.** You are the MasterSession orchestrator. Call \`add_transcript\` to register this transcript, then \`get_orchestration_context\` to restore your workflow state."
+    "action": "ORCHESTRATOR: Context was compacted. Call get_orchestration_context({ runId: '$RUN_ID', sessionId: '$SESSION_ID', transcriptPath: '$TRANSCRIPT_PATH' }) to restore workflow state and automatically register the new transcript.",
+    "additionalContext": "## Context Compaction Recovery\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n**Workflow Run**: \`$RUN_ID\`\\n\\n⚠️ **Context was compacted.** You are the MasterSession orchestrator.\\n\\n**Single Command Recovery**: Call \`get_orchestration_context({ runId: '$RUN_ID', sessionId: '$SESSION_ID', transcriptPath: '$TRANSCRIPT_PATH' })\` to automatically register this transcript and restore your workflow state."
   }
 }
 EOF
