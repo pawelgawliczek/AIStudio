@@ -528,11 +528,20 @@ npx ts-node mcp-stdio-bridge.ts --api-key=<key> --debug
 
 ### HTTP Retry Configuration
 
-The HTTP client automatically retries transient failures with exponential backoff:
+The HTTP client implements a two-tier retry strategy for maximum resilience:
 
-- **Retryable errors**: 429 (rate limit), 502, 503, 504 (server errors), network errors (ECONNRESET, ETIMEDOUT)
-- **Auto re-init**: On 401/410 (session expired), automatically re-initializes session and retries
-- **Defaults**: 3 retries, 1s initial delay, 10s max delay
+**Tier 1 - Initial Retries (fast, exponential backoff):**
+- 3 attempts with delays: 1s → 2s → 4s
+- Handles brief network glitches
+
+**Tier 2 - Extended Retries (long delay between rounds):**
+- 10 rounds with 30s delay between each
+- Each round retries the initial 3 attempts
+- Handles prolonged outages (up to ~5 minutes)
+
+**Retryable errors**: 429 (rate limit), 502, 503, 504 (server errors), network errors (ECONNRESET, ETIMEDOUT, ECONNREFUSED)
+
+**Auto re-init**: On 401/410 (session expired), automatically re-initializes session and retries
 
 Configure via `McpHttpClientOptions`:
 
@@ -541,9 +550,13 @@ const client = new McpHttpClient({
   baseUrl: 'https://vibestudio.example.com',
   apiKey: 'your-api-key',
   debug: true,
-  maxHttpRetries: 3,           // Max retry attempts
-  initialHttpRetryDelay: 1000, // Initial delay (ms)
-  maxHttpRetryDelay: 10000,    // Max delay (ms)
+  // Initial retry config
+  maxHttpRetries: 3,           // Max attempts per round (default: 3)
+  initialHttpRetryDelay: 1000, // Initial delay (ms, default: 1000)
+  maxHttpRetryDelay: 10000,    // Max delay (ms, default: 10000)
+  // Extended retry config
+  extendedRetryAttempts: 10,   // Retry rounds after initial fails (default: 10)
+  extendedRetryDelay: 30000,   // Delay between rounds (ms, default: 30000)
 });
 ```
 

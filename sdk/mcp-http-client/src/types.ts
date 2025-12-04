@@ -42,6 +42,14 @@ export interface McpHttpClientOptions {
 
   /** Maximum HTTP retry delay in milliseconds (default: 10000) */
   maxHttpRetryDelay?: number;
+
+  // Extended Retry Configuration (ST-171) - Long retry loop after initial retries fail
+
+  /** Number of extended retry rounds after initial retries fail (default: 10) */
+  extendedRetryAttempts?: number;
+
+  /** Delay between extended retry rounds in milliseconds (default: 30000 = 30s) */
+  extendedRetryDelay?: number;
 }
 
 /**

@@ -45,6 +45,10 @@ export class McpHttpClient {
   private readonly initialHttpRetryDelay: number;
   private readonly maxHttpRetryDelay: number;
 
+  // Extended retry configuration (ST-171) - Long retry loop after initial retries fail
+  private readonly extendedRetryAttempts: number;
+  private readonly extendedRetryDelay: number;
+
   // Heartbeat state
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private readonly heartbeatIntervalMs: number;
@@ -77,6 +81,10 @@ export class McpHttpClient {
     this.maxHttpRetries = options.maxHttpRetries ?? 3;
     this.initialHttpRetryDelay = options.initialHttpRetryDelay ?? 1000;
     this.maxHttpRetryDelay = options.maxHttpRetryDelay ?? 10000;
+
+    // Extended retry configuration (ST-171) - Long retry loop after initial retries fail
+    this.extendedRetryAttempts = options.extendedRetryAttempts ?? 10;
+    this.extendedRetryDelay = options.extendedRetryDelay ?? 30000; // 30 seconds
 
     // Create HTTP client with default headers
     this.httpClient = axios.create({
@@ -620,21 +628,18 @@ export class McpHttpClient {
   }
 
   /**
-   * Execute HTTP operation with retry logic
-   *
-   * Implements exponential backoff retry for transient failures.
-   * Can optionally re-initialize session on auth errors.
+   * Execute initial retry attempts with exponential backoff
    *
    * @private
    * @param operation - Async operation to execute
    * @param operationName - Name for logging
    * @param canReInit - Whether to attempt session re-init on auth errors
-   * @returns Operation result
+   * @returns Operation result or throws if all retries fail
    */
-  private async executeWithRetry<T>(
+  private async executeInitialRetries<T>(
     operation: () => Promise<T>,
     operationName: string,
-    canReInit = false
+    canReInit: boolean
   ): Promise<T> {
     let lastError: any;
 
@@ -660,7 +665,7 @@ export class McpHttpClient {
             return await operation();
           } catch (reInitError: any) {
             this.log(`${operationName}: Re-initialization failed`, { error: reInitError.message });
-            throw this.handleHttpError(error);
+            throw error; // Re-throw original error for extended retry handling
           }
         }
 
@@ -672,14 +677,75 @@ export class McpHttpClient {
 
         // Don't retry if we've exhausted attempts
         if (attempt === this.maxHttpRetries) {
-          this.log(`${operationName}: Max retries exhausted`);
-          throw this.handleHttpError(error);
+          throw error; // Re-throw for extended retry handling
         }
 
         // Calculate and apply delay
         const delay = this.calculateRetryDelay(attempt);
         this.log(`${operationName}: Retrying in ${delay}ms`, { attempt, nextAttempt: attempt + 1 });
         await this.sleep(delay);
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Execute HTTP operation with retry logic
+   *
+   * Implements two-tier retry strategy:
+   * 1. Initial retries with exponential backoff (default: 3 attempts, 1s-10s delays)
+   * 2. Extended retries with long delay (default: 10 rounds, 30s between rounds)
+   *
+   * Total resilience: up to 30+ attempts over ~5 minutes
+   *
+   * @private
+   * @param operation - Async operation to execute
+   * @param operationName - Name for logging
+   * @param canReInit - Whether to attempt session re-init on auth errors
+   * @returns Operation result
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    canReInit = false
+  ): Promise<T> {
+    let lastError: any;
+
+    // Extended retry loop - outer loop with long delays between rounds
+    for (let extendedRound = 0; extendedRound <= this.extendedRetryAttempts; extendedRound++) {
+      try {
+        // First round (extendedRound=0) or subsequent rounds after 30s delay
+        return await this.executeInitialRetries(operation, operationName, canReInit);
+      } catch (error: any) {
+        lastError = error;
+
+        // If error was already handled (non-retryable), re-throw
+        if (error.message?.startsWith('Authentication failed:') ||
+            error.message?.startsWith('Access denied:') ||
+            error.message?.startsWith('Not found:')) {
+          throw error;
+        }
+
+        // Check if we should enter extended retry mode
+        if (extendedRound < this.extendedRetryAttempts && this.isRetryableError(error)) {
+          this.log(`${operationName}: Initial retries exhausted, entering extended retry mode`, {
+            extendedRound: extendedRound + 1,
+            maxExtendedRounds: this.extendedRetryAttempts,
+            delaySeconds: this.extendedRetryDelay / 1000,
+          });
+
+          // Wait before next extended retry round
+          await this.sleep(this.extendedRetryDelay);
+          continue;
+        }
+
+        // All retries exhausted
+        this.log(`${operationName}: All retry attempts exhausted`, {
+          initialRetries: this.maxHttpRetries,
+          extendedRounds: this.extendedRetryAttempts,
+        });
+        throw this.handleHttpError(error);
       }
     }
 
