@@ -8,19 +8,52 @@ import { Box, Typography, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, Build } from '@mui/icons-material';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
-import { vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import type { ToolCall, ToolResult } from '../../utils/transcript-parser';
 
 // Register JSON language
 SyntaxHighlighter.registerLanguage('json', json);
 
-// Override vs2015 theme to use only web-safe fonts (prevents fingerprinting warnings)
-const customVs2015 = {
-  ...vs2015,
+// Custom theme with ONLY safe fonts - prevents font fingerprinting probes
+// Based on VS2015 dark theme but without any system font fallbacks
+const safeCodeTheme = {
   'hljs': {
-    ...vs2015['hljs'],
-    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-  }
+    display: 'block',
+    overflowX: 'auto',
+    padding: '0.5em',
+    background: '#1e1e1e',
+    color: '#dcdcdc',
+    fontFamily: 'Consolas, Monaco, "Courier New"', // No 'monospace' fallback
+  },
+  'hljs-keyword': { color: '#569cd6' },
+  'hljs-literal': { color: '#569cd6' },
+  'hljs-symbol': { color: '#569cd6' },
+  'hljs-name': { color: '#569cd6' },
+  'hljs-link': { color: '#569cd6', textDecoration: 'underline' },
+  'hljs-built_in': { color: '#4ec9b0' },
+  'hljs-type': { color: '#4ec9b0' },
+  'hljs-number': { color: '#b5cea8' },
+  'hljs-class': { color: '#4ec9b0' },
+  'hljs-string': { color: '#ce9178' },
+  'hljs-meta-string': { color: '#ce9178' },
+  'hljs-regexp': { color: '#d16969' },
+  'hljs-template-tag': { color: '#ce9178' },
+  'hljs-subst': { color: '#dcdcdc' },
+  'hljs-function': { color: '#dcdcdc' },
+  'hljs-title': { color: '#dcdcdc' },
+  'hljs-params': { color: '#dcdcdc' },
+  'hljs-formula': { color: '#dcdcdc' },
+  'hljs-comment': { color: '#6a9955' },
+  'hljs-quote': { color: '#6a9955' },
+  'hljs-doctag': { color: '#6a9955' },
+  'hljs-tag': { color: '#569cd6' },
+  'hljs-attr': { color: '#9cdcfe' },
+  'hljs-attribute': { color: '#9cdcfe' },
+  'hljs-variable': { color: '#9cdcfe' },
+  'hljs-template-variable': { color: '#9cdcfe' },
+  'hljs-meta': { color: '#9b9b9b' },
+  'hljs-meta-keyword': { color: '#9b9b9b' },
+  'hljs-addition': { color: '#4ec9b0', backgroundColor: '#144212' },
+  'hljs-deletion': { color: '#ce9178', backgroundColor: '#4b1818' },
 };
 
 interface ToolCallCardProps {
@@ -176,13 +209,13 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
         >
           <SyntaxHighlighter
             language="json"
-            style={customVs2015}
+            style={safeCodeTheme}
             customStyle={{
               margin: 0,
               fontSize: '0.75rem',
               borderRadius: 4,
               backgroundColor: '#1e1e1e',
-              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+              fontFamily: 'Consolas, Monaco, "Courier New"',
             }}
             wrapLines={true}
             wrapLongLines={true}

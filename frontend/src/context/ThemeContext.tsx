@@ -53,8 +53,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
               }),
         },
         typography: {
-          // Use only bundled Roboto font - prevents browser font fingerprinting
-          fontFamily: 'Roboto, sans-serif',
+          // Use ONLY bundled Roboto font - no fallbacks prevents font probing
+          fontFamily: '"Roboto"',
         },
         components: {
           MuiPaper: {
