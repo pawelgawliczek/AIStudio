@@ -89,9 +89,9 @@ export const ArtifactViewerModal: React.FC<ArtifactViewerModalProps> = ({
       const projectId = localStorage.getItem('selectedProjectId') ||
                         localStorage.getItem('currentProjectId');
       if (projectId) {
-        // Use centralized API client (note: no /api prefix, baseURL handles it)
+        // Use centralized API client
         apiClient
-          .get(`/projects/${projectId}/artifacts/${artifact.id}?includeContent=true`)
+          .get(`/api/projects/${projectId}/artifacts/${artifact.id}?includeContent=true`)
           .then((response) => {
             if (response.data.content) {
               setFullContent(response.data.content);
