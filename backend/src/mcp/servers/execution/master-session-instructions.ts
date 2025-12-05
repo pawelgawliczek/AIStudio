@@ -96,7 +96,11 @@ After each component completes, update its status to "completed".
 2. Execute components in order using the **Task tool** to spawn agents
 3. **Update todo status** before/after each component
 4. Before spawning each agent, call \`get_agent_instructions({ componentId })\` for full instructions
-5. After each agent completes, call \`record_agent_complete({ ... })\` to record metrics
+5. **CRITICAL**: After spawning an agent, check the Task tool response for hook output with \`agentSpawned\` data:
+   - Extract \`agentId\` and \`transcriptPath\` from the hook output
+   - Immediately call \`add_transcript({ type: 'agent', runId: '${runId}', componentId: '<component-id>', agentId: '<agent-id>', transcriptPath: '<path>' })\`
+   - This registers the transcript so metrics can be captured later
+6. After each agent completes, call \`record_agent_complete({ runId, componentId, status, output, componentSummary })\` to record metrics
 
 ## Response Format
 After each action, respond with a JSON block:
