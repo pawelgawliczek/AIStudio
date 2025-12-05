@@ -61,6 +61,13 @@ export const APPROVED_SCRIPTS: Record<string, ApprovedScript> = {
     timeout: 5000, // 5 seconds
     positionalArgs: true, // First param is action, rest are positional (runId, workflowId, storyId)
   },
+  // ST-173: Read file content for transcript uploads
+  'read-file': {
+    script: 'scripts/read-file.ts',
+    description: 'Read transcript files with security validation (path traversal protection, ownership check)',
+    allowedParams: ['--path', '--encoding', '--max-size'],
+    timeout: 30000, // 30 seconds
+  },
 };
 
 /**

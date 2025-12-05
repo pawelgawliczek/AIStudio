@@ -33,6 +33,7 @@ import { useArtifacts, useArtifactAccess } from '../components/workflow-viz/hook
 import { ApprovalGate } from '../components/workflow-viz/ApprovalGate';
 import { ArtifactPanel } from '../components/workflow-viz/ArtifactPanel';
 import { ArtifactViewerModal } from '../components/workflow-viz/ArtifactViewerModal';
+import { TranscriptViewerModal } from '../components/workflow-viz/TranscriptViewerModal';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -132,6 +133,11 @@ const WorkflowExecutionMonitor: React.FC = () => {
   const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
   const [selectedComponentRunId, setSelectedComponentRunId] = useState<string>('');
   const [selectedTranscriptId, setSelectedTranscriptId] = useState<string>('');
+  const [selectedTranscript, setSelectedTranscript] = useState<{
+    artifactId: string;
+    type: 'master' | 'agent';
+    componentRunId?: string;
+  } | null>(null);
   const [artifactModalOpen, setArtifactModalOpen] = useState(false);
   const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
   const [artifactModalMode, setArtifactModalMode] = useState<'view' | 'edit'>('view');
@@ -241,8 +247,12 @@ const WorkflowExecutionMonitor: React.FC = () => {
     setLiveFeedModalOpen(true);
   }, []);
 
-  const handleViewTranscript = useCallback((transcriptId: string) => {
-    setSelectedTranscriptId(transcriptId);
+  const handleViewTranscript = useCallback((
+    transcriptId: string,
+    componentRunId: string,
+    type: 'agent'
+  ) => {
+    setSelectedTranscript({ artifactId: transcriptId, type, componentRunId });
     setTranscriptModalOpen(true);
   }, []);
 
@@ -725,42 +735,20 @@ const WorkflowExecutionMonitor: React.FC = () => {
       </Dialog>
 
       {/* Transcript Modal */}
-      <Dialog
-        open={transcriptModalOpen}
-        onClose={() => setTranscriptModalOpen(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>Agent Transcript</DialogTitle>
-        <DialogContent>
-          <Box sx={{ minHeight: 400 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Transcript ID: {selectedTranscriptId}
-            </Typography>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2,
-                bgcolor: 'grey.900',
-                color: 'grey.100',
-                fontFamily: 'monospace',
-                fontSize: '0.85rem',
-                minHeight: 300,
-                maxHeight: 500,
-                overflow: 'auto',
-              }}
-            >
-              <Typography variant="body2" sx={{ color: 'grey.500' }}>
-                Loading transcript...
-              </Typography>
-            </Paper>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTranscriptModalOpen(false)}>Close</Button>
-          <Button variant="outlined">Download JSONL</Button>
-        </DialogActions>
-      </Dialog>
+      {selectedTranscript && projectId && (
+        <TranscriptViewerModal
+          open={transcriptModalOpen}
+          transcriptId={selectedTranscript.artifactId}
+          transcriptType={selectedTranscript.type}
+          componentRunId={selectedTranscript.componentRunId}
+          runId={runId || ''}
+          projectId={projectId}
+          onClose={() => {
+            setTranscriptModalOpen(false);
+            setSelectedTranscript(null);
+          }}
+        />
+      )}
 
       {/* Artifact Viewer Modal */}
       <ArtifactViewerModal

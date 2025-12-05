@@ -26,8 +26,9 @@ interface ExtendedStateBlockProps extends StateBlockProps {
   artifacts?: ArtifactInstance[];
   artifactAccess?: ArtifactAccess[];
   transcriptId?: string;
+  componentRunId?: string; // NEW - for transcript lookup
   onViewLiveFeed?: (componentRunId: string) => void;
-  onViewTranscript?: (transcriptId: string) => void;
+  onViewTranscript?: (transcriptId: string, componentRunId: string, type: 'agent') => void;
   onViewArtifact?: (artifactId: string) => void;
 }
 
@@ -40,6 +41,7 @@ export const StateBlock: React.FC<ExtendedStateBlockProps> = ({
   artifacts = [],
   artifactAccess = [],
   transcriptId,
+  componentRunId,
   onViewLiveFeed,
   onViewTranscript,
   onViewArtifact,
@@ -304,11 +306,11 @@ export const StateBlock: React.FC<ExtendedStateBlockProps> = ({
                         >
                           📡 Live Feed
                         </button>
-                      ) : (status === 'completed' || status === 'failed') && transcriptId ? (
+                      ) : (status === 'completed' || status === 'failed') && transcriptId && componentRunId ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onViewTranscript?.(transcriptId);
+                            onViewTranscript?.(transcriptId, componentRunId, 'agent');
                           }}
                           className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
                         >

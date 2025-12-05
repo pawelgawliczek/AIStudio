@@ -10,15 +10,21 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
+  NotFoundException,
+  Req,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import {
   CreateWorkflowRunDto,
   UpdateWorkflowRunDto,
   WorkflowRunResponseDto,
   RunStatus,
+  TranscriptListResponseDto,
+  TranscriptDetailResponseDto,
 } from './dto';
+import { TranscriptsService } from './transcripts.service';
 import { WorkflowRunsService } from './workflow-runs.service';
 
 @ApiTags('workflow-runs')
@@ -26,7 +32,10 @@ import { WorkflowRunsService } from './workflow-runs.service';
 @UseGuards(AuthGuard('jwt'))
 @ApiBearerAuth()
 export class WorkflowRunsController {
-  constructor(private readonly workflowRunsService: WorkflowRunsService) {}
+  constructor(
+    private readonly workflowRunsService: WorkflowRunsService,
+    private readonly transcriptsService: TranscriptsService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new workflow run' })
@@ -154,6 +163,201 @@ export class WorkflowRunsController {
   @ApiResponse({ status: 404, description: 'Workflow run not found' })
   async getContext(@Param('id') id: string): Promise<any> {
     return this.workflowRunsService.getContext(id);
+  }
+
+  // ==========================================================================
+  // ST-173: Transcript Endpoints
+  // ==========================================================================
+
+  @Get(':runId/transcripts')
+  @ApiOperation({ summary: 'Get all transcripts for a workflow run (ST-173)' })
+  @ApiParam({ name: 'projectId', description: 'Project UUID' })
+  @ApiParam({ name: 'runId', description: 'Workflow Run UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transcripts retrieved successfully',
+    type: TranscriptListResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Access denied to project' })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async getTranscriptsForRun(
+    @Param('projectId') projectId: string,
+    @Param('runId') runId: string,
+    @Req() request: any,
+  ): Promise<TranscriptListResponseDto> {
+    // Validate access
+    await this.validateProjectAccess(request.user?.id, projectId);
+    await this.validateRunBelongsToProject(runId, projectId);
+
+    return this.transcriptsService.getTranscriptsForRun(runId);
+  }
+
+  @Get(':runId/transcripts/component/:componentId')
+  @ApiOperation({ summary: 'Get transcript for a specific component (ST-173)' })
+  @ApiParam({ name: 'projectId', description: 'Project UUID' })
+  @ApiParam({ name: 'runId', description: 'Workflow Run UUID' })
+  @ApiParam({ name: 'componentId', description: 'Component UUID' })
+  @ApiQuery({ name: 'includeContent', required: false, type: Boolean })
+  @ApiResponse({
+    status: 200,
+    description: 'Component transcript retrieved successfully',
+    type: TranscriptDetailResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Access denied to project' })
+  @ApiResponse({ status: 404, description: 'Transcript not found' })
+  async getTranscriptByComponent(
+    @Param('projectId') projectId: string,
+    @Param('runId') runId: string,
+    @Param('componentId') componentId: string,
+    @Query('includeContent') includeContent?: string,
+    @Req() request?: any,
+  ): Promise<TranscriptDetailResponseDto> {
+    // Validate access
+    await this.validateProjectAccess(request?.user?.id, projectId);
+    await this.validateRunBelongsToProject(runId, projectId);
+
+    // Find transcript for this component
+    const transcripts = await this.transcriptsService.getTranscriptsForRun(runId);
+    const agentTranscript = transcripts.agents.find(t => t.componentId === componentId);
+
+    if (!agentTranscript) {
+      throw new NotFoundException('Transcript not found for component');
+    }
+
+    return this.transcriptsService.getTranscriptById(
+      agentTranscript.artifactId,
+      includeContent === 'true',
+    );
+  }
+
+  @Get(':runId/transcripts/master/:index')
+  @ApiOperation({ summary: 'Get master transcript by index (ST-173)' })
+  @ApiParam({ name: 'projectId', description: 'Project UUID' })
+  @ApiParam({ name: 'runId', description: 'Workflow Run UUID' })
+  @ApiParam({ name: 'index', description: 'Master transcript index (0=initial, 1=after first compact)' })
+  @ApiQuery({ name: 'includeContent', required: false, type: Boolean })
+  @ApiResponse({
+    status: 200,
+    description: 'Master transcript retrieved successfully',
+    type: TranscriptDetailResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Access denied to project' })
+  @ApiResponse({ status: 404, description: 'Master transcript not found at index' })
+  async getMasterTranscript(
+    @Param('projectId') projectId: string,
+    @Param('runId') runId: string,
+    @Param('index') index: string,
+    @Query('includeContent') includeContent?: string,
+    @Req() request?: any,
+  ): Promise<TranscriptDetailResponseDto> {
+    // Validate access
+    await this.validateProjectAccess(request?.user?.id, projectId);
+    await this.validateRunBelongsToProject(runId, projectId);
+
+    const transcriptIndex = parseInt(index, 10);
+
+    // Get all transcripts and find master at index
+    const transcripts = await this.transcriptsService.getTranscriptsForRun(runId);
+    const masterTranscript = transcripts.master.find(t => t.index === transcriptIndex);
+
+    if (!masterTranscript) {
+      throw new NotFoundException(`Master transcript not found at index ${transcriptIndex}`);
+    }
+
+    const result = await this.transcriptsService.getTranscriptById(
+      masterTranscript.artifactId,
+      includeContent === 'true',
+    );
+
+    return {
+      ...result,
+      index: transcriptIndex,
+    };
+  }
+
+  @Get(':runId/transcripts/:artifactId')
+  @ApiOperation({ summary: 'Get a specific transcript by artifact ID (ST-173)' })
+  @ApiParam({ name: 'projectId', description: 'Project UUID' })
+  @ApiParam({ name: 'runId', description: 'Workflow Run UUID' })
+  @ApiParam({ name: 'artifactId', description: 'Artifact UUID' })
+  @ApiQuery({ name: 'includeContent', required: false, type: Boolean })
+  @ApiResponse({
+    status: 200,
+    description: 'Transcript retrieved successfully',
+    type: TranscriptDetailResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Access denied or artifact mismatch' })
+  @ApiResponse({ status: 404, description: 'Transcript not found' })
+  async getTranscript(
+    @Param('projectId') projectId: string,
+    @Param('runId') runId: string,
+    @Param('artifactId') artifactId: string,
+    @Query('includeContent') includeContent?: string,
+    @Req() request?: any,
+  ): Promise<TranscriptDetailResponseDto> {
+    // Validate access
+    await this.validateProjectAccess(request?.user?.id, projectId);
+    await this.validateRunBelongsToProject(runId, projectId);
+    await this.validateArtifactBelongsToRun(artifactId, runId);
+
+    return this.transcriptsService.getTranscriptById(
+      artifactId,
+      includeContent === 'true',
+    );
+  }
+
+  // ==========================================================================
+  // Access Validation Helpers (ST-173)
+  // ==========================================================================
+
+  /**
+   * Validate user has access to project
+   */
+  private async validateProjectAccess(userId: string | undefined, projectId: string): Promise<void> {
+    if (!userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Check if user has access to this project
+    const project = await this.workflowRunsService.findProjectWithAccess(projectId, userId);
+
+    if (!project) {
+      throw new ForbiddenException('Access denied');
+    }
+  }
+
+  /**
+   * Validate workflow run belongs to project
+   */
+  private async validateRunBelongsToProject(runId: string, projectId: string): Promise<void> {
+    const run = await this.workflowRunsService.findRunWithProject(runId);
+
+    if (!run) {
+      throw new NotFoundException('Workflow run not found');
+    }
+
+    if (run.projectId !== projectId) {
+      throw new ForbiddenException('Workflow run does not belong to project');
+    }
+  }
+
+  /**
+   * Validate artifact belongs to workflow run
+   */
+  private async validateArtifactBelongsToRun(artifactId: string, runId: string): Promise<void> {
+    const artifact = await this.workflowRunsService.findArtifactWithRun(artifactId);
+
+    if (!artifact) {
+      throw new NotFoundException('Transcript not found');
+    }
+
+    if (artifact.workflowRunId !== runId) {
+      throw new ForbiddenException('Artifact does not belong to workflow run');
+    }
   }
 
   @Put(':id')
