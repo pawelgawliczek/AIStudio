@@ -297,6 +297,54 @@ export async function broadcastQuestionAnswered(
   }
 }
 
+/**
+ * ST-176: Start transcript tailing via HTTP to backend
+ * Called when component execution starts
+ */
+export async function startTranscriptTailing(
+  componentRunId: string,
+  transcriptPath: string
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/transcript/start-tailing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        componentRunId,
+        transcriptPath,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-176] Failed to start transcript tailing: ${error.message}`);
+  }
+}
+
+/**
+ * ST-176: Stop transcript tailing via HTTP to backend
+ * Called when component execution completes
+ */
+export async function stopTranscriptTailing(
+  componentRunId: string
+): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/internal/transcript/stop-tailing`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify({
+        componentRunId,
+      }),
+    });
+  } catch (error: any) {
+    console.warn(`[ST-176] Failed to stop transcript tailing: ${error.message}`);
+  }
+}
+
 // Keep old exports for NestJS-side code (main.ts)
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 let sharedGateway: AppWebSocketGateway | null = null;

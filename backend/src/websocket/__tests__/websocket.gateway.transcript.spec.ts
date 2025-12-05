@@ -13,8 +13,8 @@
  */
 
 import { Logger } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
 import { WsException } from '@nestjs/websockets';
 
 // Mock Socket

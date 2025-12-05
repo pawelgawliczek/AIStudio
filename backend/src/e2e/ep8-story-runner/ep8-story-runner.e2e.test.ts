@@ -39,8 +39,29 @@ import { handler as recordComponentComplete } from '../../mcp/servers/execution/
 import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
 import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
 import { handler as updateWorkflowStatus } from '../../mcp/servers/execution/update_workflow_status';
+import { handler as runBackup } from '../../mcp/servers/operations/run_backup';
 import { handler as createProject } from '../../mcp/servers/projects/create_project';
+import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
+import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
+import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
+import { handler as cancelRunner } from '../../mcp/servers/runner/cancel_runner';
+import { handler as clearBreakpoint } from '../../mcp/servers/runner/clear_breakpoint';
+import { handler as getRunnerCheckpoint } from '../../mcp/servers/runner/get_runner_checkpoint';
+import { handler as getRunnerStatus } from '../../mcp/servers/runner/get_runner_status';
+import { handler as listBreakpoints } from '../../mcp/servers/runner/list_breakpoints';
+import { handler as pauseRunner } from '../../mcp/servers/runner/pause_runner';
+import { handler as setBreakpoint } from '../../mcp/servers/runner/set_breakpoint';
+import { handler as stepRunner } from '../../mcp/servers/runner/step_runner';
+import { handler as createStory } from '../../mcp/servers/stories/create_story';
+import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
+import { handler as deleteWorkflowState } from '../../mcp/servers/workflow-states/delete_workflow_state';
+import { handler as listWorkflowStates } from '../../mcp/servers/workflow-states/list_workflow_states';
+import { handler as reorderWorkflowStates } from '../../mcp/servers/workflow-states/reorder_workflow_states';
+import { handler as updateWorkflowState } from '../../mcp/servers/workflow-states/update_workflow_state';
+import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
+import { handler as updateWorkflow } from '../../mcp/servers/workflows/update_workflow';
 import { TEST_CONFIG } from './config/test-config';
+import { cleanupTestData } from './helpers/cleanup-utils';
 import { TestContext, createTestContext, hasPhase1Entities, hasWorkflowReady } from './helpers/test-context';
 import {
   createTestProjectParams,
@@ -53,51 +74,30 @@ import {
   createTestArtifactDefinitionParams,
   createTestArtifactContent,
 } from './helpers/test-data-factory';
-import { cleanupTestData } from './helpers/cleanup-utils';
 
 // MCP Handler Imports - Projects
 
 // MCP Handler Imports - Epics
 
 // MCP Handler Imports - Stories
-import { handler as createStory } from '../../mcp/servers/stories/create_story';
 
 // MCP Handler Imports - Components (Agents)
 
 // MCP Handler Imports - Workflows (Teams)
-import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
-import { handler as updateWorkflow } from '../../mcp/servers/workflows/update_workflow';
 
 // MCP Handler Imports - Workflow States
-import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
-import { handler as listWorkflowStates } from '../../mcp/servers/workflow-states/list_workflow_states';
-import { handler as updateWorkflowState } from '../../mcp/servers/workflow-states/update_workflow_state';
-import { handler as reorderWorkflowStates } from '../../mcp/servers/workflow-states/reorder_workflow_states';
-import { handler as deleteWorkflowState } from '../../mcp/servers/workflow-states/delete_workflow_state';
 
 // MCP Handler Imports - Execution
 
 // MCP Handler Imports - Artifacts (ST-151)
 
 // MCP Handler Imports - Runner Control
-import { handler as getRunnerStatus } from '../../mcp/servers/runner/get_runner_status';
-import { handler as getRunnerCheckpoint } from '../../mcp/servers/runner/get_runner_checkpoint';
-import { handler as pauseRunner } from '../../mcp/servers/runner/pause_runner';
-import { handler as cancelRunner } from '../../mcp/servers/runner/cancel_runner';
 
 // MCP Handler Imports - Breakpoints (ST-146)
-import { handler as setBreakpoint } from '../../mcp/servers/runner/set_breakpoint';
-import { handler as clearBreakpoint } from '../../mcp/servers/runner/clear_breakpoint';
-import { handler as listBreakpoints } from '../../mcp/servers/runner/list_breakpoints';
-import { handler as stepRunner } from '../../mcp/servers/runner/step_runner';
 
 // MCP Handler Imports - Remote Agents (ST-150)
-import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
-import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
-import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
 
 // MCP Handler Imports - Backup
-import { handler as runBackup } from '../../mcp/servers/operations/run_backup';
 
 // Prisma client with production database
 const prisma = new PrismaClient();

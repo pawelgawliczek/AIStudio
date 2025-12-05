@@ -1,6 +1,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { broadcastComponentStarted } from '../../services/websocket-gateway.instance';
+import { broadcastComponentStarted, startTranscriptTailing } from '../../services/websocket-gateway.instance';
 
 
 // ALIASING: Component → Agent (ST-109)
@@ -120,6 +120,29 @@ export async function handler(prisma: PrismaClient, params: any) {
   } catch (wsError: any) {
     // Non-fatal - log and continue
     console.warn(`[ST-129] Failed to broadcast component started: ${wsError.message}`);
+  }
+
+  // ST-176: Start transcript tailing if transcript path is available
+  // The transcript path comes from spawned_agent_transcripts registry
+  // populated by the orchestrator via add_transcript tool
+  try {
+    const workflowRunForTranscript = await prisma.workflowRun.findUnique({
+      where: { id: params.runId },
+      select: { spawnedAgentTranscripts: true },
+    });
+
+    if (workflowRunForTranscript) {
+      const spawnedAgents = (workflowRunForTranscript.spawnedAgentTranscripts as any[] | null) || [];
+      const agentEntry = spawnedAgents.find((a: any) => a.componentId === params.componentId);
+
+      if (agentEntry?.transcriptPath) {
+        await startTranscriptTailing(componentRun.id, agentEntry.transcriptPath);
+        console.log(`[ST-176] Started transcript tailing for component ${componentRun.id}: ${agentEntry.transcriptPath}`);
+      }
+    }
+  } catch (tailError: any) {
+    // Non-fatal - log and continue
+    console.warn(`[ST-176] Failed to start transcript tailing: ${tailError.message}`);
   }
 
   return {

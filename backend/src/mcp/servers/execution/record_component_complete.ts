@@ -12,7 +12,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { broadcastComponentCompleted } from '../../services/websocket-gateway.instance';
+import { broadcastComponentCompleted, stopTranscriptTailing } from '../../services/websocket-gateway.instance';
 import { ValidationError } from '../../types';
 import { RemoteRunner } from '../../utils/remote-runner';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
@@ -259,6 +259,15 @@ export async function handler(prisma: PrismaClient, params: any) {
       autoContinues: params.turnMetrics.autoContinues || 0,
     };
     console.log(`[ST-147] Direct turn metrics for component ${params.componentId}:`, turnMetrics);
+  }
+
+  // ST-176: Stop transcript tailing and emit completion event
+  try {
+    await stopTranscriptTailing(componentRun.id);
+    console.log(`[ST-176] Stopped transcript tailing for component ${componentRun.id}`);
+  } catch (tailError: any) {
+    // Non-fatal - log and continue
+    console.warn(`[ST-176] Failed to stop transcript tailing: ${tailError.message}`);
   }
 
   // Update ComponentRun record with /context or transcript metrics

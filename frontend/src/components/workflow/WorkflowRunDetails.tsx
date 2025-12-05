@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { WorkflowRunDetailsProps } from '../../types/workflow-tracking';
+import { LiveTranscriptViewer } from '../workflow-viz/LiveTranscriptViewer';
 
 /**
  * Expandable details panel for a workflow run
@@ -9,52 +10,75 @@ export const WorkflowRunDetails: React.FC<WorkflowRunDetailsProps> = ({
   run,
   onClose,
 }) => {
-  return (
-    <motion.div
-      data-testid="workflow-run-details"
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className="bg-bg border-t border-border px-4 py-3 overflow-hidden"
-    >
-      <div className="grid grid-cols-2 gap-4">
-        {/* Left Column: Story & Component Details */}
-        <div className="space-y-3">
-          <div>
-            <h4 className="text-xs font-semibold text-muted mb-1">Story Details</h4>
-            <p className="text-sm text-fg">{run.storyTitle}</p>
-            <p className="text-xs text-muted">ID: {run.storyId}</p>
-          </div>
+  const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
+  const [selectedComponent, setSelectedComponent] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-          <div>
-            <h4 className="text-xs font-semibold text-muted mb-1">
-              Components ({run.componentRuns.length})
-            </h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {run.componentRuns.map((component) => (
-                <div
-                  key={component.id}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <span className="text-fg">{component.componentName}</span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs ${
-                      component.status === 'completed'
-                        ? 'bg-green-500/20 text-green-400'
-                        : component.status === 'running'
-                        ? 'bg-blue-500/20 text-blue-400'
-                        : component.status === 'failed'
-                        ? 'bg-red-500/20 text-red-400'
-                        : 'bg-muted/20 text-muted'
-                    }`}
-                  >
-                    {component.status}
-                  </span>
-                </div>
-              ))}
+  const handleViewTranscript = (componentId: string, componentName: string) => {
+    setSelectedComponent({ id: componentId, name: componentName });
+    setTranscriptModalOpen(true);
+  };
+
+  return (
+    <>
+      <motion.div
+        data-testid="workflow-run-details"
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-bg border-t border-border px-4 py-3 overflow-hidden"
+      >
+        <div className="grid grid-cols-2 gap-4">
+          {/* Left Column: Story & Component Details */}
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-xs font-semibold text-muted mb-1">Story Details</h4>
+              <p className="text-sm text-fg">{run.storyTitle}</p>
+              <p className="text-xs text-muted">ID: {run.storyId}</p>
             </div>
-          </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted mb-1">
+                Components ({run.componentRuns.length})
+              </h4>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {run.componentRuns.map((component) => (
+                  <div
+                    key={component.id}
+                    className="flex items-center justify-between gap-2 text-xs"
+                  >
+                    <span className="text-fg truncate">{component.componentName}</span>
+                    <div className="flex items-center gap-1">
+                      {component.status === 'running' && (
+                        <button
+                          onClick={() => handleViewTranscript(component.id, component.componentName)}
+                          className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                          title="View live transcript"
+                        >
+                          📺 Live
+                        </button>
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs ${
+                          component.status === 'completed'
+                            ? 'bg-green-500/20 text-green-400'
+                            : component.status === 'running'
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : component.status === 'failed'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-muted/20 text-muted'
+                        }`}
+                      >
+                        {component.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
           {run.recentOutputs.length > 0 && (
             <div>
@@ -148,6 +172,20 @@ export const WorkflowRunDetails: React.FC<WorkflowRunDetailsProps> = ({
         </div>
       </div>
     </motion.div>
+
+      {/* Live Transcript Modal */}
+      {selectedComponent && (
+        <LiveTranscriptViewer
+          open={transcriptModalOpen}
+          componentRunId={selectedComponent.id}
+          componentName={selectedComponent.name}
+          onClose={() => {
+            setTranscriptModalOpen(false);
+            setSelectedComponent(null);
+          }}
+        />
+      )}
+    </>
   );
 };
 

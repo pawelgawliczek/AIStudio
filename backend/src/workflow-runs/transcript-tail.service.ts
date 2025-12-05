@@ -12,11 +12,11 @@
  * @see ST-176: Real-Time Agent Transcript Streaming in Web GUI
  */
 
+import { createReadStream } from 'fs';
+import * as fs from 'fs/promises';
+import * as readline from 'readline';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import * as chokidar from 'chokidar';
-import * as fs from 'fs/promises';
-import { createReadStream } from 'fs';
-import * as readline from 'readline';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { TranscriptsService } from './transcripts.service';
 

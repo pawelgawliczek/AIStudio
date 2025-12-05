@@ -39,9 +39,9 @@ const mockPrisma = {
 };
 
 // Import after mocks
-import { RecordAgentStartTool } from '../record-agent-start.tool';
-import { TranscriptTailService } from '../../../../../workflow-runs/transcript-tail.service';
 import { AppWebSocketGateway } from '../../../../../websocket/websocket.gateway';
+import { TranscriptTailService } from '../../../../../workflow-runs/transcript-tail.service';
+import { RecordAgentStartTool } from '../record-agent-start.tool';
 
 describe('RecordAgentStartTool - Transcript Tailing Integration (ST-176)', () => {
   let tool: RecordAgentStartTool;

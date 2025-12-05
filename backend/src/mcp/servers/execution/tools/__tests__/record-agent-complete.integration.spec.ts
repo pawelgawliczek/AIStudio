@@ -35,9 +35,9 @@ const mockPrisma = {
 };
 
 // Import after mocks
-import { RecordAgentCompleteTool } from '../record-agent-complete.tool';
-import { TranscriptTailService } from '../../../../../workflow-runs/transcript-tail.service';
 import { AppWebSocketGateway } from '../../../../../websocket/websocket.gateway';
+import { TranscriptTailService } from '../../../../../workflow-runs/transcript-tail.service';
+import { RecordAgentCompleteTool } from '../record-agent-complete.tool';
 
 describe('RecordAgentCompleteTool - Transcript Tailing Integration (ST-176)', () => {
   let tool: RecordAgentCompleteTool;

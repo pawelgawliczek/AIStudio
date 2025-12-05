@@ -10,10 +10,10 @@ import {
   MessageBody,
   WsException,
 } from '@nestjs/websockets';
+import { validate } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { TranscriptSubscriptionDto } from './dto/transcript-subscription.dto';
-import { validate } from 'class-validator';
 
 /**
  * WebSocket Gateway for real-time updates

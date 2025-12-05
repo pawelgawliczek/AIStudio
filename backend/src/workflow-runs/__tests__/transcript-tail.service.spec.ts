@@ -51,8 +51,8 @@ jest.mock('fs/promises', () => mockFs);
 jest.mock('fs', () => mockFs);
 
 // Import after mocks
-import { TranscriptTailService } from '../transcript-tail.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
+import { TranscriptTailService } from '../transcript-tail.service';
 import { TranscriptsService } from '../transcripts.service';
 
 describe('TranscriptTailService', () => {
