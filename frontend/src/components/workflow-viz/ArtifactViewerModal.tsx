@@ -258,18 +258,20 @@ export const ArtifactViewerModal: React.FC<ArtifactViewerModalProps> = ({
             sx={{
               flex: 1,
               overflow: 'auto',
-              bgcolor: 'grey.900',
+              bgcolor: 'background.paper',
               p: 2,
               m: 2,
               borderRadius: 1,
+              border: 1,
+              borderColor: 'divider',
             }}
           >
             <pre
               style={{
                 margin: 0,
-                fontFamily: 'monospace',
+                fontFamily: 'Roboto, monospace',
                 fontSize: '0.875rem',
-                color: '#e0e0e0',
+                color: 'var(--fg)',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
               }}
