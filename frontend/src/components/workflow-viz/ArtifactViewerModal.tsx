@@ -84,18 +84,20 @@ export const ArtifactViewerModal: React.FC<ArtifactViewerModalProps> = ({
 
   // Load full content if we only have preview
   useEffect(() => {
-    if (open && artifact && !artifact.content && artifact.id) {
+    if (open && artifact && !artifact.content && artifact.id && artifact.workflowRunId) {
       setIsLoadingContent(true);
       const projectId = localStorage.getItem('selectedProjectId') ||
                         localStorage.getItem('currentProjectId');
       if (projectId) {
-        // Use centralized API client (baseURL is /api, so path should be relative)
+        // Use correct workflow-runs nested endpoint
         apiClient
-          .get(`/projects/${projectId}/artifacts/${artifact.id}?includeContent=true`)
+          .get(`/projects/${projectId}/workflow-runs/${artifact.workflowRunId}/artifacts?includeContent=true`)
           .then((response) => {
-            if (response.data.content) {
-              setFullContent(response.data.content);
-              setEditedContent(response.data.content);
+            // Find this specific artifact in the response array
+            const foundArtifact = response.data.find((a: any) => a.id === artifact.id);
+            if (foundArtifact && foundArtifact.content) {
+              setFullContent(foundArtifact.content);
+              setEditedContent(foundArtifact.content);
             }
           })
           .catch(console.error)
