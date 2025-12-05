@@ -11,6 +11,10 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 
+// Import font override stylesheet LAST to override library CSS
+// This ensures it loads AFTER all other stylesheets in the bundle
+import '../public/font-override.css';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
