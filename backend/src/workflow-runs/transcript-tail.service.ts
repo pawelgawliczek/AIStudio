@@ -94,8 +94,8 @@ export class TranscriptTailService implements OnModuleDestroy {
         await this.handleFileChange(componentRunId, transcriptPath);
       });
 
-      watcher.on('error', (error) => {
-        this.handleWatcherError(componentRunId, error);
+      watcher.on('error', (error: unknown) => {
+        this.handleWatcherError(componentRunId, error instanceof Error ? error : new Error(String(error)));
       });
 
       // Store watcher
