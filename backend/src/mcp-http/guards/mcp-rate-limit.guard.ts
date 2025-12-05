@@ -30,27 +30,27 @@ export const RATE_LIMITS = {
   // Per API key (primary limit)
   perApiKey: {
     ttl: 60,      // 1 minute
-    limit: 60,    // 60 requests
+    limit: 120,   // 120 requests (doubled from 60)
   },
 
   // Per IP (prevent single IP abuse)
   perIp: {
     ttl: 60,
-    limit: 100,   // More lenient for NAT scenarios
+    limit: 200,   // More lenient for NAT scenarios (doubled from 100)
   },
 
   // Per endpoint (expensive operations have stricter limits)
   perEndpoint: {
-    '/call-tool': { ttl: 60, limit: 30 },     // Most expensive
-    '/initialize': { ttl: 60, limit: 10 },    // Moderate
-    '/list-tools': { ttl: 60, limit: 60 },    // Cheap
-    '/heartbeat': { ttl: 60, limit: 120 },    // Very cheap
+    '/call-tool': { ttl: 60, limit: 60 },     // Most expensive (doubled from 30)
+    '/initialize': { ttl: 60, limit: 20 },    // Moderate (doubled from 10)
+    '/list-tools': { ttl: 60, limit: 120 },   // Cheap (doubled from 60)
+    '/heartbeat': { ttl: 60, limit: 240 },    // Very cheap (doubled from 120)
   },
 
   // Global (protect infrastructure)
   global: {
     ttl: 60,
-    limit: 10000, // Total across all clients
+    limit: 20000, // Total across all clients (doubled from 10000)
   },
 };
 
