@@ -4,7 +4,13 @@ export default {
   safelist: [
     // Prevent purging third-party library classes that appear in bundled CSS
     // These are needed for font override rules in index.css to prevent fingerprinting
-    { pattern: /^(wmde-markdown|w-md-editor|MuiTypography-root|MuiButton-root|MuiInputBase-root|hljs)/ },
+    'wmde-markdown',
+    'w-md-editor',
+    'w-md-editor-text-pre',
+    'MuiTypography-root',
+    'MuiButton-root',
+    'MuiInputBase-root',
+    'hljs',
   ],
   theme: {
     extend: {
