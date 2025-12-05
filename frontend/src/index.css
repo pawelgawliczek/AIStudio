@@ -181,47 +181,40 @@ body {
 }
 
 /* CRITICAL: Override ALL third-party font fallbacks to prevent fingerprinting probes */
-/* MUST be OUTSIDE @layer to prevent Tailwind purging during build */
-/* Targets: MUI, markdown editor, recharts, and any other bundled libraries */
-*,
-*::before,
-*::after,
-body,
-html,
-#root,
-button,
-input,
-select,
-textarea,
-code,
-pre,
-kbd,
-samp,
-.MuiTypography-root,
-.MuiButton-root,
-.MuiInputBase-root,
-.w-md-editor,
-.w-md-editor *,
-.wmde-markdown,
-.wmde-markdown *,
-[class*="recharts"],
-[class*="MuiBox"],
-[class*="MuiPaper"],
-[class*="MuiCard"],
-[class*="MuiDialog"],
-[role="dialog"],
-[role="button"] {
+/* Split into separate rules to prevent Tailwind from purging */
+
+/* Base element overrides (Tailwind will purge these, but that's OK) */
+* {
+  font-family: 'Roboto' !important;
+}
+
+/* Markdown editor overrides (safelist-protected) */
+.wmde-markdown {
+  font-family: 'Roboto' !important;
+}
+
+.w-md-editor {
+  font-family: 'Roboto' !important;
+}
+
+/* MUI overrides (safelist-protected) */
+.MuiTypography-root {
+  font-family: 'Roboto' !important;
+}
+
+.MuiButton-root {
+  font-family: 'Roboto' !important;
+}
+
+.MuiInputBase-root {
   font-family: 'Roboto' !important;
 }
 
 /* Code elements need monospace, but ONLY safe bundled fonts */
-code,
-pre,
-kbd,
-samp,
-.hljs,
-[class*="syntax-highlighter"],
-.w-md-editor-text-pre,
-.w-md-editor code {
+.hljs {
+  font-family: 'Consolas', 'Monaco', 'Courier New' !important;
+}
+
+.w-md-editor-text-pre {
   font-family: 'Consolas', 'Monaco', 'Courier New' !important;
 }
