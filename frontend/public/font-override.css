@@ -1,0 +1,22 @@
+/* Font fingerprinting protection - loaded LAST to override all library CSS */
+/* This file is loaded after all bundled CSS to ensure cascade order */
+
+.wmde-markdown,
+.w-md-editor,
+.w-md-editor *,
+.w-md-editor-text,
+.w-md-editor-text-input,
+.w-md-editor-text-pre,
+.w-md-editor-content,
+.w-md-editor-input,
+.MuiTypography-root,
+.MuiButton-root,
+.MuiInputBase-root {
+  font-family: 'Roboto' !important;
+}
+
+.hljs,
+.w-md-editor-text-pre code,
+.w-md-editor code {
+  font-family: 'Consolas', 'Monaco', 'Courier New' !important;
+}
