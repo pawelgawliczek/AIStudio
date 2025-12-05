@@ -29,7 +29,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Avenir', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['Roboto'], // NO fallbacks - prevents font fingerprinting
+        mono: ['Consolas', 'Monaco', 'Courier New'], // NO fallbacks
       },
       fontSize: {
         xs: '0.75rem',    // 12px
