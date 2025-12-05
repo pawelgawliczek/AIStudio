@@ -173,6 +173,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
               fontSize: '0.75rem',
               borderRadius: 4,
               backgroundColor: '#1e1e1e',
+              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
             }}
             wrapLines={true}
             wrapLongLines={true}
