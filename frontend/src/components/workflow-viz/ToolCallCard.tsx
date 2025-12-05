@@ -14,6 +14,15 @@ import type { ToolCall, ToolResult } from '../../utils/transcript-parser';
 // Register JSON language
 SyntaxHighlighter.registerLanguage('json', json);
 
+// Override vs2015 theme to use only web-safe fonts (prevents fingerprinting warnings)
+const customVs2015 = {
+  ...vs2015,
+  'hljs': {
+    ...vs2015['hljs'],
+    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+  }
+};
+
 interface ToolCallCardProps {
   toolCall: ToolCall;
   result?: ToolResult;
@@ -167,13 +176,12 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
         >
           <SyntaxHighlighter
             language="json"
-            style={vs2015}
+            style={customVs2015}
             customStyle={{
               margin: 0,
               fontSize: '0.75rem',
               borderRadius: 4,
               backgroundColor: '#1e1e1e',
-              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
             }}
             wrapLines={true}
             wrapLongLines={true}
