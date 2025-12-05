@@ -73,8 +73,19 @@ if [ -n "$AGENT_ID" ]; then
       else . end' \
      "$WORKFLOWS_FILE" > "$WORKFLOWS_FILE.tmp" && mv "$WORKFLOWS_FILE.tmp" "$WORKFLOWS_FILE"
 
-  # ST-172: Output JSON for orchestrator to register transcript in DB
-  # The orchestrator should call add_transcript with this info
+  # ST-172: Automatically register transcript via MCP HTTP client
+  # Extract componentId from the Task tool input (orchestrator passes it in prompt)
+  COMPONENT_ID=$(echo "$INPUT" | jq -r '.tool_input.prompt // ""' | grep -oE 'componentId["\s:]+([a-f0-9-]{36})' | head -1 | grep -oE '[a-f0-9-]{36}' || echo "")
+
+  if [ -n "$COMPONENT_ID" ]; then
+    # Call helper script to register transcript
+    npx tsx "$CLAUDE_PROJECT_DIR/.claude/hooks/helpers/register-transcript.ts" \
+      "$RUN_ID" "$COMPONENT_ID" "$AGENT_ID" "$AGENT_TRANSCRIPT" 2>&1 || {
+      echo "[ST-172] Warning: Failed to auto-register transcript (will rely on orchestrator)" >&2
+    }
+  fi
+
+  # Still output instructions as fallback (in case auto-registration fails)
   cat <<EOF
 {
   "hookSpecificOutput": {
@@ -82,9 +93,10 @@ if [ -n "$AGENT_ID" ]; then
     "agentSpawned": {
       "agentId": "$AGENT_ID",
       "transcriptPath": "$AGENT_TRANSCRIPT",
-      "runId": "$RUN_ID"
+      "runId": "$RUN_ID",
+      "autoRegistered": $([ -n "$COMPONENT_ID" ] && echo "true" || echo "false")
     },
-    "action": "ORCHESTRATOR: Call add_transcript({ type: 'agent', runId: '$RUN_ID', componentId: <YOUR_COMPONENT_ID>, agentId: '$AGENT_ID', transcriptPath: '$AGENT_TRANSCRIPT' }) to register this transcript."
+    "action": "Transcript auto-registered via hook. Manual call not needed."
   }
 }
 EOF
