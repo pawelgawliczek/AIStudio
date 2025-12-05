@@ -181,40 +181,42 @@ body {
 }
 
 /* CRITICAL: Override ALL third-party font fallbacks to prevent fingerprinting probes */
-/* Split into separate rules to prevent Tailwind from purging */
+/* Use @layer utilities so safelist can protect them from purging */
 
-/* Base element overrides (Tailwind will purge these, but that's OK) */
-* {
-  font-family: 'Roboto' !important;
-}
+@layer utilities {
+  /* Base element overrides */
+  * {
+    font-family: 'Roboto' !important;
+  }
 
-/* Markdown editor overrides (safelist-protected) */
-.wmde-markdown {
-  font-family: 'Roboto' !important;
-}
+  /* Markdown editor overrides (safelist-protected) */
+  .wmde-markdown {
+    font-family: 'Roboto' !important;
+  }
 
-.w-md-editor {
-  font-family: 'Roboto' !important;
-}
+  .w-md-editor {
+    font-family: 'Roboto' !important;
+  }
 
-/* MUI overrides (safelist-protected) */
-.MuiTypography-root {
-  font-family: 'Roboto' !important;
-}
+  /* MUI overrides (safelist-protected) */
+  .MuiTypography-root {
+    font-family: 'Roboto' !important;
+  }
 
-.MuiButton-root {
-  font-family: 'Roboto' !important;
-}
+  .MuiButton-root {
+    font-family: 'Roboto' !important;
+  }
 
-.MuiInputBase-root {
-  font-family: 'Roboto' !important;
-}
+  .MuiInputBase-root {
+    font-family: 'Roboto' !important;
+  }
 
-/* Code elements need monospace, but ONLY safe bundled fonts */
-.hljs {
-  font-family: 'Consolas', 'Monaco', 'Courier New' !important;
-}
+  /* Code elements need monospace, but ONLY safe bundled fonts */
+  .hljs {
+    font-family: 'Consolas', 'Monaco', 'Courier New' !important;
+  }
 
-.w-md-editor-text-pre {
-  font-family: 'Consolas', 'Monaco', 'Courier New' !important;
+  .w-md-editor-text-pre {
+    font-family: 'Consolas', 'Monaco', 'Courier New' !important;
+  }
 }
