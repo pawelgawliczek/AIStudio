@@ -1,17 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
-  safelist: [
-    // Prevent purging third-party library classes that appear in bundled CSS
-    // These are needed for font override rules in index.css to prevent fingerprinting
-    'wmde-markdown',
-    'w-md-editor',
-    'w-md-editor-text-pre',
-    'MuiTypography-root',
-    'MuiButton-root',
-    'MuiInputBase-root',
-    'hljs',
-  ],
   theme: {
     extend: {
       colors: {

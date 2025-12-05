@@ -181,42 +181,10 @@ body {
 }
 
 /* CRITICAL: Override ALL third-party font fallbacks to prevent fingerprinting probes */
-/* Use @layer utilities so safelist can protect them from purging */
+/* Font overrides are now injected at END of bundle via PostCSS plugin in vite.config.ts */
+/* This ensures they appear AFTER library CSS and win due to cascade order */
 
-@layer utilities {
-  /* Base element overrides */
-  * {
-    font-family: 'Roboto' !important;
-  }
-
-  /* Markdown editor overrides (safelist-protected) */
-  .wmde-markdown {
-    font-family: 'Roboto' !important;
-  }
-
-  .w-md-editor {
-    font-family: 'Roboto' !important;
-  }
-
-  /* MUI overrides (safelist-protected) */
-  .MuiTypography-root {
-    font-family: 'Roboto' !important;
-  }
-
-  .MuiButton-root {
-    font-family: 'Roboto' !important;
-  }
-
-  .MuiInputBase-root {
-    font-family: 'Roboto' !important;
-  }
-
-  /* Code elements need monospace, but ONLY safe bundled fonts */
-  .hljs {
-    font-family: 'Consolas', 'Monaco', 'Courier New' !important;
-  }
-
-  .w-md-editor-text-pre {
-    font-family: 'Consolas', 'Monaco', 'Courier New' !important;
-  }
+/* Base element override */
+* {
+  font-family: 'Roboto' !important;
 }
