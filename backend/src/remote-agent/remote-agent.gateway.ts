@@ -1204,7 +1204,15 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     }
 
     // Generate job token
-    const jobToken = this.generateJobToken(readJob.id, agentId);
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET not configured');
+    }
+    const jobToken = jwt.sign(
+      { jobId: readJob.id, agentId, type: 'job-execution' },
+      secret,
+      { expiresIn: '65m' }
+    );
 
     // Send job to agent
     const agentSocket = await this.findAgentSocket(agentId);
@@ -1259,7 +1267,6 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         size: Buffer.byteLength(transcriptContent, 'utf8'),
         version: 1,
         createdByComponentId: componentRun.componentId, // Non-null = agent transcript
-        createdBy: `agent:${componentRun.component.name}`,
       },
     });
 
@@ -1316,11 +1323,11 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   /**
    * Helper: Find agent socket by agentId
    */
-  private async findAgentSocket(agentId: string): Promise<Socket | null> {
+  private async findAgentSocket(agentId: string): Promise<any | null> {
     const sockets = await this.server.fetchSockets();
     for (const socket of sockets) {
       if (socket.data.agentId === agentId) {
-        return socket;
+        return socket as any; // RemoteSocket type is compatible for emit()
       }
     }
     return null;
