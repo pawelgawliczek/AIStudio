@@ -668,6 +668,23 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         });
       }
 
+      // ST-168: Upload transcript when agent completes (Story Runner integration)
+      if (data.success && data.transcriptPath && job?.componentRunId) {
+        try {
+          await this.uploadAgentTranscript(
+            job.workflowRunId,
+            job.componentRunId,
+            data.transcriptPath,
+            agentId,
+          );
+        } catch (uploadError) {
+          this.logger.warn(
+            `Failed to upload transcript for componentRun ${job.componentRunId}: ${uploadError.message}`,
+          );
+          // Don't fail the job completion if transcript upload fails
+        }
+      }
+
       // Emit completion to any connected frontend clients
       if (job?.workflowRunId) {
         this.server.emit(`workflow:${job.workflowRunId}:complete`, {
@@ -1127,5 +1144,185 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     },
   ): void {
     this.server.to(`workflow:${workflowRunId}`).emit('session:update', update);
+  }
+
+  /**
+   * ST-168: Upload agent transcript to Artifact table (Story Runner integration)
+   *
+   * This method:
+   * 1. Uses remote agent to read transcript file from laptop
+   * 2. Creates TRANSCRIPT artifact in database
+   * 3. Stores artifact ID in ComponentRun metadata
+   */
+  private async uploadAgentTranscript(
+    workflowRunId: string,
+    componentRunId: string,
+    transcriptPath: string,
+    agentId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `ST-168: Uploading transcript for componentRun ${componentRunId} from ${transcriptPath}`,
+    );
+
+    // Get workflow and component info
+    const componentRun = await this.prisma.componentRun.findUnique({
+      where: { id: componentRunId },
+      include: { component: true },
+    });
+
+    if (!componentRun) {
+      throw new Error(`ComponentRun ${componentRunId} not found`);
+    }
+
+    const workflowRun = await this.prisma.workflowRun.findUnique({
+      where: { id: workflowRunId },
+    });
+
+    if (!workflowRun) {
+      throw new Error(`WorkflowRun ${workflowRunId} not found`);
+    }
+
+    // Create remote job to read transcript file
+    const readJob = await this.prisma.remoteJob.create({
+      data: {
+        script: 'read-file',
+        params: { path: transcriptPath } as any,
+        status: 'pending',
+        agentId,
+        requestedBy: 'transcript-upload',
+        jobType: 'file-read',
+      },
+    });
+
+    // Dispatch job to agent via WebSocket
+    const agent = await this.prisma.remoteAgent.findUnique({
+      where: { id: agentId },
+    });
+
+    if (!agent || agent.status !== 'online') {
+      throw new Error(`Agent ${agentId} is not online`);
+    }
+
+    // Generate job token
+    const jobToken = this.generateJobToken(readJob.id, agentId);
+
+    // Send job to agent
+    const agentSocket = await this.findAgentSocket(agentId);
+    if (!agentSocket) {
+      throw new Error(`Agent ${agentId} socket not found`);
+    }
+
+    agentSocket.emit('agent:job', {
+      id: readJob.id,
+      script: 'read-file',
+      params: { path: transcriptPath },
+      jobToken,
+      timestamp: Date.now(),
+    });
+
+    // Wait for job completion (with timeout)
+    const timeout = 30000; // 30 seconds
+    const result = await this.waitForJobCompletion(readJob.id, timeout);
+
+    if (!result.success) {
+      throw new Error(`Failed to read transcript: ${result.error || 'Unknown error'}`);
+    }
+
+    const transcriptContent = result.result?.content;
+    if (!transcriptContent) {
+      throw new Error('Transcript content is empty');
+    }
+
+    // Find TRANSCRIPT artifact definition for this workflow
+    const transcriptDef = await this.prisma.artifactDefinition.findFirst({
+      where: {
+        workflowId: workflowRun.workflowId,
+        key: 'TRANSCRIPT',
+      },
+    });
+
+    if (!transcriptDef) {
+      this.logger.warn(
+        `No TRANSCRIPT artifact definition found for workflow ${workflowRun.workflowId}. Skipping upload.`,
+      );
+      return;
+    }
+
+    // Upload to Artifact table
+    const artifact = await this.prisma.artifact.create({
+      data: {
+        definitionId: transcriptDef.id,
+        workflowRunId,
+        content: transcriptContent,
+        contentType: 'application/x-jsonlines',
+        contentPreview: transcriptContent.substring(0, 500),
+        size: Buffer.byteLength(transcriptContent, 'utf8'),
+        version: 1,
+        createdByComponentId: componentRun.componentId, // Non-null = agent transcript
+        createdBy: `agent:${componentRun.component.name}`,
+      },
+    });
+
+    // Store artifact ID in ComponentRun metadata
+    await this.prisma.componentRun.update({
+      where: { id: componentRunId },
+      data: {
+        metadata: {
+          ...(componentRun.metadata as object || {}),
+          transcriptArtifactId: artifact.id,
+          transcriptPath,
+        },
+      },
+    });
+
+    this.logger.log(
+      `ST-168: Transcript uploaded successfully. Artifact ID: ${artifact.id}, Size: ${artifact.size} bytes`,
+    );
+  }
+
+  /**
+   * Helper: Wait for remote job completion
+   */
+  private async waitForJobCompletion(
+    jobId: string,
+    timeoutMs: number,
+  ): Promise<{ success: boolean; result?: any; error?: string }> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeoutMs) {
+      const job = await this.prisma.remoteJob.findUnique({
+        where: { id: jobId },
+      });
+
+      if (!job) {
+        return { success: false, error: 'Job not found' };
+      }
+
+      if (job.status === 'completed') {
+        return { success: true, result: job.result };
+      }
+
+      if (job.status === 'failed') {
+        return { success: false, error: job.error || 'Job failed' };
+      }
+
+      // Wait 500ms before checking again
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    return { success: false, error: 'Timeout waiting for job completion' };
+  }
+
+  /**
+   * Helper: Find agent socket by agentId
+   */
+  private async findAgentSocket(agentId: string): Promise<Socket | null> {
+    const sockets = await this.server.fetchSockets();
+    for (const socket of sockets) {
+      if (socket.data.agentId === agentId) {
+        return socket;
+      }
+    }
+    return null;
   }
 }
