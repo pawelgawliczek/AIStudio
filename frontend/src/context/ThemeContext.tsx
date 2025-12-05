@@ -55,12 +55,33 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         typography: {
           // Use ONLY bundled Roboto font - no fallbacks prevents font probing
           fontFamily: '"Roboto"',
+          // Override all variant font families to prevent MUI defaults
+          button: { fontFamily: '"Roboto"' },
+          caption: { fontFamily: '"Roboto"' },
+          h1: { fontFamily: '"Roboto"' },
+          h2: { fontFamily: '"Roboto"' },
+          h3: { fontFamily: '"Roboto"' },
+          h4: { fontFamily: '"Roboto"' },
+          h5: { fontFamily: '"Roboto"' },
+          h6: { fontFamily: '"Roboto"' },
+          subtitle1: { fontFamily: '"Roboto"' },
+          subtitle2: { fontFamily: '"Roboto"' },
+          body1: { fontFamily: '"Roboto"' },
+          body2: { fontFamily: '"Roboto"' },
+          overline: { fontFamily: '"Roboto"' },
         },
         components: {
           MuiPaper: {
             styleOverrides: {
               root: {
                 backgroundImage: 'none',
+              },
+            },
+          },
+          MuiCssBaseline: {
+            styleOverrides: {
+              '*': {
+                fontFamily: '"Roboto" !important',
               },
             },
           },
