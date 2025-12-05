@@ -6,7 +6,13 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, Build } from '@mui/icons-material';
+import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
+import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
+import { vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import type { ToolCall, ToolResult } from '../../utils/transcript-parser';
+
+// Register JSON language
+SyntaxHighlighter.registerLanguage('json', json);
 
 interface ToolCallCardProps {
   toolCall: ToolCall;
@@ -21,27 +27,6 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
 }) => {
   const [inputExpanded, setInputExpanded] = useState(false);
   const [outputExpanded, setOutputExpanded] = useState(false);
-
-  // Format JSON with syntax highlighting (CSS classes)
-  const highlightJSON = (obj: unknown): string => {
-    const json = JSON.stringify(obj, null, 2);
-
-    // Apply CSS classes for syntax highlighting
-    // Process in specific order to avoid conflicts
-    let highlighted = json;
-
-    // First, wrap string values (after colons)
-    highlighted = highlighted.replace(/: "([^"]*)"/g, ': <span class="json-string" data-testid="json-string">"$1"</span>');
-
-    // Then wrap keys (before colons)
-    highlighted = highlighted.replace(/"([^"]+)":/g, '<span class="json-key" data-testid="json-key">"$1":</span>');
-
-    // Then numbers and booleans
-    highlighted = highlighted.replace(/: (\d+)([,\n])/g, ': <span class="json-number">$1</span>$2');
-    highlighted = highlighted.replace(/: (true|false|null)([,\n}])/g, ': <span class="json-boolean">$1</span>$2');
-
-    return highlighted;
-  };
 
   // Generate preview text for input
   const getInputPreview = (): string => {
@@ -180,19 +165,21 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
             overflow: 'auto',
           }}
         >
-          <pre
-            data-testid="tool-input-json"
-            className="json-highlighted"
-            style={{
+          <SyntaxHighlighter
+            language="json"
+            style={vs2015}
+            customStyle={{
               margin: 0,
-              fontFamily: 'monospace',
               fontSize: '0.75rem',
-              color: '#e0e0e0',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
+              borderRadius: 4,
+              backgroundColor: '#1e1e1e',
             }}
-            dangerouslySetInnerHTML={{ __html: highlightJSON(toolCall.input) }}
-          />
+            wrapLines={true}
+            wrapLongLines={true}
+            data-testid="tool-input-json"
+          >
+            {JSON.stringify(toolCall.input, null, 2)}
+          </SyntaxHighlighter>
         </Box>
       </Collapse>
 

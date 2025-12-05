@@ -8,6 +8,13 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: './src/test/setup.ts',
+    deps: {
+      optimizer: {
+        web: {
+          include: ['react-syntax-highlighter'],
+        },
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'json', 'html', 'lcov'],
