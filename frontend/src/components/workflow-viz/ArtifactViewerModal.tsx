@@ -1,6 +1,7 @@
 /**
  * ArtifactViewerModal - View/Edit artifact content
  * ST-168: Artifact management UI
+ * Cache-bust: v2
  */
 
 import React, { useState, useEffect } from 'react';
