@@ -29,6 +29,7 @@ import {
   ContentCopy,
   History,
 } from '@mui/icons-material';
+import { apiClient } from '../../services/api.client';
 
 interface Artifact {
   id: string;
@@ -88,20 +89,13 @@ export const ArtifactViewerModal: React.FC<ArtifactViewerModalProps> = ({
       const projectId = localStorage.getItem('selectedProjectId') ||
                         localStorage.getItem('currentProjectId');
       if (projectId) {
-        const apiUrl = import.meta.env.VITE_API_URL || '';
-        fetch(
-          `${apiUrl}/api/projects/${projectId}/artifacts/${artifact.id}?includeContent=true`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            },
-          }
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.content) {
-              setFullContent(data.content);
-              setEditedContent(data.content);
+        // Use centralized API client (prevents double /api/api/ path)
+        apiClient
+          .get(`/api/projects/${projectId}/artifacts/${artifact.id}?includeContent=true`)
+          .then((response) => {
+            if (response.data.content) {
+              setFullContent(response.data.content);
+              setEditedContent(response.data.content);
             }
           })
           .catch(console.error)

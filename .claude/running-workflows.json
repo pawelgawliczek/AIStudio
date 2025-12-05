@@ -1,5 +1,5 @@
 {
-  "currentRunId": "63d93dad-0666-4a55-a22f-94bb05f629a7",
+  "currentRunId": "run-001",
   "sessions": {
     "f88514e1-deec-4bd5-902d-0fac9f4cdaa4": {
       "masterTranscripts": [
@@ -22,11 +22,10 @@
       "startedAt": "2025-12-05T07:59:55Z"
     },
     "b1dd0b70-73ed-4405-b117-9cf7c158a173": {
-      "masterTranscripts": [
-        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/823fad0a-9f13-4c1d-b260-502509dc08e7.jsonl",
-        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/b1dd0b70-73ed-4405-b117-9cf7c158a173.jsonl"
-      ],
-      "startedAt": "2025-12-05T11:34:11Z"
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-05T14:28:10Z"
     },
     "ec7b8dac-6366-430c-9723-e868eb4d1099": {
       "runId": "63d93dad-0666-4a55-a22f-94bb05f629a7",
@@ -38,8 +37,35 @@
           "agentId": "94f923e6",
           "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-94f923e6.jsonl",
           "spawnedAt": "2025-12-05T13:56:13Z"
+        },
+        {
+          "agentId": "9b0e20a5",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-9b0e20a5.jsonl",
+          "spawnedAt": "2025-12-05T14:04:21Z"
+        },
+        {
+          "agentId": "a388aca0",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a388aca0.jsonl",
+          "spawnedAt": "2025-12-05T14:24:45Z"
+        },
+        {
+          "agentId": "2f2b3791",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-2f2b3791.jsonl",
+          "spawnedAt": "2025-12-05T14:36:57Z"
         }
       ]
+    },
+    "agent-a388aca0": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-05T14:18:41Z"
+    },
+    "agent-2f2b3791": {
+      "runId": "run-001",
+      "workflowId": "workflow-test-001",
+      "storyId": "story-test-001",
+      "startedAt": "2025-12-05T14:28:11Z"
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   WebSocketGateway,
@@ -8,8 +8,12 @@ import {
   OnGatewayDisconnect,
   ConnectedSocket,
   MessageBody,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { PrismaService } from '../prisma/prisma.service';
+import { TranscriptSubscriptionDto } from './dto/transcript-subscription.dto';
+import { validate } from 'class-validator';
 
 /**
  * WebSocket Gateway for real-time updates
@@ -33,7 +37,21 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
   private readonly logger = new Logger(AppWebSocketGateway.name);
 
-  constructor(private jwtService: JwtService) {}
+  /**
+   * Track user subscriptions to transcript streams (ST-176)
+   * Map<userId, Set<componentRunId>>
+   */
+  private readonly userSubscriptions = new Map<string, Set<string>>();
+
+  /**
+   * Maximum concurrent subscriptions per user (ST-176)
+   */
+  private readonly MAX_SUBSCRIPTIONS_PER_USER = 5;
+
+  constructor(
+    private jwtService: JwtService,
+    @Inject(PrismaService) private prisma: PrismaService,
+  ) {}
 
   /**
    * Get the Socket.IO server instance for global broadcasts
@@ -79,6 +97,18 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   handleDisconnect(client: Socket) {
+    // Clean up transcript subscriptions (ST-176)
+    if (client.data?.user?.userId) {
+      const userId = client.data.user.userId;
+      const subscriptions = this.userSubscriptions.get(userId);
+      if (subscriptions) {
+        this.logger.log(
+          `Client ${client.id} disconnected with ${subscriptions.size} transcript subscriptions`,
+        );
+        this.userSubscriptions.delete(userId);
+      }
+    }
+
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
@@ -332,5 +362,168 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   broadcastTestExecutionCompleted(executionId: string, projectId: string, data: any) {
     this.server.emit('test:completed', { ...data, executionId, projectId });
     this.logger.log(`Broadcasted test execution completed: ${executionId} - ${data.status}`);
+  }
+
+  // ============================================================================
+  // Transcript Streaming (ST-176)
+  // ============================================================================
+
+  /**
+   * Subscribe to real-time transcript streaming for a component run
+   * Uses Socket.IO rooms for targeted broadcasting
+   */
+  @SubscribeMessage('transcript:subscribe')
+  async handleTranscriptSubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: any,
+  ): Promise<void> {
+    const userId = client.data?.user?.userId;
+
+    if (!userId) {
+      throw new WsException('Unauthorized');
+    }
+
+    // Validate input
+    const dto = new TranscriptSubscriptionDto();
+    dto.componentRunId = payload.componentRunId;
+
+    const errors = await validate(dto);
+    if (errors.length > 0) {
+      const errorMessages = errors.map((e) => Object.values(e.constraints || {}).join(', '));
+      throw new WsException(errorMessages.join('; '));
+    }
+
+    const { componentRunId } = dto;
+
+    // Validate UUID format more strictly
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(componentRunId)) {
+      throw new WsException('Invalid componentRunId format');
+    }
+
+    // Check concurrent subscription limit
+    const userSubs = this.userSubscriptions.get(userId) || new Set();
+    if (userSubs.size >= this.MAX_SUBSCRIPTIONS_PER_USER && !userSubs.has(componentRunId)) {
+      throw new WsException('Maximum concurrent subscriptions exceeded');
+    }
+
+    try {
+      // Verify component run exists
+      const componentRun = await this.prisma.componentRun.findUnique({
+        where: { id: componentRunId },
+        include: {
+          workflowRun: {
+            select: { projectId: true },
+          },
+        },
+      });
+
+      if (!componentRun) {
+        throw new WsException('Component run not found');
+      }
+
+      // Verify user has access to project
+      const project = await this.prisma.project.findFirst({
+        where: {
+          id: componentRun.workflowRun.projectId,
+          // In a real app, add user access check here
+          // For now, assume all authenticated users have access
+        },
+      });
+
+      if (!project) {
+        this.logger.warn(
+          `Access denied: User ${userId} attempted to access component run ${componentRunId}`,
+        );
+        throw new WsException('Access denied');
+      }
+
+      // Join Socket.IO room for this component run
+      const room = `transcript:${componentRunId}`;
+      client.join(room);
+
+      // Track subscription
+      userSubs.add(componentRunId);
+      this.userSubscriptions.set(userId, userSubs);
+
+      this.logger.log(
+        `Client ${client.id} subscribed to transcript ${componentRunId} (${userSubs.size}/${this.MAX_SUBSCRIPTIONS_PER_USER})`,
+      );
+    } catch (error) {
+      if (error instanceof WsException) {
+        throw error;
+      }
+      this.logger.error(`Error subscribing to transcript: ${error.message}`, error.stack);
+      throw new WsException('Failed to subscribe to transcript');
+    }
+  }
+
+  /**
+   * Unsubscribe from transcript streaming
+   */
+  @SubscribeMessage('transcript:unsubscribe')
+  async handleTranscriptUnsubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: any,
+  ): Promise<void> {
+    const userId = client.data?.user?.userId;
+    const { componentRunId } = payload;
+
+    // Leave Socket.IO room
+    const room = `transcript:${componentRunId}`;
+    client.leave(room);
+
+    // Remove from subscription tracking
+    if (userId) {
+      const userSubs = this.userSubscriptions.get(userId);
+      if (userSubs) {
+        userSubs.delete(componentRunId);
+        if (userSubs.size === 0) {
+          this.userSubscriptions.delete(userId);
+        }
+      }
+    }
+
+    this.logger.log(`Client ${client.id} unsubscribed from transcript ${componentRunId}`);
+  }
+
+  /**
+   * Broadcast transcript line to subscribed clients (called by TranscriptTailService)
+   */
+  broadcastTranscriptLine(event: {
+    componentRunId: string;
+    line: string;
+    sequenceNumber: number;
+    timestamp: Date;
+  }): void {
+    const room = `transcript:${event.componentRunId}`;
+    this.server.to(room).emit('transcript:line', event);
+  }
+
+  /**
+   * Broadcast transcript completion to subscribed clients
+   */
+  broadcastTranscriptComplete(componentRunId: string, totalLines: number): void {
+    const room = `transcript:${componentRunId}`;
+    this.server.to(room).emit('transcript:complete', {
+      componentRunId,
+      totalLines,
+    });
+  }
+
+  /**
+   * Broadcast transcript error to subscribed clients
+   */
+  broadcastTranscriptError(
+    componentRunId: string,
+    error: { message: string; code: string },
+  ): void {
+    const room = `transcript:${componentRunId}`;
+    this.server.to(room).emit('transcript:error', {
+      componentRunId,
+      message: error.message,
+      code: error.code,
+    });
   }
 }
