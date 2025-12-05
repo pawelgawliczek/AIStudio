@@ -24,11 +24,21 @@ import { handler as createArtifactDefinition } from '../../mcp/servers/artifacts
 import { handler as deleteArtifactDefinition } from '../../mcp/servers/artifacts/delete_artifact_definition';
 import { handler as getArtifact } from '../../mcp/servers/artifacts/get_artifact';
 import { handler as listArtifactDefinitions } from '../../mcp/servers/artifacts/list_artifact_definitions';
+import { handler as listArtifacts } from '../../mcp/servers/artifacts/list_artifacts';
 import { handler as removeArtifactAccess } from '../../mcp/servers/artifacts/remove_artifact_access';
 import { handler as setArtifactAccess } from '../../mcp/servers/artifacts/set_artifact_access';
 import { handler as updateArtifactDefinition } from '../../mcp/servers/artifacts/update_artifact_definition';
+import { handler as uploadArtifact } from '../../mcp/servers/artifacts/upload_artifact';
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
+import { handler as getWorkflowContext } from '../../mcp/servers/execution/get_workflow_context';
+import { handler as getWorkflowRunResults } from '../../mcp/servers/execution/get_workflow_run_results';
+import { handler as listWorkflowRuns } from '../../mcp/servers/execution/list_workflow_runs';
+import { handler as listWorkflows } from '../../mcp/servers/execution/list_workflows';
+import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
+import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
+import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
+import { handler as updateWorkflowStatus } from '../../mcp/servers/execution/update_workflow_status';
 import { handler as createProject } from '../../mcp/servers/projects/create_project';
 import { TEST_CONFIG } from './config/test-config';
 import { TestContext, createTestContext, hasPhase1Entities, hasWorkflowReady } from './helpers/test-context';
@@ -56,7 +66,6 @@ import { handler as createStory } from '../../mcp/servers/stories/create_story';
 
 // MCP Handler Imports - Workflows (Teams)
 import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
-import { handler as listWorkflows } from '../../mcp/servers/execution/list_workflows';
 import { handler as updateWorkflow } from '../../mcp/servers/workflows/update_workflow';
 
 // MCP Handler Imports - Workflow States
@@ -67,17 +76,8 @@ import { handler as reorderWorkflowStates } from '../../mcp/servers/workflow-sta
 import { handler as deleteWorkflowState } from '../../mcp/servers/workflow-states/delete_workflow_state';
 
 // MCP Handler Imports - Execution
-import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
-import { handler as getWorkflowContext } from '../../mcp/servers/execution/get_workflow_context';
-import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
-import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
-import { handler as updateWorkflowStatus } from '../../mcp/servers/execution/update_workflow_status';
-import { handler as getWorkflowRunResults } from '../../mcp/servers/execution/get_workflow_run_results';
-import { handler as listWorkflowRuns } from '../../mcp/servers/execution/list_workflow_runs';
 
 // MCP Handler Imports - Artifacts (ST-151)
-import { handler as uploadArtifact } from '../../mcp/servers/artifacts/upload_artifact';
-import { handler as listArtifacts } from '../../mcp/servers/artifacts/list_artifacts';
 
 // MCP Handler Imports - Runner Control
 import { handler as getRunnerStatus } from '../../mcp/servers/runner/get_runner_status';

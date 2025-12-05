@@ -32,8 +32,12 @@ import { handler as recordComponentStart } from '../../mcp/servers/execution/rec
 import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
 import { handler as createProject } from '../../mcp/servers/projects/create_project';
 import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
+import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
 import { handler as createStory } from '../../mcp/servers/stories/create_story';
+import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
+import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
 import { TEST_CONFIG, testName } from './config/test-config';
+import { cleanupTestData } from './helpers/cleanup-utils';
 import { TestContext, createTestContext } from './helpers/test-context';
 import {
   createTestProjectParams,
@@ -43,14 +47,10 @@ import {
   // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
 } from './helpers/test-data-factory';
-import { cleanupTestData } from './helpers/cleanup-utils';
 
 // MCP Handler Imports - Core setup
-import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
-import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
 
 // MCP Handler Imports - Remote Agents
-import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
 
 // MCP Handler Imports - Execution
 

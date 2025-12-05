@@ -23,8 +23,14 @@ import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_w
 import { handler as createProject } from '../../mcp/servers/projects/create_project';
 import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
 import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
+import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
+import { handler as getRunnerStatus } from '../../mcp/servers/runner/get_runner_status';
+import { handler as startRunner } from '../../mcp/servers/runner/start_runner';
 import { handler as createStory } from '../../mcp/servers/stories/create_story';
+import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
+import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
 import { TEST_CONFIG, testName } from './config/test-config';
+import { cleanupTestData } from './helpers/cleanup-utils';
 import { TestContext, createTestContext } from './helpers/test-context';
 import {
   createTestProjectParams,
@@ -35,20 +41,14 @@ import {
   createTestWorkflowParams,
   createTestWorkflowStateParams,
 } from './helpers/test-data-factory';
-import { cleanupTestData } from './helpers/cleanup-utils';
 
 // MCP Handler Imports - Core setup
-import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
-import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
 
 // MCP Handler Imports - Remote Agents (ST-150)
-import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
 
 // MCP Handler Imports - Execution
 
 // MCP Handler Imports - Runner
-import { handler as startRunner } from '../../mcp/servers/runner/start_runner';
-import { handler as getRunnerStatus } from '../../mcp/servers/runner/get_runner_status';
 
 // Prisma client with production database
 const prisma = new PrismaClient();

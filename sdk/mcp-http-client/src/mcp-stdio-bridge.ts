@@ -85,7 +85,7 @@ async function initializeSession(): Promise<void> {
       baseUrl: BASE_URL,
       apiKey: API_KEY,
       debug: DEBUG,
-      heartbeatInterval: 30000, // 30 seconds
+      heartbeatInterval: 60000, // 60 seconds (reduced frequency for multiple clients)
       maxReconnectAttempts: 10,
       initialReconnectDelay: 1000,
       maxReconnectDelay: 30000,
@@ -97,7 +97,7 @@ async function initializeSession(): Promise<void> {
 
       // Start heartbeat to keep session alive
       client.startHeartbeat();
-      log('Heartbeat started (30s interval)');
+      log('Heartbeat started (60s interval)');
 
       // Connect WebSocket for real-time events and connection monitoring
       client.connect();

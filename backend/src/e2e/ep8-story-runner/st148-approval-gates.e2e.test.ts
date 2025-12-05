@@ -24,8 +24,10 @@ import { handler as getApprovalDetails } from '../../mcp/servers/runner/get_appr
 import { handler as getPendingApprovals } from '../../mcp/servers/runner/get_pending_approvals';
 import { handler as respondToApproval } from '../../mcp/servers/runner/respond_to_approval';
 import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
+import { handler as updateWorkflowState } from '../../mcp/servers/workflow-states/update_workflow_state';
 import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
 import { TEST_CONFIG } from './config/test-config';
+import { cleanupTestData } from './helpers/cleanup-utils';
 import { TestContext, createTestContext, hasPhase1Entities, hasWorkflowReady } from './helpers/test-context';
 import {
   createTestProjectParams,
@@ -34,10 +36,8 @@ import {
   createTestWorkflowParams,
   createTestWorkflowStateParams,
 } from './helpers/test-data-factory';
-import { cleanupTestData } from './helpers/cleanup-utils';
 
 // MCP Handler Imports - Core
-import { handler as updateWorkflowState } from '../../mcp/servers/workflow-states/update_workflow_state';
 
 // MCP Handler Imports - Execution
 

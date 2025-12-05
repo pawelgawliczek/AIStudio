@@ -26,7 +26,7 @@ export interface McpHttpClientOptions {
   /** Maximum reconnection delay in milliseconds (default: 30000) */
   maxReconnectDelay?: number;
 
-  /** Heartbeat interval in milliseconds (default: 30000) */
+  /** Heartbeat interval in milliseconds (default: 60000) */
   heartbeatInterval?: number;
 
   /** Enable debug logging (default: false) */

@@ -1,0 +1,71 @@
+{
+  "timestamp": "2025-12-04T15:43:02Z",
+  "session_id": "b1dd0b70-73ed-4405-b117-9cf7c158a173",
+  "run_id": "",
+  "questions": [
+    {
+      "question": "Where should we store transcript files on KVM - in the database as text content (like artifacts) or as files on disk with static file serving?",
+      "header": "Storage",
+      "options": [
+        {
+          "label": "Database (inline content)",
+          "description": "Store transcript content as TEXT in database. Simple, no file I/O, automatic versioning. Good for transcripts under ~1MB."
+        },
+        {
+          "label": "Filesystem (disk storage)",
+          "description": "Store as files in /opt/stack/AIStudio/storage/transcripts/. Better for large files, requires Express static serving setup."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "When should transcripts be copied from laptop to KVM?",
+      "header": "Timing",
+      "options": [
+        {
+          "label": "Immediately on completion",
+          "description": "Copy transcript when agent completes (record_agent_complete). Proactive, transcripts always available, but uses more storage."
+        },
+        {
+          "label": "On-demand viewing",
+          "description": "Copy only when user clicks 'View Transcript'. Saves storage, but requires user to wait for transfer."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should transcripts be displayed in the UI?",
+      "header": "Viewing",
+      "options": [
+        {
+          "label": "Raw JSONL format",
+          "description": "Show the raw transcript file as-is. Simple, preserves all data, but less user-friendly."
+        },
+        {
+          "label": "Parsed and formatted",
+          "description": "Parse JSONL and display conversation turns, tool calls, and responses in a readable format. Better UX, requires parsing logic."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What size transcripts do you expect? This affects storage and transfer approach.",
+      "header": "Size",
+      "options": [
+        {
+          "label": "Small (<100KB)",
+          "description": "Typical short sessions. Database storage is fine."
+        },
+        {
+          "label": "Medium (100KB-1MB)",
+          "description": "Most sessions. Either approach works."
+        },
+        {
+          "label": "Large (1MB-10MB+)",
+          "description": "Long sessions or many tool calls. Filesystem storage recommended."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

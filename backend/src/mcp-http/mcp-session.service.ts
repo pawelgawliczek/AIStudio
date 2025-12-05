@@ -19,6 +19,8 @@ import * as path from 'path';
 import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { Request } from 'express';
 import { Redis } from 'ioredis';
+import { ToolRegistry } from '../mcp/core/registry';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   McpSession,
   CreateSessionData,
@@ -26,8 +28,6 @@ import {
   MCP_SESSION_PREFIX,
 } from './interfaces/mcp-session.interface';
 import { validateToolArguments } from './utils/ssrf-validator';
-import { ToolRegistry } from '../mcp/core/registry';
-import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class McpSessionService {

@@ -29,7 +29,7 @@ async function main() {
     apiKey,
     debug: true, // Enable debug logging
     maxReconnectAttempts: 5,
-    heartbeatInterval: 30000, // 30 seconds
+    heartbeatInterval: 60000, // 60 seconds
   });
 
   // Subscribe to client lifecycle events

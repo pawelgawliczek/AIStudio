@@ -85,7 +85,7 @@ if [ "$SOURCE" = "compact" ] && [ -n "$RUN_ID" ]; then
       "newTranscriptPath": "$TRANSCRIPT_PATH"
     },
     "action": "ORCHESTRATOR: Context was compacted. Call get_orchestration_context({ runId: '$RUN_ID', sessionId: '$SESSION_ID', transcriptPath: '$TRANSCRIPT_PATH' }) to restore workflow state and automatically register the new transcript.",
-    "additionalContext": "## Context Compaction Recovery\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n**Workflow Run**: \`$RUN_ID\`\\n\\n⚠️ **Context was compacted.** You are the MasterSession orchestrator.\\n\\n**Single Command Recovery**: Call \`get_orchestration_context({ runId: '$RUN_ID', sessionId: '$SESSION_ID', transcriptPath: '$TRANSCRIPT_PATH' })\` to automatically register this transcript and restore your workflow state."
+    "additionalContext": "## Context Compaction Recovery\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n**Workflow Run**: \`$RUN_ID\`\\n\\n⚠️ **Context was compacted.** You are the MasterSession orchestrator.\\n\\n**Single Command Recovery**: Call \`get_orchestration_context({ runId: '$RUN_ID', sessionId: '$SESSION_ID', transcriptPath: '$TRANSCRIPT_PATH' })\` to automatically register this transcript and restore your workflow state and get back to your VibeStudio Workflow practices."
   }
 }
 EOF
@@ -96,7 +96,7 @@ else
     "hookEventName": "SessionStart",
     "sessionId": "$SESSION_ID",
     "transcriptPath": "$TRANSCRIPT_PATH",
-    "additionalContext": "## VibeStudio Development Workflow\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n\\nThis project uses VibeStudio for structured development. When implementing features or making code changes:\\n\\n1. **Create a Story** - Use \`create_story\` MCP tool to track the work\\n2. **Create Worktree** - Use \`git_create_worktree\` for isolated development\\n3. **Assign Team** - Select appropriate team for execution\\n4. **Upload Artifacts** - Store analysis/design in artifacts for the workflow\\n5. **Execute with Team** - Let the team's agents handle implementation\\n\\nAvailable MCP tools: list_projects, list_teams, create_story, git_create_worktree, upload_artifact, execute_story_with_team\\n\\nWhen user requests implementation after planning, automatically transition to this workflow."
+    "additionalContext": "## VibeStudio Development Workflow\\n\\n**Your Session ID**: \`$SESSION_ID\`\\n**Your Transcript**: \`$TRANSCRIPT_PATH\`\\n\\nThis project uses VibeStudio for structured development. When implementing features or making code changes act as an orchestrator.\\n\\n**IMPORTANT**: whenever asked to implement change do following:\\n0. Display question to the user which team should you use (use list_teams MCP tool)\\n1. **Create a Story** - Use \`create_story\` MCP tool to track the work if user didn't mention story. If he did use his story.\\n2. **Assign Team** - Select appropriate team for execution\\n3. **Upload Artifacts** - Store analysis/design in artifacts for the workflow\\n4. **Execute with Team** - Let the team's agents handle implementation but you are responsible for orchestrating the session!\\n\\nAvailable MCP tools: list_projects, list_teams, create_story, upload_artifact, execute_story_with_team\\n\\nWhen user requests implementation after planning, automatically transition to this workflow."
   }
 }
 EOF

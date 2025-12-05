@@ -78,7 +78,7 @@ new McpHttpClient(options: McpHttpClientOptions)
 | `maxReconnectAttempts` | number | `10` | Maximum reconnection attempts |
 | `initialReconnectDelay` | number | `1000` | Initial delay in ms |
 | `maxReconnectDelay` | number | `30000` | Maximum delay in ms |
-| `heartbeatInterval` | number | `30000` | Heartbeat interval in ms |
+| `heartbeatInterval` | number | `60000` | Heartbeat interval in ms |
 | `debug` | boolean | `false` | Enable debug logging |
 
 ### Methods

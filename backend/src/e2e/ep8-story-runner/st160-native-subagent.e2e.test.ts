@@ -20,12 +20,11 @@ import { handler as updateComponent } from '../../mcp/servers/components/update_
 import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
 
 // MCP Handler Imports - Remote Agents
-import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
 
 // MCP Handler Imports - Execution
-import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
-import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
 import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
+import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
+import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
 import { handler as createProject } from '../../mcp/servers/projects/create_project';
 
 // MCP Handler Imports - Questions (ST-160)
@@ -34,6 +33,7 @@ import { handler as getPendingQuestions } from '../../mcp/servers/questions/get_
 import { handler as handoffSession } from '../../mcp/servers/questions/handoff_session';
 import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
 import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_online_agents';
+import { handler as spawnAgent } from '../../mcp/servers/remote-agent/spawn_agent';
 import { handler as createStory } from '../../mcp/servers/stories/create_story';
 import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
 import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';

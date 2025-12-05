@@ -74,7 +74,7 @@ export class McpHttpClient {
     this.maxReconnectAttempts = options.maxReconnectAttempts ?? 10;
     this.initialReconnectDelay = options.initialReconnectDelay ?? 1000;
     this.maxReconnectDelay = options.maxReconnectDelay ?? 30000;
-    this.heartbeatIntervalMs = options.heartbeatInterval ?? 30000;
+    this.heartbeatIntervalMs = options.heartbeatInterval ?? 60000; // 60s default
     this.debug = options.debug ?? false;
 
     // HTTP retry configuration (ST-171)
@@ -417,6 +417,7 @@ export class McpHttpClient {
    * Send heartbeat to keep session alive
    *
    * Updates session timestamp and resets TTL.
+   * Note: Heartbeats don't retry on 429 (rate limit) to prevent retry storms.
    */
   async heartbeat(): Promise<void> {
     this.ensureSession();
@@ -429,7 +430,8 @@ export class McpHttpClient {
         this.log('Heartbeat successful');
       },
       'heartbeat',
-      true // Can re-init session on auth errors (will emit session:expired)
+      true, // Can re-init session on auth errors (will emit session:expired)
+      [429] // Don't retry on rate limit (prevents retry storm with multiple clients)
     );
   }
 
@@ -579,9 +581,10 @@ export class McpHttpClient {
    *
    * @private
    * @param error - Axios error
+   * @param excludeStatuses - Status codes to exclude from retry (e.g., [429] for heartbeats)
    * @returns true if the error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: any, excludeStatuses: number[] = []): boolean {
     // Network errors (no response received)
     if (!error.response) {
       const retryableCodes = ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET', 'EPIPE'];
@@ -590,7 +593,14 @@ export class McpHttpClient {
 
     // Server errors that are typically transient
     const retryableStatuses = [429, 502, 503, 504];
-    return retryableStatuses.includes(error.response?.status);
+    const status = error.response?.status;
+
+    // Exclude specified status codes from retry
+    if (excludeStatuses.includes(status)) {
+      return false;
+    }
+
+    return retryableStatuses.includes(status);
   }
 
   /**
@@ -634,12 +644,14 @@ export class McpHttpClient {
    * @param operation - Async operation to execute
    * @param operationName - Name for logging
    * @param canReInit - Whether to attempt session re-init on auth errors
+   * @param excludeRetryStatuses - Status codes to exclude from retry
    * @returns Operation result or throws if all retries fail
    */
   private async executeInitialRetries<T>(
     operation: () => Promise<T>,
     operationName: string,
-    canReInit: boolean
+    canReInit: boolean,
+    excludeRetryStatuses: number[] = []
   ): Promise<T> {
     let lastError: any;
 
@@ -670,7 +682,7 @@ export class McpHttpClient {
         }
 
         // Check if error is retryable
-        if (!this.isRetryableError(error)) {
+        if (!this.isRetryableError(error, excludeRetryStatuses)) {
           this.log(`${operationName}: Non-retryable error, failing immediately`);
           throw this.handleHttpError(error);
         }
@@ -703,12 +715,14 @@ export class McpHttpClient {
    * @param operation - Async operation to execute
    * @param operationName - Name for logging
    * @param canReInit - Whether to attempt session re-init on auth errors
+   * @param excludeRetryStatuses - Status codes to exclude from retry (e.g., [429] for heartbeats)
    * @returns Operation result
    */
   private async executeWithRetry<T>(
     operation: () => Promise<T>,
     operationName: string,
-    canReInit = false
+    canReInit = false,
+    excludeRetryStatuses: number[] = []
   ): Promise<T> {
     let lastError: any;
 
@@ -716,7 +730,7 @@ export class McpHttpClient {
     for (let extendedRound = 0; extendedRound <= this.extendedRetryAttempts; extendedRound++) {
       try {
         // First round (extendedRound=0) or subsequent rounds after 30s delay
-        return await this.executeInitialRetries(operation, operationName, canReInit);
+        return await this.executeInitialRetries(operation, operationName, canReInit, excludeRetryStatuses);
       } catch (error: any) {
         lastError = error;
 
@@ -728,7 +742,7 @@ export class McpHttpClient {
         }
 
         // Check if we should enter extended retry mode
-        if (extendedRound < this.extendedRetryAttempts && this.isRetryableError(error)) {
+        if (extendedRound < this.extendedRetryAttempts && this.isRetryableError(error, excludeRetryStatuses)) {
           this.log(`${operationName}: Initial retries exhausted, entering extended retry mode`, {
             extendedRound: extendedRound + 1,
             maxExtendedRounds: this.extendedRetryAttempts,
