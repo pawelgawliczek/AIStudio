@@ -444,16 +444,16 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
             <Paper
               ref={contentRef}
               variant="outlined"
-              sx={{
+              sx={(theme) => ({
                 p: 2,
-                bgcolor: 'grey.900',
-                color: 'grey.100',
+                bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'grey.900',
+                color: theme.palette.mode === 'dark' ? 'text.primary' : 'grey.100',
                 fontFamily: 'monospace',
                 fontSize: '0.85rem',
                 minHeight: 200,
                 maxHeight: 500,
                 overflow: 'auto',
-              }}
+              })}
             >
               {viewMode === 'parsed' ? (
                 // Parsed conversation view
@@ -474,11 +474,11 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                           }
                           sx={{ height: 20, fontSize: '0.7rem' }}
                         />
-                        <Typography variant="caption" sx={{ color: 'grey.500' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                           {turn.timestamp}
                         </Typography>
                         {turn.usage && (
-                          <Typography variant="caption" sx={{ color: 'grey.600' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                             ({turn.usage.inputTokens}in / {turn.usage.outputTokens}out)
                           </Typography>
                         )}
@@ -491,7 +491,7 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                           sx={{
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
-                            color: 'grey.300',
+                            color: 'text.primary',
                             pl: 1,
                             borderLeft: '2px solid',
                             borderColor:
@@ -499,7 +499,7 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                                 ? 'primary.main'
                                 : turn.type === 'assistant'
                                 ? 'success.main'
-                                : 'grey.600',
+                                : 'text.disabled',
                           }}
                         >
                           {turn.content}
@@ -523,7 +523,7 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                     </Box>
                   ))
                 ) : (
-                  <Typography variant="body2" sx={{ color: 'grey.500' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {currentSession.isStreaming
                       ? 'Waiting for transcript data...'
                       : 'Click play to start streaming transcript'}
@@ -538,14 +538,14 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                       sx={{
                         py: 0.5,
                         borderBottom: '1px solid',
-                        borderColor: 'grey.800',
+                        borderColor: 'divider',
                         opacity: line.isHistorical ? 0.7 : 1,
                       }}
                     >
                       <Typography
                         variant="caption"
                         sx={{
-                          color: 'grey.600',
+                          color: 'text.disabled',
                           display: 'inline-block',
                           width: 50,
                           textAlign: 'right',
@@ -557,14 +557,14 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                       <Typography
                         component="span"
                         variant="body2"
-                        sx={{ color: 'grey.300', wordBreak: 'break-all' }}
+                        sx={{ color: 'text.primary', wordBreak: 'break-all' }}
                       >
                         {line.line}
                       </Typography>
                     </Box>
                   ))
                 ) : (
-                  <Typography variant="body2" sx={{ color: 'grey.500' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {currentSession.isStreaming
                       ? 'Waiting for transcript data...'
                       : 'Click play to start streaming transcript'}
