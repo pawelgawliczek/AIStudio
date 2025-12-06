@@ -156,13 +156,10 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
           const rawContent = allLines.map((l) => l.line).join('\n');
           let parsedTurns: ConversationTurn[] = [];
           try {
-            console.log('[MasterTranscript] Parsing', allLines.length, 'lines');
             const parsed = parser.current.parseJSONL(rawContent);
             parsedTurns = parsed.turns;
-            console.log('[MasterTranscript] Parsed', parsedTurns.length, 'turns');
           } catch (e) {
             // Ignore parse errors for partial content
-            console.error('[MasterTranscript] Parse error:', e);
           }
 
           return { ...s, lines: allLines, parsedTurns };
