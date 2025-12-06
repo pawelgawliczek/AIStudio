@@ -281,6 +281,25 @@ const WorkflowExecutionMonitor: React.FC = () => {
     setTranscriptModalOpen(true);
   }, []);
 
+  // ST-182: Build transcriptIds map from spawnedAgentTranscripts for StateBlock
+  // Maps componentRun.id -> transcriptPath (most recent transcript for each component)
+  const transcriptIds = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    if (workflowRun?.componentRuns && workflowRun?.spawnedAgentTranscripts) {
+      for (const componentRun of workflowRun.componentRuns) {
+        // Find most recent transcript for this component
+        const agentTranscripts = workflowRun.spawnedAgentTranscripts
+          .filter(sat => sat.componentId === componentRun.componentId)
+          .sort((a, b) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
+
+        if (agentTranscripts.length > 0) {
+          map[componentRun.id] = agentTranscripts[0].transcriptPath;
+        }
+      }
+    }
+    return map;
+  }, [workflowRun?.componentRuns, workflowRun?.spawnedAgentTranscripts]);
+
   const handleViewArtifact = useCallback((artifactId: string) => {
     // Find the artifact and open modal
     const artifact = artifactsData.find((a) => a.id === artifactId);
@@ -611,6 +630,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
                       updatedAt: a.updatedAt,
                     }))}
                     artifactAccess={artifactAccess}
+                    transcriptIds={transcriptIds}
                   />
                   {/* Add Breakpoint Button */}
                   <Box mt={2}>
