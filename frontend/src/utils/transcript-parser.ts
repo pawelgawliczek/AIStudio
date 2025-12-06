@@ -196,9 +196,9 @@ export class TranscriptParser {
 
     const obj = record as Record<string, unknown>;
 
-    // Check for prototype pollution attempts
+    // Check for prototype pollution attempts (use hasOwn to check own properties only, not prototype chain)
     for (const key of FORBIDDEN_KEYS) {
-      if (key in obj) {
+      if (Object.hasOwn(obj, key)) {
         throw new Error(`Invalid record schema: forbidden key "${key}"`);
       }
     }
