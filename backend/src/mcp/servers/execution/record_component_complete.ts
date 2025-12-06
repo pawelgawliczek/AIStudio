@@ -151,28 +151,51 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
   }
 
-  // Source 2: spawned_agent_transcripts registry (SINGLE SOURCE OF TRUTH for spawned agents)
-  // The orchestrator MUST call add_transcript({ type: 'agent', componentId, transcriptPath })
-  // BEFORE calling record_agent_complete
+  // Source 2: ST-170 unassigned_transcripts table (PRIMARY) + ST-172 spawnedAgentTranscripts (FALLBACK)
+  // The TranscriptWatcher on laptop automatically detects and registers transcripts in unassigned_transcripts
   if (!contextMetrics) {
-    const workflowRunForTranscript = await prisma.workflowRun.findUnique({
-      where: { id: params.runId },
-      select: {
-        spawnedAgentTranscripts: true,
-        metadata: true,
+    // ST-170: Try to find transcript in unassigned_transcripts table (auto-detected by laptop agent)
+    const unassignedTranscript = await prisma.unassignedTranscript.findFirst({
+      where: {
+        workflowRunId: params.runId,
+        agentId: { not: null }, // Only agent transcripts (not master sessions)
       },
+      orderBy: { detectedAt: 'desc' }, // Most recent first
     });
 
-    if (workflowRunForTranscript) {
-      const spawnedAgents = (workflowRunForTranscript.spawnedAgentTranscripts as any[] | null) || [];
-      const agentEntry = spawnedAgents.find((a: any) => a.componentId === params.componentId);
+    let transcriptPath: string | null = null;
+    let discoveredAgentId: string | null = null;
 
-      if (agentEntry?.transcriptPath) {
-        // Found in registry - use RemoteRunner to parse the transcript on the laptop
-        const runner = new RemoteRunner();
-        const scriptParams = [`--file=${agentEntry.transcriptPath}`];
+    if (unassignedTranscript) {
+      transcriptPath = unassignedTranscript.transcriptPath;
+      discoveredAgentId = unassignedTranscript.agentId;
+      console.log(`[ST-170] Found transcript in unassigned_transcripts: ${transcriptPath} (agent: ${discoveredAgentId})`);
+    } else {
+      // ST-172 FALLBACK: Check old spawnedAgentTranscripts registry (for backwards compatibility)
+      const workflowRunForTranscript = await prisma.workflowRun.findUnique({
+        where: { id: params.runId },
+        select: {
+          spawnedAgentTranscripts: true,
+          metadata: true,
+        },
+      });
 
-        console.log(`[ST-172] Found agent transcript in registry for component ${params.componentId}: ${agentEntry.transcriptPath}`);
+      if (workflowRunForTranscript) {
+        const spawnedAgents = (workflowRunForTranscript.spawnedAgentTranscripts as any[] | null) || [];
+        const agentEntry = spawnedAgents.find((a: any) => a.componentId === params.componentId);
+
+        if (agentEntry?.transcriptPath) {
+          transcriptPath = agentEntry.transcriptPath;
+          discoveredAgentId = agentEntry.agentId;
+          console.log(`[ST-172] Found transcript in spawnedAgentTranscripts (fallback): ${transcriptPath}`);
+        }
+      }
+    }
+
+    if (transcriptPath) {
+      // Found transcript - use RemoteRunner to parse it on the laptop
+      const runner = new RemoteRunner();
+      const scriptParams = [`--file=${transcriptPath}`];
 
         interface RemoteMetrics {
           inputTokens: number;
@@ -210,8 +233,11 @@ export async function handler(prisma: PrismaClient, params: any) {
             sessionId: metrics.sessionId || null,
           };
           dataSource = 'transcript';
-          discoveredAgentId = agentEntry.agentId || metrics.agentId;
-          discoveredTranscriptPath = agentEntry.transcriptPath;
+          // Use already-discovered agentId from unassigned_transcripts, or fall back to parsed metrics
+          if (!discoveredAgentId) {
+            discoveredAgentId = metrics.agentId;
+          }
+          discoveredTranscriptPath = transcriptPath;
 
           if (metrics.turns) {
             turnMetrics = {
@@ -221,9 +247,9 @@ export async function handler(prisma: PrismaClient, params: any) {
             };
           }
 
-          console.log(`[ST-172] Parsed agent transcript for component ${params.componentId}:`, {
+          console.log(`[ST-170/ST-172] Parsed agent transcript for component ${params.componentId}:`, {
             agentId: discoveredAgentId,
-            transcriptPath: agentEntry.transcriptPath,
+            transcriptPath: transcriptPath,
             inputTokens: metrics.inputTokens,
             outputTokens: metrics.outputTokens,
           });
@@ -234,7 +260,7 @@ export async function handler(prisma: PrismaClient, params: any) {
 
             // Read transcript content from laptop
             const readResult = await runner.execute<{ content: string; size: number }>('read-file', [
-              `--path=${agentEntry.transcriptPath}`
+              `--path=${transcriptPath}`
             ], {
               requestedBy: 'record_agent_complete',
             });
@@ -283,19 +309,18 @@ export async function handler(prisma: PrismaClient, params: any) {
             // Non-fatal - log and continue
             console.warn(`[ST-168] Failed to upload transcript as artifact: ${uploadError.message}`);
           }
-        } else {
-          console.warn(`[ST-172] Failed to parse transcript at ${agentEntry.transcriptPath}:`, {
-            executed: result.executed,
-            success: result.success,
-            error: result.error,
-          });
-        }
       } else {
-        // Not in registry - this is expected for orchestrator components that use contextOutput
-        // or indicates the orchestrator didn't call add_transcript before record_agent_complete
-        console.log(`[ST-172] No transcript in registry for component ${params.componentId}. ` +
-          `For spawned agents, ensure add_transcript({ type: 'agent', componentId, transcriptPath }) was called.`);
+        console.warn(`[ST-170/ST-172] Failed to parse transcript at ${transcriptPath}:`, {
+          executed: result.executed,
+          success: result.success,
+          error: result.error,
+        });
       }
+    } else {
+      // Not in unassigned_transcripts or spawnedAgentTranscripts
+      // This is expected for orchestrator components that use contextOutput
+      console.log(`[ST-170] No transcript found for component ${params.componentId}. ` +
+        `Checked unassigned_transcripts and spawnedAgentTranscripts. This is normal for orchestrator components.`);
     }
   }
 
