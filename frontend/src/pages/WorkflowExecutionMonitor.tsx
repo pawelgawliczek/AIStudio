@@ -179,9 +179,9 @@ const WorkflowExecutionMonitor: React.FC = () => {
     enabled: !!runId,
   });
 
-  // ST-182: Check for online remote agents with tail-file capability
+  // ST-182: Check for online remote agents with watch-transcripts capability
   const { hasTailFileAgent, tailFileAgent } = useRemoteAgents({
-    capability: 'tail-file',
+    capability: 'watch-transcripts',
     enabled: !!runId,
   });
 
