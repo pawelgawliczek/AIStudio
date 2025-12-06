@@ -42,9 +42,32 @@ export class TranscriptTailer {
   async startTailing(request: TailRequest): Promise<void> {
     const sessionKey = `${request.runId}:${request.sessionIndex}`;
 
-    // Prevent duplicate sessions
-    if (this.sessions.has(sessionKey)) {
-      this.logger.warn('Tail session already exists', { sessionKey });
+    // Handle duplicate sessions - emit streaming_started for new frontend clients
+    // This happens when frontend reconnects (page refresh, etc.) but session still exists
+    const existingSession = this.sessions.get(sessionKey);
+    if (existingSession) {
+      this.logger.info('Tail session already exists, notifying new client', { sessionKey });
+
+      // Get current file size
+      try {
+        const stats = await fs.promises.stat(existingSession.filePath);
+
+        // Re-emit streaming_started for the new frontend client
+        this.socket.emit('transcript:streaming_started', {
+          runId: request.runId,
+          sessionIndex: request.sessionIndex,
+          filePath: existingSession.filePath,
+          fileSize: stats.size,
+          startPosition: existingSession.position,
+        });
+
+        // If frontend wants from beginning, send existing content
+        if (request.fromBeginning && existingSession.position > 0) {
+          await this.streamExistingContent(request, 0, existingSession.position);
+        }
+      } catch (error: any) {
+        this.logger.error('Error handling duplicate session', { sessionKey, error: error.message });
+      }
       return;
     }
 
