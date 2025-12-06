@@ -211,8 +211,8 @@ export class WorkflowRunsController {
     @Param('projectId') projectId: string,
     @Param('runId') runId: string,
     @Param('componentId') componentId: string,
-    @Query('includeContent') includeContent?: string,
     @Req() request: any,
+    @Query('includeContent') includeContent?: string,
   ): Promise<TranscriptDetailResponseDto> {
     // ST-182 DEBUG: Log request.user to diagnose 403 issue
     console.log('[getTranscriptByComponent] request.user:', request.user);
@@ -252,8 +252,8 @@ export class WorkflowRunsController {
     @Param('projectId') projectId: string,
     @Param('runId') runId: string,
     @Param('index') index: string,
-    @Query('includeContent') includeContent?: string,
     @Req() request: any,
+    @Query('includeContent') includeContent?: string,
   ): Promise<TranscriptDetailResponseDto> {
     // Validate access
     await this.validateProjectAccess(request.user?.id, projectId);
@@ -298,8 +298,8 @@ export class WorkflowRunsController {
     @Param('projectId') projectId: string,
     @Param('runId') runId: string,
     @Param('artifactId') artifactId: string,
-    @Query('includeContent') includeContent?: string,
     @Req() request: any,
+    @Query('includeContent') includeContent?: string,
   ): Promise<TranscriptDetailResponseDto> {
     // Validate access
     await this.validateProjectAccess(request.user?.id, projectId);
