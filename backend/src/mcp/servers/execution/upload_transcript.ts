@@ -13,7 +13,7 @@
  */
 
 import { z } from 'zod';
-import { prisma } from '../../../database';
+import { PrismaClient } from '@prisma/client';
 
 /**
  * Input schema for upload_transcript tool
@@ -48,7 +48,7 @@ type UploadTranscriptInput = z.infer<typeof UploadTranscriptSchema>;
 /**
  * Upload transcript to database
  */
-export const handler = async (params: UploadTranscriptInput) => {
+export async function handler(prisma: PrismaClient, params: any) {
   // Validate input
   const validated = UploadTranscriptSchema.parse(params);
 
