@@ -187,7 +187,7 @@ export class WorkflowRunsController {
     @Req() request: any,
   ): Promise<TranscriptListResponseDto> {
     // Validate access
-    await this.validateProjectAccess(request.user?.id, projectId);
+    await this.validateProjectAccess(request.user?.userId, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
 
     return this.transcriptsService.getTranscriptsForRun(runId);
@@ -214,10 +214,8 @@ export class WorkflowRunsController {
     @Req() request: any,
     @Query('includeContent') includeContent?: string,
   ): Promise<TranscriptDetailResponseDto> {
-    // ST-182 DEBUG: Log request.user to diagnose 403 issue
-    console.log('[getTranscriptByComponent] request.user:', request.user);
-    // Validate access
-    await this.validateProjectAccess(request.user?.id, projectId);
+    // Validate access - JWT strategy returns userId (not id)
+    await this.validateProjectAccess(request.user?.userId, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
 
     // Find transcript for this component
@@ -256,7 +254,7 @@ export class WorkflowRunsController {
     @Query('includeContent') includeContent?: string,
   ): Promise<TranscriptDetailResponseDto> {
     // Validate access
-    await this.validateProjectAccess(request.user?.id, projectId);
+    await this.validateProjectAccess(request.user?.userId, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
 
     const transcriptIndex = parseInt(index, 10);
@@ -302,7 +300,7 @@ export class WorkflowRunsController {
     @Query('includeContent') includeContent?: string,
   ): Promise<TranscriptDetailResponseDto> {
     // Validate access
-    await this.validateProjectAccess(request.user?.id, projectId);
+    await this.validateProjectAccess(request.user?.userId, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
     await this.validateArtifactBelongsToRun(artifactId, runId);
 
@@ -320,10 +318,7 @@ export class WorkflowRunsController {
    * Validate user has access to project
    */
   private async validateProjectAccess(userId: string | undefined, projectId: string): Promise<void> {
-    // ST-182 DEBUG: Log userId to diagnose 403 issue
-    console.log('[validateProjectAccess] userId:', userId, 'projectId:', projectId);
     if (!userId) {
-      console.log('[validateProjectAccess] No userId - throwing 403');
       throw new ForbiddenException('Access denied');
     }
 
