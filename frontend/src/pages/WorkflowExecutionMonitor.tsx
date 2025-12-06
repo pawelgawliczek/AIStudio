@@ -359,8 +359,13 @@ const WorkflowExecutionMonitor: React.FC = () => {
   useEffect(() => {
     // ST-108: Use VITE_WS_URL for WebSocket, fallback to window.location.origin
     const wsUrl = import.meta.env.VITE_WS_URL || window.location.origin;
+    // ST-182: Include auth token for WebSocket connection (required by backend)
+    const token = localStorage.getItem('accessToken');
     const newSocket = io(wsUrl, {
       transports: ['websocket', 'polling'],
+      auth: {
+        token,
+      },
     });
 
     newSocket.on('connect', () => {
