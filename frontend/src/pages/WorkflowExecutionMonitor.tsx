@@ -34,6 +34,8 @@ import { ApprovalGate } from '../components/workflow-viz/ApprovalGate';
 import { ArtifactPanel } from '../components/workflow-viz/ArtifactPanel';
 import { ArtifactViewerModal } from '../components/workflow-viz/ArtifactViewerModal';
 import { TranscriptViewerModal } from '../components/workflow-viz/TranscriptViewerModal';
+import { MasterTranscriptPanel } from '../components/workflow-viz/MasterTranscriptPanel';
+import { useRemoteAgents } from '../components/workflow-viz/hooks/useRemoteAgents';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -174,6 +176,12 @@ const WorkflowExecutionMonitor: React.FC = () => {
   // ST-168: Fetch artifact access rules (expected artifacts per state)
   const { artifactAccess } = useArtifactAccess({
     runId: runId || '',
+    enabled: !!runId,
+  });
+
+  // ST-182: Check for online remote agents with tail-file capability
+  const { hasTailFileAgent, tailFileAgent } = useRemoteAgents({
+    capability: 'tail-file',
     enabled: !!runId,
   });
 
@@ -508,6 +516,19 @@ const WorkflowExecutionMonitor: React.FC = () => {
 
       {/* Metrics Overview */}
       <LiveMetricsDisplay metrics={liveStatus.metrics} status={liveStatus.status} />
+
+      {/* ST-182: Master Session Transcript Panel */}
+      {workflowRun?.masterTranscriptPaths && workflowRun.masterTranscriptPaths.length > 0 && (
+        <Box sx={{ mt: 3 }}>
+          <MasterTranscriptPanel
+            runId={runId || ''}
+            masterTranscriptPaths={workflowRun.masterTranscriptPaths}
+            socket={socket}
+            isAgentOnline={hasTailFileAgent}
+            agentHostname={tailFileAgent?.hostname}
+          />
+        </Box>
+      )}
 
       {/* Tabs */}
       <Paper sx={{ mt: 3 }}>

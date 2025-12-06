@@ -20,6 +20,9 @@ interface ApiWorkflowRunResponse {
   workflowId: string;
   storyId: string;
   status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+  // ST-182: Master transcript paths for live streaming
+  masterTranscriptPaths?: string[];
+  executingAgentId?: string;
   states: Array<{
     id: string;
     name: string;
@@ -101,6 +104,9 @@ function transformApiResponse(apiRun: ApiWorkflowRunResponse): WorkflowRunWithSt
     status: apiRun.status,
     states,
     componentRuns,
+    // ST-182: Include master transcript paths for live streaming
+    masterTranscriptPaths: apiRun.masterTranscriptPaths || [],
+    executingAgentId: apiRun.executingAgentId,
   };
 }
 

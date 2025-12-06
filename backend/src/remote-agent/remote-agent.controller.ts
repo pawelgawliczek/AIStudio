@@ -52,6 +52,26 @@ export class RemoteAgentController {
   }
 
   /**
+   * ST-182: Public endpoint for frontend to check agent availability
+   * Returns sanitized agent status (no secrets)
+   */
+  @Get('online')
+  async getOnlineAgents() {
+    const agents = await this.remoteExecution.getOnlineAgents();
+    return {
+      agents: agents.map((agent: any) => ({
+        id: agent.id,
+        hostname: agent.hostname,
+        status: agent.status,
+        capabilities: agent.capabilities,
+        claudeCodeAvailable: agent.claudeCodeAvailable,
+        claudeCodeVersion: agent.claudeCodeVersion,
+        lastSeenAt: agent.lastSeenAt,
+      })),
+    };
+  }
+
+  /**
    * Execute a script remotely
    * POST /api/remote-agent/execute
    * Requires X-Agent-Secret header

@@ -8,6 +8,7 @@ import {
 } from './claude-code-executor';
 import { executeGitCommand, checkGitAvailable, GitExecutionResult } from './git-executor';
 import { TranscriptWatcher } from './transcript-watcher';
+import { TranscriptTailer, TailRequest } from './transcript-tailer';
 
 /**
  * ST-153: Git job payload from server
@@ -59,8 +60,16 @@ export class RemoteAgent {
   // ST-170: Transcript watcher
   private transcriptWatcher: TranscriptWatcher | null = null;
 
+  // ST-182: Transcript tailer for live streaming
+  private transcriptTailer: TranscriptTailer | null = null;
+
   constructor(config: AgentConfig) {
     this.config = config;
+
+    // ST-182: Add tail-file capability (always available on laptop)
+    if (!this.config.capabilities.includes('tail-file')) {
+      this.config.capabilities.push('tail-file');
+    }
   }
 
   /**
@@ -258,6 +267,17 @@ export class RemoteAgent {
     this.socket.on('agent:git_job', (job: GitJobPayload) => {
       console.log(`Received git job: ${job.id} (${job.command})`);
       this.executeGitJob(job);
+    });
+
+    // ST-182: Transcript tail requests
+    this.socket.on('transcript:start_tail', (request: TailRequest) => {
+      console.log(`[ST-182] Received tail request for ${request.runId}:${request.sessionIndex}`);
+      this.handleStartTail(request);
+    });
+
+    this.socket.on('transcript:stop_tail', (data: { runId: string; sessionIndex: number }) => {
+      console.log(`[ST-182] Received stop tail request for ${data.runId}:${data.sessionIndex}`);
+      this.handleStopTail(data.runId, data.sessionIndex);
     });
 
     // Resume acknowledgment
@@ -561,6 +581,14 @@ export class RemoteAgent {
       this.transcriptWatcher = null;
     }
 
+    // ST-182: Stop transcript tailer
+    if (this.transcriptTailer) {
+      this.transcriptTailer.stopAll().catch((err) => {
+        console.error('Error stopping transcript tailer:', err.message);
+      });
+      this.transcriptTailer = null;
+    }
+
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -591,5 +619,42 @@ export class RemoteAgent {
     await this.transcriptWatcher.start();
 
     console.log('[ST-170] Transcript watcher started successfully');
+  }
+
+  /**
+   * ST-182: Handle start tail request
+   */
+  private async handleStartTail(request: TailRequest): Promise<void> {
+    // Initialize tailer if not already
+    if (!this.transcriptTailer && this.socket) {
+      this.transcriptTailer = new TranscriptTailer(this.socket);
+      console.log('[ST-182] TranscriptTailer initialized');
+    }
+
+    if (!this.transcriptTailer) {
+      console.error('[ST-182] Cannot start tail - no socket connection');
+      return;
+    }
+
+    try {
+      await this.transcriptTailer.startTailing(request);
+    } catch (error: any) {
+      console.error('[ST-182] Failed to start tailing:', error.message);
+    }
+  }
+
+  /**
+   * ST-182: Handle stop tail request
+   */
+  private async handleStopTail(runId: string, sessionIndex: number): Promise<void> {
+    if (!this.transcriptTailer) {
+      return;
+    }
+
+    try {
+      await this.transcriptTailer.stopTailing(runId, sessionIndex);
+    } catch (error: any) {
+      console.error('[ST-182] Failed to stop tailing:', error.message);
+    }
   }
 }

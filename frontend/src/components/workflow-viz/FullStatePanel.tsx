@@ -55,6 +55,7 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
                 })}
                 artifactAccess={artifactAccess[state.id]}
                 transcriptId={componentRun ? transcriptIds[componentRun.id] : undefined}
+                componentRunId={componentRun?.id}
                 onViewLiveFeed={onViewLiveFeed}
                 onViewTranscript={onViewTranscript}
                 onViewArtifact={onViewArtifact}

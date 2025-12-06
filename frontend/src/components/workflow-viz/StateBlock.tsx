@@ -267,8 +267,8 @@ export const StateBlock: React.FC<ExtendedStateBlockProps> = ({
                 if (!componentRun) return;
                 if (status === 'running' && onViewLiveFeed) {
                   onViewLiveFeed(componentRun.id);
-                } else if ((status === 'completed' || status === 'failed') && transcriptId && onViewTranscript) {
-                  onViewTranscript(transcriptId);
+                } else if ((status === 'completed' || status === 'failed') && transcriptId && onViewTranscript && componentRunId) {
+                  onViewTranscript(transcriptId, componentRunId, 'agent');
                 }
               }}
               role={componentRun ? 'button' : undefined}

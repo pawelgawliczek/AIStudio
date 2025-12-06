@@ -30,6 +30,9 @@ export interface WorkflowRunWithStates {
   status: WorkflowRunStatus;
   states?: WorkflowState[];
   componentRuns?: ComponentRunWithMetrics[];
+  // ST-182: Master transcript paths for live streaming
+  masterTranscriptPaths?: string[];
+  executingAgentId?: string;
 }
 
 export interface WorkflowStateVizProps {
@@ -130,7 +133,7 @@ export interface FullStatePanelProps {
   artifactAccess?: Record<string, ArtifactAccess[]>; // keyed by stateId
   transcriptIds?: Record<string, string>; // keyed by componentRunId
   onViewLiveFeed?: (componentRunId: string) => void;
-  onViewTranscript?: (transcriptId: string) => void;
+  onViewTranscript?: (transcriptId: string, componentRunId: string, type: 'agent') => void;
   onViewArtifact?: (artifactId: string) => void;
 }
 
@@ -165,7 +168,8 @@ export interface StateBlockExtendedProps extends StateBlockProps {
   artifacts?: ArtifactInstance[];
   artifactAccess?: ArtifactAccess[];
   transcriptId?: string;
+  componentRunId?: string;
   onViewLiveFeed?: (componentRunId: string) => void;
-  onViewTranscript?: (transcriptId: string) => void;
+  onViewTranscript?: (transcriptId: string, componentRunId: string, type: 'agent') => void;
   onViewArtifact?: (artifactId: string) => void;
 }

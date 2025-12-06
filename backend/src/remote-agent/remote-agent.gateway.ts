@@ -1363,4 +1363,221 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       });
     }
   }
+
+  // ===========================================================================
+  // ST-182: Master Transcript Live Streaming
+  // ===========================================================================
+
+  /**
+   * Track active master transcript subscriptions
+   * Map<runId, Set<clientId>>
+   */
+  private readonly masterTranscriptSubscriptions = new Map<string, Set<string>>();
+
+  /**
+   * ST-182: Frontend requests to start tailing a master transcript
+   * Forwards request to laptop agent via WebSocket
+   *
+   * @event master-transcript:subscribe
+   */
+  @SubscribeMessage('master-transcript:subscribe')
+  async handleMasterTranscriptSubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      runId: string;
+      sessionIndex: number;
+      filePath: string;
+      fromBeginning?: boolean;
+    },
+  ) {
+    const { runId, sessionIndex, filePath, fromBeginning } = data;
+    this.logger.log(`[ST-182] Master transcript subscribe: runId=${runId}, sessionIndex=${sessionIndex}`);
+
+    // Track subscription
+    if (!this.masterTranscriptSubscriptions.has(runId)) {
+      this.masterTranscriptSubscriptions.set(runId, new Set());
+    }
+    this.masterTranscriptSubscriptions.get(runId)!.add(client.id);
+
+    // Join room for this workflow's transcript updates
+    client.join(`master-transcript:${runId}`);
+
+    // Find an online laptop agent with the tail-file capability
+    const agents = await this.prisma.remoteAgent.findMany({
+      where: {
+        status: 'online',
+        capabilities: { has: 'tail-file' },
+      },
+    });
+
+    if (agents.length === 0) {
+      client.emit('master-transcript:error', {
+        runId,
+        sessionIndex,
+        error: 'No laptop agent online with tail-file capability',
+        code: 'NO_AGENT',
+      });
+      return;
+    }
+
+    // Use the first available agent
+    const agent = agents[0];
+
+    // Forward tail request to laptop agent
+    this.server.to(agent.socketId!).emit('transcript:start_tail', {
+      runId,
+      sessionIndex,
+      filePath,
+      fromBeginning: fromBeginning ?? true,
+    });
+
+    this.logger.log(`[ST-182] Forwarded tail request to agent ${agent.hostname}`);
+  }
+
+  /**
+   * ST-182: Frontend requests to stop tailing a master transcript
+   *
+   * @event master-transcript:unsubscribe
+   */
+  @SubscribeMessage('master-transcript:unsubscribe')
+  async handleMasterTranscriptUnsubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { runId: string; sessionIndex: number },
+  ) {
+    const { runId, sessionIndex } = data;
+    this.logger.log(`[ST-182] Master transcript unsubscribe: runId=${runId}, sessionIndex=${sessionIndex}`);
+
+    // Leave room
+    client.leave(`master-transcript:${runId}`);
+
+    // Remove from tracking
+    const subs = this.masterTranscriptSubscriptions.get(runId);
+    if (subs) {
+      subs.delete(client.id);
+      if (subs.size === 0) {
+        this.masterTranscriptSubscriptions.delete(runId);
+
+        // No more subscribers, tell laptop agent to stop tailing
+        const agents = await this.prisma.remoteAgent.findMany({
+          where: {
+            status: 'online',
+            capabilities: { has: 'tail-file' },
+          },
+        });
+
+        for (const agent of agents) {
+          if (agent.socketId) {
+            this.server.to(agent.socketId).emit('transcript:stop_tail', {
+              runId,
+              sessionIndex,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * ST-182: Handle streaming_started event from laptop agent
+   * Relay to subscribed frontend clients
+   *
+   * @event transcript:streaming_started
+   */
+  @SubscribeMessage('transcript:streaming_started')
+  async handleTranscriptStreamingStarted(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      runId: string;
+      sessionIndex: number;
+      filePath: string;
+      fileSize: number;
+      startPosition: number;
+    },
+  ) {
+    this.logger.log(`[ST-182] Streaming started: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
+
+    // Relay to all subscribed frontend clients
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:streaming_started', data);
+  }
+
+  /**
+   * ST-182: Handle transcript lines from laptop agent
+   * Relay to subscribed frontend clients
+   *
+   * @event transcript:lines
+   */
+  @SubscribeMessage('transcript:lines')
+  async handleTranscriptLines(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      runId: string;
+      sessionIndex: number;
+      lines: Array<{ line: string; sequenceNumber: number }>;
+      isHistorical: boolean;
+      timestamp: string;
+    },
+  ) {
+    // Relay to all subscribed frontend clients
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
+  }
+
+  /**
+   * ST-182: Handle transcript batch from laptop agent (historical content)
+   * Relay to subscribed frontend clients
+   *
+   * @event transcript:batch
+   */
+  @SubscribeMessage('transcript:batch')
+  async handleTranscriptBatch(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      runId: string;
+      sessionIndex: number;
+      lines: Array<{ line: string; sequenceNumber: number }>;
+      isHistorical: boolean;
+      timestamp: string;
+    },
+  ) {
+    this.logger.log(`[ST-182] Batch received: runId=${data.runId}, lines=${data.lines.length}`);
+
+    // Relay to all subscribed frontend clients
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
+  }
+
+  /**
+   * ST-182: Handle transcript streaming error from laptop agent
+   *
+   * @event transcript:error
+   */
+  @SubscribeMessage('transcript:error')
+  async handleTranscriptError(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      runId: string;
+      sessionIndex: number;
+      error: string;
+      code: string;
+    },
+  ) {
+    this.logger.error(`[ST-182] Transcript error: runId=${data.runId}, code=${data.code}, error=${data.error}`);
+
+    // Relay to all subscribed frontend clients
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:error', data);
+  }
+
+  /**
+   * ST-182: Handle streaming stopped event from laptop agent
+   *
+   * @event transcript:streaming_stopped
+   */
+  @SubscribeMessage('transcript:streaming_stopped')
+  async handleTranscriptStreamingStopped(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { runId: string; sessionIndex: number },
+  ) {
+    this.logger.log(`[ST-182] Streaming stopped: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
+
+    // Relay to all subscribed frontend clients
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:stopped', data);
+  }
 }
