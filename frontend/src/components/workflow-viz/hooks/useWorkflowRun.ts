@@ -15,6 +15,13 @@ interface UseWorkflowRunOptions {
   enabled?: boolean;
 }
 
+interface SpawnedAgentTranscript {
+  agentId: string;
+  spawnedAt: string;
+  componentId: string;
+  transcriptPath: string;
+}
+
 interface ApiWorkflowRunResponse {
   id: string;
   workflowId: string;
@@ -22,6 +29,8 @@ interface ApiWorkflowRunResponse {
   status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
   // ST-182: Master transcript paths for live streaming
   masterTranscriptPaths?: string[];
+  // ST-182: Spawned agent transcripts for live streaming
+  spawnedAgentTranscripts?: SpawnedAgentTranscript[];
   executingAgentId?: string;
   states: Array<{
     id: string;
@@ -106,6 +115,8 @@ function transformApiResponse(apiRun: ApiWorkflowRunResponse): WorkflowRunWithSt
     componentRuns,
     // ST-182: Include master transcript paths for live streaming
     masterTranscriptPaths: apiRun.masterTranscriptPaths || [],
+    // ST-182: Include spawned agent transcripts for live streaming
+    spawnedAgentTranscripts: apiRun.spawnedAgentTranscripts || [],
     executingAgentId: apiRun.executingAgentId,
   };
 }

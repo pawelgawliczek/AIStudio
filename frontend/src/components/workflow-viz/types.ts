@@ -22,6 +22,14 @@ export interface ComponentRunWithMetrics {
   };
 }
 
+// ST-182: Spawned agent transcript info
+export interface SpawnedAgentTranscript {
+  agentId: string;
+  spawnedAt: string;
+  componentId: string;
+  transcriptPath: string;
+}
+
 // Extended WorkflowRun with states for visualization
 export interface WorkflowRunWithStates {
   id: string;
@@ -32,6 +40,8 @@ export interface WorkflowRunWithStates {
   componentRuns?: ComponentRunWithMetrics[];
   // ST-182: Master transcript paths for live streaming
   masterTranscriptPaths?: string[];
+  // ST-182: Spawned agent transcripts for live streaming
+  spawnedAgentTranscripts?: SpawnedAgentTranscript[];
   executingAgentId?: string;
 }
 

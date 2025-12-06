@@ -135,6 +135,8 @@ const WorkflowExecutionMonitor: React.FC = () => {
   const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
   const [selectedComponentRunId, setSelectedComponentRunId] = useState<string>('');
   const [selectedTranscriptId, setSelectedTranscriptId] = useState<string>('');
+  // ST-182: Agent transcript path for live feed
+  const [selectedAgentTranscriptPath, setSelectedAgentTranscriptPath] = useState<string>('');
   const [selectedTranscript, setSelectedTranscript] = useState<{
     artifactId: string;
     type: 'master' | 'agent';
@@ -252,8 +254,23 @@ const WorkflowExecutionMonitor: React.FC = () => {
   // Callback handlers for workflow-viz components
   const handleViewLiveFeed = useCallback((componentRunId: string) => {
     setSelectedComponentRunId(componentRunId);
+
+    // ST-182: Find the agent transcript path for this component run
+    // The componentRun has a componentId, and spawnedAgentTranscripts has componentId -> transcriptPath mapping
+    const componentRun = workflowRun?.componentRuns?.find(cr => cr.id === componentRunId);
+    if (componentRun && workflowRun?.spawnedAgentTranscripts) {
+      // Find the most recent spawned agent transcript for this component
+      const agentTranscripts = workflowRun.spawnedAgentTranscripts
+        .filter(sat => sat.componentId === componentRun.componentId)
+        .sort((a, b) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
+
+      if (agentTranscripts.length > 0) {
+        setSelectedAgentTranscriptPath(agentTranscripts[0].transcriptPath);
+      }
+    }
+
     setLiveFeedModalOpen(true);
-  }, []);
+  }, [workflowRun?.componentRuns, workflowRun?.spawnedAgentTranscripts]);
 
   const handleViewTranscript = useCallback((
     transcriptId: string,
@@ -711,52 +728,50 @@ const WorkflowExecutionMonitor: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Live Feed Modal */}
+      {/* ST-182: Live Feed Modal - Uses MasterTranscriptPanel for agent transcripts */}
       <Dialog
         open={liveFeedModalOpen}
-        onClose={() => setLiveFeedModalOpen(false)}
+        onClose={() => {
+          setLiveFeedModalOpen(false);
+          setSelectedAgentTranscriptPath('');
+        }}
         maxWidth="lg"
         fullWidth
       >
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
             <span>🔴</span>
-            Live Execution Stream
-            <Chip label="Connected" color="success" size="small" sx={{ ml: 'auto' }} />
+            Live Agent Stream
+            {hasTailFileAgent && (
+              <Chip label="Agent Online" color="success" size="small" sx={{ ml: 'auto' }} />
+            )}
           </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ minHeight: 400 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Component Run ID: {selectedComponentRunId}
-            </Typography>
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2,
-                bgcolor: 'grey.900',
-                color: 'grey.100',
-                fontFamily: 'monospace',
-                fontSize: '0.85rem',
-                minHeight: 300,
-                maxHeight: 500,
-                overflow: 'auto',
-              }}
-            >
-              {/* WebSocket stream would render here */}
-              <Typography variant="body2" sx={{ color: 'grey.500' }}>
-                Connecting to live stream...
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'grey.400', mt: 1 }}>
-                {'>'} Waiting for agent output...
-              </Typography>
-            </Paper>
+            {selectedAgentTranscriptPath ? (
+              <MasterTranscriptPanel
+                runId={runId || ''}
+                masterTranscriptPaths={[selectedAgentTranscriptPath]}
+                socket={socket}
+                isAgentOnline={hasTailFileAgent}
+                agentHostname={tailFileAgent?.hostname}
+                defaultExpanded={true}
+              />
+            ) : (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No agent transcript found for this component run. The agent may not have started yet.
+              </Alert>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLiveFeedModalOpen(false)}>Close</Button>
-          <Button variant="outlined">Pause Stream</Button>
-          <Button variant="outlined">Download Transcript</Button>
+          <Button onClick={() => {
+            setLiveFeedModalOpen(false);
+            setSelectedAgentTranscriptPath('');
+          }}>
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 

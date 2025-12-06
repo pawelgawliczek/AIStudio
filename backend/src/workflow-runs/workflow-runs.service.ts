@@ -666,6 +666,8 @@ export class WorkflowRunsService {
       states: workflowRun.workflow?.states || [],
       // ST-182: Master transcript paths for live streaming
       masterTranscriptPaths: workflowRun.masterTranscriptPaths || [],
+      // ST-182: Spawned agent transcripts for live streaming
+      spawnedAgentTranscripts: (workflowRun.metadata as any)?.spawnedAgentTranscripts || [],
       componentRuns: workflowRun.componentRuns?.map((run: any) => ({
         id: run.id,
         componentId: run.componentId,
