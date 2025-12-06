@@ -133,16 +133,19 @@ export class TranscriptParser {
       try {
         const parsed = JSON.parse(trimmed);
 
-        // Security: Validate record schema
-        this.validateRecord(parsed);
+        // Security: Validate record schema (returns false for unknown types to skip)
+        const isValid = this.validateRecord(parsed);
+        if (!isValid) {
+          continue; // Skip unknown record types
+        }
 
         records.push(parsed);
       } catch (e) {
-        // Skip malformed JSON lines (graceful degradation)
-        if (e instanceof Error && e.message.includes('Invalid record')) {
-          throw e; // Re-throw validation errors
+        // Re-throw security violations (prototype pollution, content too large)
+        if (e instanceof Error && e.message.includes('Invalid record schema')) {
+          throw e;
         }
-        // Otherwise skip malformed JSON
+        // Skip malformed JSON lines (graceful degradation for partial/streaming content)
         continue;
       }
     }
@@ -183,8 +186,10 @@ export class TranscriptParser {
 
   /**
    * Validate record against security constraints (Claude Code format)
+   * Returns false for records that should be skipped (unknown types)
+   * Throws for security violations (prototype pollution, content too large)
    */
-  private validateRecord(record: unknown): void {
+  private validateRecord(record: unknown): boolean {
     if (typeof record !== 'object' || record === null) {
       throw new Error('Invalid record schema: not an object');
     }
@@ -198,10 +203,12 @@ export class TranscriptParser {
       }
     }
 
-    // Validate top-level type field (user, assistant, file-history-snapshot)
+    // Skip unknown record types gracefully (Claude Code may have many types)
+    // Only process known types: user, assistant, file-history-snapshot, system
     if ('type' in obj) {
       if (!VALID_TYPES.has(obj.type as string)) {
-        throw new Error(`Invalid record type: "${obj.type}"`);
+        // Skip unknown types instead of throwing - more robust for live streaming
+        return false;
       }
     }
 
@@ -212,6 +219,8 @@ export class TranscriptParser {
         throw new Error(`Content too large: ${message.content.length} chars (max: ${MAX_CONTENT_LENGTH})`);
       }
     }
+
+    return true;
   }
 
   /**
