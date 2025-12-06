@@ -212,10 +212,12 @@ export class WorkflowRunsController {
     @Param('runId') runId: string,
     @Param('componentId') componentId: string,
     @Query('includeContent') includeContent?: string,
-    @Req() request?: any,
+    @Req() request: any,
   ): Promise<TranscriptDetailResponseDto> {
+    // ST-182 DEBUG: Log request.user to diagnose 403 issue
+    console.log('[getTranscriptByComponent] request.user:', request.user);
     // Validate access
-    await this.validateProjectAccess(request?.user?.id, projectId);
+    await this.validateProjectAccess(request.user?.id, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
 
     // Find transcript for this component
@@ -251,10 +253,10 @@ export class WorkflowRunsController {
     @Param('runId') runId: string,
     @Param('index') index: string,
     @Query('includeContent') includeContent?: string,
-    @Req() request?: any,
+    @Req() request: any,
   ): Promise<TranscriptDetailResponseDto> {
     // Validate access
-    await this.validateProjectAccess(request?.user?.id, projectId);
+    await this.validateProjectAccess(request.user?.id, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
 
     const transcriptIndex = parseInt(index, 10);
@@ -297,10 +299,10 @@ export class WorkflowRunsController {
     @Param('runId') runId: string,
     @Param('artifactId') artifactId: string,
     @Query('includeContent') includeContent?: string,
-    @Req() request?: any,
+    @Req() request: any,
   ): Promise<TranscriptDetailResponseDto> {
     // Validate access
-    await this.validateProjectAccess(request?.user?.id, projectId);
+    await this.validateProjectAccess(request.user?.id, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
     await this.validateArtifactBelongsToRun(artifactId, runId);
 
@@ -318,7 +320,10 @@ export class WorkflowRunsController {
    * Validate user has access to project
    */
   private async validateProjectAccess(userId: string | undefined, projectId: string): Promise<void> {
+    // ST-182 DEBUG: Log userId to diagnose 403 issue
+    console.log('[validateProjectAccess] userId:', userId, 'projectId:', projectId);
     if (!userId) {
+      console.log('[validateProjectAccess] No userId - throwing 403');
       throw new ForbiddenException('Access denied');
     }
 
