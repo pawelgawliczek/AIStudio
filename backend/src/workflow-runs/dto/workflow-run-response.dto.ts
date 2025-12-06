@@ -126,6 +126,19 @@ export class WorkflowRunResponseDto {
   // ST-182: Master transcript paths for live streaming
   @ApiProperty({ required: false, type: [String], description: 'Paths to master session transcripts (for live streaming)' })
   masterTranscriptPaths?: string[];
+
+  // ST-182: Spawned agent transcripts for live streaming
+  @ApiProperty({ required: false, description: 'Array of spawned agent transcript info for live streaming' })
+  spawnedAgentTranscripts?: Array<{
+    agentId: string;
+    spawnedAt: string;
+    componentId: string;
+    transcriptPath: string;
+  }>;
+
+  // ST-182: Currently executing agent ID
+  @ApiProperty({ required: false, description: 'ID of the currently executing agent' })
+  executingAgentId?: string;
 }
 
 export class WorkflowStateSummaryDto {
