@@ -77,7 +77,7 @@ class TranscriptsService {
    */
   async getTranscriptsForRun(projectId: string, runId: string): Promise<TranscriptList> {
     const response = await apiClient.get(
-      `/projects/${projectId}/workflow-runs/${runId}/transcripts`
+      `/api/projects/${projectId}/workflow-runs/${runId}/transcripts`
     );
     return response.data;
   }
@@ -98,7 +98,7 @@ class TranscriptsService {
     includeContent = false
   ): Promise<TranscriptDetail> {
     const response = await apiClient.get(
-      `/projects/${projectId}/workflow-runs/${runId}/transcripts/${artifactId}`,
+      `/api/projects/${projectId}/workflow-runs/${runId}/transcripts/${artifactId}`,
       { params: { includeContent: includeContent ? 'true' : undefined } }
     );
     return response.data;
@@ -120,7 +120,7 @@ class TranscriptsService {
     includeContent = false
   ): Promise<TranscriptDetail> {
     const response = await apiClient.get(
-      `/projects/${projectId}/workflow-runs/${runId}/transcripts/component/${componentId}`,
+      `/api/projects/${projectId}/workflow-runs/${runId}/transcripts/component/${componentId}`,
       { params: { includeContent: includeContent ? 'true' : undefined } }
     );
     return response.data;
@@ -142,7 +142,7 @@ class TranscriptsService {
     includeContent = false
   ): Promise<TranscriptDetail> {
     const response = await apiClient.get(
-      `/projects/${projectId}/workflow-runs/${runId}/transcripts/master/${index}`,
+      `/api/projects/${projectId}/workflow-runs/${runId}/transcripts/master/${index}`,
       { params: { includeContent: includeContent ? 'true' : undefined } }
     );
     return response.data;
