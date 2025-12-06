@@ -218,16 +218,11 @@ export class WorkflowRunsController {
     await this.validateProjectAccess(request.user?.userId, projectId);
     await this.validateRunBelongsToProject(runId, projectId);
 
-    // Find transcript for this component
-    const transcripts = await this.transcriptsService.getTranscriptsForRun(runId);
-    const agentTranscript = transcripts.agents.find(t => t.componentId === componentId);
-
-    if (!agentTranscript) {
-      throw new NotFoundException('Transcript not found for component');
-    }
-
-    return this.transcriptsService.getTranscriptById(
-      agentTranscript.artifactId,
+    // ST-182: First check spawnedAgentTranscripts in WorkflowRun metadata
+    // This is where transcript paths are stored (not uploaded to Artifact table)
+    return this.transcriptsService.getTranscriptByComponentFromMetadata(
+      runId,
+      componentId,
       includeContent === 'true',
     );
   }

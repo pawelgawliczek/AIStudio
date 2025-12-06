@@ -338,6 +338,85 @@ export class TranscriptsService {
   }
 
   /**
+   * ST-182: Get transcript by component from spawnedAgentTranscripts metadata
+   * Reads content from laptop via RemoteRunner (not from Artifact table)
+   */
+  async getTranscriptByComponentFromMetadata(
+    runId: string,
+    componentId: string,
+    includeContent: boolean = true,
+  ): Promise<TranscriptDetailResponseDto> {
+    // 1. Get workflow run with spawnedAgentTranscripts
+    const workflowRun = await this.prisma.workflowRun.findUnique({
+      where: { id: runId },
+      select: {
+        id: true,
+        spawnedAgentTranscripts: true,
+      },
+    });
+
+    if (!workflowRun) {
+      throw new NotFoundException(`Workflow run not found: ${runId}`);
+    }
+
+    // 2. Find transcript entry for this component
+    const spawnedAgents = (workflowRun.spawnedAgentTranscripts as any[] | null) || [];
+    const transcriptEntry = spawnedAgents
+      .filter((t: any) => t.componentId === componentId)
+      .sort((a: any, b: any) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime())[0];
+
+    if (!transcriptEntry) {
+      throw new NotFoundException(`Transcript not found for component: ${componentId}`);
+    }
+
+    // 3. Get component name
+    const component = await this.prisma.component.findUnique({
+      where: { id: componentId },
+      select: { name: true },
+    });
+
+    // 4. Read content from laptop if requested
+    let content: string | undefined;
+    let size = 0;
+
+    if (includeContent && transcriptEntry.transcriptPath) {
+      try {
+        const result = await this.remoteRunner.execute<ReadFileResult>('read-file', [
+          `--path=${transcriptEntry.transcriptPath}`,
+          `--max-size=${MAX_PER_RUN_SIZE}`,
+        ]);
+
+        if (result.executed && result.success && result.result) {
+          content = result.result.content;
+          size = result.result.size;
+        } else {
+          this.logger.warn('Failed to read transcript from laptop', {
+            error: result.error,
+            transcriptPath: transcriptEntry.transcriptPath,
+          });
+        }
+      } catch (error) {
+        this.logger.warn('Error reading transcript from laptop', {
+          error: error instanceof Error ? error.message : String(error),
+          transcriptPath: transcriptEntry.transcriptPath,
+        });
+      }
+    }
+
+    return {
+      id: transcriptEntry.agentId || componentId, // Use agentId as ID
+      content,
+      contentPreview: content?.slice(0, CONTENT_PREVIEW_LENGTH),
+      contentType: 'application/x-jsonlines',
+      size,
+      transcriptType: 'agent',
+      componentId,
+      componentName: component?.name,
+      createdAt: new Date(transcriptEntry.spawnedAt),
+    };
+  }
+
+  /**
    * Get a specific transcript by artifact ID
    */
   async getTranscriptById(
