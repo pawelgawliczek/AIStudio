@@ -31,11 +31,11 @@ export const tool: Tool = {
       // ST-172: Session tracking from hooks
       sessionId: {
         type: 'string',
-        description: 'ST-172: Claude Code session ID from SessionStart hook. Used to look up transcript path from running-workflows.json.',
+        description: 'ST-170: REQUIRED - Claude Code session ID from SessionStart hook. Used for transcript matching and live streaming. Get from SessionStart hook context.',
       },
       transcriptPath: {
         type: 'string',
-        description: 'ST-172: Exact transcript path from SessionStart hook (stdin.transcript_path). Stored in WorkflowRun.masterTranscriptPaths.',
+        description: 'ST-170: REQUIRED - Exact transcript path from SessionStart hook (stdin.transcript_path). Stored in WorkflowRun.masterTranscriptPaths for live streaming.',
       },
       // ST-148: Approval override options
       approvalOverrides: {
@@ -55,7 +55,7 @@ export const tool: Tool = {
         },
       },
     },
-    required: ['teamId', 'triggeredBy', 'cwd'],
+    required: ['teamId', 'triggeredBy', 'cwd', 'sessionId', 'transcriptPath'],
   },
 };
 
@@ -80,6 +80,14 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
   if (!params.cwd) {
     throw new Error('cwd is required - must be the HOST path where Claude Code is running (e.g., /Users/you/projects/AIStudio). This is needed for transcript tracking.');
+  }
+
+  // ST-170: Validate transcript tracking parameters (now required for live streaming)
+  if (!params.sessionId) {
+    throw new Error('sessionId is required - must be provided from SessionStart hook context. This enables transcript matching and live streaming. Get it from the SessionStart hook output.');
+  }
+  if (!params.transcriptPath) {
+    throw new Error('transcriptPath is required - must be provided from SessionStart hook (stdin.transcript_path). This enables live transcript streaming. Get it from the SessionStart hook output.');
   }
 
   // Verify workflow exists
