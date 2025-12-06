@@ -152,6 +152,10 @@ export async function handler(prisma: PrismaClient, params: any) {
     console.log(`[ST-172] Using discovered transcript path: ${fullPath}`);
   }
 
+  // Extract Claude session ID from transcript filename (e.g., "8f9fc948-1234-5678-abcd.jsonl" → "8f9fc948-1234-5678-abcd")
+  // Needed early for ST-170 unassigned transcript matching
+  const claudeSessionId = orchestratorTranscript?.replace('.jsonl', '') || undefined;
+
   const workflowRun = await prisma.workflowRun.create({
     data: {
       workflowId: workflowId,
@@ -234,8 +238,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   // ST-164: Register workflow on laptop for context recovery after compaction
   // This is a best-effort operation - don't fail the workflow if laptop agent is offline
   // Note: storyId already extracted above at line 130 for Story table linking
-  // Extract Claude session ID from transcript filename (e.g., "8f9fc948-1234-5678-abcd.jsonl" → "8f9fc948-1234-5678-abcd")
-  const claudeSessionId = orchestratorTranscript?.replace('.jsonl', '') || undefined;
+  // Note: claudeSessionId extracted earlier (before WorkflowRun creation) for ST-170
   let workflowTrackerResult: { success: boolean; agentOffline?: boolean; error?: string } | null = null;
   try {
     workflowTrackerResult = await registerWorkflowOnLaptop(
