@@ -42,11 +42,11 @@ export function useRemoteAgents(options: UseRemoteAgentsOptions = {}) {
     enabled,
   });
 
-  // Find first agent with tail-file capability
-  const tailFileAgent = data?.find(
+  // Find first agent with watch-transcripts capability (for live streaming)
+  const streamingAgent = data?.find(
     (agent) =>
       agent.status === 'online' &&
-      agent.capabilities.includes('tail-file')
+      agent.capabilities.includes('watch-transcripts')
   );
 
   return {
@@ -55,7 +55,10 @@ export function useRemoteAgents(options: UseRemoteAgentsOptions = {}) {
     error,
     refetch,
     // Convenience for transcript streaming
-    hasTailFileAgent: !!tailFileAgent,
-    tailFileAgent,
+    hasStreamingAgent: !!streamingAgent,
+    streamingAgent,
+    // Legacy aliases
+    hasTailFileAgent: !!streamingAgent,
+    tailFileAgent: streamingAgent,
   };
 }
