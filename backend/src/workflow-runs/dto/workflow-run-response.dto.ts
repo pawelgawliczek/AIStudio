@@ -122,6 +122,10 @@ export class WorkflowRunResponseDto {
   // Workflow states (from related workflow, for workflow-viz components)
   @ApiProperty({ required: false })
   states?: WorkflowStateSummaryDto[];
+
+  // ST-182: Master transcript paths for live streaming
+  @ApiProperty({ required: false, type: [String], description: 'Paths to master session transcripts (for live streaming)' })
+  masterTranscriptPaths?: string[];
 }
 
 export class WorkflowStateSummaryDto {

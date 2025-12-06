@@ -664,6 +664,8 @@ export class WorkflowRunsService {
       story: workflowRun.story,
       // Expose states at top level for frontend workflow-viz components
       states: workflowRun.workflow?.states || [],
+      // ST-182: Master transcript paths for live streaming
+      masterTranscriptPaths: workflowRun.masterTranscriptPaths || [],
       componentRuns: workflowRun.componentRuns?.map((run: any) => ({
         id: run.id,
         componentId: run.componentId,
