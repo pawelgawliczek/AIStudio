@@ -804,6 +804,9 @@ model WorkflowRun {
   approvalRequests ApprovalRequest[]
   // ST-160: Agent questions
   agentQuestions   AgentQuestion[]
+  // ST-170: Transcript storage
+  transcripts            Transcript[]
+  unassignedTranscripts  UnassignedTranscript[]
 
   @@index([projectId])
   @@index([workflowId])
@@ -934,6 +937,7 @@ model ComponentRun {
   subtasks           Subtask[]
   otelEvents         OtelEvent[]
   agentStreamEvents  AgentStreamEvent[] // ST-150: Streaming events from remote execution
+  transcripts        Transcript[]       // ST-170: Transcript storage
 
   @@index([workflowRunId])
   @@index([componentId])
@@ -1918,4 +1922,70 @@ model AgentStreamEvent {
   @@index([workflowRunId, eventType])
   @@index([componentRunId, eventType, timestamp]) // For filtering by event type
   @@map("agent_stream_events")
+}
+
+// ============================================================================
+// ST-170: TRANSCRIPT STORAGE (File-Watching Daemon)
+// ============================================================================
+
+// Transcript - Stores completed transcript content for master sessions and spawned agents
+// Replaces in-memory storage with persistent database records for better scalability
+model Transcript {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type           TranscriptType
+  sessionId      String?         @map("session_id") // Claude session ID
+  agentId        String?         @map("agent_id") // Agent ID (8-char hex) for agent transcripts
+  workflowRunId  String?         @map("workflow_run_id") @db.Uuid
+  componentRunId String?         @map("component_run_id") @db.Uuid
+
+  content        String          @db.Text // Full JSONL transcript content
+  contentSize    Int?            @map("content_size") // Size in bytes
+  metrics        Json?           // Parsed metrics (ST-27): totalTokens, toolCallCount, duration, etc.
+
+  uploadedAt     DateTime        @default(now()) @map("uploaded_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  workflowRun    WorkflowRun?    @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  componentRun   ComponentRun?   @relation(fields: [componentRunId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([workflowRunId])
+  @@index([componentRunId])
+  @@index([type])
+  @@index([uploadedAt])
+  @@map("transcripts")
+}
+
+enum TranscriptType {
+  MASTER  // Master orchestrator session transcript
+  AGENT   // Spawned agent transcript
+
+  @@map("transcript_type")
+}
+
+// UnassignedTranscript - Stores transcripts detected but not yet matched to a workflow
+// When a workflow starts, we check this table for matching sessionId and associate them
+model UnassignedTranscript {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sessionId     String   @map("session_id") // Claude session ID from first line
+  agentId       String?  @map("agent_id") // Agent ID if agent transcript, null if master session
+  transcriptPath String  @map("transcript_path") // Full path to transcript file
+  projectPath   String   @map("project_path") // Project path from agent
+
+  // Metadata from first line
+  type          String   // "file-history-snapshot", "user", "assistant", etc.
+  cwd           String?  // Current working directory from transcript
+
+  detectedAt    DateTime @default(now()) @map("detected_at")
+  matchedAt     DateTime? @map("matched_at") // When matched to workflow
+  workflowRunId String?  @map("workflow_run_id") @db.Uuid // Set when matched
+
+  // Relations
+  workflowRun   WorkflowRun? @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId]) // For fast lookup when workflow starts
+  @@index([matchedAt]) // For finding unmatched transcripts
+  @@index([workflowRunId])
+  @@map("unassigned_transcripts")
 }

@@ -4,6 +4,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { buildMasterSessionInstructions } from './master-session-instructions';
 import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
+import { TranscriptRegistrationService } from '../../../remote-agent/transcript-registration.service';
 
 export const tool: Tool = {
   name: 'start_team_run',
@@ -181,6 +182,20 @@ export async function handler(prisma: PrismaClient, params: any) {
       workflow: true,
     },
   });
+
+  // ST-170: Match any unassigned transcripts to this workflow run
+  // If transcripts were detected before the workflow started, associate them now
+  if (params.sessionId || claudeSessionId) {
+    const sessionId = params.sessionId || claudeSessionId;
+    const transcriptRegistrationService = new TranscriptRegistrationService(prisma as any);
+    try {
+      await transcriptRegistrationService.matchUnassignedTranscripts(workflowRun.id, sessionId);
+      console.log(`[ST-170] Checked for unassigned transcripts (session: ${sessionId})`);
+    } catch (error: any) {
+      // Non-fatal - log but don't fail workflow start
+      console.warn(`[ST-170] Failed to match unassigned transcripts: ${error.message}`);
+    }
+  }
 
   // ST-57: Create orchestrator ComponentRun with executionOrder=0
   // This enables unified tracking of orchestrator metrics in the same table as components

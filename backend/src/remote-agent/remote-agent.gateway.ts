@@ -13,6 +13,7 @@ import * as jwt from 'jsonwebtoken';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { StreamEventService } from './stream-event.service';
+import { TranscriptRegistrationService } from './transcript-registration.service';
 
 /**
  * ST-160: Native subagent execution types
@@ -141,6 +142,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly streamEventService: StreamEventService,
+    private readonly transcriptRegistrationService: TranscriptRegistrationService,
   ) {}
 
   /**
@@ -1333,3 +1335,32 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     return null;
   }
 }
+
+  /**
+   * ST-170: Handle transcript detected event from laptop agent
+   */
+  @SubscribeMessage('agent:transcript_detected')
+  async handleTranscriptDetected(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { agentId: string; transcriptPath: string; projectPath: string },
+  ) {
+    this.logger.log(`[ST-170] Transcript detected from agent: ${data.agentId}`);
+
+    try {
+      await this.transcriptRegistrationService.handleTranscriptDetected(data);
+      
+      // Acknowledge receipt
+      client.emit('agent:transcript_detected_ack', {
+        agentId: data.agentId,
+        success: true,
+      });
+    } catch (error) {
+      this.logger.error(`[ST-170] Failed to handle transcript detection: ${error.message}`, error.stack);
+      
+      client.emit('agent:transcript_detected_ack', {
+        agentId: data.agentId,
+        success: false,
+        error: error.message,
+      });
+    }
+  }

@@ -8,6 +8,7 @@ import { RemoteAgentController } from './remote-agent.controller';
 import { RemoteAgentGateway } from './remote-agent.gateway';
 import { RemoteExecutionService } from './remote-execution.service';
 import { StreamEventService } from './stream-event.service';
+import { TranscriptRegistrationService } from './transcript-registration.service';
 
 /**
  * ST-133: Remote Agent Module
@@ -39,12 +40,14 @@ import { StreamEventService } from './stream-event.service';
     RemoteExecutionService,
     StreamEventService,
     OrphanDetectorService,
+    TranscriptRegistrationService,
   ],
   exports: [
     RemoteExecutionService,
     RemoteAgentGateway,
     StreamEventService,
     OrphanDetectorService,
+    TranscriptRegistrationService,
   ],
 })
 export class RemoteAgentModule implements OnModuleInit {

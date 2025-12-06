@@ -7,6 +7,7 @@ import {
   ExecutionResult,
 } from './claude-code-executor';
 import { executeGitCommand, checkGitAvailable, GitExecutionResult } from './git-executor';
+import { TranscriptWatcher } from './transcript-watcher';
 
 /**
  * ST-153: Git job payload from server
@@ -54,6 +55,9 @@ export class RemoteAgent {
 
   // ST-153: Git execution
   private gitVersion: string | null = null;
+
+  // ST-170: Transcript watcher
+  private transcriptWatcher: TranscriptWatcher | null = null;
 
   constructor(config: AgentConfig) {
     this.config = config;
@@ -190,6 +194,14 @@ export class RemoteAgent {
           this.agentId = data.agentId;
           console.log(`Agent registered successfully. ID: ${data.agentId}`);
           this.startHeartbeat();
+
+          // ST-170: Start transcript watcher if capability enabled
+          if (this.config.capabilities.includes('watch-transcripts')) {
+            this.startTranscriptWatcher().catch((err) => {
+              console.error('Failed to start transcript watcher:', err.message);
+            });
+          }
+
           resolve();
         } else {
           reject(new Error('Registration failed'));
@@ -540,6 +552,15 @@ export class RemoteAgent {
    */
   disconnect(): void {
     this.stopHeartbeat();
+
+    // ST-170: Stop transcript watcher
+    if (this.transcriptWatcher) {
+      this.transcriptWatcher.stop().catch((err) => {
+        console.error('Error stopping transcript watcher:', err.message);
+      });
+      this.transcriptWatcher = null;
+    }
+
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -552,5 +573,23 @@ export class RemoteAgent {
    */
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  /**
+   * ST-170: Start transcript watcher daemon
+   */
+  private async startTranscriptWatcher(): Promise<void> {
+    console.log('[ST-170] Starting transcript watcher...');
+
+    // Create transcript watcher using existing WebSocket connection
+    this.transcriptWatcher = new TranscriptWatcher({
+      socket: this.socket!,  // Reuse existing authenticated WebSocket
+      projectPath: this.config.projectPath,
+    });
+
+    // Start watching
+    await this.transcriptWatcher.start();
+
+    console.log('[ST-170] Transcript watcher started successfully');
   }
 }
