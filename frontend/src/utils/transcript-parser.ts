@@ -48,19 +48,37 @@ export interface ToolResult {
   output: unknown;
 }
 
-// Internal type for raw JSONL records
+// Internal type for raw JSONL records (Claude Code format)
 interface RawRecord {
-  type: string;
-  content?: string;
-  role?: string;
+  type: 'user' | 'assistant' | 'file-history-snapshot' | string;
+  timestamp?: string;
+  sessionId?: string;
+  message?: {
+    role?: string;
+    content?: string | ContentBlock[];
+    model?: string;
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      cache_read_input_tokens?: number;
+      cache_creation_input_tokens?: number;
+    };
+  };
+  toolUseResult?: {
+    type: string;
+    tool_use_id: string;
+    content: string;
+  };
+}
+
+// Content block types for assistant messages
+interface ContentBlock {
+  type: 'text' | 'tool_use' | 'thinking' | 'tool_result';
+  text?: string;
   name?: string;
   input?: unknown;
-  output?: unknown;
-  usage?: { inputTokens?: number; outputTokens?: number };
-  event?: string;
-  sessionId?: string;
-  model?: string;
-  timestamp?: string;
+  content?: string;
+  tool_use_id?: string;
 }
 
 // =============================================================================
@@ -71,8 +89,8 @@ interface RawRecord {
 const MAX_CONTENT_LENGTH = 10000; // 10KB per record
 const MAX_TRANSCRIPT_LINES = 10000; // 10,000 lines max
 
-// Valid record types (whitelist)
-const VALID_TYPES = new Set(['text', 'tool_use', 'tool_result', 'system']);
+// Valid record types (whitelist) - Claude Code transcript format
+const VALID_TYPES = new Set(['user', 'assistant', 'file-history-snapshot', 'system']);
 
 // Prototype pollution detection patterns
 const FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype'];
@@ -142,14 +160,16 @@ export class TranscriptParser {
   }
 
   /**
-   * Detect transcript type based on tool usage patterns
+   * Detect transcript type based on tool usage patterns (Claude Code format)
    */
   detectType(records: RawRecord[]): 'master' | 'agent' {
     // Master transcripts use MCP tools (mcp__vibestudio__*, mcp__playwright__*)
     for (const record of records) {
-      if (record.type === 'tool_use' && record.name) {
-        if (record.name.startsWith(MCP_TOOL_PREFIX)) {
-          return 'master';
+      if (record.type === 'assistant' && Array.isArray(record.message?.content)) {
+        for (const block of record.message.content) {
+          if (block.type === 'tool_use' && block.name?.startsWith(MCP_TOOL_PREFIX)) {
+            return 'master';
+          }
         }
       }
     }
@@ -162,7 +182,7 @@ export class TranscriptParser {
   // ===========================================================================
 
   /**
-   * Validate record against security constraints
+   * Validate record against security constraints (Claude Code format)
    */
   private validateRecord(record: unknown): void {
     if (typeof record !== 'object' || record === null) {
@@ -178,97 +198,117 @@ export class TranscriptParser {
       }
     }
 
-    // Validate type field
+    // Validate top-level type field (user, assistant, file-history-snapshot)
     if ('type' in obj) {
       if (!VALID_TYPES.has(obj.type as string)) {
         throw new Error(`Invalid record type: "${obj.type}"`);
       }
     }
 
-    // Validate content length
-    if ('content' in obj && typeof obj.content === 'string') {
-      if (obj.content.length > MAX_CONTENT_LENGTH) {
-        throw new Error(`Content too large: ${obj.content.length} chars (max: ${MAX_CONTENT_LENGTH})`);
+    // Validate message content length if present
+    const message = obj.message as Record<string, unknown> | undefined;
+    if (message && typeof message.content === 'string') {
+      if (message.content.length > MAX_CONTENT_LENGTH) {
+        throw new Error(`Content too large: ${message.content.length} chars (max: ${MAX_CONTENT_LENGTH})`);
       }
     }
   }
 
   /**
    * Group records into conversation turns
-   * Tool calls and results are grouped with their parent assistant message
+   * Handles Claude Code transcript format where:
+   * - type: 'user' | 'assistant' | 'file-history-snapshot'
+   * - message.content: string (user) or ContentBlock[] (assistant)
    */
   private groupIntoTurns(records: RawRecord[]): ConversationTurn[] {
     const turns: ConversationTurn[] = [];
-    let currentTurn: ConversationTurn | null = null;
 
     for (const record of records) {
-      if (record.type === 'text' || record.type === 'system') {
-        // Start new turn
-        if (currentTurn) {
-          turns.push(currentTurn);
+      // Skip file-history-snapshot records
+      if (record.type === 'file-history-snapshot') {
+        continue;
+      }
+
+      // Skip records without messages
+      if (!record.message) {
+        continue;
+      }
+
+      if (record.type === 'user') {
+        // User message - content is a string
+        const content = typeof record.message.content === 'string'
+          ? record.message.content
+          : '';
+
+        // Skip command messages and empty content
+        if (!content || content.includes('<command-name>') || content.includes('<local-command-stdout>')) {
+          continue;
         }
 
-        currentTurn = {
-          type: this.mapRecordType(record),
+        turns.push({
+          type: 'user',
           timestamp: record.timestamp || new Date().toISOString(),
-          content: this.sanitizeContent(record.content || ''),
-          usage: record.usage ? {
-            inputTokens: record.usage.inputTokens || 0,
-            outputTokens: record.usage.outputTokens || 0,
-          } : undefined,
+          content: this.sanitizeContent(content),
+        });
+      } else if (record.type === 'assistant') {
+        // Assistant message - content is array of ContentBlock
+        const contentBlocks = Array.isArray(record.message.content)
+          ? record.message.content
+          : [];
+
+        // Extract text content
+        const textContent = contentBlocks
+          .filter((block): block is ContentBlock => block.type === 'text' && !!block.text)
+          .map(block => block.text!)
+          .join('\n');
+
+        // Extract tool calls
+        const toolCalls = contentBlocks
+          .filter((block): block is ContentBlock => block.type === 'tool_use' && !!block.name)
+          .map(block => ({
+            name: block.name!,
+            input: block.input,
+          }));
+
+        // Skip thinking-only turns with no text/tools
+        if (!textContent && toolCalls.length === 0) {
+          continue;
+        }
+
+        const turn: ConversationTurn = {
+          type: 'assistant',
+          timestamp: record.timestamp || new Date().toISOString(),
+          content: this.sanitizeContent(textContent),
         };
-      } else if (record.type === 'tool_use') {
-        // Add tool call to current turn
-        if (currentTurn) {
-          if (!currentTurn.toolCalls) {
-            currentTurn.toolCalls = [];
-          }
-          currentTurn.toolCalls.push({
-            name: record.name || 'unknown',
-            input: record.input,
-          });
-        } else {
-          // Create implicit turn for orphaned tool call
-          currentTurn = {
-            type: 'assistant',
-            timestamp: record.timestamp || new Date().toISOString(),
-            content: '',
-            toolCalls: [{
-              name: record.name || 'unknown',
-              input: record.input,
-            }],
+
+        if (toolCalls.length > 0) {
+          turn.toolCalls = toolCalls;
+        }
+
+        // Add usage if available
+        if (record.message.usage) {
+          turn.usage = {
+            inputTokens: record.message.usage.input_tokens || 0,
+            outputTokens: record.message.usage.output_tokens || 0,
           };
         }
-      } else if (record.type === 'tool_result') {
-        // Add tool result to current turn
-        if (currentTurn) {
-          if (!currentTurn.toolResults) {
-            currentTurn.toolResults = [];
-          }
-          currentTurn.toolResults.push({
-            name: record.name || 'unknown',
-            output: record.output,
-          });
-        }
-      }
-    }
 
-    // Push final turn
-    if (currentTurn) {
-      turns.push(currentTurn);
+        turns.push(turn);
+      }
     }
 
     return turns;
   }
 
   /**
-   * Map raw record type to conversation turn type
+   * Map raw record type to conversation turn type (Claude Code format)
+   * In this format, record.type directly maps to user/assistant
    */
   private mapRecordType(record: RawRecord): 'user' | 'assistant' | 'system' {
     if (record.type === 'system') {
       return 'system';
     }
-    if (record.role === 'user') {
+    if (record.type === 'user') {
       return 'user';
     }
     return 'assistant';
@@ -329,21 +369,21 @@ export class TranscriptParser {
   }
 
   /**
-   * Extract metadata from records
+   * Extract metadata from records (Claude Code format)
    */
   private extractMetadata(records: RawRecord[]): ParsedTranscript['metadata'] {
     let sessionId = 'unknown';
     let model = 'unknown';
 
     for (const record of records) {
-      // Extract session ID from SessionStart event
-      if (record.type === 'system' && record.event === 'SessionStart' && record.sessionId) {
+      // Extract session ID from any record that has it
+      if (sessionId === 'unknown' && record.sessionId) {
         sessionId = record.sessionId;
       }
 
-      // Extract model from first assistant message with model field
-      if (model === 'unknown' && record.model) {
-        model = record.model;
+      // Extract model from first assistant message
+      if (model === 'unknown' && record.type === 'assistant' && record.message?.model) {
+        model = record.message.model;
       }
     }
 
@@ -355,16 +395,17 @@ export class TranscriptParser {
   }
 
   /**
-   * Calculate token metrics from all records
+   * Calculate token metrics from all records (Claude Code format)
    */
   private calculateMetrics(records: RawRecord[]): ParsedTranscript['metrics'] {
     let inputTokens = 0;
     let outputTokens = 0;
 
     for (const record of records) {
-      if (record.usage) {
-        inputTokens += record.usage.inputTokens || 0;
-        outputTokens += record.usage.outputTokens || 0;
+      // Claude Code format: usage is in message.usage
+      if (record.message?.usage) {
+        inputTokens += record.message.usage.input_tokens || 0;
+        outputTokens += record.message.usage.output_tokens || 0;
       }
     }
 
