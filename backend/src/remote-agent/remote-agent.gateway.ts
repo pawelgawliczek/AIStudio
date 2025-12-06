@@ -1334,7 +1334,6 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     }
     return null;
   }
-}
 
   /**
    * ST-170: Handle transcript detected event from laptop agent
@@ -1348,7 +1347,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
     try {
       await this.transcriptRegistrationService.handleTranscriptDetected(data);
-      
+
       // Acknowledge receipt
       client.emit('agent:transcript_detected_ack', {
         agentId: data.agentId,
@@ -1356,7 +1355,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       });
     } catch (error) {
       this.logger.error(`[ST-170] Failed to handle transcript detection: ${error.message}`, error.stack);
-      
+
       client.emit('agent:transcript_detected_ack', {
         agentId: data.agentId,
         success: false,
@@ -1364,3 +1363,4 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       });
     }
   }
+}
