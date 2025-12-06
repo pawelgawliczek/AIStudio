@@ -74,12 +74,21 @@ export const TranscriptViewerModal: React.FC<TranscriptViewerModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const detail = await transcriptsService.getTranscript(
-        projectId,
-        runId,
-        transcriptId,
-        true // includeContent to get full transcript for parsing
-      );
+      // ST-182: For agent transcripts, use getTranscriptByComponent (transcriptId is actually componentId)
+      // For master transcripts, use getTranscript (transcriptId is artifactId)
+      const detail = transcriptType === 'agent'
+        ? await transcriptsService.getTranscriptByComponent(
+            projectId,
+            runId,
+            transcriptId, // This is componentId for agent transcripts
+            true // includeContent to get full transcript for parsing
+          )
+        : await transcriptsService.getTranscript(
+            projectId,
+            runId,
+            transcriptId,
+            true // includeContent to get full transcript for parsing
+          );
 
       setComponentName(detail.componentName || 'Master Session');
       setTranscriptSize(detail.size);
@@ -105,12 +114,20 @@ export const TranscriptViewerModal: React.FC<TranscriptViewerModalProps> = ({
       setIsLoading(true);
       setError(null);
       try {
-        const detail = await transcriptsService.getTranscript(
-          projectId,
-          runId,
-          transcriptId,
-          true // includeContent=true
-        );
+        // ST-182: Use same logic as loadTranscriptMetadata
+        const detail = transcriptType === 'agent'
+          ? await transcriptsService.getTranscriptByComponent(
+              projectId,
+              runId,
+              transcriptId,
+              true // includeContent=true
+            )
+          : await transcriptsService.getTranscript(
+              projectId,
+              runId,
+              transcriptId,
+              true // includeContent=true
+            );
 
         // 🔴 CRITICAL: Size warning for files >1MB
         if (detail.size > 1024 * 1024) {

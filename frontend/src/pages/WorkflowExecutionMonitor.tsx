@@ -282,7 +282,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
   }, []);
 
   // ST-182: Build transcriptIds map from spawnedAgentTranscripts for StateBlock
-  // Maps componentRun.id -> transcriptPath (most recent transcript for each component)
+  // Maps componentRun.id -> componentId (for use with /transcripts/component/:componentId endpoint)
   const transcriptIds = React.useMemo(() => {
     const map: Record<string, string> = {};
     if (workflowRun?.componentRuns && workflowRun?.spawnedAgentTranscripts) {
@@ -293,7 +293,8 @@ const WorkflowExecutionMonitor: React.FC = () => {
           .sort((a, b) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
 
         if (agentTranscripts.length > 0) {
-          map[componentRun.id] = agentTranscripts[0].transcriptPath;
+          // Map to componentId (not transcriptPath) for the component transcript endpoint
+          map[componentRun.id] = componentRun.componentId;
         }
       }
     }
