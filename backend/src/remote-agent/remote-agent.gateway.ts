@@ -1402,11 +1402,11 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     // Join room for this workflow's transcript updates
     client.join(`master-transcript:${runId}`);
 
-    // Find an online laptop agent with the tail-file capability
+    // Find an online laptop agent with the watch-transcripts capability
     const agents = await this.prisma.remoteAgent.findMany({
       where: {
         status: 'online',
-        capabilities: { has: 'tail-file' },
+        capabilities: { has: 'watch-transcripts' },
       },
     });
 
@@ -1414,7 +1414,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       client.emit('master-transcript:error', {
         runId,
         sessionIndex,
-        error: 'No laptop agent online with tail-file capability',
+        error: 'No laptop agent online with watch-transcripts capability',
         code: 'NO_AGENT',
       });
       return;
