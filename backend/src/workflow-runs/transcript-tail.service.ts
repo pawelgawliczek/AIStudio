@@ -17,6 +17,7 @@ import * as fs from 'fs/promises';
 import * as readline from 'readline';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import * as chokidar from 'chokidar';
+import { redactSensitiveData } from '../mcp/utils/content-security';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { TranscriptsService } from './transcripts.service';
 
@@ -268,7 +269,7 @@ export class TranscriptTailService implements OnModuleDestroy {
 
     for (const line of lines) {
       // Apply redaction
-      const { redactedContent } = this.transcriptsService.redactSensitiveData(line);
+      const { redactedContent } = redactSensitiveData(line);
 
       // Increment sequence number
       const currentSeq = this.sequenceNumbers.get(componentRunId) ?? 0;

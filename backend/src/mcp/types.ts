@@ -948,6 +948,23 @@ export interface UploadArtifactParams {
   componentId?: string;
 }
 
+export interface UploadArtifactFromFileParams {
+  filePath: string; // Absolute path (must be in ~/.claude/projects/)
+  definitionId?: string; // Artifact Definition UUID
+  definitionKey?: string; // Artifact key (e.g., "THE_PLAN")
+  workflowRunId: string; // Required
+  componentId?: string; // Optional creator
+  maxFileSize?: number; // Optional override (max 2MB)
+}
+
+export interface UploadArtifactFromFileResponse {
+  success: boolean;
+  artifact?: ArtifactResponse; // Present if upload succeeded
+  agentOffline?: boolean; // True if laptop agent unavailable
+  fallbackCommand?: string; // Manual command if agent offline
+  message: string; // Human-readable status
+}
+
 export interface GetArtifactParams {
   artifactId?: string;
   definitionKey?: string;

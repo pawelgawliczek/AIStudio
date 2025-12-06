@@ -76,7 +76,8 @@ if [ "$SOURCE" = "compact" ] && [ -n "$RUN_ID" ]; then
   cat <<EOF
 {
   "hookSpecificOutput": {
-    "hookEventName": "SessionStart:compact",
+    "hookEventName": "SessionStart",
+    "source": "compact",
     "sessionId": "$SESSION_ID",
     "transcriptPath": "$TRANSCRIPT_PATH",
     "compactionInfo": {

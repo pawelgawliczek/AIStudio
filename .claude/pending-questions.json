@@ -69,3 +69,63 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-05T17:45:30Z",
+  "session_id": "ec7b8dac-6366-430c-9723-e868eb4d1099",
+  "run_id": "19be8f85-f050-4360-8271-781a9534daa4",
+  "questions": [
+    {
+      "question": "Should the daemon run as a separate process or integrate with the existing remote agent (laptop-agent)?",
+      "header": "Architecture",
+      "options": [
+        {
+          "label": "Separate daemon process",
+          "description": "New standalone service that watches transcripts. Simpler, dedicated purpose, but adds another process to manage."
+        },
+        {
+          "label": "Integrate with remote agent",
+          "description": "Add 'watch-transcripts' capability to existing laptop-agent. Reuses infrastructure, single process, but more complex."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should the daemon match new transcripts to workflow runs?",
+      "header": "Matching Logic",
+      "options": [
+        {
+          "label": "Parse transcript content",
+          "description": "Read first few lines of new transcript to extract sessionId/agentId, then match to active workflows. More reliable but requires file I/O."
+        },
+        {
+          "label": "Watch running-workflows.json",
+          "description": "Monitor .claude/running-workflows.json for session registrations, match by filename. Faster but relies on hook tracking."
+        },
+        {
+          "label": "Hybrid approach",
+          "description": "Watch running-workflows.json first, fall back to parsing transcript content if no match found. Best of both worlds."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "When should the daemon call add_transcript?",
+      "header": "Registration Timing",
+      "options": [
+        {
+          "label": "Immediately on file creation",
+          "description": "Register as soon as new .jsonl file appears. Fastest, but might register non-agent files."
+        },
+        {
+          "label": "After first write (debounced)",
+          "description": "Wait for file to have content (200ms debounce). Ensures file is valid before registering."
+        },
+        {
+          "label": "After validating content",
+          "description": "Read first line to confirm it's a valid transcript. Most reliable but slowest."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

@@ -15,9 +15,10 @@ import * as readline from 'readline';
 import { createReadStream } from 'fs';
 
 interface TranscriptDetectedPayload {
-  agentId: string;
+  agentId: string | null;
   transcriptPath: string;
   projectPath: string;
+  metadata?: any; // Parsed first line from laptop agent
 }
 
 interface TranscriptMetadata {
@@ -37,15 +38,29 @@ export class TranscriptRegistrationService {
    * Handle transcript detected event from laptop agent
    */
   async handleTranscriptDetected(payload: TranscriptDetectedPayload): Promise<void> {
-    this.logger.log(`Transcript detected: ${payload.agentId} at ${payload.transcriptPath}`);
+    this.logger.log(`Transcript detected: ${payload.agentId || 'master'} at ${payload.transcriptPath}`);
 
     try {
-      // Parse transcript metadata
-      const metadata = await this.parseTranscriptMetadata(payload.transcriptPath);
-      
-      if (!metadata) {
-        this.logger.warn(`Failed to parse transcript metadata: ${payload.transcriptPath}`);
-        return;
+      // Use metadata provided by laptop agent (already parsed from first line)
+      let metadata: TranscriptMetadata;
+
+      if (payload.metadata) {
+        // Laptop agent already parsed the first line and sent metadata
+        metadata = {
+          sessionId: payload.metadata.sessionId,
+          agentId: payload.metadata.agentId || payload.agentId || undefined,
+          type: payload.metadata.type || 'unknown',
+          cwd: payload.metadata.cwd,
+        };
+        this.logger.log(`Using metadata from laptop agent: sessionId=${metadata.sessionId}`);
+      } else {
+        // Fallback: try to parse locally (will fail with ENOENT for laptop files)
+        metadata = await this.parseTranscriptMetadata(payload.transcriptPath);
+
+        if (!metadata) {
+          this.logger.warn(`Failed to parse transcript metadata and no metadata provided: ${payload.transcriptPath}`);
+          return;
+        }
       }
 
       // Try to match to active workflow
@@ -53,12 +68,12 @@ export class TranscriptRegistrationService {
 
       if (match) {
         this.logger.log(`Matched transcript to workflow run ${match.runId}`);
-        
+
         // Call add_transcript MCP tool for live streaming
         await this.registerForLiveStreaming(match.runId, match.componentId, payload);
       } else {
         this.logger.log(`No active workflow found, storing as unassigned`);
-        
+
         // Store as unassigned for later matching
         await this.storeUnassignedTranscript(metadata, payload);
       }

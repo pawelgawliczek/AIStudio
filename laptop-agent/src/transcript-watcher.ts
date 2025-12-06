@@ -69,7 +69,7 @@ export class TranscriptWatcher {
     }
   }
 
-  private handleNewFile(filePath: string): void {
+  private async handleNewFile(filePath: string): Promise<void> {
     this.logger.info('handleNewFile called', { filePath });
 
     // Skip if already notified
@@ -91,11 +91,15 @@ export class TranscriptWatcher {
     if (agentMatch) {
       const agentId = agentMatch[1];
 
-      // Notify backend via WebSocket
+      // Read first line to get metadata
+      const metadata = await this.readFirstLine(filePath);
+
+      // Notify backend via WebSocket with parsed metadata
       this.socket.emit('agent:transcript_detected', {
         agentId,
         transcriptPath: filePath,
         projectPath: this.projectPath,
+        metadata, // Include parsed metadata
       });
 
       this.notifiedFiles.add(filePath);
@@ -108,11 +112,15 @@ export class TranscriptWatcher {
     if (masterMatch) {
       const sessionId = masterMatch[1];
 
-      // Notify backend via WebSocket
+      // Read first line to get metadata
+      const metadata = await this.readFirstLine(filePath);
+
+      // Notify backend via WebSocket with parsed metadata
       this.socket.emit('agent:transcript_detected', {
         agentId: null, // No agent ID for master sessions
         transcriptPath: filePath,
         projectPath: this.projectPath,
+        metadata, // Include parsed metadata
       });
 
       this.notifiedFiles.add(filePath);
@@ -122,5 +130,46 @@ export class TranscriptWatcher {
 
     // Not a transcript we care about
     this.logger.info('Filename does not match transcript patterns, skipping', { filename });
+  }
+
+  /**
+   * Read and parse the first line of a transcript file
+   */
+  private async readFirstLine(filePath: string): Promise<any> {
+    const fs = await import('fs');
+    const readline = await import('readline');
+
+    return new Promise((resolve, reject) => {
+      try {
+        const stream = fs.createReadStream(filePath, { encoding: 'utf8' });
+        const reader = readline.createInterface({ input: stream });
+
+        reader.on('line', (line) => {
+          reader.close();
+          stream.destroy();
+
+          try {
+            const parsed = JSON.parse(line);
+            resolve(parsed);
+          } catch (error) {
+            this.logger.warn('Failed to parse first line as JSON', { filePath, line });
+            resolve(null);
+          }
+        });
+
+        reader.on('error', (error) => {
+          this.logger.error('Error reading file', { filePath, error });
+          resolve(null);
+        });
+
+        stream.on('error', (error) => {
+          this.logger.error('Error opening file', { filePath, error });
+          resolve(null);
+        });
+      } catch (error) {
+        this.logger.error('Unexpected error in readFirstLine', { filePath, error });
+        resolve(null);
+      }
+    });
   }
 }

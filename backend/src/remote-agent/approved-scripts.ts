@@ -152,6 +152,14 @@ export const APPROVED_CAPABILITIES: Record<string, ApprovedCapability> = {
     requiredParams: ['componentId', 'stateId', 'workflowRunId', 'instructions'],
     optionalParams: ['storyContext', 'allowedTools', 'model', 'maxTurns', 'projectPath'],
   },
+  // ST-170: Transcript watching daemon
+  'watch-transcripts': {
+    type: 'daemon' as any, // Daemon capability (not claude-agent)
+    description: 'Watch transcript directory and auto-register new agent and master session transcripts',
+    timeout: -1, // Daemon mode (no timeout)
+    requiredParams: [],
+    optionalParams: [],
+  },
 };
 
 /**

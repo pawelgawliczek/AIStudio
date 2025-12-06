@@ -11,6 +11,8 @@ export * as updateWorkflowStatus from './update_workflow_status.js';
 // get_transcript_metrics removed - functionality integrated into record_agent_complete (ST-165)
 // ST-172: Transcript tracking
 export * as addTranscript from './add_transcript.js';
+// ST-170: Transcript upload
+export * as uploadTranscript from './upload_transcript.js';
 
 // Story/Epic execution tools
 export * as executeStoryWithWorkflow from './execute_story_with_workflow.js';
