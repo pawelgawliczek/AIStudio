@@ -149,25 +149,48 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
   }
 
-  // Source 2: ST-170 unassigned_transcripts table
-  // The TranscriptWatcher on laptop automatically detects and registers transcripts in unassigned_transcripts
+  // Source 2: ST-170/ST-182 - Look in spawnedAgentTranscripts (workflow metadata) OR unassigned_transcripts table
+  // TranscriptWatcher on laptop auto-detects transcripts and either:
+  // - Matches to workflow and adds to spawnedAgentTranscripts (if sessionId matches)
+  // - Stores in unassigned_transcripts table (if no match found)
   if (!contextMetrics) {
-    // ST-170: Find transcript in unassigned_transcripts table (auto-detected by laptop TranscriptWatcher)
-    const unassignedTranscript = await prisma.unassignedTranscript.findFirst({
-      where: {
-        workflowRunId: params.runId,
-        agentId: { not: null }, // Only agent transcripts (not master sessions)
-      },
-      orderBy: { detectedAt: 'desc' }, // Most recent first
-    });
-
     let transcriptPath: string | null = null;
     let localAgentId: string | null = null;
 
-    if (unassignedTranscript) {
-      transcriptPath = unassignedTranscript.transcriptPath;
-      localAgentId = unassignedTranscript.agentId;
-      console.log(`[ST-170] Found transcript in unassigned_transcripts: ${transcriptPath} (agent: ${localAgentId})`);
+    // First, check spawnedAgentTranscripts in workflow run metadata (ST-182)
+    const workflowRunForTranscripts = await prisma.workflowRun.findUnique({
+      where: { id: params.runId },
+      select: { metadata: true },
+    });
+
+    const spawnedAgentTranscripts = (workflowRunForTranscripts?.metadata as any)?.spawnedAgentTranscripts || [];
+
+    // Find transcript for this component, most recent first
+    const matchingTranscripts = spawnedAgentTranscripts
+      .filter((t: any) => t.componentId === params.componentId)
+      .sort((a: any, b: any) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
+
+    if (matchingTranscripts.length > 0) {
+      transcriptPath = matchingTranscripts[0].transcriptPath;
+      localAgentId = matchingTranscripts[0].agentId;
+      console.log(`[ST-182] Found transcript in spawnedAgentTranscripts: ${transcriptPath} (agent: ${localAgentId})`);
+    }
+
+    // Fallback: check unassigned_transcripts table (ST-170)
+    if (!transcriptPath) {
+      const unassignedTranscript = await prisma.unassignedTranscript.findFirst({
+        where: {
+          workflowRunId: params.runId,
+          agentId: { not: null }, // Only agent transcripts (not master sessions)
+        },
+        orderBy: { detectedAt: 'desc' }, // Most recent first
+      });
+
+      if (unassignedTranscript) {
+        transcriptPath = unassignedTranscript.transcriptPath;
+        localAgentId = unassignedTranscript.agentId;
+        console.log(`[ST-170] Found transcript in unassigned_transcripts: ${transcriptPath} (agent: ${localAgentId})`);
+      }
     }
 
     if (transcriptPath) {
