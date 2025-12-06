@@ -293,9 +293,9 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
           justifyContent: 'space-between',
           px: 2,
           py: 1,
-          bgcolor: 'grey.50',
+          bgcolor: 'action.hover',
           cursor: 'pointer',
-          '&:hover': { bgcolor: 'grey.100' },
+          '&:hover': { bgcolor: 'action.selected' },
         }}
         onClick={() => setExpanded(!expanded)}
       >

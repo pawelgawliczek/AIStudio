@@ -193,19 +193,25 @@ export class McpRateLimitGuard implements CanActivate {
   }
 
   /**
-   * Increment counter and set TTL if new key
+   * Increment counter and ensure TTL is set
+   * Uses atomic INCR + conditional EXPIRE to handle race conditions
    */
   private async increment(key: string, ttl: number): Promise<number> {
-    const currentValue = await this.redis.get(key);
+    // Atomically increment (creates key with value 1 if doesn't exist)
+    const count = await this.redis.incr(key);
 
-    if (currentValue === null) {
-      // New key, set initial value with TTL
-      await this.redis.set(key, '1', 'EX', ttl);
-      return 1;
+    // If this is a new key (count === 1) or TTL is not set, set the TTL
+    if (count === 1) {
+      await this.redis.expire(key, ttl);
+    } else {
+      // Check if TTL is missing (bug fix: ensure TTL is always set)
+      const currentTtl = await this.redis.ttl(key);
+      if (currentTtl === -1) {
+        // Key exists but has no TTL - set it now
+        await this.redis.expire(key, ttl);
+      }
     }
 
-    // Existing key, increment
-    const count = await this.redis.incr(key);
     return count;
   }
 
