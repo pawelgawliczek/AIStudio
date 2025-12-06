@@ -34,7 +34,7 @@ export function useRemoteAgents(options: UseRemoteAgentsOptions = {}) {
         params.append('capability', capability);
       }
       const response = await axios.get<{ agents: RemoteAgent[] }>(
-        `/api/remote-agent/online?${params.toString()}`
+        `/remote-agent/online?${params.toString()}`
       );
       return response.data.agents || [];
     },
