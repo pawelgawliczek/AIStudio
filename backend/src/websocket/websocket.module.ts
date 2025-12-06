@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../prisma/prisma.module';
+import { RemoteAgentModule } from '../remote-agent/remote-agent.module';
 import { AppWebSocketGateway } from './websocket.gateway';
 
 @Module({
@@ -10,6 +11,8 @@ import { AppWebSocketGateway } from './websocket.gateway';
       signOptions: { expiresIn: '24h' },
     }),
     PrismaModule,
+    // ST-182: Import RemoteAgentModule for cross-gateway communication
+    forwardRef(() => RemoteAgentModule),
   ],
   providers: [AppWebSocketGateway],
   exports: [AppWebSocketGateway],

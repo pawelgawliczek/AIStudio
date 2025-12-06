@@ -55,10 +55,7 @@
       "runId": "run-test-001",
       "workflowId": "workflow-test-001",
       "storyId": "story-test-001",
-      "startedAt": "2025-12-05T16:59:02Z",
-      "masterTranscripts": [
-        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/8d2b9b72-23cb-473e-a018-f06973167515.jsonl"
-      ]
+      "startedAt": "2025-12-05T16:59:02Z"
     },
     "agent-56bc1e89": {
       "runId": "run-001",

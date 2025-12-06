@@ -1,4 +1,4 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Inject, Logger, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   WebSocketGateway,
@@ -13,6 +13,7 @@ import {
 import { validate } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
+import { RemoteAgentGateway } from '../remote-agent/remote-agent.gateway';
 import { TranscriptSubscriptionDto } from './dto/transcript-subscription.dto';
 
 /**
@@ -51,6 +52,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   constructor(
     private jwtService: JwtService,
     @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(forwardRef(() => RemoteAgentGateway)) private remoteAgentGateway: RemoteAgentGateway,
   ) {}
 
   /**
@@ -540,7 +542,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
   /**
    * ST-182: Frontend requests to start tailing a master transcript
-   * Forwards request to laptop agent via /remote-agent namespace
+   * Forwards request to laptop agent via RemoteAgentGateway
    */
   @SubscribeMessage('master-transcript:subscribe')
   async handleMasterTranscriptSubscribe(
@@ -564,37 +566,26 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
     // Join room for this workflow's transcript updates
     client.join(`master-transcript:${runId}`);
 
-    // Find an online laptop agent with the watch-transcripts capability
-    const agents = await this.prisma.remoteAgent.findMany({
-      where: {
-        status: 'online',
-        capabilities: { has: 'watch-transcripts' },
-      },
+    // Forward tail request to laptop agent via RemoteAgentGateway
+    // This is necessary because cross-namespace emit doesn't work correctly
+    const result = await this.remoteAgentGateway.forwardTailRequestToAgent({
+      runId,
+      sessionIndex,
+      filePath,
+      fromBeginning,
     });
 
-    if (agents.length === 0) {
+    if (!result.success) {
       client.emit('master-transcript:error', {
         runId,
         sessionIndex,
-        error: 'No laptop agent online with watch-transcripts capability',
+        error: result.error,
         code: 'NO_AGENT',
       });
       return;
     }
 
-    // Use the first available agent
-    const agent = agents[0];
-
-    // Forward tail request to laptop agent via /remote-agent namespace
-    const remoteAgentNamespace = this.server.of('/remote-agent');
-    remoteAgentNamespace.to(agent.socketId!).emit('transcript:start_tail', {
-      runId,
-      sessionIndex,
-      filePath,
-      fromBeginning: fromBeginning ?? true,
-    });
-
-    this.logger.log(`[ST-182] Forwarded tail request to agent ${agent.hostname}`);
+    this.logger.log(`[ST-182] Forwarded tail request to agent ${result.agentHostname}`);
   }
 
   /**
@@ -618,23 +609,8 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
       if (subs.size === 0) {
         this.masterTranscriptSubscriptions.delete(runId);
 
-        // No more subscribers, tell laptop agent to stop tailing
-        const agents = await this.prisma.remoteAgent.findMany({
-          where: {
-            status: 'online',
-            capabilities: { has: 'watch-transcripts' },
-          },
-        });
-
-        const remoteAgentNamespace = this.server.of('/remote-agent');
-        for (const agent of agents) {
-          if (agent.socketId) {
-            remoteAgentNamespace.to(agent.socketId).emit('transcript:stop_tail', {
-              runId,
-              sessionIndex,
-            });
-          }
-        }
+        // No more subscribers, tell laptop agent to stop tailing via RemoteAgentGateway
+        await this.remoteAgentGateway.forwardStopTailToAgent({ runId, sessionIndex });
       }
     }
   }

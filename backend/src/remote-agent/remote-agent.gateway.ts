@@ -1585,4 +1585,80 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     // Relay to all subscribed frontend clients on default namespace
     this.appWebSocketGateway.relayMasterTranscriptStopped(data);
   }
+
+  /**
+   * ST-182: Public method for AppWebSocketGateway to forward tail requests
+   *
+   * This is needed because cross-namespace emit doesn't work correctly.
+   * AppWebSocketGateway (on `/` namespace) can't emit to sockets on `/remote-agent` namespace.
+   * Instead, it should call this method which uses RemoteAgentGateway's own server instance.
+   */
+  async forwardTailRequestToAgent(data: {
+    runId: string;
+    sessionIndex: number;
+    filePath: string;
+    fromBeginning?: boolean;
+  }): Promise<{ success: boolean; error?: string; agentHostname?: string }> {
+    const { runId, sessionIndex, filePath, fromBeginning } = data;
+
+    // Find online agent with watch-transcripts capability
+    const agents = await this.prisma.remoteAgent.findMany({
+      where: {
+        status: 'online',
+        capabilities: { has: 'watch-transcripts' },
+      },
+    });
+
+    if (agents.length === 0) {
+      this.logger.warn(`[ST-182] No laptop agent online with watch-transcripts capability`);
+      return { success: false, error: 'No laptop agent online with watch-transcripts capability' };
+    }
+
+    // Use the first available agent
+    const agent = agents[0];
+
+    if (!agent.socketId) {
+      this.logger.warn(`[ST-182] Agent ${agent.hostname} has no socketId`);
+      return { success: false, error: 'Agent has no socket connection' };
+    }
+
+    // Forward tail request to laptop agent using this gateway's server instance
+    this.server.to(agent.socketId).emit('transcript:start_tail', {
+      runId,
+      sessionIndex,
+      filePath,
+      fromBeginning: fromBeginning ?? true,
+    });
+
+    this.logger.log(`[ST-182] Forwarded tail request to agent ${agent.hostname} (socket: ${agent.socketId})`);
+    return { success: true, agentHostname: agent.hostname };
+  }
+
+  /**
+   * ST-182: Public method for AppWebSocketGateway to forward stop tail requests
+   */
+  async forwardStopTailToAgent(data: {
+    runId: string;
+    sessionIndex: number;
+  }): Promise<void> {
+    const { runId, sessionIndex } = data;
+
+    // Find online agents with watch-transcripts capability
+    const agents = await this.prisma.remoteAgent.findMany({
+      where: {
+        status: 'online',
+        capabilities: { has: 'watch-transcripts' },
+      },
+    });
+
+    for (const agent of agents) {
+      if (agent.socketId) {
+        this.server.to(agent.socketId).emit('transcript:stop_tail', {
+          runId,
+          sessionIndex,
+        });
+        this.logger.log(`[ST-182] Forwarded stop tail to agent ${agent.hostname}`);
+      }
+    }
+  }
 }
