@@ -120,7 +120,6 @@ export async function handler(prisma: PrismaClient, params: any) {
       where: { id: validated.componentRunId },
       data: {
         status: 'completed',
-        endedAt: new Date(),
       },
     });
   }
