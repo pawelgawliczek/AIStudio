@@ -1,8 +1,9 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { setRemoteExecutionService } from '../mcp/servers/git/git_utils';
 import { PrismaModule } from '../prisma/prisma.module';
+import { WebSocketModule } from '../websocket/websocket.module';
 import { OrphanDetectorService } from './orphan-detector.service';
 import { RemoteAgentController } from './remote-agent.controller';
 import { RemoteAgentGateway } from './remote-agent.gateway';
@@ -33,6 +34,8 @@ import { TranscriptRegistrationService } from './transcript-registration.service
       secret: process.env.JWT_SECRET || 'development-secret-change-in-production',
       signOptions: { expiresIn: '30d' }, // Long-lived for remote agents
     }),
+    // ST-182: Import WebSocketModule with forwardRef for transcript relay
+    forwardRef(() => WebSocketModule),
   ],
   controllers: [RemoteAgentController],
   providers: [

@@ -526,4 +526,179 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
       code: error.code,
     });
   }
+
+  // ============================================================================
+  // ST-182: Master Session Transcript Streaming
+  // These handlers bridge frontend (default namespace) with laptop agent (/remote-agent namespace)
+  // ============================================================================
+
+  /**
+   * Track active master transcript subscriptions
+   * Map<runId, Set<clientId>>
+   */
+  private readonly masterTranscriptSubscriptions = new Map<string, Set<string>>();
+
+  /**
+   * ST-182: Frontend requests to start tailing a master transcript
+   * Forwards request to laptop agent via /remote-agent namespace
+   */
+  @SubscribeMessage('master-transcript:subscribe')
+  async handleMasterTranscriptSubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: {
+      runId: string;
+      sessionIndex: number;
+      filePath: string;
+      fromBeginning?: boolean;
+    },
+  ) {
+    const { runId, sessionIndex, filePath, fromBeginning } = data;
+    this.logger.log(`[ST-182] Master transcript subscribe: runId=${runId}, sessionIndex=${sessionIndex}`);
+
+    // Track subscription
+    if (!this.masterTranscriptSubscriptions.has(runId)) {
+      this.masterTranscriptSubscriptions.set(runId, new Set());
+    }
+    this.masterTranscriptSubscriptions.get(runId)!.add(client.id);
+
+    // Join room for this workflow's transcript updates
+    client.join(`master-transcript:${runId}`);
+
+    // Find an online laptop agent with the watch-transcripts capability
+    const agents = await this.prisma.remoteAgent.findMany({
+      where: {
+        status: 'online',
+        capabilities: { has: 'watch-transcripts' },
+      },
+    });
+
+    if (agents.length === 0) {
+      client.emit('master-transcript:error', {
+        runId,
+        sessionIndex,
+        error: 'No laptop agent online with watch-transcripts capability',
+        code: 'NO_AGENT',
+      });
+      return;
+    }
+
+    // Use the first available agent
+    const agent = agents[0];
+
+    // Forward tail request to laptop agent via /remote-agent namespace
+    const remoteAgentNamespace = this.server.of('/remote-agent');
+    remoteAgentNamespace.to(agent.socketId!).emit('transcript:start_tail', {
+      runId,
+      sessionIndex,
+      filePath,
+      fromBeginning: fromBeginning ?? true,
+    });
+
+    this.logger.log(`[ST-182] Forwarded tail request to agent ${agent.hostname}`);
+  }
+
+  /**
+   * ST-182: Frontend requests to stop tailing a master transcript
+   */
+  @SubscribeMessage('master-transcript:unsubscribe')
+  async handleMasterTranscriptUnsubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { runId: string; sessionIndex: number },
+  ) {
+    const { runId, sessionIndex } = data;
+    this.logger.log(`[ST-182] Master transcript unsubscribe: runId=${runId}, sessionIndex=${sessionIndex}`);
+
+    // Leave room
+    client.leave(`master-transcript:${runId}`);
+
+    // Remove from tracking
+    const subs = this.masterTranscriptSubscriptions.get(runId);
+    if (subs) {
+      subs.delete(client.id);
+      if (subs.size === 0) {
+        this.masterTranscriptSubscriptions.delete(runId);
+
+        // No more subscribers, tell laptop agent to stop tailing
+        const agents = await this.prisma.remoteAgent.findMany({
+          where: {
+            status: 'online',
+            capabilities: { has: 'watch-transcripts' },
+          },
+        });
+
+        const remoteAgentNamespace = this.server.of('/remote-agent');
+        for (const agent of agents) {
+          if (agent.socketId) {
+            remoteAgentNamespace.to(agent.socketId).emit('transcript:stop_tail', {
+              runId,
+              sessionIndex,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * ST-182: Relay streaming_started event from laptop agent to frontend clients
+   * Called by RemoteAgentGateway when laptop agent reports streaming started
+   */
+  relayMasterTranscriptStreamingStarted(data: {
+    runId: string;
+    sessionIndex: number;
+    filePath: string;
+    fileSize: number;
+    startPosition: number;
+  }) {
+    this.logger.log(`[ST-182] Relaying streaming_started: runId=${data.runId}`);
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:streaming_started', data);
+  }
+
+  /**
+   * ST-182: Relay transcript lines from laptop agent to frontend clients
+   */
+  relayMasterTranscriptLines(data: {
+    runId: string;
+    sessionIndex: number;
+    lines: Array<{ line: string; sequenceNumber: number }>;
+    isHistorical: boolean;
+    timestamp: string;
+  }) {
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
+  }
+
+  /**
+   * ST-182: Relay transcript batch from laptop agent to frontend clients
+   */
+  relayMasterTranscriptBatch(data: {
+    runId: string;
+    sessionIndex: number;
+    lines: Array<{ line: string; sequenceNumber: number }>;
+    isHistorical: boolean;
+    timestamp: string;
+  }) {
+    this.logger.log(`[ST-182] Relaying batch: runId=${data.runId}, lines=${data.lines.length}`);
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
+  }
+
+  /**
+   * ST-182: Relay transcript error from laptop agent to frontend clients
+   */
+  relayMasterTranscriptError(data: {
+    runId: string;
+    sessionIndex: number;
+    error: string;
+    code: string;
+  }) {
+    this.logger.error(`[ST-182] Relaying error: runId=${data.runId}, error=${data.error}`);
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:error', data);
+  }
+
+  /**
+   * ST-182: Relay streaming stopped from laptop agent to frontend clients
+   */
+  relayMasterTranscriptStopped(data: { runId: string; sessionIndex: number }) {
+    this.logger.log(`[ST-182] Relaying stopped: runId=${data.runId}`);
+    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:stopped', data);
+  }
 }

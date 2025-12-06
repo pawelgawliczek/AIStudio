@@ -14,6 +14,7 @@ import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { StreamEventService } from './stream-event.service';
 import { TranscriptRegistrationService } from './transcript-registration.service';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 /**
  * ST-160: Native subagent execution types
@@ -143,6 +144,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     private readonly jwtService: JwtService,
     private readonly streamEventService: StreamEventService,
     private readonly transcriptRegistrationService: TranscriptRegistrationService,
+    @Inject(forwardRef(() => AppWebSocketGateway))
+    private readonly appWebSocketGateway: AppWebSocketGateway,
   ) {}
 
   /**
@@ -1479,7 +1482,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
   /**
    * ST-182: Handle streaming_started event from laptop agent
-   * Relay to subscribed frontend clients
+   * Relay to subscribed frontend clients on default namespace via AppWebSocketGateway
    *
    * @event transcript:streaming_started
    */
@@ -1496,13 +1499,13 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.log(`[ST-182] Streaming started: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
 
-    // Relay to all subscribed frontend clients
-    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:streaming_started', data);
+    // Relay to all subscribed frontend clients on default namespace
+    this.appWebSocketGateway.relayMasterTranscriptStreamingStarted(data);
   }
 
   /**
    * ST-182: Handle transcript lines from laptop agent
-   * Relay to subscribed frontend clients
+   * Relay to subscribed frontend clients on default namespace via AppWebSocketGateway
    *
    * @event transcript:lines
    */
@@ -1517,13 +1520,13 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       timestamp: string;
     },
   ) {
-    // Relay to all subscribed frontend clients
-    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
+    // Relay to all subscribed frontend clients on default namespace
+    this.appWebSocketGateway.relayMasterTranscriptLines(data);
   }
 
   /**
    * ST-182: Handle transcript batch from laptop agent (historical content)
-   * Relay to subscribed frontend clients
+   * Relay to subscribed frontend clients on default namespace via AppWebSocketGateway
    *
    * @event transcript:batch
    */
@@ -1540,12 +1543,13 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.log(`[ST-182] Batch received: runId=${data.runId}, lines=${data.lines.length}`);
 
-    // Relay to all subscribed frontend clients
-    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
+    // Relay to all subscribed frontend clients on default namespace
+    this.appWebSocketGateway.relayMasterTranscriptBatch(data);
   }
 
   /**
    * ST-182: Handle transcript streaming error from laptop agent
+   * Relay to subscribed frontend clients on default namespace via AppWebSocketGateway
    *
    * @event transcript:error
    */
@@ -1561,12 +1565,13 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.error(`[ST-182] Transcript error: runId=${data.runId}, code=${data.code}, error=${data.error}`);
 
-    // Relay to all subscribed frontend clients
-    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:error', data);
+    // Relay to all subscribed frontend clients on default namespace
+    this.appWebSocketGateway.relayMasterTranscriptError(data);
   }
 
   /**
    * ST-182: Handle streaming stopped event from laptop agent
+   * Relay to subscribed frontend clients on default namespace via AppWebSocketGateway
    *
    * @event transcript:streaming_stopped
    */
@@ -1577,7 +1582,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.log(`[ST-182] Streaming stopped: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
 
-    // Relay to all subscribed frontend clients
-    this.server.to(`master-transcript:${data.runId}`).emit('master-transcript:stopped', data);
+    // Relay to all subscribed frontend clients on default namespace
+    this.appWebSocketGateway.relayMasterTranscriptStopped(data);
   }
 }
