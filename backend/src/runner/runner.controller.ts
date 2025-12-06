@@ -9,8 +9,8 @@ import {
   HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
-import { IsString, IsOptional, IsBoolean, IsNumber, IsObject, IsIn } from 'class-validator';
-import { ApprovalService, CreateApprovalParams, ApprovalRequestData } from './approval.service';
+import { IsString, IsOptional, IsBoolean, IsNumber, IsObject, IsIn, IsEnum } from 'class-validator';
+import { ApprovalService, CreateApprovalParams, ApprovalRequestData, RespondToApprovalParams } from './approval.service';
 import { BreakpointService, BreakpointContext, BreakpointData } from './breakpoint.service';
 import { RunnerService, RunnerCheckpoint, RunnerStatus } from './runner.service';
 
@@ -110,6 +110,36 @@ class CreateApprovalDto {
   contextSummary?: string;
   artifactKeys?: string[];
   tokensUsed?: number;
+}
+
+/**
+ * DTO for responding to approval
+ * ST-148: Approval Gates - REST endpoint for frontend
+ */
+class RespondToApprovalDto {
+  @IsString()
+  @IsIn(['approve', 'rerun', 'reject'])
+  action: 'approve' | 'rerun' | 'reject';
+
+  @IsString()
+  decidedBy: string;
+
+  @IsOptional()
+  @IsString()
+  feedback?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['cancel', 'pause'])
+  rejectMode?: 'cancel' | 'pause';
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 /**
@@ -361,5 +391,22 @@ export class RunnerController {
       throw new NotFoundException(`No approval found for run ${runId}`);
     }
     return approval;
+  }
+
+  /**
+   * Respond to a pending approval
+   * ST-148: Approval Gates - REST endpoint for frontend
+   */
+  @Post('approvals/:runId/respond')
+  @HttpCode(HttpStatus.OK)
+  async respondToApproval(
+    @Param('runId') runId: string,
+    @Body() dto: RespondToApprovalDto,
+  ): Promise<{ approval: ApprovalRequestData; shouldResume: boolean; shouldRerun: boolean }> {
+    const result = await this.approvalService.respondToApproval({
+      runId,
+      ...dto,
+    });
+    return result;
   }
 }

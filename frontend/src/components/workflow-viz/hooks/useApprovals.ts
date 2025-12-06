@@ -48,31 +48,21 @@ function transformApiApproval(apiApproval: ApiApprovalRequest): ApprovalRequest 
   };
 }
 
-/**
- * Get project ID from localStorage
- */
-function getProjectId(): string {
-  const projectId = localStorage.getItem('selectedProjectId') ||
-                   localStorage.getItem('currentProjectId');
-  if (!projectId) {
-    throw new Error('No project selected');
-  }
-  return projectId;
-}
 
 export function useApprovals(options: UseApprovalsOptions) {
   const { runId, enabled = true } = options;
   const queryClient = useQueryClient();
 
   // Fetch pending approvals for this workflow run
+  // Uses runner controller endpoint: GET /runner/approvals/:runId/pending
   const { data, isLoading, error, refetch } = useQuery<ApprovalRequest[]>({
     queryKey: ['approvals', runId],
     queryFn: async () => {
-      const projectId = getProjectId();
-      const response = await axios.get<ApiApprovalRequest[]>(
-        `/projects/${projectId}/workflow-runs/${runId}/approvals`
+      const response = await axios.get<ApiApprovalRequest | null>(
+        `/runner/approvals/${runId}/pending`
       );
-      return response.data.map(transformApiApproval);
+      // API returns single approval or null, convert to array for consistency
+      return response.data ? [transformApiApproval(response.data)] : [];
     },
     enabled: enabled && !!runId,
   });
@@ -81,19 +71,16 @@ export function useApprovals(options: UseApprovalsOptions) {
   const pendingApproval = data?.find(a => a.status === 'pending') || null;
 
   // Respond to approval mutation
+  // Uses runner controller endpoint: POST /runner/approvals/:runId/respond
   const respondToApproval = useMutation({
     mutationFn: async (params: RespondToApprovalParams) => {
       if (!pendingApproval) {
         throw new Error('No pending approval found');
       }
 
-      const projectId = getProjectId();
       const response = await axios.post(
-        `/projects/${projectId}/workflow-runs/${runId}/approvals/${pendingApproval.id}/respond`,
-        {
-          runId,
-          ...params,
-        }
+        `/runner/approvals/${runId}/respond`,
+        params
       );
       return response.data;
     },
