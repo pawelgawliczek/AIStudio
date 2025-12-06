@@ -1,15 +1,13 @@
 #!/bin/bash
 # VibeStudio Track Agents Hook
-# Track spawned agent transcript paths and notify orchestrator
+# Track spawned agent transcript paths locally for debugging
 #
 # Triggers: PostToolUse (Task)
-# Purpose:
-#   1. Track spawned agent transcript paths in local JSON (for debugging)
-#   2. Output agent info so orchestrator can call add_transcript MCP tool
+# Purpose: Track spawned agent transcript paths in running-workflows.json (for debugging)
 #
-# IMPORTANT: The orchestrator MUST call add_transcript after seeing this output:
-#   add_transcript({ type: 'agent', runId, componentId, agentId, transcriptPath })
-# This registers the transcript in the DB so record_agent_complete can find it.
+# NOTE: ST-170 TranscriptWatcher on laptop automatically detects new transcript files
+# and registers them in the unassigned_transcripts table via WebSocket.
+# record_agent_complete reads from that table - no MCP call needed here.
 
 set -e
 
@@ -36,18 +34,15 @@ if [ -f "$WORKFLOWS_FILE" ]; then
 
   if [ "$IS_ORCHESTRATOR" != "true" ]; then
     # Not the master orchestrator - skip tracking
-    # (This is a spawned agent spawning its own sub-agents)
     exit 0
   fi
 fi
 
 # Extract agent ID from tool response (if available)
-# Note: Task tool response structure may vary
 AGENT_ID=$(echo "$INPUT" | jq -r '.tool_response.agentId // empty' 2>/dev/null || echo "")
 
 # If no agentId in response, try to extract from other fields
 if [ -z "$AGENT_ID" ]; then
-  # Try alternative extraction methods
   AGENT_ID=$(echo "$INPUT" | jq -r '.tool_use_id // empty' 2>/dev/null | cut -c1-8 || echo "")
 fi
 
@@ -56,10 +51,7 @@ if [ -n "$AGENT_ID" ]; then
   ESCAPED_PATH=$(echo "$CLAUDE_PROJECT_DIR" | sed 's|^/|-|' | tr '/' '-')
   AGENT_TRANSCRIPT="$HOME/.claude/projects/$ESCAPED_PATH/agent-${AGENT_ID}.jsonl"
 
-  # Get current runId from workflows file
-  RUN_ID=$(jq -r --arg sid "$SESSION_ID" '.sessions[$sid].runId // empty' "$WORKFLOWS_FILE" 2>/dev/null || echo "")
-
-  # Track locally for debugging
+  # Track locally for debugging (ST-170 handles the actual registration)
   jq --arg sid "$SESSION_ID" \
      --arg aid "$AGENT_ID" \
      --arg atp "$AGENT_TRANSCRIPT" \
@@ -72,34 +64,6 @@ if [ -n "$AGENT_ID" ]; then
         }])
       else . end' \
      "$WORKFLOWS_FILE" > "$WORKFLOWS_FILE.tmp" && mv "$WORKFLOWS_FILE.tmp" "$WORKFLOWS_FILE"
-
-  # ST-172: Automatically register transcript via MCP HTTP client
-  # Extract componentId from the Task tool input (orchestrator passes it in prompt)
-  COMPONENT_ID=$(echo "$INPUT" | jq -r '.tool_input.prompt // ""' | grep -oE 'componentId["\s:]+([a-f0-9-]{36})' | head -1 | grep -oE '[a-f0-9-]{36}' || echo "")
-
-  if [ -n "$COMPONENT_ID" ]; then
-    # Call helper script to register transcript
-    npx tsx "$CLAUDE_PROJECT_DIR/.claude/hooks/helpers/register-transcript.ts" \
-      "$RUN_ID" "$COMPONENT_ID" "$AGENT_ID" "$AGENT_TRANSCRIPT" 2>&1 || {
-      echo "[ST-172] Warning: Failed to auto-register transcript (will rely on orchestrator)" >&2
-    }
-  fi
-
-  # Still output instructions as fallback (in case auto-registration fails)
-  cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PostToolUse:Task",
-    "agentSpawned": {
-      "agentId": "$AGENT_ID",
-      "transcriptPath": "$AGENT_TRANSCRIPT",
-      "runId": "$RUN_ID",
-      "autoRegistered": $([ -n "$COMPONENT_ID" ] && echo "true" || echo "false")
-    },
-    "action": "Transcript auto-registered via hook. Manual call not needed."
-  }
-}
-EOF
 fi
 
 exit 0

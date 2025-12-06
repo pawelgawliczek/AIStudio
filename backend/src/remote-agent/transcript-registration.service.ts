@@ -1,11 +1,11 @@
 /**
  * ST-170: Transcript Registration Service
- * 
+ *
  * Handles automatic transcript registration from laptop agent:
  * 1. Receives transcript detection events via WebSocket
  * 2. Parses transcript metadata (sessionId, agentId)
- * 3. Matches to active workflows or stores as unassigned
- * 4. Calls add_transcript MCP tool for live streaming
+ * 3. Matches to active workflows or stores in unassigned_transcripts table
+ * 4. record_agent_complete reads from unassigned_transcripts for metrics
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -69,7 +69,7 @@ export class TranscriptRegistrationService {
       if (match) {
         this.logger.log(`Matched transcript to workflow run ${match.runId}`);
 
-        // Call add_transcript MCP tool for live streaming
+        // Register transcript for the matched workflow
         await this.registerForLiveStreaming(match.runId, match.componentId, payload);
       } else {
         this.logger.log(`No active workflow found, storing as unassigned`);
@@ -163,7 +163,7 @@ export class TranscriptRegistrationService {
   }
 
   /**
-   * Register transcript for live streaming via add_transcript MCP tool
+   * Register transcript in spawnedAgentTranscripts for live streaming
    */
   private async registerForLiveStreaming(
     runId: string,

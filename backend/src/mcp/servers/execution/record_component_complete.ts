@@ -1,13 +1,12 @@
 /**
  * ST-110: Refactored record_component_complete to use /context command
- * ST-172: Simplified to use registry-based transcript lookup (single source of truth)
+ * ST-170: Uses unassigned_transcripts table for transcript discovery (auto-detected by laptop TranscriptWatcher)
  *
  * Two data sources for metrics:
  * 1. contextOutput - For orchestrator's own /context command output
- * 2. spawned_agent_transcripts registry - For spawned agents (populated by orchestrator calling add_transcript)
+ * 2. unassigned_transcripts table - For spawned agents (auto-populated by ST-170 TranscriptWatcher on laptop)
  *
- * The orchestrator must call add_transcript({ type: 'agent', componentId, transcriptPath })
- * BEFORE calling record_agent_complete. This ensures the registry is the single source of truth.
+ * No manual transcript registration needed - ST-170 handles it automatically via WebSocket.
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -66,9 +65,8 @@ export const tool: Tool = {
         type: 'string',
         description: 'ST-147: AI-generated summary of what this agent accomplished',
       },
-      // ST-172: Transcript paths come from spawned_agent_transcripts registry
-      // The orchestrator MUST call add_transcript({ type: 'agent', componentId, transcriptPath })
-      // BEFORE calling record_agent_complete. This tool reads from the registry.
+      // ST-170: Transcript paths discovered from unassigned_transcripts table
+      // No manual registration needed - laptop TranscriptWatcher auto-detects and registers via WebSocket
     },
     required: ['runId', 'componentId'],
   },
@@ -151,10 +149,10 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
   }
 
-  // Source 2: ST-170 unassigned_transcripts table (PRIMARY) + ST-172 spawnedAgentTranscripts (FALLBACK)
+  // Source 2: ST-170 unassigned_transcripts table
   // The TranscriptWatcher on laptop automatically detects and registers transcripts in unassigned_transcripts
   if (!contextMetrics) {
-    // ST-170: Try to find transcript in unassigned_transcripts table (auto-detected by laptop agent)
+    // ST-170: Find transcript in unassigned_transcripts table (auto-detected by laptop TranscriptWatcher)
     const unassignedTranscript = await prisma.unassignedTranscript.findFirst({
       where: {
         workflowRunId: params.runId,
@@ -164,32 +162,12 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
 
     let transcriptPath: string | null = null;
-    let discoveredAgentId: string | null = null;
+    let localAgentId: string | null = null;
 
     if (unassignedTranscript) {
       transcriptPath = unassignedTranscript.transcriptPath;
-      discoveredAgentId = unassignedTranscript.agentId;
-      console.log(`[ST-170] Found transcript in unassigned_transcripts: ${transcriptPath} (agent: ${discoveredAgentId})`);
-    } else {
-      // ST-172 FALLBACK: Check old spawnedAgentTranscripts registry (for backwards compatibility)
-      const workflowRunForTranscript = await prisma.workflowRun.findUnique({
-        where: { id: params.runId },
-        select: {
-          spawnedAgentTranscripts: true,
-          metadata: true,
-        },
-      });
-
-      if (workflowRunForTranscript) {
-        const spawnedAgents = (workflowRunForTranscript.spawnedAgentTranscripts as any[] | null) || [];
-        const agentEntry = spawnedAgents.find((a: any) => a.componentId === params.componentId);
-
-        if (agentEntry?.transcriptPath) {
-          transcriptPath = agentEntry.transcriptPath;
-          discoveredAgentId = agentEntry.agentId;
-          console.log(`[ST-172] Found transcript in spawnedAgentTranscripts (fallback): ${transcriptPath}`);
-        }
-      }
+      localAgentId = unassignedTranscript.agentId;
+      console.log(`[ST-170] Found transcript in unassigned_transcripts: ${transcriptPath} (agent: ${localAgentId})`);
     }
 
     if (transcriptPath) {
@@ -233,10 +211,8 @@ export async function handler(prisma: PrismaClient, params: any) {
             sessionId: metrics.sessionId || null,
           };
           dataSource = 'transcript';
-          // Use already-discovered agentId from unassigned_transcripts, or fall back to parsed metrics
-          if (!discoveredAgentId) {
-            discoveredAgentId = metrics.agentId;
-          }
+          // Use agentId from unassigned_transcripts, or fall back to parsed metrics
+          discoveredAgentId = localAgentId || metrics.agentId;
           discoveredTranscriptPath = transcriptPath;
 
           if (metrics.turns) {
@@ -247,7 +223,7 @@ export async function handler(prisma: PrismaClient, params: any) {
             };
           }
 
-          console.log(`[ST-170/ST-172] Parsed agent transcript for component ${params.componentId}:`, {
+          console.log(`[ST-170] Parsed agent transcript for component ${params.componentId}:`, {
             agentId: discoveredAgentId,
             transcriptPath: transcriptPath,
             inputTokens: metrics.inputTokens,
@@ -310,17 +286,17 @@ export async function handler(prisma: PrismaClient, params: any) {
             console.warn(`[ST-168] Failed to upload transcript as artifact: ${uploadError.message}`);
           }
       } else {
-        console.warn(`[ST-170/ST-172] Failed to parse transcript at ${transcriptPath}:`, {
+        console.warn(`[ST-170] Failed to parse transcript at ${transcriptPath}:`, {
           executed: result.executed,
           success: result.success,
           error: result.error,
         });
       }
     } else {
-      // Not in unassigned_transcripts or spawnedAgentTranscripts
+      // No transcript found in unassigned_transcripts
       // This is expected for orchestrator components that use contextOutput
-      console.log(`[ST-170] No transcript found for component ${params.componentId}. ` +
-        `Checked unassigned_transcripts and spawnedAgentTranscripts. This is normal for orchestrator components.`);
+      console.log(`[ST-170] No transcript found in unassigned_transcripts for component ${params.componentId}. ` +
+        `This is normal for orchestrator components.`);
     }
   }
 
