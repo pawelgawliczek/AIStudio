@@ -29,11 +29,41 @@ export interface TailRequest {
 
 export class TranscriptTailer {
   private readonly logger = new Logger('TranscriptTailer');
-  private readonly socket: Socket;
+  private socket: Socket;
   private readonly sessions = new Map<string, TailSession>(); // key: `${runId}:${sessionIndex}`
 
   constructor(socket: Socket) {
     this.socket = socket;
+  }
+
+  /**
+   * ST-182: Update socket reference after reconnection
+   * Without this, the tailer would emit to the old disconnected socket
+   * Also re-emits streaming_started for all active sessions since the original
+   * emit may have been lost during the disconnect
+   */
+  async updateSocket(newSocket: Socket): Promise<void> {
+    this.socket = newSocket;
+    this.logger.info('Socket reference updated for TranscriptTailer');
+
+    // Re-emit streaming_started for all active sessions
+    // This handles the case where the socket disconnected right after starting to tail
+    for (const [sessionKey, session] of this.sessions) {
+      try {
+        const stats = await fs.promises.stat(session.filePath);
+        this.logger.info('Re-emitting streaming_started after reconnect', { sessionKey });
+
+        this.socket.emit('transcript:streaming_started', {
+          runId: session.runId,
+          sessionIndex: session.sessionIndex,
+          filePath: session.filePath,
+          fileSize: stats.size,
+          startPosition: session.position,
+        });
+      } catch (error: any) {
+        this.logger.error('Failed to re-emit streaming_started', { sessionKey, error: error.message });
+      }
+    }
   }
 
   /**

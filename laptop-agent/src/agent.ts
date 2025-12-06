@@ -241,6 +241,11 @@ export class RemoteAgent {
         console.error('Re-registration failed:', err.message);
       });
 
+      // ST-182: Update TranscriptTailer socket reference after reconnection
+      if (this.transcriptTailer && this.socket) {
+        this.transcriptTailer.updateSocket(this.socket);
+      }
+
       // ST-150: Check if we have a job that needs resuming
       if (this.currentClaudeJob && this.isExecutingClaudeCode) {
         this.notifyResumeAvailable();
