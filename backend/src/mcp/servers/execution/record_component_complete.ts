@@ -283,8 +283,8 @@ export async function handler(prisma: PrismaClient, params: any) {
                     tokensOutput: contextMetrics.tokensOutput,
                     tokensCacheCreation: contextMetrics.tokensCacheCreation,
                     tokensCacheRead: contextMetrics.tokensCacheRead,
-                  } : null,
-                  transcriptPath,
+                    transcriptPath, // Store path in metrics JSON for reference
+                  } : { transcriptPath },
                 },
               });
 
