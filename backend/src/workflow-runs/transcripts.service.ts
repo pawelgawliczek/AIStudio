@@ -338,15 +338,59 @@ export class TranscriptsService {
   }
 
   /**
-   * ST-182: Get transcript by component from spawnedAgentTranscripts metadata
-   * Reads content from laptop via RemoteRunner (not from Artifact table)
+   * ST-182/ST-168: Get transcript by component
+   * First checks transcripts table (ST-168), falls back to laptop read if not in DB
    */
   async getTranscriptByComponentFromMetadata(
     runId: string,
     componentId: string,
     includeContent: boolean = true,
   ): Promise<TranscriptDetailResponseDto> {
-    // 1. Get workflow run with spawnedAgentTranscripts
+    // 1. Get component name first
+    const component = await this.prisma.component.findUnique({
+      where: { id: componentId },
+      select: { name: true },
+    });
+
+    // 2. ST-168: First check transcripts table for stored transcript
+    // Get the most recent component run for this component in this workflow run
+    const componentRun = await this.prisma.componentRun.findFirst({
+      where: {
+        workflowRunId: runId,
+        componentId: componentId,
+      },
+      orderBy: { startedAt: 'desc' },
+      select: { id: true },
+    });
+
+    if (componentRun) {
+      // Look for transcript in the transcripts table
+      const dbTranscript = await this.prisma.transcript.findFirst({
+        where: {
+          workflowRunId: runId,
+          componentRunId: componentRun.id,
+          type: 'AGENT',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (dbTranscript) {
+        this.logger.log(`[ST-168] Found transcript in database: ${dbTranscript.id}`);
+        return {
+          id: dbTranscript.id,
+          content: includeContent ? dbTranscript.content : undefined,
+          contentPreview: dbTranscript.content?.slice(0, CONTENT_PREVIEW_LENGTH),
+          contentType: 'application/x-jsonlines',
+          size: dbTranscript.contentSize || 0,
+          transcriptType: 'agent',
+          componentId,
+          componentName: component?.name,
+          createdAt: dbTranscript.createdAt,
+        };
+      }
+    }
+
+    // 3. Fallback: Get workflow run with spawnedAgentTranscripts
     const workflowRun = await this.prisma.workflowRun.findUnique({
       where: { id: runId },
       select: {
@@ -359,7 +403,7 @@ export class TranscriptsService {
       throw new NotFoundException(`Workflow run not found: ${runId}`);
     }
 
-    // 2. Find transcript entry for this component
+    // 4. Find transcript entry for this component in metadata
     const spawnedAgents = (workflowRun.spawnedAgentTranscripts as any[] | null) || [];
     const transcriptEntry = spawnedAgents
       .filter((t: any) => t.componentId === componentId)
@@ -369,13 +413,7 @@ export class TranscriptsService {
       throw new NotFoundException(`Transcript not found for component: ${componentId}`);
     }
 
-    // 3. Get component name
-    const component = await this.prisma.component.findUnique({
-      where: { id: componentId },
-      select: { name: true },
-    });
-
-    // 4. Read content from laptop if requested
+    // 5. Read content from laptop if requested (fallback path)
     let content: string | undefined;
     let size = 0;
 
