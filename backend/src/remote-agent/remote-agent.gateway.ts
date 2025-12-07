@@ -1344,9 +1344,9 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   @SubscribeMessage('agent:transcript_detected')
   async handleTranscriptDetected(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { agentId: string; transcriptPath: string; projectPath: string },
+    @MessageBody() data: { agentId: string | null; transcriptPath: string; projectPath: string; metadata?: any },
   ) {
-    this.logger.log(`[ST-170] Transcript detected from agent: ${data.agentId}`);
+    this.logger.log(`[ST-170] Transcript detected from agent: ${data.agentId}, sessionId: ${data.metadata?.sessionId}`);
 
     try {
       await this.transcriptRegistrationService.handleTranscriptDetected(data);
