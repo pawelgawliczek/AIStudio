@@ -253,9 +253,9 @@ export async function handler(prisma: PrismaClient, params: any) {
             outputTokens: metrics.outputTokens,
           });
 
-          // ST-168: Upload transcript as artifact
+          // ST-168: Upload transcript to Transcript table (not Artifact)
           try {
-            console.log(`[ST-168] Uploading transcript as artifact for component ${params.componentId}`);
+            console.log(`[ST-168] Uploading transcript to database for component ${params.componentId}`);
 
             // Read transcript content from laptop
             const readResult = await runner.execute<{ content: string; size: number }>('read-file', [
@@ -266,47 +266,35 @@ export async function handler(prisma: PrismaClient, params: any) {
 
             if (readResult.executed && readResult.success && readResult.result) {
               const transcriptContent = readResult.result.content;
+              const contentSize = Buffer.byteLength(transcriptContent, 'utf8');
 
-              // Find TRANSCRIPT artifact definition
-              const workflowRun = await prisma.workflowRun.findUnique({
-                where: { id: params.runId },
-                select: { workflowId: true },
+              // Store in Transcript table (ST-170 schema)
+              const transcript = await prisma.transcript.create({
+                data: {
+                  type: 'AGENT',
+                  sessionId: contextMetrics?.sessionId || null,
+                  agentId: discoveredAgentId || null,
+                  workflowRunId: params.runId,
+                  componentRunId: componentRun.id,
+                  content: transcriptContent,
+                  contentSize,
+                  metrics: contextMetrics ? {
+                    tokensInput: contextMetrics.tokensInput,
+                    tokensOutput: contextMetrics.tokensOutput,
+                    tokensCacheCreation: contextMetrics.tokensCacheCreation,
+                    tokensCacheRead: contextMetrics.tokensCacheRead,
+                  } : null,
+                  transcriptPath,
+                },
               });
 
-              if (workflowRun) {
-                const transcriptDef = await prisma.artifactDefinition.findFirst({
-                  where: {
-                    workflowId: workflowRun.workflowId,
-                    key: 'TRANSCRIPT',
-                  },
-                });
-
-                if (transcriptDef) {
-                  // Create artifact
-                  const artifact = await prisma.artifact.create({
-                    data: {
-                      definitionId: transcriptDef.id,
-                      workflowRunId: params.runId,
-                      content: transcriptContent,
-                      contentType: 'application/x-jsonlines',
-                      contentPreview: transcriptContent.substring(0, 500),
-                      size: Buffer.byteLength(transcriptContent, 'utf8'),
-                      version: 1,
-                      createdByComponentId: params.componentId,
-                    },
-                  });
-
-                  console.log(`[ST-168] Transcript uploaded as artifact ${artifact.id} (${artifact.size} bytes)`);
-                } else {
-                  console.warn(`[ST-168] No TRANSCRIPT artifact definition found for workflow ${workflowRun.workflowId}`);
-                }
-              }
+              console.log(`[ST-168] Transcript stored in database: ${transcript.id} (${contentSize} bytes)`);
             } else {
               console.warn(`[ST-168] Failed to read transcript file: ${readResult.error || 'Unknown error'}`);
             }
           } catch (uploadError: any) {
             // Non-fatal - log and continue
-            console.warn(`[ST-168] Failed to upload transcript as artifact: ${uploadError.message}`);
+            console.warn(`[ST-168] Failed to upload transcript: ${uploadError.message}`);
           }
       } else {
         console.warn(`[ST-170] Failed to parse transcript at ${transcriptPath}:`, {
