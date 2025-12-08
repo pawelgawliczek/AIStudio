@@ -3,10 +3,12 @@
  * Query the current status of a Story Runner execution
  *
  * ST-145: Story Runner - Terminal First Implementation
+ * ST-187: Added story key resolution
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'get_runner_status',
@@ -21,21 +23,28 @@ Returns:
 
 **Usage:**
 \`\`\`typescript
+// Using story key (preferred)
+get_runner_status({ story: "ST-123" })
+
+// Using run ID
 get_runner_status({ runId: "uuid-here" })
 \`\`\``,
   inputSchema: {
     type: 'object',
     properties: {
+      story: {
+        type: 'string',
+        description: 'Story key (e.g., ST-123) or UUID - resolves to active workflow run',
+      },
       runId: {
         type: 'string',
-        description: 'WorkflowRun ID to query (required)',
+        description: 'WorkflowRun ID to query (alternative to story)',
       },
       includeCheckpoint: {
         type: 'boolean',
         description: 'Include full checkpoint data (default: false)',
       },
     },
-    required: ['runId'],
   },
 };
 
@@ -118,10 +127,22 @@ interface RunnerStatus {
 }
 
 export async function handler(prisma: PrismaClient, params: {
-  runId: string;
+  story?: string;
+  runId?: string;
   includeCheckpoint?: boolean;
 }) {
-  const { runId, includeCheckpoint = false } = params;
+  const { includeCheckpoint = false } = params;
+
+  // ST-187: Resolve story key or runId to actual run
+  if (!params.story && !params.runId) {
+    throw new Error('Either story or runId is required');
+  }
+
+  const resolved = await resolveRunId(prisma, {
+    story: params.story,
+    runId: params.runId,
+  });
+  const runId = resolved.id;
 
   // Get workflow run with related data
   const run = await prisma.workflowRun.findUnique({

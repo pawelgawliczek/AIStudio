@@ -3,10 +3,12 @@
  * Pause a running Story Runner execution
  *
  * ST-145: Story Runner - Terminal First Implementation
+ * ST-187: Added story key resolution
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'pause_runner',
@@ -22,6 +24,13 @@ Use resume_runner to continue execution later.
 
 **Usage:**
 \`\`\`typescript
+// Using story key (preferred)
+pause_runner({
+  story: "ST-123",
+  reason: "Manual pause for review"
+})
+
+// Using run ID
 pause_runner({
   runId: "uuid-here",
   reason: "Manual pause for review"
@@ -30,16 +39,19 @@ pause_runner({
   inputSchema: {
     type: 'object',
     properties: {
+      story: {
+        type: 'string',
+        description: 'Story key (e.g., ST-123) or UUID - resolves to active workflow run',
+      },
       runId: {
         type: 'string',
-        description: 'WorkflowRun ID to pause (required)',
+        description: 'WorkflowRun ID to pause (alternative to story)',
       },
       reason: {
         type: 'string',
         description: 'Reason for pausing (optional)',
       },
     },
-    required: ['runId'],
   },
 };
 
@@ -52,10 +64,22 @@ export const metadata = {
 };
 
 export async function handler(prisma: PrismaClient, params: {
-  runId: string;
+  story?: string;
+  runId?: string;
   reason?: string;
 }) {
-  const { runId, reason = 'Manual pause via MCP tool' } = params;
+  const { reason = 'Manual pause via MCP tool' } = params;
+
+  // ST-187: Resolve story key or runId to actual run
+  if (!params.story && !params.runId) {
+    throw new Error('Either story or runId is required');
+  }
+
+  const resolved = await resolveRunId(prisma, {
+    story: params.story,
+    runId: params.runId,
+  });
+  const runId = resolved.id;
 
   // Get workflow run
   const run = await prisma.workflowRun.findUnique({
@@ -98,9 +122,14 @@ export async function handler(prisma: PrismaClient, params: {
   return {
     success: true,
     runId,
+    // ST-187: Include story info if resolved from story key
+    story: resolved.story ? {
+      key: resolved.story.key,
+      title: resolved.story.title,
+    } : undefined,
     status: 'pause_requested',
     reason,
-    message: `Pause requested for run ${runId}. The runner will pause after completing the current operation.`,
+    message: `Pause requested for run ${runId}${resolved.story ? ` (${resolved.story.key})` : ''}. The runner will pause after completing the current operation.`,
     note: 'Use get_runner_status to verify pause completion. Use resume_runner to continue.',
   };
 }

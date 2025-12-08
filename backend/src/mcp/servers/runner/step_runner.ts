@@ -3,10 +3,12 @@
  * Execute one state and pause (debugging mode using temp breakpoint)
  *
  * ST-146: Breakpoint System - Pause/Resume/Step Control
+ * ST-187: Added story key resolution
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient, BreakpointPosition } from '@prisma/client';
+import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'step_runner',
@@ -25,17 +27,24 @@ Works ONLY on paused runs:
 
 **Usage:**
 \`\`\`typescript
+// Using story key (preferred)
+step_runner({ story: "ST-123" })
+
+// Using run ID
 step_runner({ runId: "uuid-here" })
 \`\`\``,
   inputSchema: {
     type: 'object',
     properties: {
+      story: {
+        type: 'string',
+        description: 'Story key (e.g., ST-123) or UUID - resolves to active workflow run',
+      },
       runId: {
         type: 'string',
-        description: 'WorkflowRun ID (required)',
+        description: 'WorkflowRun ID (alternative to story)',
       },
     },
-    required: ['runId'],
   },
 };
 
@@ -48,9 +57,19 @@ export const metadata = {
 };
 
 export async function handler(prisma: PrismaClient, params: {
-  runId: string;
+  story?: string;
+  runId?: string;
 }) {
-  const { runId } = params;
+  // ST-187: Resolve story key or runId to actual run
+  if (!params.story && !params.runId) {
+    throw new Error('Either story or runId is required');
+  }
+
+  const resolved = await resolveRunId(prisma, {
+    story: params.story,
+    runId: params.runId,
+  });
+  const runId = resolved.id;
 
   // Get workflow run with full state info
   const run = await prisma.workflowRun.findUnique({
@@ -130,6 +149,10 @@ export async function handler(prisma: PrismaClient, params: {
       success: true,
       status: 'stepping_to_completion',
       runId,
+      story: resolved.story ? {
+        key: resolved.story.key,
+        title: resolved.story.title,
+      } : undefined,
       currentState: {
         id: currentState.id,
         name: currentState.name,
@@ -137,7 +160,7 @@ export async function handler(prisma: PrismaClient, params: {
       },
       nextState: null,
       willPauseAt: 'completion',
-      message: `Stepping through final state: ${currentState.name}. Run will complete after this state.`,
+      message: `Stepping through final state: ${currentState.name}${resolved.story ? ` (${resolved.story.key})` : ''}. Run will complete after this state.`,
       note: 'Use get_runner_status to monitor progress.',
     };
   }
@@ -200,6 +223,10 @@ export async function handler(prisma: PrismaClient, params: {
     success: true,
     status: 'stepping',
     runId,
+    story: resolved.story ? {
+      key: resolved.story.key,
+      title: resolved.story.title,
+    } : undefined,
     currentState: {
       id: currentState.id,
       name: currentState.name,
@@ -212,7 +239,7 @@ export async function handler(prisma: PrismaClient, params: {
     },
     tempBreakpointId,
     willPauseAt: `before ${nextState.name}`,
-    message: `Stepping: will execute ${currentState.name} and pause before ${nextState.name}`,
+    message: `Stepping${resolved.story ? ` (${resolved.story.key})` : ''}: will execute ${currentState.name} and pause before ${nextState.name}`,
     note: 'Use get_runner_status to monitor progress. Temp breakpoint will auto-delete when hit.',
   };
 }

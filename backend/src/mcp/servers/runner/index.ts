@@ -4,6 +4,7 @@
  * ST-146: Breakpoint System - Pause/Resume/Step Control
  * ST-148: Approval Gates - Human-in-the-Loop
  * ST-164: Orchestration Context Recovery
+ * ST-187: Step Commands & MCP Optimization
  *
  * Tools for managing Story Runner Docker containers:
  * - start_runner: Launch runner for a workflow run
@@ -13,6 +14,11 @@
  * - resume_runner: Resume paused/crashed execution
  * - pause_runner: Pause running execution
  * - cancel_runner: Cancel execution
+ *
+ * Step commands (ST-187):
+ * - get_current_step: Get current step instructions (read-only)
+ * - advance_step: Advance to next phase/state
+ * - repeat_step: Retry current step with optional feedback
  *
  * Breakpoint tools (ST-146):
  * - set_breakpoint: Add breakpoint at a state
@@ -34,13 +40,24 @@ export * as resume_runner from './resume_runner';
 export * as pause_runner from './pause_runner';
 export * as cancel_runner from './cancel_runner';
 
+// ST-187: Step commands
+export * as get_current_step from './get_current_step';
+export * as advance_step from './advance_step';
+export * as repeat_step from './repeat_step';
+
 // ST-146: Breakpoint tools
 export * as set_breakpoint from './set_breakpoint';
 export * as clear_breakpoint from './clear_breakpoint';
 export * as list_breakpoints from './list_breakpoints';
 export * as step_runner from './step_runner';
 
+// ST-187: Consolidated breakpoint tool (use this instead of individual tools)
+export * as manage_breakpoints from './manage_breakpoints';
+
 // ST-148: Approval tools
 export * as respond_to_approval from './respond_to_approval';
 export * as get_pending_approvals from './get_pending_approvals';
 export * as get_approval_details from './get_approval_details';
+
+// ST-187: Consolidated approval query tool (use this instead of individual tools)
+export * as get_approvals from './get_approvals';
