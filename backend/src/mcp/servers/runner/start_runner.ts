@@ -3,11 +3,13 @@
  * Launches the Story Runner Docker container for a workflow run
  *
  * ST-145: Story Runner - Terminal First Implementation
+ * ST-187: Added story key resolution support
  */
 
 import { spawn } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { resolveStory, isStoryKey, isUUID } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'start_runner',
@@ -30,7 +32,7 @@ Launches a Docker container that:
 start_runner({
   runId: "uuid-here",
   workflowId: "workflow-uuid",
-  storyId: "story-uuid"  // optional
+  story: "ST-123"  // optional - story key or UUID
 })
 \`\`\``,
   inputSchema: {
@@ -44,9 +46,13 @@ start_runner({
         type: 'string',
         description: 'Workflow ID (required)',
       },
+      story: {
+        type: 'string',
+        description: 'Story key (e.g., ST-123) or UUID for context (optional)',
+      },
       storyId: {
         type: 'string',
-        description: 'Story ID for context (optional)',
+        description: 'Story UUID (deprecated - use story param)',
       },
       triggeredBy: {
         type: 'string',
@@ -72,11 +78,30 @@ export const metadata = {
 export async function handler(prisma: PrismaClient, params: {
   runId: string;
   workflowId: string;
+  story?: string;
   storyId?: string;
   triggeredBy?: string;
   detached?: boolean;
 }) {
-  const { runId, workflowId, storyId, triggeredBy = 'mcp-tool', detached = true } = params;
+  const { runId, workflowId, triggeredBy = 'mcp-tool', detached = true } = params;
+
+  // ST-187: Resolve story key to UUID if provided
+  let storyId: string | undefined;
+  const storyInput = params.story || params.storyId;
+
+  if (storyInput) {
+    if (isStoryKey(storyInput)) {
+      const story = await resolveStory(prisma, storyInput);
+      if (!story) {
+        throw new Error(`Story not found: ${storyInput}`);
+      }
+      storyId = story.id;
+    } else if (isUUID(storyInput)) {
+      storyId = storyInput;
+    } else {
+      throw new Error(`Invalid story identifier: ${storyInput}. Use story key (ST-123) or UUID.`);
+    }
+  }
 
   // Validate workflow exists
   const workflow = await prisma.workflow.findUnique({
