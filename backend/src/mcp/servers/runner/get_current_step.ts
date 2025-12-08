@@ -12,7 +12,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { resolveRunId, ResolvedStory } from '../../shared/resolve-identifiers';
+import { resolveRunId, resolveStory, ResolvedStory } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'get_current_step',
@@ -21,7 +21,13 @@ export const tool: Tool = {
 Provides ALL MCP tool calls needed for successful step execution, so ANY session
 can execute the workflow without prior context.
 
-**Workflow Sequence Returned:**
+**No Active Run:**
+If no active workflow run exists for the story, returns a workflow sequence to:
+1. \`list_teams\` - List available teams/workflows for the project
+2. \`start_team_run\` - Start a new run with selected team
+3. \`get_current_step\` - Get the first execution step
+
+**Workflow Sequence for Active Runs:**
 
 For **pre** phase:
 1. Manual pre-execution instructions to execute
@@ -44,8 +50,9 @@ get_current_step({ story: "ST-123" })
 \`\`\`
 
 **Response includes:**
-- \`currentState\`: Name, order, phase
+- \`currentState\`: Name, order, phase (null if no active run)
 - \`workflowSequence\`: Array of steps with exact tool calls and parameters
+- \`noActiveRun\`: Boolean flag if no run exists (guides to start one)
 - \`progress\`: Completed/total states`,
   inputSchema: {
     type: 'object',
@@ -93,7 +100,7 @@ interface RunnerCheckpoint {
   runStartedAt: string;
 }
 
-type InstructionType = 'pre_execution' | 'agent_spawn' | 'post_execution' | 'approval_required' | 'workflow_complete' | 'workflow_paused' | 'workflow_failed';
+type InstructionType = 'pre_execution' | 'agent_spawn' | 'post_execution' | 'approval_required' | 'workflow_complete' | 'workflow_paused' | 'workflow_failed' | 'no_active_run';
 
 // ST-188: Workflow step types for complete orchestration guidance
 type WorkflowStepType = 'manual' | 'mcp_tool' | 'agent_spawn' | 'approval_gate' | 'question_handler';
@@ -149,11 +156,21 @@ export async function handler(prisma: PrismaClient, params: {
     throw new Error('Either story or runId is required');
   }
 
-  // Resolve story key or runId
-  const resolved = await resolveRunId(prisma, {
-    story: params.story,
-    runId: params.runId,
-  });
+  // Try to resolve story key or runId
+  let resolved;
+  try {
+    resolved = await resolveRunId(prisma, {
+      story: params.story,
+      runId: params.runId,
+    });
+  } catch (error) {
+    // ST-188: Handle case where no active run exists for the story
+    // Return workflow sequence to guide user to start a new workflow
+    if (params.story && error instanceof Error && error.message.includes('No active workflow run')) {
+      return buildNoActiveRunResponse(prisma, params.story);
+    }
+    throw error;
+  }
   const runId = resolved.id;
 
   // Get workflow run with full details
@@ -611,5 +628,117 @@ function buildResponse(
 
     // Resource usage
     resourceUsage: checkpoint?.resourceUsage || null,
+  };
+}
+
+/**
+ * ST-188: Build response when no active run exists for a story
+ * Returns workflow sequence guiding user to start a new workflow
+ */
+async function buildNoActiveRunResponse(prisma: PrismaClient, storyIdentifier: string) {
+  // Look up the story to get projectId
+  const story = await resolveStory(prisma, storyIdentifier);
+  if (!story) {
+    throw new Error(`Story not found: ${storyIdentifier}`);
+  }
+
+  // Get project details
+  const project = await prisma.project.findUnique({
+    where: { id: story.projectId },
+    select: { id: true, name: true },
+  });
+
+  const workflowSequence: WorkflowStep[] = [
+    {
+      step: 1,
+      type: 'mcp_tool',
+      description: 'List available teams/workflows for this project',
+      tool: 'list_teams',
+      parameters: {
+        projectId: story.projectId,
+      },
+      notes: `Lists all active teams (workflows) available for project "${project?.name || story.projectId}". Choose a team from the results to use in step 2.`,
+    },
+    {
+      step: 2,
+      type: 'mcp_tool',
+      description: 'Start a team run for the story',
+      tool: 'start_team_run',
+      parameters: {
+        teamId: '{{SELECTED_TEAM_ID}}', // Placeholder - user selects from step 1
+        triggeredBy: 'mcp-orchestrator',
+        cwd: '{{CURRENT_WORKING_DIRECTORY}}',
+        sessionId: '{{SESSION_ID}}',
+        transcriptPath: '{{TRANSCRIPT_PATH}}',
+      },
+      notes: 'Replace {{SELECTED_TEAM_ID}} with the team ID from step 1. This creates a WorkflowRun and returns runId for workflow execution.',
+    },
+    {
+      step: 3,
+      type: 'mcp_tool',
+      description: 'Get current step after starting the run',
+      tool: 'get_current_step',
+      parameters: {
+        story: story.key,
+      },
+      notes: 'After starting the run, call get_current_step again to get the first execution step.',
+    },
+  ];
+
+  return {
+    success: true,
+    runId: null,
+    noActiveRun: true,
+
+    // Story context
+    story: {
+      id: story.id,
+      key: story.key,
+      title: story.title,
+      status: story.status,
+      projectId: story.projectId,
+    },
+
+    project: project ? {
+      id: project.id,
+      name: project.name,
+    } : null,
+
+    // Current state is null - no run exists
+    currentState: null,
+
+    // No progress yet
+    progress: {
+      stateIndex: 0,
+      totalStates: 0,
+      completedStates: [],
+      skippedStates: [],
+      percentComplete: 0,
+    },
+
+    // ST-188: COMPLETE WORKFLOW SEQUENCE to start a new run
+    workflowSequence,
+
+    // Instructions for the orchestrator
+    instructions: {
+      type: 'no_active_run' as InstructionType,
+      content: `No active workflow run exists for story ${story.key}. Follow the workflow sequence to start a new run.`,
+    },
+
+    // Next action
+    nextAction: {
+      tool: 'list_teams',
+      parameters: { projectId: story.projectId },
+      hint: 'First, list available teams to choose which workflow to run.',
+    },
+
+    // Flags
+    status: 'none',
+    isPaused: false,
+    pauseReason: null,
+    requiresApproval: false,
+    resourceUsage: null,
+
+    message: `No active workflow run found for ${story.key}. Follow the workflowSequence to start a new run: 1) List available teams, 2) Start a team run, 3) Get current step.`,
   };
 }
