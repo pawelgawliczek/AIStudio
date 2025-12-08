@@ -1,6 +1,8 @@
 /**
  * Get Story Tool
  * Retrieves details for a specific story by ID with optional related data
+ *
+ * ST-188: Added story key resolution support (accepts ST-123 or UUID)
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -13,19 +15,25 @@ import {
 } from '../../types';
 import {
   formatStory,
-  validateRequired,
   handlePrismaError,
 } from '../../utils';
+import { resolveStory } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'get_story',
-  description: 'Get details for a specific story by ID with optional related data',
+  description: `Get details for a specific story by ID with optional related data.
+
+**ST-188:** Accepts story key (e.g., ST-123) or UUID via the \`story\` parameter.`,
   inputSchema: {
     type: 'object',
     properties: {
+      story: {
+        type: 'string',
+        description: 'Story key (e.g., ST-123) or UUID',
+      },
       storyId: {
         type: 'string',
-        description: 'Story UUID',
+        description: 'Story UUID (deprecated - use story param instead)',
       },
       includeSubtasks: {
         type: 'boolean',
@@ -46,7 +54,7 @@ export const tool: Tool = {
           'Response detail level for token efficiency. minimal=key fields only (id, key, title, status, type), standard=all fields without relations (default), full=everything including all related data',
       },
     },
-    required: ['storyId'],
+    required: [],  // Either story or storyId required, validated in handler
   },
 };
 
@@ -60,10 +68,20 @@ export const metadata = {
 
 export async function handler(
   prisma: PrismaClient,
-  params: GetStoryParams,
+  params: GetStoryParams & { story?: string },
 ): Promise<StoryResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    // ST-188: Resolve story key or UUID
+    const storyInput = (params as any).story || params.storyId;
+    if (!storyInput) {
+      throw new Error('Either story or storyId is required');
+    }
+
+    const resolved = await resolveStory(prisma, storyInput);
+    if (!resolved) {
+      throw new NotFoundError('Story', storyInput);
+    }
+    const storyId = resolved.id;
 
     const includeClause: any = {};
 
@@ -99,12 +117,12 @@ export async function handler(
     }
 
     const story = await prisma.story.findUnique({
-      where: { id: params.storyId },
+      where: { id: storyId },
       include: Object.keys(includeClause).length > 0 ? includeClause : undefined,
     });
 
     if (!story) {
-      throw new NotFoundError('Story', params.storyId);
+      throw new NotFoundError('Story', storyInput);
     }
 
     const formatted = formatStory(
@@ -146,7 +164,7 @@ export async function handler(
       if (!params.includeSubtasks || !params.includeUseCases || !params.includeCommits) {
         // Re-fetch with all relations if not already included
         const fullStory = await prisma.story.findUnique({
-          where: { id: params.storyId },
+          where: { id: storyId },
           include: {
             subtasks: { orderBy: { createdAt: 'asc' } },
             useCaseLinks: {
