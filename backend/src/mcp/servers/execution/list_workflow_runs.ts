@@ -1,10 +1,13 @@
 /**
  * List Team Runs Tool
  * Query execution history with filtering and pagination
+ *
+ * ST-187: Added story key resolution support
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { resolveStory, isStoryKey } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'list_team_runs',
@@ -21,9 +24,13 @@ export const tool: Tool = {
         type: 'string',
         description: 'Filter by team UUID',
       },
+      story: {
+        type: 'string',
+        description: 'Filter by story key (e.g., ST-123) or UUID',
+      },
       storyId: {
         type: 'string',
-        description: 'Filter by story UUID',
+        description: 'Filter by story UUID (deprecated - use story param)',
       },
       status: {
         type: 'string',
@@ -52,10 +59,22 @@ export const metadata = {
 };
 
 export async function handler(prisma: PrismaClient, params: any) {
+  // ST-187: Resolve story key to UUID if provided
+  let resolvedStoryId: string | undefined;
+  const storyInput = params.story || params.storyId;
+
+  if (storyInput) {
+    const story = await resolveStory(prisma, storyInput);
+    if (!story) {
+      throw new Error(`Story not found: ${storyInput}`);
+    }
+    resolvedStoryId = story.id;
+  }
+
   // Validate that at least one filter is provided
-  if (!params.projectId && !params.workflowId && !params.storyId) {
+  if (!params.projectId && !params.workflowId && !resolvedStoryId) {
     throw new Error(
-      'At least one filter is required: projectId, workflowId, or storyId',
+      'At least one filter is required: projectId, workflowId, or story',
     );
   }
 
@@ -70,8 +89,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     where.workflowId = params.workflowId;
   }
 
-  if (params.storyId) {
-    where.storyId = params.storyId;
+  if (resolvedStoryId) {
+    where.storyId = resolvedStoryId;
   }
 
   if (params.status) {
