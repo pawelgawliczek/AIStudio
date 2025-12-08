@@ -1,6 +1,8 @@
 /**
  * Update Story Tool
  * Updates an existing story (title, description, status, complexity, framework)
+ *
+ * ST-188: Added story key resolution support (accepts ST-123 or UUID)
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -16,10 +18,13 @@ import {
   handlePrismaError,
   autoTruncateSummary,
 } from '../../utils';
+import { resolveStory } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'update_story',
   description: `Update an existing story (title, description, status, complexity, framework).
+
+**ST-188:** Accepts story key (e.g., ST-123) or UUID via the \`story\` parameter.
 
 **DEPRECATED (ST-152):** The analysis fields (architectAnalysis, baAnalysis, designerAnalysis, contextExploration) are deprecated.
 Use the Artifact system instead:
@@ -28,9 +33,13 @@ Use the Artifact system instead:
   inputSchema: {
     type: 'object',
     properties: {
+      story: {
+        type: 'string',
+        description: 'Story key (e.g., ST-123) or UUID',
+      },
       storyId: {
         type: 'string',
-        description: 'Story UUID',
+        description: 'Story UUID (deprecated - use story param instead)',
       },
       title: {
         type: 'string',
@@ -83,7 +92,7 @@ Use the Artifact system instead:
         description: '@deprecated Use Artifact system instead (ST-152)',
       },
     },
-    required: ['storyId'],
+    required: [],  // Either story or storyId required, validated in handler
   },
 };
 
@@ -97,18 +106,28 @@ export const metadata = {
 
 export async function handler(
   prisma: PrismaClient,
-  params: UpdateStoryParams,
+  params: UpdateStoryParams & { story?: string },
 ): Promise<StoryResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    // ST-188: Resolve story key or UUID
+    const storyInput = params.story || params.storyId;
+    if (!storyInput) {
+      throw new Error('Either story or storyId is required');
+    }
 
-    // Verify story exists
+    const resolved = await resolveStory(prisma, storyInput);
+    if (!resolved) {
+      throw new NotFoundError('Story', storyInput);
+    }
+    const storyId = resolved.id;
+
+    // Verify story exists (get full story data)
     const existingStory = await prisma.story.findUnique({
-      where: { id: params.storyId },
+      where: { id: storyId },
     });
 
     if (!existingStory) {
-      throw new NotFoundError('Story', params.storyId);
+      throw new NotFoundError('Story', storyId);
     }
 
     // Verify framework exists if provided
@@ -167,7 +186,7 @@ export async function handler(
 
     // Update story
     const updatedStory = await prisma.story.update({
-      where: { id: params.storyId },
+      where: { id: storyId },
       data: updateData,
     });
 
