@@ -90,13 +90,16 @@ export async function handler(prisma: PrismaClient, params: any) {
     throw new Error('transcriptPath is required - must be provided from SessionStart hook (stdin.transcript_path). This enables live transcript streaming. Get it from the SessionStart hook output.');
   }
 
-  // Verify workflow exists
+  // Verify workflow exists and get states for checkpoint initialization
   const workflow = await prisma.workflow.findUnique({
     where: { id: workflowId },
     include: {
       project: true,
+      states: {
+        orderBy: { order: 'asc' },
+        take: 1, // Only need first state for checkpoint initialization
+      },
     },
-    // Explicitly select config field
   });
 
   if (!workflow) {
@@ -142,6 +145,29 @@ export async function handler(prisma: PrismaClient, params: any) {
   // ST-148: Process approval overrides
   const approvalOverrides = params.approvalOverrides || { mode: 'default' };
 
+  // ST-187: Initialize checkpoint at first state
+  // This allows get_current_step to immediately return actionable instructions
+  const firstState = workflow.states[0];
+  const initialCheckpoint = firstState ? {
+    version: 1,
+    runId: '', // Will be filled after creation
+    workflowId: workflowId,
+    currentStateId: firstState.id,
+    currentPhase: 'pre' as const,
+    phaseStatus: 'pending' as const,
+    completedStates: [] as string[],
+    skippedStates: [] as string[],
+    phaseOutputs: {} as Record<string, unknown>,
+    resourceUsage: {
+      tokensUsed: 0,
+      agentSpawns: 0,
+      stateTransitions: 0,
+      durationMs: 0,
+    },
+    checkpointedAt: new Date().toISOString(),
+    runStartedAt: new Date().toISOString(),
+  } : null;
+
   // Create WorkflowRun record with transcript tracking info
   // ST-105: Removed existingTranscriptsAtStart - use orchestratorStartTime for timestamp-based filtering
   // ST-167: Extract storyId from context to link properly to Story table
@@ -186,6 +212,8 @@ export async function handler(prisma: PrismaClient, params: any) {
         },
         // ST-148: Store approval override settings for this run
         _approvalOverrides: approvalOverrides,
+        // ST-187: Initialize checkpoint so get_current_step works immediately
+        ...(initialCheckpoint && { checkpoint: initialCheckpoint }),
       },
       triggeredBy: params.triggeredBy,
       startedAt: new Date(),
@@ -194,6 +222,21 @@ export async function handler(prisma: PrismaClient, params: any) {
       workflow: true,
     },
   });
+
+  // ST-187: Update checkpoint with actual runId
+  if (initialCheckpoint) {
+    initialCheckpoint.runId = workflowRun.id;
+    const updatedMetadata = {
+      ...(workflowRun.metadata as Record<string, unknown>),
+      checkpoint: initialCheckpoint as unknown,
+    };
+    await prisma.workflowRun.update({
+      where: { id: workflowRun.id },
+      data: {
+        metadata: updatedMetadata as any,
+      },
+    });
+  }
 
   // ST-170: Match any unassigned transcripts to this workflow run
   // If transcripts were detected before the workflow started, associate them now
@@ -303,6 +346,18 @@ export async function handler(prisma: PrismaClient, params: any) {
       claudeSessionId: claudeSessionId || null,
       error: workflowTrackerResult.error,
     } : null,
+    // ST-187: Checkpoint info - workflow is ready to execute immediately
+    checkpoint: initialCheckpoint ? {
+      initialized: true,
+      currentStateId: initialCheckpoint.currentStateId,
+      currentStateName: firstState?.name,
+      currentPhase: initialCheckpoint.currentPhase,
+      phaseStatus: initialCheckpoint.phaseStatus,
+      message: `Checkpoint initialized at first state "${firstState?.name}". Call get_current_step to get execution instructions.`,
+    } : {
+      initialized: false,
+      message: 'No states defined in workflow. Cannot initialize checkpoint.',
+    },
     // ST-172: Transcript tracking info
     transcriptTracking: {
       masterTranscriptPaths: initialTranscriptPaths,
