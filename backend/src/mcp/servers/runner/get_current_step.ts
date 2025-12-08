@@ -324,8 +324,27 @@ export async function handler(prisma: PrismaClient, params: {
   }
 
   // Running state - get current step instructions
+  // Handle case where run was just started (status='running') but checkpoint not yet initialized
+  // This happens when start_team_run is called but advance_step hasn't been called yet
   if (!checkpoint?.currentStateId) {
-    throw new Error('Run is in running state but has no checkpoint. This should not happen.');
+    const firstState = run.workflow.states[0];
+    return buildResponse(run, resolved.story, undefined, {
+      type: 'pre_execution',
+      content: firstState
+        ? `Workflow started but not initialized. First state: ${firstState.name}. Call advance_step to initialize the checkpoint and begin execution.`
+        : 'Workflow has no states defined.',
+    }, {
+      tool: 'advance_step',
+      parameters: { story: run.story?.key || runId },
+      hint: 'Call advance_step to initialize the workflow checkpoint and start execution.',
+    }, [{
+      step: 1,
+      type: 'mcp_tool',
+      description: 'Initialize workflow checkpoint and start execution',
+      tool: 'advance_step',
+      parameters: { story: run.story?.key || runId },
+      notes: 'The workflow was started but the checkpoint was not initialized. Call advance_step to create the checkpoint at the first state.',
+    }]);
   }
 
   const currentState = run.workflow.states.find(s => s.id === checkpoint.currentStateId);
