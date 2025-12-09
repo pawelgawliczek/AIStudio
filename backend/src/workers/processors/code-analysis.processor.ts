@@ -5,6 +5,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../constants';
+import { SkottAnalyzer } from './skott-analyzer';
 
 const execAsync = promisify(exec);
 
@@ -25,6 +26,7 @@ const execAsync = promisify(exec);
 @Processor(QUEUE_NAMES.CODE_ANALYSIS)
 export class CodeAnalysisProcessor {
   private readonly logger = new Logger(CodeAnalysisProcessor.name);
+  private readonly skottAnalyzer = new SkottAnalyzer();
 
   constructor(private prisma: PrismaService) {}
 
@@ -269,6 +271,9 @@ export class CodeAnalysisProcessor {
       // Calculate maintainability index
       const maintainability = this.calculateMaintainability(complexity, loc, codeSmells.length);
 
+      // ST-196: Analyze dependencies
+      const dependencies = await this.skottAnalyzer.analyzeFile(fileContent, filePath);
+
       return {
         filePath,
         loc,
@@ -277,6 +282,7 @@ export class CodeAnalysisProcessor {
         churn,
         maintainability,
         lastModified: new Date(),
+        dependencies, // ST-196: Add dependency data
       };
     } catch (error) {
       this.logger.error(`Failed to analyze file ${filePath}:`, error);
@@ -519,6 +525,7 @@ export class CodeAnalysisProcessor {
 
   /**
    * Save file metrics to database
+   * ST-196: Now includes dependency analysis data
    */
   private async saveFileMetrics(
     projectId: string,
@@ -570,6 +577,13 @@ export class CodeAnalysisProcessor {
           functions: metrics.complexity.functions,
           isTestFile: isTest,
           correlatedTestFiles: correlatedTestFiles || [],
+          // ST-196: Add dependency data
+          dependencies: metrics.dependencies ? {
+            imports: metrics.dependencies.imports,
+            externalDependencies: metrics.dependencies.externalDependencies,
+            internalDependencies: metrics.dependencies.internalDependencies,
+            importedBy: metrics.dependencies.importedBy,
+          } : undefined,
         } as any,
       },
       update: {
@@ -588,6 +602,13 @@ export class CodeAnalysisProcessor {
           functions: metrics.complexity.functions,
           isTestFile: isTest,
           correlatedTestFiles: correlatedTestFiles || [],
+          // ST-196: Add dependency data
+          dependencies: metrics.dependencies ? {
+            imports: metrics.dependencies.imports,
+            externalDependencies: metrics.dependencies.externalDependencies,
+            internalDependencies: metrics.dependencies.internalDependencies,
+            importedBy: metrics.dependencies.importedBy,
+          } : undefined,
         } as any,
       },
     });
@@ -1055,6 +1076,12 @@ interface FileMetrics {
   churn: number;
   maintainability: number;
   lastModified: Date;
+  dependencies?: {
+    imports: string[];
+    externalDependencies: string[];
+    internalDependencies: string[];
+    importedBy: string[];
+  }; // ST-196: Dependency analysis data
 }
 
 interface ComplexityMetrics {
