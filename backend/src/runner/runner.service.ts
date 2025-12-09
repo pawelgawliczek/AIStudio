@@ -420,11 +420,11 @@ export class RunnerService {
     const instructions = this.buildOrchestratorInstructions(runId, workflowId, storyId);
 
     try {
-      // Create a "virtual" component for the orchestrator
-      // We use "orchestrator" as the componentId since this is workflow-level
+      // ST-195: Launch orchestrator via laptop agent
+      // Note: No ComponentRun needed for orchestrator - it tracks its own metrics via MCP tools
       const result = await this.remoteExecution.executeClaudeAgent(
         {
-          componentId: `orchestrator-${runId}`,
+          componentId: `orchestrator-${runId}`, // Virtual component ID for orchestrator
           stateId: 'orchestrator',
           workflowRunId: runId,
           instructions,
@@ -452,7 +452,7 @@ export class RunnerService {
           maxTurns: 200, // High limit for multi-state workflows
           projectPath: process.env.PROJECT_HOST_PATH || '/Users/pawelgawliczek/projects/AIStudio',
         },
-        `orchestrator-${runId}`,
+        undefined, // No componentRunId for orchestrator - it's tracked via WorkflowRun
         triggeredBy,
       );
 

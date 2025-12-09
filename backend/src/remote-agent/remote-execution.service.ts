@@ -277,13 +277,13 @@ export class RemoteExecutionService {
    * Execute Claude Code agent on remote laptop
    *
    * @param request - Claude Code execution parameters
-   * @param componentRunId - ComponentRun ID for tracking
+   * @param componentRunId - ComponentRun ID for tracking (optional for orchestrator jobs)
    * @param requestedBy - User/agent identifier
    * @returns Promise<result> or { agentOffline: true, ... } for offline fallback
    */
   async executeClaudeAgent(
     request: ClaudeCodeExecutionRequest,
-    componentRunId: string,
+    componentRunId?: string,
     requestedBy: string = 'story-runner',
   ): Promise<ClaudeCodeExecutionResult | { agentOffline: true; offlineFallback: string }> {
     // Validate capability is approved
@@ -348,19 +348,21 @@ export class RemoteExecutionService {
         agentId: agent.id,
         requestedBy,
         jobType: 'claude-agent',
-        componentRunId,
+        componentRunId: componentRunId || undefined, // Optional for orchestrator jobs
         workflowRunId: request.workflowRunId,
       },
     });
 
-    // Update ComponentRun with job tracking
-    await this.prisma.componentRun.update({
-      where: { id: componentRunId },
-      data: {
-        remoteJobId: job.id,
-        executedOn: `laptop:${agent.hostname}`,
-      },
-    });
+    // Update ComponentRun with job tracking (skip for orchestrator jobs without componentRunId)
+    if (componentRunId) {
+      await this.prisma.componentRun.update({
+        where: { id: componentRunId },
+        data: {
+          remoteJobId: job.id,
+          executedOn: `laptop:${agent.hostname}`,
+        },
+      });
+    }
 
     // Update WorkflowRun with executing agent
     await this.prisma.workflowRun.update({
