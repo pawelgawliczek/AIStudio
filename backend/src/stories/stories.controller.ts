@@ -145,4 +145,19 @@ export class StoriesController {
   ) {
     return this.storiesService.reassignEpic(id, epicId, priority);
   }
+
+  @Post(':id/execute')
+  @Roles(UserRole.admin, UserRole.pm, UserRole.dev)
+  @ApiOperation({ summary: 'Execute story with a workflow/team' })
+  @ApiResponse({ status: 201, description: 'Workflow run started' })
+  @ApiResponse({ status: 400, description: 'Invalid workflow or story state' })
+  @ApiResponse({ status: 404, description: 'Story or workflow not found' })
+  @ApiResponse({ status: 409, description: 'Story already has an active workflow run' })
+  execute(
+    @Param('id') id: string,
+    @Body('workflowId') workflowId: string,
+    @Request() req: any
+  ) {
+    return this.storiesService.executeWithWorkflow(id, workflowId, req.user?.email || 'web-user');
+  }
 }

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { StoryStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -723,5 +724,94 @@ export class StoriesService {
     this.wsGateway.broadcastStoryUpdated(id, updatedStory.projectId, updatedStory);
 
     return updatedStory;
+  }
+
+  /**
+   * Execute a story with a workflow/team (ST-195)
+   * Creates a workflow run and returns the run ID
+   */
+  async executeWithWorkflow(
+    storyId: string,
+    workflowId: string,
+    triggeredBy: string,
+  ) {
+    // Find story by ID or key
+    const story = await this.findOneByIdOrKey(storyId);
+
+    if (!story) {
+      throw new NotFoundException(`Story ${storyId} not found`);
+    }
+
+    // Check if story is in a valid state for execution
+    if (story.status === 'done') {
+      throw new BadRequestException(
+        `Cannot execute workflow on completed story ${story.key}. Story is already marked as done.`,
+      );
+    }
+
+    // Verify workflow exists
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id: workflowId },
+    });
+
+    if (!workflow) {
+      throw new NotFoundException(`Workflow ${workflowId} not found`);
+    }
+
+    if (!workflow.active) {
+      throw new BadRequestException(
+        `Workflow "${workflow.name}" is not active. Please activate it before executing stories.`,
+      );
+    }
+
+    // Check if workflow belongs to the same project as story
+    if (workflow.projectId !== story.projectId) {
+      throw new BadRequestException(
+        `Workflow "${workflow.name}" does not belong to the same project as story ${story.key}`,
+      );
+    }
+
+    // Check if there's already a running workflow for this story
+    const existingRun = await this.prisma.workflowRun.findFirst({
+      where: {
+        storyId: story.id,
+        status: { in: ['running', 'pending', 'paused'] },
+      },
+    });
+
+    if (existingRun) {
+      throw new ConflictException(
+        `Story ${story.key} already has an active workflow execution (Run ID: ${existingRun.id}). ` +
+          `Wait for it to complete or cancel it before starting a new execution.`,
+      );
+    }
+
+    // Create the workflow run
+    const workflowRun = await this.prisma.workflowRun.create({
+      data: {
+        workflowId,
+        projectId: story.projectId,
+        storyId: story.id,
+        epicId: story.epicId,
+        status: 'pending',
+        triggeredBy,
+        triggerType: 'manual',
+        startedAt: new Date(),
+      },
+    });
+
+    // Update story's assigned workflow if not already set
+    if (!story.assignedWorkflowId) {
+      await this.prisma.story.update({
+        where: { id: story.id },
+        data: { assignedWorkflowId: workflow.id },
+      });
+    }
+
+    return {
+      runId: workflowRun.id,
+      workflowId: workflow.id,
+      status: workflowRun.status,
+    };
   }
 }
