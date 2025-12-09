@@ -8,7 +8,7 @@ import { StandardStateListProps } from './types';
 import { StateBlock } from './StateBlock';
 
 export const StandardStateList: React.FC<StandardStateListProps> = ({
-  states,
+  states = [],
   componentRuns,
   expandedStates,
   onToggle,

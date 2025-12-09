@@ -10,7 +10,7 @@ import { StateBlock } from './StateBlock';
 import { WorkflowResultsSummary } from './WorkflowResultsSummary';
 
 export const FullStatePanel: React.FC<FullStatePanelProps> = ({
-  states,
+  states = [],
   componentRuns,
   expandedStates,
   onToggle,

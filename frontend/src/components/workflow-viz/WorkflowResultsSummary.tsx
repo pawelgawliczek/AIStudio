@@ -41,7 +41,7 @@ interface WorkflowResultsSummaryProps {
 
 export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
   componentRuns = [],
-  states,
+  states = [],
   artifacts = [],
   onViewTranscript,
   onViewArtifact,
