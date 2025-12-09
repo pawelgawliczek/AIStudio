@@ -212,7 +212,7 @@ export class TranscriptParserService {
     let totalInput = 0;
     let totalOutput = 0;
     let totalCacheCreation = 0;
-    let totalCacheRead = 0;
+    let maxCacheRead = 0; // ST-194: Use MAX for cumulative cache_read
     let agentId: string | null = null;
     let sessionId: string | null = null;
     let model = 'unknown';
@@ -235,15 +235,16 @@ export class TranscriptParserService {
         totalInput += usage.input_tokens ?? 0;
         totalOutput += usage.output_tokens ?? 0;
         totalCacheCreation += usage.cache_creation_input_tokens ?? 0;
-        totalCacheRead += usage.cache_read_input_tokens ?? 0;
+        // ST-194: cache_read is cumulative per message - take MAX (represents total cached context)
+        maxCacheRead = Math.max(maxCacheRead, usage.cache_read_input_tokens ?? 0);
       }
     }
 
     // Use fallback agent ID if not found in records
     const finalAgentId = agentId ?? fallbackAgentId ?? 'unknown';
 
-    // Calculate total tokens
-    const totalTokens = totalInput + totalOutput;
+    // ST-194: Calculate total tokens = input + output + cache_creation (billing model)
+    const totalTokens = totalInput + totalOutput + totalCacheCreation;
 
     return {
       agentId: finalAgentId,
@@ -252,7 +253,7 @@ export class TranscriptParserService {
       inputTokens: totalInput,
       outputTokens: totalOutput,
       cacheCreationTokens: totalCacheCreation,
-      cacheReadTokens: totalCacheRead,
+      cacheReadTokens: maxCacheRead, // ST-194: Use MAX value
       totalTokens,
     };
   }

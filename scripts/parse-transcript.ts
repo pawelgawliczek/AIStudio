@@ -250,25 +250,30 @@ async function parseTranscript(transcriptPath: string): Promise<TranscriptMetric
     }
   }
 
-  // Sum usage from deduplicated messages
+  // Aggregate usage from deduplicated messages
+  // ST-194: cache_read_input_tokens is cumulative per message (same context re-read)
+  // Use MAX for cache_read, SUM for everything else
   let totalInput = 0;
   let totalOutput = 0;
   let totalCacheCreation = 0;
-  let totalCacheRead = 0;
+  let maxCacheRead = 0;
 
-  for (const usage of messageUsageMap.values()) {
+  for (const usage of Array.from(messageUsageMap.values())) {
     totalInput += usage.input_tokens;
     totalOutput += usage.output_tokens;
     totalCacheCreation += usage.cache_creation_input_tokens;
-    totalCacheRead += usage.cache_read_input_tokens;
+    // ST-194: cache_read is cumulative - take MAX (represents total cached context)
+    maxCacheRead = Math.max(maxCacheRead, usage.cache_read_input_tokens);
   }
 
   return {
     inputTokens: totalInput,
     outputTokens: totalOutput,
     cacheCreationTokens: totalCacheCreation,
-    cacheReadTokens: totalCacheRead,
-    totalTokens: totalInput + totalOutput,
+    cacheReadTokens: maxCacheRead,
+    // ST-194: totalTokens = input + output + cache_creation (billing model)
+    // cache_read is already included in input_tokens (it's a subset)
+    totalTokens: totalInput + totalOutput + totalCacheCreation,
     model,
     transcriptPath,
   };
@@ -340,17 +345,20 @@ export async function parseTranscriptWithTurns(transcriptPath: string): Promise<
     }
   }
 
-  // Sum usage from deduplicated messages
+  // Aggregate usage from deduplicated messages
+  // ST-194: cache_read_input_tokens is cumulative per message (same context re-read)
+  // Use MAX for cache_read, SUM for everything else
   let totalInput = 0;
   let totalOutput = 0;
   let totalCacheCreation = 0;
-  let totalCacheRead = 0;
+  let maxCacheRead = 0;
 
-  for (const usage of messageUsageMap.values()) {
+  for (const usage of Array.from(messageUsageMap.values())) {
     totalInput += usage.input_tokens;
     totalOutput += usage.output_tokens;
     totalCacheCreation += usage.cache_creation_input_tokens;
-    totalCacheRead += usage.cache_read_input_tokens;
+    // ST-194: cache_read is cumulative - take MAX (represents total cached context)
+    maxCacheRead = Math.max(maxCacheRead, usage.cache_read_input_tokens);
   }
 
   // ST-147: Count turns
@@ -360,8 +368,10 @@ export async function parseTranscriptWithTurns(transcriptPath: string): Promise<
     inputTokens: totalInput,
     outputTokens: totalOutput,
     cacheCreationTokens: totalCacheCreation,
-    cacheReadTokens: totalCacheRead,
-    totalTokens: totalInput + totalOutput,
+    cacheReadTokens: maxCacheRead,
+    // ST-194: totalTokens = input + output + cache_creation (billing model)
+    // cache_read is already included in input_tokens (it's a subset)
+    totalTokens: totalInput + totalOutput + totalCacheCreation,
     model,
     transcriptPath,
     turns,
@@ -541,7 +551,8 @@ async function aggregateTranscriptMetrics(transcriptPaths: string[]): Promise<Fu
     outputTokens: totalOutput,
     cacheCreationTokens: totalCacheCreation,
     cacheReadTokens: totalCacheRead,
-    totalTokens: totalInput + totalOutput,
+    // ST-194: totalTokens = input + output + cache_creation (billing model)
+    totalTokens: totalInput + totalOutput + totalCacheCreation,
     model,
     transcriptPath: parsedPaths.join(', '),
     turns: {

@@ -344,8 +344,11 @@ export async function handler(prisma: PrismaClient, params: any) {
     data: {
       status,
       outputData: params.output || {},
-      // ST-110/ST-112: Token breakdown from /context command or transcript
-      totalTokens: contextMetrics?.tokensInput || null,
+      // ST-110/ST-112/ST-194: Token breakdown from /context command or transcript
+      // ST-194: totalTokens = input + output + cache_creation (billing model)
+      totalTokens: contextMetrics
+        ? (contextMetrics.tokensInput || 0) + (contextMetrics.tokensOutput || 0) + (contextMetrics.tokensCacheCreation || 0)
+        : null,
       tokensInput: contextMetrics?.tokensInput || null,
       tokensOutput: contextMetrics?.tokensOutput || null,
       tokensSystemPrompt: contextMetrics?.tokensSystemPrompt || null,
