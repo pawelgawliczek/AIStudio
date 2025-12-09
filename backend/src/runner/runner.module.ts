@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ApprovalService } from './approval.service';
 import { BreakpointService } from './breakpoint.service';
+import { RunnerControlService } from './runner-control.service';
 import { RunnerController } from './runner.controller';
 import { RunnerService } from './runner.service';
 
@@ -13,11 +14,12 @@ import { RunnerService } from './runner.service';
  * - Team context retrieval
  * - Breakpoint management (ST-146)
  * - Approval gates (ST-148)
+ * - Workflow control (ST-195)
  */
 @Module({
   imports: [PrismaModule],
   controllers: [RunnerController],
-  providers: [RunnerService, BreakpointService, ApprovalService],
-  exports: [RunnerService, BreakpointService, ApprovalService],
+  providers: [RunnerService, BreakpointService, ApprovalService, RunnerControlService],
+  exports: [RunnerService, BreakpointService, ApprovalService, RunnerControlService],
 })
 export class RunnerModule {}

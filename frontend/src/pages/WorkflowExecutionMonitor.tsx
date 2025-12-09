@@ -36,6 +36,7 @@ import { ArtifactViewerModal } from '../components/workflow-viz/ArtifactViewerMo
 import { TranscriptViewerModal } from '../components/workflow-viz/TranscriptViewerModal';
 import { MasterTranscriptPanel } from '../components/workflow-viz/MasterTranscriptPanel';
 import { useRemoteAgents } from '../components/workflow-viz/hooks/useRemoteAgents';
+import { WorkflowControlPanel } from '../components/workflow-viz/WorkflowControlPanel';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -547,6 +548,18 @@ const WorkflowExecutionMonitor: React.FC = () => {
             )}
           </Box>
         </Box>
+
+        {/* ST-195: Workflow Control Panel */}
+        {runId && ['running', 'paused', 'failed'].includes(liveStatus.status) && (
+          <Box mt={3}>
+            <WorkflowControlPanel
+              runId={runId}
+              variant="header"
+              states={workflowRun.states || []}
+              onStatusChange={() => refetch()}
+            />
+          </Box>
+        )}
       </Box>
 
       {/* Error Message */}

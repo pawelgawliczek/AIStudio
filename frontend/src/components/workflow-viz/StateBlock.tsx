@@ -346,6 +346,14 @@ export const StateBlock: React.FC<ExtendedStateBlockProps> = ({
             </div>
           </div>
 
+          {/* Agent Summary - Display after agent phase when completed/failed */}
+          {componentRun?.componentSummary && (componentRun.status === 'completed' || componentRun.status === 'failed') && (
+            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">📝 Agent Summary</div>
+              <div className="text-gray-700 dark:text-gray-300">{componentRun.componentSummary}</div>
+            </div>
+          )}
+
           {/* Metrics bar at bottom */}
           {componentRun && (
             <div className="flex items-center gap-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">

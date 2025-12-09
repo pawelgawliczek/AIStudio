@@ -47,6 +47,11 @@ export type { MasterTranscriptPanelProps } from './MasterTranscriptPanel';
 export { ExecutionHistory } from './ExecutionHistory';
 export type { ExecutionHistoryProps, ExecutionRun, StateExecution } from './ExecutionHistory';
 
+// ST-195: Workflow Control & Results Dashboard
+export { WorkflowControlPanel } from './WorkflowControlPanel';
+export { StartWorkflowModal } from './StartWorkflowModal';
+export { WorkflowResultsSummary } from './WorkflowResultsSummary';
+
 // Data Hooks (Phase 3)
 export {
   useWorkflowRun,

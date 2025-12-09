@@ -12,6 +12,7 @@ import {
 import { IsString, IsOptional, IsBoolean, IsNumber, IsObject, IsIn, IsEnum } from 'class-validator';
 import { ApprovalService, CreateApprovalParams, ApprovalRequestData, RespondToApprovalParams } from './approval.service';
 import { BreakpointService, BreakpointContext, BreakpointData } from './breakpoint.service';
+import { RunnerControlService } from './runner-control.service';
 import { RunnerService, RunnerCheckpoint, RunnerStatus } from './runner.service';
 
 /**
@@ -167,6 +168,61 @@ class RespondToApprovalDto {
 }
 
 /**
+ * DTO for starting workflow run
+ * ST-195: Workflow Control & Results Dashboard
+ */
+class StartRunnerDto {
+  @IsString()
+  workflowId: string;
+
+  @IsOptional()
+  @IsString()
+  storyId?: string;
+
+  @IsOptional()
+  @IsString()
+  triggeredBy?: string;
+}
+
+/**
+ * DTO for pausing workflow run
+ * ST-195: Workflow Control & Results Dashboard
+ */
+class PauseRunnerDto {
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+/**
+ * DTO for repeating step with feedback
+ * ST-195: Workflow Control & Results Dashboard
+ */
+class RepeatStepDto {
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  feedback?: string;
+}
+
+/**
+ * DTO for advancing step
+ * ST-195: Workflow Control & Results Dashboard
+ */
+class AdvanceStepDto {
+  @IsOptional()
+  @IsObject()
+  output?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  skipToState?: string;
+}
+
+/**
  * Runner Controller
  * REST API endpoints for Story Runner communication
  *
@@ -194,6 +250,7 @@ export class RunnerController {
     private readonly runnerService: RunnerService,
     private readonly breakpointService: BreakpointService,
     private readonly approvalService: ApprovalService,
+    private readonly runnerControlService: RunnerControlService,
   ) {}
 
   /**
@@ -452,5 +509,95 @@ export class RunnerController {
     @Body() dto: RegisterTranscriptDto,
   ): Promise<{ success: boolean; type: string; transcriptPath: string; error?: string }> {
     return await this.runnerService.registerTranscript(runId, dto);
+  }
+
+  // ========================================
+  // ST-195: Workflow Control Endpoints
+  // ========================================
+
+  /**
+   * Start workflow run
+   * ST-195: POST /api/runner/:runId/start
+   */
+  @Post(':runId/start')
+  @HttpCode(HttpStatus.OK)
+  async startRunner(
+    @Param('runId') runId: string,
+    @Body() dto: StartRunnerDto,
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+    return await this.runnerControlService.startRunner(
+      runId,
+      dto.workflowId,
+      dto.storyId,
+      dto.triggeredBy,
+    );
+  }
+
+  /**
+   * Pause workflow run
+   * ST-195: POST /api/runner/:runId/pause
+   */
+  @Post(':runId/pause')
+  @HttpCode(HttpStatus.OK)
+  async pauseRunner(
+    @Param('runId') runId: string,
+    @Body() dto: PauseRunnerDto,
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+    return await this.runnerControlService.pauseRunner(runId, dto.reason);
+  }
+
+  /**
+   * Resume workflow run
+   * ST-195: POST /api/runner/:runId/resume
+   */
+  @Post(':runId/resume')
+  @HttpCode(HttpStatus.OK)
+  async resumeRunner(
+    @Param('runId') runId: string,
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+    return await this.runnerControlService.resumeRunner(runId);
+  }
+
+  /**
+   * Repeat current step with feedback
+   * ST-195: POST /api/runner/:runId/repeat
+   */
+  @Post(':runId/repeat')
+  @HttpCode(HttpStatus.OK)
+  async repeatStep(
+    @Param('runId') runId: string,
+    @Body() dto: RepeatStepDto,
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+    return await this.runnerControlService.repeatStep(runId, dto.reason, dto.feedback);
+  }
+
+  /**
+   * Advance to next phase or skip to state
+   * ST-195: POST /api/runner/:runId/advance
+   */
+  @Post(':runId/advance')
+  @HttpCode(HttpStatus.OK)
+  async advanceStep(
+    @Param('runId') runId: string,
+    @Body() dto: AdvanceStepDto,
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+    return await this.runnerControlService.advanceStep(runId, dto.output, dto.skipToState);
+  }
+
+  /**
+   * Get workflow run status
+   * ST-195: GET /api/runner/:runId/status
+   */
+  @Get(':runId/status')
+  async getRunnerStatus(
+    @Param('runId') runId: string,
+  ): Promise<{
+    runId: string;
+    status: string;
+    currentStateId?: string;
+    checkpoint?: unknown;
+    resourceUsage?: unknown;
+  }> {
+    return await this.runnerControlService.getStatus(runId, false);
   }
 }

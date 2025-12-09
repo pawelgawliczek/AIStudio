@@ -11,7 +11,7 @@ import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
 import { ReviewDashboard } from '../components/story/ReviewDashboard';
 import { StoryDetailTabs } from '../components/story/StoryDetailTabs';
 import { StoryDeploymentsTab } from '../components/story/StoryDeploymentsTab';
-import { StandardStateList, useWorkflowRun } from '../components/workflow-viz';
+import { StandardStateList, useWorkflowRun, WorkflowControlPanel, StartWorkflowModal } from '../components/workflow-viz';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
 import {
@@ -71,6 +71,7 @@ export function StoryDetailPage() {
   const [showAddSubtask, setShowAddSubtask] = useState(false);
   const [editingSubtask, setEditingSubtask] = useState<string | null>(null);
   const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
+  const [startWorkflowModalOpen, setStartWorkflowModalOpen] = useState(false);
 
   // New subtask form
   const [newSubtask, setNewSubtask] = useState<CreateSubtaskDto>({
@@ -429,29 +430,60 @@ export function StoryDetailPage() {
         }
         executionContent={
           <>
-            {/* Workflow State Visualization */}
-            {workflowRun?.states && workflowRun.states.length > 0 && (
-              <div className="mb-6">
-                <div className="bg-card border border-border rounded-lg shadow-md p-6">
-                  <h2 className="text-xl font-bold text-fg mb-4">Workflow Execution</h2>
-                  {isWorkflowRunLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto"></div>
+            {/* ST-195: Workflow Execution Section */}
+            <div className="mb-6">
+              <div className="bg-card border border-border rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold text-fg mb-4">Workflow Execution</h2>
+
+                {/* Active workflow run */}
+                {workflowRun?.states && workflowRun.states.length > 0 ? (
+                  <>
+                    {/* Control Panel */}
+                    {latestWorkflowRunId && ['running', 'paused', 'failed'].includes(workflowRun.status) && (
+                      <div className="mb-4">
+                        <WorkflowControlPanel
+                          runId={latestWorkflowRunId}
+                          variant="header"
+                          states={workflowRun.states}
+                        />
+                      </div>
+                    )}
+
+                    {/* State List */}
+                    {isWorkflowRunLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto"></div>
+                      </div>
+                    ) : (
+                      <StandardStateList
+                        states={workflowRun.states}
+                        componentRuns={workflowRun.componentRuns}
+                        expandedStates={expandedStates}
+                        onToggle={handleToggleState}
+                        onStateClick={(stateId) => {
+                          console.log('State clicked:', stateId);
+                        }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  /* No active workflow */
+                  <div className="text-center py-8">
+                    <div className="text-gray-500 dark:text-gray-400 mb-4">
+                      <div className="text-4xl mb-2">📋</div>
+                      <div className="text-lg font-medium">No Active Workflow</div>
+                      <div className="text-sm mt-1">This story doesn't have an active workflow run.</div>
                     </div>
-                  ) : (
-                    <StandardStateList
-                      states={workflowRun.states}
-                      componentRuns={workflowRun.componentRuns}
-                      expandedStates={expandedStates}
-                      onToggle={handleToggleState}
-                      onStateClick={(stateId) => {
-                        console.log('State clicked:', stateId);
-                      }}
-                    />
-                  )}
-                </div>
+                    <button
+                      onClick={() => setStartWorkflowModalOpen(true)}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    >
+                      ▶ Start Workflow
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Token Metrics Section */}
             {story?.id && (
@@ -639,6 +671,20 @@ export function StoryDetailPage() {
           ))}
         </div>
       </div>
+      )}
+
+      {/* ST-195: Start Workflow Modal */}
+      {story && (
+        <StartWorkflowModal
+          open={startWorkflowModalOpen}
+          onClose={() => setStartWorkflowModalOpen(false)}
+          storyId={story.id}
+          projectId={story.projectId}
+          onStart={() => {
+            // Refresh the story to get the new workflow run
+            loadStory();
+          }}
+        />
       )}
     </div>
   );

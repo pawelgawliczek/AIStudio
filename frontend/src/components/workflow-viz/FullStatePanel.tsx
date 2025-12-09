@@ -7,6 +7,7 @@
 import React from 'react';
 import { FullStatePanelProps } from './types';
 import { StateBlock } from './StateBlock';
+import { WorkflowResultsSummary } from './WorkflowResultsSummary';
 
 export const FullStatePanel: React.FC<FullStatePanelProps> = ({
   states,
@@ -67,6 +68,28 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
 
       {/* Side panels - 1 column */}
       <div className="space-y-4">
+        {/* Workflow Results Summary */}
+        <WorkflowResultsSummary
+          componentRuns={componentRuns?.map(run => ({
+            id: run.id,
+            componentName: run.componentName,
+            status: run.status,
+            componentSummary: run.componentSummary,
+            startedAt: run.startedAt,
+            completedAt: run.completedAt,
+            stateId: run.id, // In real impl, this would be from the run
+          }))}
+          states={sortedStates}
+          artifacts={artifacts}
+          onViewTranscript={(componentRunId) => {
+            const transcriptId = transcriptIds[componentRunId];
+            if (transcriptId && onViewTranscript) {
+              onViewTranscript(transcriptId, componentRunId, 'agent');
+            }
+          }}
+          onViewArtifact={onViewArtifact}
+        />
+
         {showLiveStream && (
           <div
             data-testid="live-execution-stream"
