@@ -268,4 +268,97 @@ export class RunnerService {
 
     return runs;
   }
+
+  /**
+   * Register transcript for Docker Runner
+   * ST-189: Updates masterTranscriptPaths or spawnedAgentTranscripts
+   *
+   * This mirrors what TranscriptRegistrationService.registerForLiveStreaming() does,
+   * but callable via HTTP from Docker Runner.
+   */
+  async registerTranscript(
+    runId: string,
+    dto: {
+      type: 'master' | 'agent';
+      transcriptPath: string;
+      sessionId?: string;
+      componentId?: string;
+      agentId?: string;
+    },
+  ): Promise<{ success: boolean; type: string; transcriptPath: string; error?: string }> {
+    this.logger.log(`[ST-189] Registering ${dto.type} transcript for run ${runId}`);
+
+    try {
+      // Validate runId
+      const run = await this.prisma.workflowRun.findUnique({
+        where: { id: runId },
+        select: { id: true, masterTranscriptPaths: true, metadata: true },
+      });
+
+      if (!run) {
+        return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: `WorkflowRun not found: ${runId}` };
+      }
+
+      // Security: Basic path validation (no traversal)
+      if (dto.transcriptPath.includes('..')) {
+        return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: 'Invalid path: traversal not allowed' };
+      }
+
+      if (dto.type === 'master') {
+        // Append to masterTranscriptPaths (same as get_orchestration_context does)
+        const existingPaths = run.masterTranscriptPaths || [];
+        if (!existingPaths.includes(dto.transcriptPath)) {
+          const metadata = (run.metadata as Record<string, unknown>) || {};
+          await this.prisma.workflowRun.update({
+            where: { id: runId },
+            data: {
+              masterTranscriptPaths: [...existingPaths, dto.transcriptPath],
+              metadata: {
+                ...metadata,
+                _transcriptTracking: {
+                  ...(metadata._transcriptTracking as Record<string, unknown> || {}),
+                  sessionId: dto.sessionId || (metadata._transcriptTracking as Record<string, unknown>)?.sessionId,
+                },
+              } as Prisma.InputJsonValue,
+            },
+          });
+          this.logger.log(`[ST-189] Master transcript registered: ${dto.transcriptPath}`);
+        } else {
+          this.logger.log(`[ST-189] Master transcript already registered: ${dto.transcriptPath}`);
+        }
+        return { success: true, type: 'master', transcriptPath: dto.transcriptPath };
+      }
+
+      if (dto.type === 'agent') {
+        // Append to spawnedAgentTranscripts (same as registerForLiveStreaming does)
+        const metadata = (run.metadata as Record<string, unknown>) || {};
+        const spawnedAgentTranscripts = (metadata.spawnedAgentTranscripts as unknown[]) || [];
+
+        spawnedAgentTranscripts.push({
+          componentId: dto.componentId,
+          agentId: dto.agentId,
+          transcriptPath: dto.transcriptPath,
+          spawnedAt: new Date().toISOString(),
+        });
+
+        await this.prisma.workflowRun.update({
+          where: { id: runId },
+          data: {
+            metadata: {
+              ...metadata,
+              spawnedAgentTranscripts,
+            } as Prisma.InputJsonValue,
+          },
+        });
+
+        this.logger.log(`[ST-189] Agent transcript registered: ${dto.transcriptPath} (component: ${dto.componentId})`);
+        return { success: true, type: 'agent', transcriptPath: dto.transcriptPath };
+      }
+
+      return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: `Invalid transcript type: ${dto.type}` };
+    } catch (error) {
+      this.logger.error(`[ST-189] Failed to register transcript: ${error.message}`, error.stack);
+      return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: error.message };
+    }
+  }
 }

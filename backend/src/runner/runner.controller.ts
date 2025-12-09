@@ -113,6 +113,30 @@ class CreateApprovalDto {
 }
 
 /**
+ * DTO for registering transcript
+ * ST-189: Docker Runner Transcript Registration
+ */
+class RegisterTranscriptDto {
+  @IsString()
+  type: 'master' | 'agent';
+
+  @IsString()
+  transcriptPath: string;
+
+  @IsOptional()
+  @IsString()
+  sessionId?: string;
+
+  @IsOptional()
+  @IsString()
+  componentId?: string;
+
+  @IsOptional()
+  @IsString()
+  agentId?: string;
+}
+
+/**
  * DTO for responding to approval
  * ST-148: Approval Gates - REST endpoint for frontend
  */
@@ -408,5 +432,25 @@ export class RunnerController {
       ...dto,
     });
     return result;
+  }
+
+  // ========================================
+  // ST-189: Transcript Registration Endpoints
+  // ========================================
+
+  /**
+   * Register transcript for Docker Runner
+   * ST-189: Updates masterTranscriptPaths or spawnedAgentTranscripts
+   *
+   * This endpoint mirrors what TranscriptRegistrationService.registerForLiveStreaming()
+   * does, but callable via HTTP from Docker Runner's BackendClient.
+   */
+  @Post('workflow-runs/:runId/transcripts')
+  @HttpCode(HttpStatus.OK)
+  async registerTranscript(
+    @Param('runId') runId: string,
+    @Body() dto: RegisterTranscriptDto,
+  ): Promise<{ success: boolean; type: string; transcriptPath: string; error?: string }> {
+    return await this.runnerService.registerTranscript(runId, dto);
   }
 }
