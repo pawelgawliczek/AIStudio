@@ -23,7 +23,7 @@ export const workflowService = {
    * List all teams/workflows for a project
    */
   async listTeams(projectId: string): Promise<Team[]> {
-    const response = await apiClient.get<Team[]>(`/api/projects/${projectId}/workflows`);
+    const response = await apiClient.get<Team[]>(`/projects/${projectId}/workflows`);
     return response.data;
   },
 
@@ -32,7 +32,7 @@ export const workflowService = {
    */
   async executeStoryWithTeam(storyId: string, teamId: string): Promise<ExecuteStoryResponse> {
     const response = await apiClient.post<ExecuteStoryResponse>(
-      `/api/stories/${storyId}/execute`,
+      `/stories/${storyId}/execute`,
       { workflowId: teamId }
     );
     return response.data;
