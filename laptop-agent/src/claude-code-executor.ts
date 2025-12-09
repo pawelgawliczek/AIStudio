@@ -284,9 +284,8 @@ export class ClaudeCodeExecutor extends EventEmitter {
       args.push('--allowedTools', allowedTools.join(','));
     }
 
-    // Prompt (via --prompt flag or stdin)
-    // We use stdin for the prompt to avoid shell escaping issues
-    args.push('--prompt', '-'); // Read prompt from stdin
+    // Prompt is passed via stdin (written in execute() method)
+    // Claude Code reads from stdin by default when using --print mode
 
     console.log(`[ST-160] Execution type: ${executionType}, args: ${args.join(' ')}`);
 
