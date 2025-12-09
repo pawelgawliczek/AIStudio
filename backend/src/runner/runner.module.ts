@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
+import { RemoteAgentModule } from '../remote-agent/remote-agent.module';
 import { ApprovalService } from './approval.service';
 import { BreakpointService } from './breakpoint.service';
 import { RunnerControlService } from './runner-control.service';
@@ -15,9 +16,13 @@ import { RunnerService } from './runner.service';
  * - Breakpoint management (ST-146)
  * - Approval gates (ST-148)
  * - Workflow control (ST-195)
+ * - Laptop orchestrator execution (ST-195 Option B)
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [
+    PrismaModule,
+    forwardRef(() => RemoteAgentModule), // ST-195: For laptop orchestrator
+  ],
   controllers: [RunnerController],
   providers: [RunnerService, BreakpointService, ApprovalService, RunnerControlService],
   exports: [RunnerService, BreakpointService, ApprovalService, RunnerControlService],

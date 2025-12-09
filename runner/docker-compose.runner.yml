@@ -1,6 +1,8 @@
 # Docker Compose for Story Runner
 # Use: docker compose -f docker-compose.runner.yml up
-# ST-195: Updated to use aistudio-network for production deployment
+# ST-195: This file is DEPRECATED - workflow execution now uses laptop orchestrator
+# The backend delegates to the laptop agent via RemoteExecutionService instead of spawning Docker.
+# This file is kept for reference but should not be used in production.
 
 version: '3.8'
 
@@ -20,7 +22,7 @@ services:
       - RUNNER_MAX_TOKEN_BUDGET=${RUNNER_MAX_TOKEN_BUDGET:-500000}
       - RUNNER_MAX_AGENT_SPAWNS=${RUNNER_MAX_AGENT_SPAWNS:-20}
       - RUNNER_MAX_RUN_DURATION=${RUNNER_MAX_RUN_DURATION:-7200000}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # NOTE: ANTHROPIC_API_KEY removed - laptop orchestrator has Claude Code configured
     volumes:
       # Mount workspace for Claude Code access
       - ${WORKSPACE_PATH:-./workspace}:/workspace:rw

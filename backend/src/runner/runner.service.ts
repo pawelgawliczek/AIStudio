@@ -1,7 +1,7 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { Prisma, RunStatus } from '@prisma/client';
-import { spawn } from 'child_process';
 import { PrismaService } from '../prisma/prisma.service';
+import { RemoteExecutionService } from '../remote-agent/remote-execution.service';
 
 /**
  * Checkpoint data structure
@@ -55,7 +55,11 @@ export interface RunnerStatus {
 export class RunnerService {
   private readonly logger = new Logger(RunnerService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => RemoteExecutionService))
+    private remoteExecution: RemoteExecutionService,
+  ) {}
 
   /**
    * Save checkpoint to database
@@ -364,14 +368,18 @@ export class RunnerService {
   }
 
   /**
-   * Launch Docker Runner for a workflow run (ST-195)
-   * Spawns the Story Runner Docker container to execute the workflow
+   * Launch Laptop Orchestrator for a workflow run (ST-195 Option B)
+   * Sends a Claude Code job to the laptop agent to orchestrate the workflow
+   * using the get_current_step → advance_step pattern.
+   *
+   * This replaces Docker Runner with laptop-based execution.
+   * No ANTHROPIC_API_KEY needed on KVM - laptop has Claude Code configured.
    *
    * @param runId - WorkflowRun ID
    * @param workflowId - Workflow ID
    * @param storyId - Optional Story ID for context
    * @param triggeredBy - User/agent that triggered the run
-   * @returns Launch result with command details
+   * @returns Launch result
    */
   async launchDockerRunner(params: {
     runId: string;
@@ -384,56 +392,98 @@ export class RunnerService {
     workflowId: string;
     storyId?: string;
     message: string;
-    command?: string;
+    jobId?: string;
+    agentId?: string;
   }> {
     const { runId, workflowId, storyId, triggeredBy = 'web-ui' } = params;
 
-    this.logger.log(`[ST-195] Launching Docker Runner for run ${runId}`);
+    this.logger.log(`[ST-195] Launching Laptop Orchestrator for run ${runId}`);
 
-    // Build Docker command (same as start_runner.ts MCP tool)
-    const args = [
-      'compose',
-      '-f', 'runner/docker-compose.runner.yml',
-      'run',
-      '--rm',
-      '-d', // Run in detached mode (background)
-      'runner',
-      'start',
-      '--run-id', runId,
-      '--workflow-id', workflowId,
-    ];
-
+    // Get story details for context
+    let storyContext: Record<string, unknown> | undefined;
     if (storyId) {
-      args.push('--story-id', storyId);
+      const story = await this.prisma.story.findUnique({
+        where: { id: storyId },
+        select: { id: true, key: true, title: true, description: true },
+      });
+      if (story) {
+        storyContext = {
+          storyId: story.id,
+          storyKey: story.key,
+          title: story.title,
+          description: story.description,
+        };
+      }
     }
 
-    args.push('--triggered-by', triggeredBy);
-
-    // Use PROJECT_PATH env var or default to where runner is mounted in docker-compose.yml
-    const projectPath = process.env.PROJECT_PATH || '/opt/stack/AIStudio';
-    const command = `docker ${args.join(' ')}`;
-
-    this.logger.log(`[ST-195] Environment: PROJECT_PATH=${process.env.PROJECT_PATH || 'not set'}`);
-    this.logger.log(`[ST-195] Using project path: ${projectPath}`);
-
-    this.logger.log(`[ST-195] Spawning Docker Runner: ${command}`);
-    this.logger.log(`[ST-195] Working directory: ${projectPath}`);
+    // Build orchestrator instructions
+    const instructions = this.buildOrchestratorInstructions(runId, workflowId, storyId);
 
     try {
-      // Spawn Docker process in detached mode
-      const dockerProcess = spawn('docker', args, {
-        cwd: projectPath,
-        stdio: 'pipe',
-        detached: true,
-      });
+      // Create a "virtual" component for the orchestrator
+      // We use "orchestrator" as the componentId since this is workflow-level
+      const result = await this.remoteExecution.executeClaudeAgent(
+        {
+          componentId: `orchestrator-${runId}`,
+          stateId: 'orchestrator',
+          workflowRunId: runId,
+          instructions,
+          storyContext,
+          allowedTools: [
+            // MCP tools the orchestrator needs
+            'mcp__vibestudio__get_current_step',
+            'mcp__vibestudio__advance_step',
+            'mcp__vibestudio__record_agent_start',
+            'mcp__vibestudio__record_agent_complete',
+            'mcp__vibestudio__get_runner_status',
+            'mcp__vibestudio__get_component_context',
+            'mcp__vibestudio__upload_artifact',
+            // Task tool for spawning component agents
+            'Task',
+            // File tools for reading/writing
+            'Read',
+            'Glob',
+            'Grep',
+            'Edit',
+            'Write',
+            'Bash',
+          ],
+          model: 'claude-sonnet-4-20250514',
+          maxTurns: 200, // High limit for multi-state workflows
+          projectPath: process.env.PROJECT_HOST_PATH || '/Users/pawelgawliczek/projects/AIStudio',
+        },
+        `orchestrator-${runId}`,
+        triggeredBy,
+      );
 
-      // Don't wait for the process, let it run in background
-      dockerProcess.unref();
+      // Check if agent is offline
+      if ('agentOffline' in result && result.agentOffline) {
+        this.logger.warn(`[ST-195] No laptop agent available for orchestration`);
 
-      // Capture any immediate errors
-      dockerProcess.on('error', (error) => {
-        this.logger.error(`[ST-195] Docker spawn error: ${error.message}`, error.stack);
-      });
+        // Update run status to failed
+        await this.prisma.workflowRun.update({
+          where: { id: runId },
+          data: {
+            status: 'failed',
+            finishedAt: new Date(),
+            metadata: {
+              error: 'No laptop agent available',
+              offlineFallback: result.offlineFallback,
+            } as any,
+          },
+        });
+
+        return {
+          success: false,
+          runId,
+          workflowId,
+          storyId,
+          message: `No laptop agent available. Please ensure your laptop agent is running.`,
+        };
+      }
+
+      // At this point, result is the success type (ClaudeCodeExecutionResult)
+      const successResult = result as { jobId: string; agentId: string };
 
       // Update run status to running
       await this.prisma.workflowRun.update({
@@ -444,18 +494,19 @@ export class RunnerService {
         },
       });
 
-      this.logger.log(`[ST-195] Docker Runner launched successfully for run ${runId}`);
+      this.logger.log(`[ST-195] Laptop Orchestrator launched successfully for run ${runId}`);
 
       return {
         success: true,
         runId,
         workflowId,
         storyId,
-        message: `Docker Runner started. Use get_runner_status to monitor progress.`,
-        command,
+        message: `Workflow orchestration started on laptop. Use get_runner_status to monitor progress.`,
+        jobId: successResult.jobId,
+        agentId: successResult.agentId,
       };
     } catch (error) {
-      this.logger.error(`[ST-195] Failed to launch Docker Runner: ${error.message}`, error.stack);
+      this.logger.error(`[ST-195] Failed to launch Laptop Orchestrator: ${error.message}`, error.stack);
 
       // Update run status to failed
       await this.prisma.workflowRun.update({
@@ -471,8 +522,67 @@ export class RunnerService {
         runId,
         workflowId,
         storyId,
-        message: `Failed to launch Docker Runner: ${error.message}`,
+        message: `Failed to launch Laptop Orchestrator: ${error.message}`,
       };
     }
+  }
+
+  /**
+   * Build orchestrator instructions for Claude Code on laptop
+   * These instructions tell Claude to use the get_current_step pattern
+   */
+  private buildOrchestratorInstructions(runId: string, workflowId: string, storyId?: string): string {
+    return `You are the **Story Runner Orchestrator** for workflow run \`${runId}\`.
+
+## Your Mission
+Execute the workflow from start to completion by repeatedly calling \`get_current_step\` and following its instructions.
+
+## Workflow Loop
+Repeat until workflow is complete:
+
+1. **Get Current Step**
+   \`\`\`
+   get_current_step({ runId: "${runId}" })
+   \`\`\`
+   This returns:
+   - \`currentState\`: Name and phase (pre/agent/post)
+   - \`workflowSequence\`: Array of exact MCP tool calls to execute
+   - \`progress\`: How many states completed
+
+2. **Execute the Sequence**
+   Follow each step in \`workflowSequence\` exactly:
+   - For MCP tool calls: Use the specified tool with exact parameters
+   - For "Task" tool calls: Spawn the component agent as instructed
+   - For agent phases: Wait for agent to complete, then call record_agent_complete
+
+3. **Advance to Next Phase**
+   After completing current phase:
+   \`\`\`
+   advance_step({ runId: "${runId}" })
+   \`\`\`
+
+4. **Check for Completion**
+   When \`get_current_step\` returns \`workflow_complete: true\`, the workflow is done.
+
+## Status Monitoring
+Before each phase, check if the run was paused or cancelled:
+\`\`\`
+get_runner_status({ runId: "${runId}" })
+\`\`\`
+- If status is "paused": Wait and check again in 30 seconds
+- If status is "cancelled" or "failed": Stop execution immediately
+
+## Important Rules
+1. **Follow workflowSequence exactly** - Don't skip or modify steps
+2. **One phase at a time** - Complete pre → agent → post before advancing
+3. **Report progress** - Use record_agent_start/complete for agent phases
+4. **Handle errors gracefully** - If an agent fails, report it and continue or pause
+
+## Context
+- Workflow ID: ${workflowId}
+${storyId ? `- Story ID: ${storyId}` : ''}
+- You have access to all VibeStudio MCP tools for workflow orchestration
+
+Begin by calling \`get_current_step({ runId: "${runId}" })\` to see the first state to execute.`;
   }
 }
