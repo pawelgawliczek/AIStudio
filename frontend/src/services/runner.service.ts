@@ -50,25 +50,25 @@ export const runnerService = {
    * GET /api/runner/:runId/status
    */
   async getStatus(runId: string): Promise<RunnerStatus> {
-    const response = await apiClient.get<RunnerStatus>(`/api/runner/${runId}/status`);
+    const response = await apiClient.get<RunnerStatus>(`/runner/${runId}/status`);
     return response.data;
   },
 
   /**
    * Start workflow run
-   * POST /api/runner/:runId/start
+   * POST /runner/:runId/start
    */
   async startRunner(runId: string, params: StartRunnerParams): Promise<RunnerResponse> {
-    const response = await apiClient.post<RunnerResponse>(`/api/runner/${runId}/start`, params);
+    const response = await apiClient.post<RunnerResponse>(`/runner/${runId}/start`, params);
     return response.data;
   },
 
   /**
    * Pause workflow run
-   * POST /api/runner/:runId/pause
+   * POST /runner/:runId/pause
    */
   async pauseRunner(runId: string, reason?: string): Promise<RunnerResponse> {
-    const response = await apiClient.post<RunnerResponse>(`/api/runner/${runId}/pause`, {
+    const response = await apiClient.post<RunnerResponse>(`/runner/${runId}/pause`, {
       reason,
     });
     return response.data;
@@ -76,28 +76,28 @@ export const runnerService = {
 
   /**
    * Resume paused workflow run
-   * POST /api/runner/:runId/resume
+   * POST /runner/:runId/resume
    */
   async resumeRunner(runId: string): Promise<RunnerResponse> {
-    const response = await apiClient.post<RunnerResponse>(`/api/runner/${runId}/resume`, {});
+    const response = await apiClient.post<RunnerResponse>(`/runner/${runId}/resume`, {});
     return response.data;
   },
 
   /**
    * Repeat current step with feedback
-   * POST /api/runner/:runId/repeat
+   * POST /runner/:runId/repeat
    */
   async repeatStep(runId: string, params: RepeatStepParams): Promise<RunnerResponse> {
-    const response = await apiClient.post<RunnerResponse>(`/api/runner/${runId}/repeat`, params);
+    const response = await apiClient.post<RunnerResponse>(`/runner/${runId}/repeat`, params);
     return response.data;
   },
 
   /**
    * Advance to next phase or skip to state
-   * POST /api/runner/:runId/advance
+   * POST /runner/:runId/advance
    */
   async advanceStep(runId: string, params: AdvanceStepParams): Promise<RunnerResponse> {
-    const response = await apiClient.post<RunnerResponse>(`/api/runner/${runId}/advance`, params);
+    const response = await apiClient.post<RunnerResponse>(`/runner/${runId}/advance`, params);
     return response.data;
   },
 };

@@ -174,7 +174,7 @@ export const testExecutionService = {
       days: days.toString(),
       threshold: threshold.toString(),
     });
-    const response = await apiClient.get(`/api/test-executions/analytics/flaky-tests?${params.toString()}`);
+    const response = await apiClient.get(`/test-executions/analytics/flaky-tests?${params.toString()}`);
     return response.data;
   },
 
@@ -186,7 +186,7 @@ export const testExecutionService = {
       projectId,
       limit: limit.toString(),
     });
-    const response = await apiClient.get(`/api/test-executions/analytics/slow-tests?${params.toString()}`);
+    const response = await apiClient.get(`/test-executions/analytics/slow-tests?${params.toString()}`);
     return response.data;
   },
 
@@ -198,7 +198,7 @@ export const testExecutionService = {
       projectId,
       days: days.toString(),
     });
-    const response = await apiClient.get(`/api/test-executions/analytics/trends?${params.toString()}`);
+    const response = await apiClient.get(`/test-executions/analytics/trends?${params.toString()}`);
     return response.data;
   },
 };
