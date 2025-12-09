@@ -170,29 +170,33 @@ export class SkottAnalyzer {
   /**
    * Extract import statements from source code
    * Handles: ES6 imports, CommonJS requires, dynamic imports, re-exports
+   *
+   * Note: We don't do strict syntax validation here - just extract what we can.
+   * Invalid syntax will be caught by TypeScript/ESLint during build.
    */
   private extractImports(content: string): string[] {
     const imports = new Set<string>();
 
-    // Basic syntax validation - check for common parse errors
-    // If we find malformed import statements, throw error for graceful degradation
-    const malformedImports = [
-      /import\s+\{[^}]*from[^}]*['"]/, // Unclosed brace before 'from'
-      /import\s+\{[^}]*$/m, // Unclosed brace at end of line
-    ];
+    // Removed overly strict "malformed import" validation that was incorrectly
+    // rejecting valid multi-line imports like:
+    //   import {
+    //     Foo,
+    //     Bar,
+    //   } from 'module';
+    // The old regex /import\s+\{[^}]*$/m with /m flag matched end-of-line,
+    // so it saw "import {" at end of line 1 and thought it was malformed.
 
-    for (const regex of malformedImports) {
-      if (regex.test(content)) {
-        throw new Error('Malformed import statement detected');
-      }
-    }
-
-    // ES6 import patterns
+    // ES6 import patterns (now handles multi-line imports)
     // import { x } from 'module'
     // import x from 'module'
     // import * from 'module'
     // import type { x } from 'module'
-    const es6ImportRegex = /import\s+(?:type\s+)?(?:\{[^}]*\}|[\w*]+|\*)\s+from\s+['"]([^'"]+)['"]/g;
+    // import {
+    //   x,
+    //   y,
+    // } from 'module'
+    // Using [\s\S] instead of . to match newlines inside braces
+    const es6ImportRegex = /import\s+(?:type\s+)?(?:\{[\s\S]*?\}|[\w*]+|\*)\s+from\s+['"]([^'"]+)['"]/g;
     let match;
     while ((match = es6ImportRegex.exec(content)) !== null) {
       imports.add(match[1]);
@@ -204,9 +208,10 @@ export class SkottAnalyzer {
       imports.add(match[1]);
     }
 
-    // Re-exports: export { x } from 'module'
+    // Re-exports (now handles multi-line): export { x } from 'module'
     // Also handles: export type { x } from 'module'
-    const reExportRegex = /export\s+(?:type\s+)?(?:\{[^}]*\}|\*)\s+from\s+['"]([^'"]+)['"]/g;
+    // Using [\s\S] instead of [^}] to match newlines inside braces
+    const reExportRegex = /export\s+(?:type\s+)?(?:\{[\s\S]*?\}|\*)\s+from\s+['"]([^'"]+)['"]/g;
     while ((match = reExportRegex.exec(content)) !== null) {
       imports.add(match[1]);
     }

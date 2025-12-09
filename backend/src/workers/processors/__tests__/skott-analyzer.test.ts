@@ -174,7 +174,7 @@ import crypto from 'crypto';
     });
 
     describe('Error handling and graceful degradation', () => {
-      it('should return empty arrays on parse error (invalid syntax)', async () => {
+      it('should return empty arrays for files with no valid imports (invalid syntax)', async () => {
         const fileContent = `
 this is not valid typescript {{{
 import { broken from 'syntax';
@@ -184,12 +184,15 @@ import { broken from 'syntax';
         const result = await analyzer.analyzeFile(fileContent, filePath);
 
         // Should NOT throw error - graceful degradation
+        // Just returns empty arrays for content that doesn't match import patterns
         expect(result.filePath).toBe(filePath);
         expect(result.imports).toEqual([]);
         expect(result.externalDependencies).toEqual([]);
         expect(result.internalDependencies).toEqual([]);
         expect(result.importedBy).toEqual([]);
-        expect(result.parseError).toBe(true);
+        // We no longer set parseError for regex non-matches
+        // TypeScript/ESLint will catch actual syntax errors during build
+        expect(result.parseError).toBe(false);
       });
 
       it('should handle files with no imports', async () => {
@@ -557,8 +560,8 @@ import { Logger } from '@nestjs/common';
     expect(Array.isArray(result.imports)).toBe(true);
   });
 
-  it('should fallback to regex parsing if Skott fails', async () => {
-    // Intentionally malformed TypeScript that might break Skott
+  it('should handle malformed imports gracefully (regex non-match)', async () => {
+    // Intentionally malformed TypeScript that doesn't match import patterns
     const fileContent = `
 import { broken from 'syntax
 export const x = {{{
@@ -568,8 +571,9 @@ export const x = {{{
     const result = await analyzer.analyzeFile(fileContent, filePath);
 
     // Should still return a result (graceful degradation)
+    // Just returns empty arrays for content that doesn't match import patterns
     expect(result.filePath).toBe(filePath);
-    expect(result.parseError).toBe(true);
+    expect(result.parseError).toBe(false);  // No error - just no matches
     expect(result.imports).toEqual([]);
   });
 });
