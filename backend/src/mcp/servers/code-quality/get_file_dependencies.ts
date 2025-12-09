@@ -76,9 +76,11 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
   }
 
   // Extract dependency info from metadata
+  // ST-196: Data is stored under metadata.dependencies by SkottAnalyzer
   const metadata = (fileMetric.metadata as any) || {};
-  const imports = metadata.imports || [];
-  const importedBy = metadata.importedBy || [];
+  const deps = metadata.dependencies || {};
+  const imports = deps.imports || [];
+  const importedBy = deps.importedBy || [];
 
   // Categorize imports
   const externalDeps = imports.filter((imp: string) =>
