@@ -57,9 +57,17 @@ export class RunnerControlService {
       throw new ForbiddenException('Access denied to this workflow run');
     }
 
-    // M2: Validation - Check run is not already running
-    if (run.status === 'running') {
-      throw new BadRequestException('Workflow run is already running');
+    // M2: Validation - Check there's no active laptop job for this run
+    // Note: We allow 'running' status because start_team_run sets it, but we check
+    // if there's already an active RemoteJob to prevent double-dispatch
+    const existingJob = await this.prisma.remoteJob.findFirst({
+      where: {
+        workflowRunId: runId,
+        status: { in: ['pending', 'running'] },
+      },
+    });
+    if (existingJob) {
+      throw new BadRequestException('Workflow run already has an active laptop orchestrator job');
     }
 
     // ST-195: Launch laptop orchestrator via RunnerService
