@@ -12,9 +12,9 @@ import {
 import * as jwt from 'jsonwebtoken';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { StreamEventService } from './stream-event.service';
 import { TranscriptRegistrationService } from './transcript-registration.service';
-import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 
 /**
  * ST-160: Native subagent execution types
@@ -85,6 +85,7 @@ export interface ClaudeCodeCompleteEvent {
     totalTokens: number;
   };
   transcriptPath?: string;
+  sessionId?: string; // ST-195: Actual Claude Code session ID for transcript matching
   error?: string;
 }
 
@@ -525,6 +526,39 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           },
         });
         this.logger.log(`[ST-160] Session ID captured for job ${data.jobId}: ${sessionId}`);
+
+        // ST-195: Update WorkflowRun metadata with actual sessionId for transcript matching
+        // This is critical for the TranscriptWatcher to match new transcripts to workflows
+        const workflowRun = await this.prisma.workflowRun.findUnique({
+          where: { id: job.workflowRunId },
+          select: { metadata: true },
+        });
+
+        if (workflowRun) {
+          const existingMetadata = (workflowRun.metadata as any) || {};
+          const existingTracking = existingMetadata._transcriptTracking || {};
+
+          // Update sessionId - transcriptPath will be added by TranscriptWatcher when detected
+          const updatedTracking = {
+            ...existingTracking,
+            sessionId, // Replace pre-generated sessionId with actual one from Claude Code
+            actualSessionId: sessionId,
+          };
+
+          await this.prisma.workflowRun.update({
+            where: { id: job.workflowRunId },
+            data: {
+              metadata: {
+                ...existingMetadata,
+                _transcriptTracking: updatedTracking,
+              },
+            },
+          });
+
+          this.logger.log(
+            `[ST-195] Updated WorkflowRun ${job.workflowRunId} with actual sessionId=${sessionId}`,
+          );
+        }
       }
     }
 
@@ -671,6 +705,49 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
             agentDisconnectedAt: null,
           },
         });
+
+        // ST-195: Update WorkflowRun metadata with actual sessionId and transcriptPath
+        // This fixes transcript streaming by using Claude Code's actual session ID
+        if (data.sessionId || data.transcriptPath) {
+          const workflowRun = await this.prisma.workflowRun.findUnique({
+            where: { id: job.workflowRunId },
+            select: { metadata: true, masterTranscriptPaths: true },
+          });
+
+          if (workflowRun) {
+            const existingMetadata = (workflowRun.metadata as any) || {};
+            const existingTracking = existingMetadata._transcriptTracking || {};
+
+            // Update metadata with actual session info
+            const updatedTracking = {
+              ...existingTracking,
+              ...(data.sessionId && { sessionId: data.sessionId }),
+              ...(data.transcriptPath && { transcriptPath: data.transcriptPath }),
+              actualSessionId: data.sessionId, // Store explicitly as actualSessionId
+            };
+
+            // Add transcriptPath to masterTranscriptPaths if not already there
+            const existingPaths = workflowRun.masterTranscriptPaths || [];
+            const updatedPaths = data.transcriptPath && !existingPaths.includes(data.transcriptPath)
+              ? [...existingPaths, data.transcriptPath]
+              : existingPaths;
+
+            await this.prisma.workflowRun.update({
+              where: { id: job.workflowRunId },
+              data: {
+                metadata: {
+                  ...existingMetadata,
+                  _transcriptTracking: updatedTracking,
+                },
+                masterTranscriptPaths: updatedPaths,
+              },
+            });
+
+            this.logger.log(
+              `ST-195: Updated WorkflowRun ${job.workflowRunId} with actual sessionId=${data.sessionId}, path=${data.transcriptPath}`,
+            );
+          }
+        }
       }
 
       // ST-168: Upload transcript when agent completes (Story Runner integration)

@@ -487,6 +487,7 @@ export class RemoteAgent {
         output: result.output,
         metrics: result.metrics,
         transcriptPath: result.transcriptPath,
+        sessionId: result.sessionId, // ST-195: Include actual sessionId for transcript matching
         error: result.error,
       });
     } catch (error: any) {
