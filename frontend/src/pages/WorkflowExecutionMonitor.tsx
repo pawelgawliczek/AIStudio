@@ -555,7 +555,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
             <WorkflowControlPanel
               runId={runId}
               variant="header"
-              states={workflowRun.states || []}
+              states={workflowRun?.states || []}
               onStatusChange={() => refetch()}
             />
           </Box>
