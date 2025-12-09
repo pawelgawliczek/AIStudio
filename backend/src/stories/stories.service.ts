@@ -4,9 +4,11 @@ import {
   BadRequestException,
   ForbiddenException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { StoryStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RunnerService } from '../runner/runner.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import {
   CreateStoryDto,
@@ -34,9 +36,12 @@ const STORY_WORKFLOW: Record<StoryStatus, StoryStatus[]> = {
 
 @Injectable()
 export class StoriesService {
+  private readonly logger = new Logger(StoriesService.name);
+
   constructor(
     private prisma: PrismaService,
     private wsGateway: AppWebSocketGateway,
+    private runnerService: RunnerService,
   ) {}
 
   /**
@@ -808,10 +813,20 @@ export class StoriesService {
       });
     }
 
+    // Launch Docker Runner to execute the workflow (ST-195)
+    this.logger.log(`[ST-195] Launching Docker Runner for story ${story.key}, run ${workflowRun.id}`);
+    const launchResult = await this.runnerService.launchDockerRunner({
+      runId: workflowRun.id,
+      workflowId: workflow.id,
+      storyId: story.id,
+      triggeredBy,
+    });
+
     return {
       runId: workflowRun.id,
       workflowId: workflow.id,
-      status: workflowRun.status,
+      status: launchResult.success ? 'running' : 'failed',
+      message: launchResult.message,
     };
   }
 }

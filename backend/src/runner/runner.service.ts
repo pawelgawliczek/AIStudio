@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, RunStatus } from '@prisma/client';
+import { spawn } from 'child_process';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -359,6 +360,115 @@ export class RunnerService {
     } catch (error) {
       this.logger.error(`[ST-189] Failed to register transcript: ${error.message}`, error.stack);
       return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: error.message };
+    }
+  }
+
+  /**
+   * Launch Docker Runner for a workflow run (ST-195)
+   * Spawns the Story Runner Docker container to execute the workflow
+   *
+   * @param runId - WorkflowRun ID
+   * @param workflowId - Workflow ID
+   * @param storyId - Optional Story ID for context
+   * @param triggeredBy - User/agent that triggered the run
+   * @returns Launch result with command details
+   */
+  async launchDockerRunner(params: {
+    runId: string;
+    workflowId: string;
+    storyId?: string;
+    triggeredBy?: string;
+  }): Promise<{
+    success: boolean;
+    runId: string;
+    workflowId: string;
+    storyId?: string;
+    message: string;
+    command?: string;
+  }> {
+    const { runId, workflowId, storyId, triggeredBy = 'web-ui' } = params;
+
+    this.logger.log(`[ST-195] Launching Docker Runner for run ${runId}`);
+
+    // Build Docker command (same as start_runner.ts MCP tool)
+    const args = [
+      'compose',
+      '-f', 'runner/docker-compose.runner.yml',
+      'run',
+      '--rm',
+      '-d', // Run in detached mode (background)
+      'runner',
+      'start',
+      '--run-id', runId,
+      '--workflow-id', workflowId,
+    ];
+
+    if (storyId) {
+      args.push('--story-id', storyId);
+    }
+
+    args.push('--triggered-by', triggeredBy);
+
+    const projectPath = process.env.PROJECT_PATH || '/opt/stack/AIStudio';
+    const command = `docker ${args.join(' ')}`;
+
+    this.logger.log(`[ST-195] Spawning Docker Runner: ${command}`);
+    this.logger.log(`[ST-195] Working directory: ${projectPath}`);
+
+    try {
+      // Spawn Docker process in detached mode
+      const dockerProcess = spawn('docker', args, {
+        cwd: projectPath,
+        stdio: 'pipe',
+        detached: true,
+      });
+
+      // Don't wait for the process, let it run in background
+      dockerProcess.unref();
+
+      // Capture any immediate errors
+      dockerProcess.on('error', (error) => {
+        this.logger.error(`[ST-195] Docker spawn error: ${error.message}`, error.stack);
+      });
+
+      // Update run status to running
+      await this.prisma.workflowRun.update({
+        where: { id: runId },
+        data: {
+          status: 'running',
+          startedAt: new Date(),
+        },
+      });
+
+      this.logger.log(`[ST-195] Docker Runner launched successfully for run ${runId}`);
+
+      return {
+        success: true,
+        runId,
+        workflowId,
+        storyId,
+        message: `Docker Runner started. Use get_runner_status to monitor progress.`,
+        command,
+      };
+    } catch (error) {
+      this.logger.error(`[ST-195] Failed to launch Docker Runner: ${error.message}`, error.stack);
+
+      // Update run status to failed
+      await this.prisma.workflowRun.update({
+        where: { id: runId },
+        data: {
+          status: 'failed',
+          finishedAt: new Date(),
+        },
+      });
+
+      return {
+        success: false,
+        runId,
+        workflowId,
+        storyId,
+        message: `Failed to launch Docker Runner: ${error.message}`,
+      };
     }
   }
 }
