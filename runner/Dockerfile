@@ -1,6 +1,25 @@
 # Story Runner Dockerfile
 # Node.js container with Claude Code CLI for workflow execution
 
+# Stage 1: Builder
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci
+
+# Copy TypeScript config and source
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+# Build TypeScript
+RUN npm run build
+
+# Stage 2: Production
 FROM node:20-slim
 
 # Install dependencies for Claude Code CLI
@@ -19,15 +38,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (--omit=dev for npm 8+)
+# Install production dependencies only
 RUN npm ci --omit=dev
 
-# Copy TypeScript config and source
-COPY tsconfig.json ./
-COPY src/ ./src/
-
-# Build TypeScript
-RUN npm run build
+# Copy built files from builder stage
+COPY --from=builder /app/dist ./dist
 
 # Create non-root user for security
 RUN useradd -m -s /bin/bash runner
