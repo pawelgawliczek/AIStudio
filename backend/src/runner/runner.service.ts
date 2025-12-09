@@ -409,8 +409,12 @@ export class RunnerService {
 
     args.push('--triggered-by', triggeredBy);
 
+    // Use PROJECT_PATH env var or default to where runner is mounted in docker-compose.yml
     const projectPath = process.env.PROJECT_PATH || '/opt/stack/AIStudio';
     const command = `docker ${args.join(' ')}`;
+
+    this.logger.log(`[ST-195] Environment: PROJECT_PATH=${process.env.PROJECT_PATH || 'not set'}`);
+    this.logger.log(`[ST-195] Using project path: ${projectPath}`);
 
     this.logger.log(`[ST-195] Spawning Docker Runner: ${command}`);
     this.logger.log(`[ST-195] Working directory: ${projectPath}`);

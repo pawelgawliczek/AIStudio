@@ -1,5 +1,6 @@
 # Docker Compose for Story Runner
 # Use: docker compose -f docker-compose.runner.yml up
+# ST-195: Updated to use aistudio-network for production deployment
 
 version: '3.8'
 
@@ -11,7 +12,10 @@ services:
     container_name: story-runner
     environment:
       - NODE_ENV=production
-      - RUNNER_BACKEND_URL=${RUNNER_BACKEND_URL:-http://host.docker.internal:3001}
+      # Use backend service name within Docker network (vibe-studio-backend:3000)
+      # For production KVM: backend is accessible at vibe-studio-backend:3000 via aistudio-network
+      # For local dev: use host.docker.internal:3001 (override via env var)
+      - RUNNER_BACKEND_URL=${RUNNER_BACKEND_URL:-http://vibe-studio-backend:3000}
       - RUNNER_WORKING_DIRECTORY=/workspace
       - RUNNER_MAX_TOKEN_BUDGET=${RUNNER_MAX_TOKEN_BUDGET:-500000}
       - RUNNER_MAX_AGENT_SPAWNS=${RUNNER_MAX_AGENT_SPAWNS:-20}
@@ -25,7 +29,7 @@ services:
       # Mount Claude Code config if needed
       - ~/.claude:/home/runner/.claude:ro
     networks:
-      - vibestudio
+      - aistudio-network
     restart: unless-stopped
     # Resource limits
     deploy:
@@ -41,5 +45,7 @@ volumes:
   runner-checkpoints:
 
 networks:
-  vibestudio:
+  # Use the same network as the main application (ST-195)
+  aistudio-network:
     external: true
+    name: aistudio_aistudio-network

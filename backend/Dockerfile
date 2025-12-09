@@ -40,8 +40,8 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install dumb-init, OpenSSL for Prisma, git for code analysis, build tools for native modules,
-# and postgresql-client for backup operations (ST-130)
-RUN apk add --no-cache dumb-init openssl git python3 make g++ postgresql-client
+# postgresql-client for backup operations (ST-130), and docker-cli for spawning Docker Runner (ST-195)
+RUN apk add --no-cache dumb-init openssl git python3 make g++ postgresql-client docker-cli
 
 # Copy package files
 COPY package*.json ./
@@ -63,9 +63,13 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
+# Create non-root user with docker group access for spawning Docker Runner (ST-195)
+# Docker group GID 988 matches production server; adjust if needed via DOCKER_GID build arg
+ARG DOCKER_GID=988
+RUN addgroup -g ${DOCKER_GID} -S docker || true && \
+    addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
+    adduser nodejs docker && \
     chown -R nodejs:nodejs /app
 
 USER nodejs
