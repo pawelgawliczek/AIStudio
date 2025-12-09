@@ -61,8 +61,8 @@ export const MultiRunStatusBar: React.FC = () => {
   const shouldHide =
     settings.autoHide && runs.every((r) => r.status === 'completed' || r.status === 'cancelled' || r.status === 'failed');
 
-  // Always use vertical layout, dynamic height
-  const heightClass = 'min-h-16 max-h-80';
+  // Always use vertical layout, dynamic height (no max-h to allow expansion)
+  const heightClass = 'min-h-16';
 
   // Handlers
   const handleCopyWorktreePath = (path: string) => {
@@ -132,7 +132,7 @@ export const MultiRunStatusBar: React.FC = () => {
       {/* WebSocket connection indicator - hidden since real-time is optional, polling works */}
       {/* Real-time updates via WebSocket are a future enhancement */}
 
-      <div className="flex flex-col gap-2 px-4 overflow-y-auto">
+      <div className="flex flex-col gap-2 px-4">
         <AnimatePresence>
           {visibleRuns.map((run) => (
             <motion.div
