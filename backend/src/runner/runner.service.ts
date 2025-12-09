@@ -420,6 +420,20 @@ export class RunnerService {
     const instructions = this.buildOrchestratorInstructions(runId, workflowId, storyId);
 
     try {
+      // ST-195 FIX: Update status to 'running' BEFORE dispatching to agent
+      // This prevents race condition where agent calls get_current_step before status is updated
+      // Also clear finishedAt and any cancellation metadata from previous run
+      await this.prisma.workflowRun.update({
+        where: { id: runId },
+        data: {
+          status: 'running',
+          startedAt: new Date(),
+          finishedAt: null, // Clear finishedAt from previous cancelled/failed run
+        },
+      });
+
+      this.logger.log(`[ST-195] Status updated to 'running' for run ${runId}`);
+
       // ST-195: Launch orchestrator via laptop agent
       // Note: No ComponentRun needed for orchestrator - it tracks its own metrics via MCP tools
       const result = await this.remoteExecution.executeClaudeAgent(
@@ -485,14 +499,8 @@ export class RunnerService {
       // At this point, result is the success type (ClaudeCodeExecutionResult)
       const successResult = result as { jobId: string; agentId: string };
 
-      // Update run status to running
-      await this.prisma.workflowRun.update({
-        where: { id: runId },
-        data: {
-          status: 'running',
-          startedAt: new Date(),
-        },
-      });
+      // Status was already updated to 'running' BEFORE dispatch (see above)
+      // No need to update again here
 
       this.logger.log(`[ST-195] Laptop Orchestrator launched successfully for run ${runId}`);
 
