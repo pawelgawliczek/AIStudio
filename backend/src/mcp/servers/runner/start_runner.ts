@@ -1,12 +1,14 @@
 /**
  * Start Runner Tool
- * Launches the Story Runner Docker container for a workflow run
+ * Launches the Story Runner for a workflow run via laptop orchestrator
  *
  * ST-145: Story Runner - Terminal First Implementation
  * ST-187: Added story key resolution support
+ * ST-195: Updated to use laptop orchestrator instead of Docker
+ *         Now calls the backend REST endpoint which triggers laptop agent
+ *         via HTTP call (MCP runs as standalone process, cannot access NestJS services)
  */
 
-import { spawn } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { resolveStory, isStoryKey, isUUID } from '../../shared/resolve-identifiers';
@@ -15,9 +17,9 @@ export const tool: Tool = {
   name: 'start_runner',
   description: `Start the Story Runner for a workflow run.
 
-Launches a Docker container that:
+Launches the Story Runner via laptop orchestrator that:
 1. Loads workflow and states from backend
-2. Starts persistent Master CLI session
+2. Starts persistent Master CLI session on laptop agent
 3. Executes states sequentially (pre → agent → post)
 4. Saves checkpoints for crash recovery
 5. Reports status back to backend
@@ -25,7 +27,7 @@ Launches a Docker container that:
 **Prerequisites:**
 - Workflow must have states defined
 - WorkflowRun must exist (use start_team_run first)
-- Docker must be available
+- Laptop agent must be online with claude-code capability
 
 **Usage:**
 \`\`\`typescript
@@ -70,8 +72,8 @@ start_runner({
 export const metadata = {
   category: 'runner',
   domain: 'Story Runner',
-  tags: ['runner', 'start', 'workflow', 'docker'],
-  version: '1.0.0',
+  tags: ['runner', 'start', 'workflow', 'laptop-orchestrator'],
+  version: '2.0.0',
   since: '2025-11-29',
 };
 
@@ -83,7 +85,7 @@ export async function handler(prisma: PrismaClient, params: {
   triggeredBy?: string;
   detached?: boolean;
 }) {
-  const { runId, workflowId, triggeredBy = 'mcp-tool', detached = true } = params;
+  const { runId, workflowId, triggeredBy = 'mcp-tool' } = params;
 
   // ST-187: Resolve story key to UUID if provided
   let storyId: string | undefined;
@@ -128,91 +130,61 @@ export async function handler(prisma: PrismaClient, params: {
     throw new Error(`WorkflowRun not found: ${runId}`);
   }
 
-  // Build Docker command
-  const args = [
-    'compose',
-    '-f', 'runner/docker-compose.runner.yml',
-    'run',
-    '--rm',
-  ];
+  // ST-195: Call the backend REST endpoint via HTTP
+  // MCP runs as standalone process, cannot access NestJS services directly
+  // The REST endpoint triggers laptop orchestrator via RunnerControlService
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
 
-  if (detached) {
-    args.push('-d');
-  }
+  try {
+    const response = await fetch(`${backendUrl}/api/runner/${runId}/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        workflowId,
+        storyId,
+        triggeredBy,
+      }),
+    });
 
-  args.push(
-    'runner',
-    'start',
-    '--run-id', runId,
-    '--workflow-id', workflowId,
-  );
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Backend API error (${response.status}): ${errorText}`);
+    }
 
-  if (storyId) {
-    args.push('--story-id', storyId);
-  }
+    const result = await response.json() as {
+      success: boolean;
+      runId: string;
+      status: string;
+      message?: string;
+      jobId?: string;
+      agentId?: string;
+    };
 
-  args.push('--triggered-by', triggeredBy);
-
-  // Spawn Docker process
-  const dockerProcess = spawn('docker', args, {
-    cwd: process.env.PROJECT_PATH || '/opt/stack/AIStudio',
-    stdio: 'pipe',
-    detached: detached,
-  });
-
-  // Update run status
-  await prisma.workflowRun.update({
-    where: { id: runId },
-    data: {
-      status: 'running',
-      startedAt: new Date(),
-    },
-  });
-
-  if (detached) {
-    // For detached mode, return immediately
     return {
-      success: true,
-      runId,
+      success: result.success,
+      runId: result.runId,
       workflowId,
       storyId,
-      status: 'started',
-      message: `Story Runner started for run ${runId}. Use get_runner_status to monitor progress.`,
-      command: `docker ${args.join(' ')}`,
+      status: result.status,
+      message: result.message,
+      jobId: result.jobId,
+      agentId: result.agentId,
     };
+  } catch (error) {
+    // If HTTP call fails, provide helpful error message
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Check if it's a connection error (backend not reachable)
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed')) {
+      throw new Error(
+        `Cannot connect to backend at ${backendUrl}. ` +
+        `Ensure backend is running and BACKEND_URL is set correctly. ` +
+        `Original error: ${errorMessage}`
+      );
+    }
+
+    throw error;
   }
-
-  // For attached mode, wait for completion
-  return new Promise((resolve, reject) => {
-    let stdout = '';
-    let stderr = '';
-
-    dockerProcess.stdout?.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    dockerProcess.stderr?.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    dockerProcess.on('exit', async (code) => {
-      if (code === 0) {
-        resolve({
-          success: true,
-          runId,
-          workflowId,
-          storyId,
-          status: 'completed',
-          message: `Story Runner completed successfully`,
-          stdout,
-        });
-      } else {
-        reject(new Error(`Story Runner failed with code ${code}: ${stderr}`));
-      }
-    });
-
-    dockerProcess.on('error', (error) => {
-      reject(new Error(`Failed to start Story Runner: ${error.message}`));
-    });
-  });
 }

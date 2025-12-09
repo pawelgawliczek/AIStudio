@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RunnerService } from './runner.service';
 
 /**
  * RunnerControlService
@@ -7,22 +8,32 @@ import { PrismaService } from '../prisma/prisma.service';
  *
  * Service to wrap MCP tool handlers for workflow runner control.
  * Provides REST-friendly methods with authorization and validation.
+ *
+ * ST-195 Update: Now delegates to RunnerService.launchDockerRunner() which
+ * uses the laptop orchestrator instead of Docker.
  */
 @Injectable()
 export class RunnerControlService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(RunnerControlService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly runnerService: RunnerService,
+  ) {}
 
   /**
    * Start a workflow run (maps to start_runner MCP tool)
    * M1: Authorization - Check user has access to project
    * M2: Validation - Validate run exists and is not already running
+   *
+   * ST-195: Now launches laptop orchestrator via RunnerService.launchDockerRunner()
    */
   async startRunner(
     runId: string,
     workflowId: string,
     storyId?: string,
     triggeredBy?: string,
-  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string; jobId?: string; agentId?: string }> {
     // Fetch run with workflow and project
     const run = await this.prisma.workflowRun.findUnique({
       where: { id: runId },
@@ -51,20 +62,23 @@ export class RunnerControlService {
       throw new BadRequestException('Workflow run is already running');
     }
 
-    // Update run status to running
-    const updatedRun = await this.prisma.workflowRun.update({
-      where: { id: runId },
-      data: {
-        status: 'running',
-        triggeredBy: triggeredBy || 'mcp-user',
-      },
+    // ST-195: Launch laptop orchestrator via RunnerService
+    this.logger.log(`[ST-195] Starting workflow run ${runId} via laptop orchestrator`);
+
+    const result = await this.runnerService.launchDockerRunner({
+      runId,
+      workflowId,
+      storyId,
+      triggeredBy: triggeredBy || 'mcp-user',
     });
 
     return {
-      success: true,
-      runId: updatedRun.id,
-      status: updatedRun.status,
-      message: 'Workflow run started successfully',
+      success: result.success,
+      runId: result.runId,
+      status: result.success ? 'running' : 'failed',
+      message: result.message,
+      jobId: result.jobId,
+      agentId: result.agentId,
     };
   }
 
