@@ -105,6 +105,13 @@ export function StoryDetailPage() {
     });
   };
 
+  // Navigate to full monitor page when Live Feed is clicked
+  const handleViewLiveFeed = (componentRunId: string) => {
+    if (latestWorkflowRunId) {
+      navigate(`/team-runs/${latestWorkflowRunId}/monitor`);
+    }
+  };
+
   const loadStory = async () => {
     if (!storyIdOrKey || storyIdOrKey === 'new') {
       setIsLoading(false);  // Set loading to false for 'new' story creation
@@ -463,6 +470,7 @@ export function StoryDetailPage() {
                         onStateClick={(stateId) => {
                           console.log('State clicked:', stateId);
                         }}
+                        onViewLiveFeed={handleViewLiveFeed}
                       />
                     )}
                   </>

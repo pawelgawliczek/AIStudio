@@ -1,7 +1,10 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// Use /api as fallback to match NestJS global prefix
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// Normalize API base URL to always include /api suffix
+// VITE_API_URL should be the domain (e.g., https://vibestudio.example.com)
+// Service paths should NOT include /api prefix
+const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = rawApiUrl ? `${rawApiUrl.replace(/\/$/, '')}/api` : '/api';
 
 // Event system for session expiration notifications
 type SessionExpiredCallback = (redirectPath?: string) => void;
