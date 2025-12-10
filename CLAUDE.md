@@ -566,44 +566,46 @@ Tracks:
 
 **⚠️ COMMON MISTAKE: Double `/api/api/` paths causing 404 errors**
 
-**🚨 NEVER ADD `/api` TO SERVICE PATHS - The api.client.ts handles this automatically!**
+**🚨 NEVER MODIFY api.client.ts BASE URL LOGIC!**
 
-The `api.client.ts` file automatically appends `/api` to the base URL:
+The `api.client.ts` uses a SIMPLE pattern - DO NOT CHANGE IT:
 ```typescript
-// api.client.ts - ALREADY adds /api to base URL
-const API_BASE_URL = rawApiUrl ? `${rawApiUrl.replace(/\/$/, '')}/api` : '/api';
+// api.client.ts - Uses VITE_API_URL directly, or /api as fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 ```
 
-**✅ CORRECT Pattern - Service paths WITHOUT /api:**
+**✅ CORRECT Pattern:**
 
 ```typescript
-// .env or .env.docker
-VITE_API_URL="https://vibestudio.example.com"  // NO /api suffix
+// .env.docker on production - VITE_API_URL is empty (uses fallback /api)
+VITE_API_URL=  // Empty! Uses /api fallback for relative paths
 
-// frontend/src/services/*.service.ts - NO /api prefix in paths!
+// frontend/src/services/*.service.ts - paths WITHOUT /api prefix
 const response = await apiClient.get('/projects');           // ✅ CORRECT
 const response = await apiClient.get(`/stories/${id}`);      // ✅ CORRECT
 const response = await apiClient.post('/stories', data);     // ✅ CORRECT
 ```
 
-**Result:** `https://vibestudio.example.com/api/projects` ✅
+**How it works:**
+1. `VITE_API_URL` is empty on production → `API_BASE_URL = '/api'`
+2. Service calls `/projects` → Final URL: `/api/projects`
+3. Nginx proxies `/api/*` to backend
 
-**❌ WRONG - Adding /api to service paths (causes double /api/api):**
+**❌ WRONG - DO NOT modify api.client.ts to add /api:**
 
 ```typescript
-// ❌ WRONG - Results in /api/api/projects
-const response = await apiClient.get('/api/projects');       // ❌ WRONG!
-const response = await apiClient.get(`/api/stories/${id}`);  // ❌ WRONG!
+// ❌ WRONG - This causes double /api/api/
+const API_BASE_URL = rawApiUrl ? `${rawApiUrl}/api` : '/api';  // ❌ NEVER DO THIS!
 ```
 
 **Why this pattern:**
-- `api.client.ts` adds `/api` to base URL automatically
+- Production uses relative paths (empty `VITE_API_URL`, fallback to `/api`)
 - NestJS backend uses global prefix: `app.setGlobalPrefix('api')`
-- Service paths should be clean routes WITHOUT `/api` prefix
-- The axios baseURL handles the `/api` prefix
+- Nginx/Caddy proxies `/api/*` to backend
+- Service paths are relative to `/api` base URL
 
 **Files to check when debugging API calls:**
-1. `frontend/src/services/api.client.ts` - Adds `/api` to base URL
+1. `frontend/src/services/api.client.ts` - MUST use simple `VITE_API_URL || '/api'`
 2. `frontend/src/services/*.service.ts` - Paths should NOT have `/api` prefix
 3. Browser Network tab - Verify final URLs are `/api/...` NOT `/api/api/...`
 
