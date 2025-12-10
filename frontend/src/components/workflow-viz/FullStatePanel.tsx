@@ -70,15 +70,22 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
       <div className="space-y-4">
         {/* Workflow Results Summary */}
         <WorkflowResultsSummary
-          componentRuns={componentRuns?.map(run => ({
-            id: run.id,
-            componentName: run.componentName,
-            status: run.status,
-            componentSummary: run.componentSummary,
-            startedAt: run.startedAt,
-            completedAt: run.completedAt,
-            stateId: run.id, // In real impl, this would be from the run
-          }))}
+          componentRuns={componentRuns?.map(run => {
+            // Find the state that this componentRun belongs to via componentId
+            // This works for both manual mode and runner mode
+            const matchingState = sortedStates.find(
+              state => state.componentId === run.componentId
+            );
+            return {
+              id: run.id,
+              componentName: run.componentName,
+              status: run.status,
+              componentSummary: run.componentSummary,
+              startedAt: run.startedAt ?? undefined,
+              completedAt: run.completedAt ?? undefined,
+              stateId: matchingState?.id || run.id, // Use matched state's ID, fallback to run.id
+            };
+          })}
           states={sortedStates}
           artifacts={artifacts}
           onViewTranscript={(componentRunId) => {
