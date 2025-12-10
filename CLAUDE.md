@@ -566,42 +566,45 @@ Tracks:
 
 **⚠️ COMMON MISTAKE: Double `/api/api/` paths causing 404 errors**
 
-This happens when both the base URL and service paths include `/api`:
+**🚨 NEVER ADD `/api` TO SERVICE PATHS - The api.client.ts handles this automatically!**
 
+The `api.client.ts` file automatically appends `/api` to the base URL:
 ```typescript
-// ❌ WRONG - Results in /api/api/projects
-baseURL: "https://example.com/api"
-path: "/api/projects"
-→ Final URL: https://example.com/api/projects  // axios uses origin only, path ignored!
-
-// ❌ ALSO WRONG - Missing /api prefix
-baseURL: "https://example.com"
-path: "/projects"
-→ Final URL: https://example.com/projects  // Missing /api!
+// api.client.ts - ALREADY adds /api to base URL
+const API_BASE_URL = rawApiUrl ? `${rawApiUrl.replace(/\/$/, '')}/api` : '/api';
 ```
 
-**✅ CORRECT Pattern (NestJS with global prefix `/api`):**
+**✅ CORRECT Pattern - Service paths WITHOUT /api:**
 
 ```typescript
 // .env or .env.docker
 VITE_API_URL="https://vibestudio.example.com"  // NO /api suffix
-VITE_WS_URL="wss://vibestudio.example.com"      // NO /api suffix
 
-// frontend/src/services/*.service.ts
-const response = await api.get(`/api/projects/${projectId}/components`);  // Include /api
+// frontend/src/services/*.service.ts - NO /api prefix in paths!
+const response = await apiClient.get('/projects');           // ✅ CORRECT
+const response = await apiClient.get(`/stories/${id}`);      // ✅ CORRECT
+const response = await apiClient.post('/stories', data);     // ✅ CORRECT
 ```
 
-**Result:** `https://vibestudio.example.com/api/projects/{id}/components` ✅
+**Result:** `https://vibestudio.example.com/api/projects` ✅
+
+**❌ WRONG - Adding /api to service paths (causes double /api/api):**
+
+```typescript
+// ❌ WRONG - Results in /api/api/projects
+const response = await apiClient.get('/api/projects');       // ❌ WRONG!
+const response = await apiClient.get(`/api/stories/${id}`);  // ❌ WRONG!
+```
 
 **Why this pattern:**
+- `api.client.ts` adds `/api` to base URL automatically
 - NestJS backend uses global prefix: `app.setGlobalPrefix('api')`
-- All backend routes are at `/api/*`
-- Base URL should be domain only (no path)
-- Service paths must include `/api` prefix explicitly
+- Service paths should be clean routes WITHOUT `/api` prefix
+- The axios baseURL handles the `/api` prefix
 
 **Files to check when debugging API calls:**
-1. `.env.docker` or `.env` - Check `VITE_API_URL` has NO `/api` suffix
-2. `frontend/src/services/*.service.ts` - Check all paths START with `/api`
+1. `frontend/src/services/api.client.ts` - Adds `/api` to base URL
+2. `frontend/src/services/*.service.ts` - Paths should NOT have `/api` prefix
 3. Browser Network tab - Verify final URLs are `/api/...` NOT `/api/api/...`
 
 **Test commands:**

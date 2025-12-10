@@ -129,3 +129,365 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-07T10:37:06Z",
+  "session_id": "86295a41-cf8d-436c-9b47-3035bbffa671",
+  "run_id": "run-test-001",
+  "questions": [
+    {
+      "question": "How should next_step behave: always return current step (requiring explicit 'advance' call), or have a parameter to mark previous complete and advance?",
+      "header": "Advancement",
+      "options": [
+        {
+          "label": "Auto-advance",
+          "description": "next_step always advances to next step (assumes previous is done)"
+        },
+        {
+          "label": "Explicit parameter",
+          "description": "markCurrentComplete parameter controls whether to advance"
+        },
+        {
+          "label": "Separate tools",
+          "description": "get_current_step (read-only) + advance_step (moves forward)"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should these tools work independently from the existing Docker-based Story Runner, or integrate with it?",
+      "header": "Runner mode",
+      "options": [
+        {
+          "label": "Independent",
+          "description": "Any LLM can orchestrate directly via MCP, no Docker runner needed"
+        },
+        {
+          "label": "Integrated",
+          "description": "Works alongside Docker runner, shares state via checkpoints"
+        },
+        {
+          "label": "Replace runner",
+          "description": "New tools replace the Docker runner entirely"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should approval gates be handled when encountered?",
+      "header": "Approvals",
+      "options": [
+        {
+          "label": "Return prompt",
+          "description": "Return instructions telling orchestrator to call respond_to_approval"
+        },
+        {
+          "label": "Block until resolved",
+          "description": "Tool waits/polls until approval is given, then returns next step"
+        },
+        {
+          "label": "Skip/flag",
+          "description": "Flag in response that approval is needed, orchestrator decides"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-08T07:47:55Z",
+  "session_id": "86295a41-cf8d-436c-9b47-3035bbffa671",
+  "run_id": "run-test-001",
+  "questions": [
+    {
+      "question": "Which parts of this plan should we prioritize for the first implementation?",
+      "header": "Priority",
+      "options": [
+        {
+          "label": "All together",
+          "description": "Implement all 4 solutions as one cohesive change"
+        },
+        {
+          "label": "Step commands first",
+          "description": "Focus on get_current_step/advance_step/repeat_step only"
+        },
+        {
+          "label": "Story key first",
+          "description": "Add story key resolution to existing tools first (quick win)"
+        },
+        {
+          "label": "Session context first",
+          "description": "Add set_context to eliminate repeated projectId"
+        }
+      ],
+      "multiSelect": true
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T06:45:57Z",
+  "session_id": "62c89242-d9bd-4784-b993-0246700de0e7",
+  "run_id": "run-test-001",
+  "questions": [
+    {
+      "question": "What type of implementation do you want for ST-190?",
+      "header": "Test Type",
+      "options": [
+        {
+          "label": "Execute Live Test",
+          "description": "Run a workflow execution now to manually verify transcript registration works (I'll execute the story with a team and verify transcripts)"
+        },
+        {
+          "label": "Write Automated E2E Tests",
+          "description": "Create Playwright E2E tests that can be run repeatedly to verify transcript registration"
+        },
+        {
+          "label": "Both",
+          "description": "Execute a live test now AND create automated E2E tests for future regression testing"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Which team should be used for testing?",
+      "header": "Team",
+      "options": [
+        {
+          "label": "Simplified Dev Workflow",
+          "description": "3 states (exploration → implementation → testing) - faster execution, good for quick verification"
+        },
+        {
+          "label": "Standard Dev Workflow",
+          "description": "9 states - more comprehensive but longer execution time"
+        },
+        {
+          "label": "Create Minimal Test Workflow",
+          "description": "Create a new minimal 1-state workflow specifically designed for transcript testing"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T12:06:08Z",
+  "session_id": "2f1423cb-edaa-47f1-9663-f1976bdf1ccf",
+  "run_id": "a2263d1c-44d1-40a0-80b1-ba86e41f31af",
+  "questions": [
+    {
+      "question": "Where should these workflow control buttons appear?",
+      "header": "Location",
+      "options": [
+        {
+          "label": "WorkflowExecutionMonitor only",
+          "description": "Add buttons to the existing workflow monitor page (/workflow-runs/:runId)"
+        },
+        {
+          "label": "StoryDetailPage only",
+          "description": "Add buttons to the story detail page, visible when viewing a story"
+        },
+        {
+          "label": "Both pages",
+          "description": "Add buttons to both pages for maximum accessibility"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "For 'Mark phase to skip' - what should this do?",
+      "header": "Skip behavior",
+      "options": [
+        {
+          "label": "Skip future phases",
+          "description": "Mark a not-yet-executed state to be skipped when the runner reaches it"
+        },
+        {
+          "label": "Skip current and continue",
+          "description": "Skip the currently running/paused phase and move to the next state"
+        },
+        {
+          "label": "Both options",
+          "description": "Provide UI to skip current phase OR mark future phases to skip"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should the 'Run workflow' button replace or complement the existing story execution path?",
+      "header": "Run workflow",
+      "options": [
+        {
+          "label": "New control panel",
+          "description": "Add a dedicated 'Workflow Controls' panel with all 4 buttons grouped together"
+        },
+        {
+          "label": "Header actions",
+          "description": "Add buttons to the page header alongside existing Refresh/Back buttons"
+        },
+        {
+          "label": "Inline with states",
+          "description": "Add control buttons contextually next to workflow states"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T14:46:34Z",
+  "session_id": "c552308b-3320-474c-9c07-d280a2736881",
+  "run_id": "fc61a7f6-cfc3-444a-904c-a650ad07667a",
+  "questions": [
+    {
+      "question": "After implementing Skott integration, how should we handle existing files in the database that have no dependency data?",
+      "header": "Data Migration",
+      "options": [
+        {
+          "label": "Run full project analysis",
+          "description": "Queue a full analyze-project job to populate all files with dependency data (~few minutes)"
+        },
+        {
+          "label": "Lazy populate on access",
+          "description": "Only populate when get_file_dependencies is called for a specific file"
+        },
+        {
+          "label": "No backfill needed",
+          "description": "Just let new commits/analyses populate data going forward"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T14:50:21Z",
+  "session_id": "c552308b-3320-474c-9c07-d280a2736881",
+  "run_id": "fc61a7f6-cfc3-444a-904c-a650ad07667a",
+  "questions": [
+    {
+      "question": "Which workflow should I use for ST-196?",
+      "header": "Workflow",
+      "options": [
+        {
+          "label": "Standard with Approved Plan",
+          "description": "6 states - Security → Architecture → Approval → TDD → Implementation → Review (recommended since plan exists)"
+        },
+        {
+          "label": "Simplified Dev Workflow",
+          "description": "3 states - Quick exploration → implementation → testing"
+        },
+        {
+          "label": "Skip workflow, implement directly",
+          "description": "No workflow tracking - just implement the plan now"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T15:00:16Z",
+  "session_id": "c552308b-3320-474c-9c07-d280a2736881",
+  "run_id": "93748d4e-6ce3-4522-9a9d-c36be86b8d49",
+  "questions": [
+    {
+      "question": "Do you approve proceeding with the implementation of ST-196 (Skott integration)?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve",
+          "description": "Proceed with implementation as planned"
+        },
+        {
+          "label": "Approve with changes",
+          "description": "Proceed but I have specific modifications"
+        },
+        {
+          "label": "Reject",
+          "description": "Do not proceed - need more analysis"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T19:14:23Z",
+  "session_id": "5c384350-d07c-4e4d-ac07-07ac63d15fe8",
+  "run_id": "857b1a5b-5c1d-4233-b10a-5cb5991655d8",
+  "questions": [
+    {
+      "question": "How should the Master CLI session receive MCP commands? The story suggests injecting text prompts like 'Call record_agent_start with...' but there's an alternative approach using Claude Code's native MCP bridge. Which approach do you prefer?",
+      "header": "MCP Approach",
+      "options": [
+        {
+          "label": "Text Prompt Injection",
+          "description": "Runner sends natural language prompts to Claude CLI asking it to call MCP tools. Claude parses and executes. More flexible but requires result parsing."
+        },
+        {
+          "label": "Direct MCP via CLI stdin",
+          "description": "Use Claude Code's --mcp-server flag to register VibeStudio MCP, then send tool calls directly. More reliable but requires CLI MCP support verification."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should we keep the AgentSession class for backward compatibility or fully remove it in favor of Task tool spawning?",
+      "header": "AgentSession",
+      "options": [
+        {
+          "label": "Remove AgentSession",
+          "description": "Fully commit to Task tool approach. Simpler architecture but no fallback."
+        },
+        {
+          "label": "Keep as Fallback",
+          "description": "Keep AgentSession for edge cases where Task tool doesn't work (e.g., specific tool restrictions)."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T19:16:07Z",
+  "session_id": "5c384350-d07c-4e4d-ac07-07ac63d15fe8",
+  "run_id": "857b1a5b-5c1d-4233-b10a-5cb5991655d8",
+  "questions": [
+    {
+      "question": "Based on my explanation, which MCP execution approach should we use for ST-200?",
+      "header": "MCP Approach",
+      "options": [
+        {
+          "label": "Text Prompt Injection",
+          "description": "Send natural language prompts asking Claude to call MCP tools. Aligned with story description and existing pre/post instruction flow."
+        },
+        {
+          "label": "Direct MCP Protocol",
+          "description": "Use Claude Code's native MCP protocol for structured tool calls. More deterministic but requires verifying CLI support."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-09T19:43:02Z",
+  "session_id": "5c384350-d07c-4e4d-ac07-07ac63d15fe8",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Should we update ST-200 to use your existing laptop agent infrastructure (spawn_agent MCP) instead of Task tool spawning?",
+      "header": "Agent Dispatch",
+      "options": [
+        {
+          "label": "Use Laptop Agent",
+          "description": "Master session calls spawn_agent MCP → work dispatched to your laptop via WebSocket. Uses existing infrastructure."
+        },
+        {
+          "label": "Keep Task Tool",
+          "description": "Keep original plan with Task tool. Would require installing Claude Code in Docker container on KVM."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
