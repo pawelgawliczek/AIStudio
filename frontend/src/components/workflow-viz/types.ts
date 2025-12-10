@@ -147,6 +147,7 @@ export interface FullStatePanelProps {
   onViewLiveFeed?: (componentRunId: string) => void;
   onViewTranscript?: (transcriptId: string, componentRunId: string, type: 'agent') => void;
   onViewArtifact?: (artifactId: string) => void;
+  onViewOutput?: (componentRun: ComponentRunWithMetrics) => void;
 }
 
 export type StateStatus = 'completed' | 'running' | 'failed' | 'pending' | 'paused';

@@ -53,6 +53,7 @@ interface ApiWorkflowRunResponse {
     finishedAt: string | null;
     output: any;
     errorMessage: string | null;
+    componentSummary?: string | null; // ST-147: AI-generated summary
     // Token metrics can come in different formats from the API
     tokenMetrics?: {
       inputTokens: number;
@@ -98,6 +99,7 @@ function transformApiResponse(apiRun: ApiWorkflowRunResponse): WorkflowRunWithSt
       completedAt: cr.finishedAt,
       output: cr.output,
       errorMessage: cr.errorMessage,
+      componentSummary: cr.componentSummary, // ST-147: AI-generated summary
       tokenMetrics: totalTokens > 0 ? {
         inputTokens,
         outputTokens,

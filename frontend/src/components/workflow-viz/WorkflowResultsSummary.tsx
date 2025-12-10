@@ -15,6 +15,7 @@ interface ComponentRun {
   startedAt?: string;
   completedAt?: string;
   stateId: string;
+  output?: any; // Component output data
 }
 
 interface WorkflowState {
@@ -37,6 +38,7 @@ interface WorkflowResultsSummaryProps {
   onViewTranscript?: (componentRunId: string) => void;
   onViewArtifact?: (artifactId: string) => void;
   onRepeatState?: (stateId: string) => void;
+  onViewOutput?: (componentRun: ComponentRun) => void;
 }
 
 export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
@@ -46,6 +48,7 @@ export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
   onViewTranscript,
   onViewArtifact,
   onRepeatState,
+  onViewOutput,
 }) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -193,6 +196,16 @@ export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
                 {/* Action buttons */}
                 {(status === 'completed' || status === 'failed') && (
                   <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                    {run && onViewOutput && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => onViewOutput(run)}
+                        sx={{ fontSize: '0.7rem', py: 0.5 }}
+                      >
+                        View
+                      </Button>
+                    )}
                     {run && onViewTranscript && (
                       <Button
                         size="small"
@@ -200,7 +213,7 @@ export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
                         onClick={() => onViewTranscript(run.id)}
                         sx={{ fontSize: '0.7rem', py: 0.5 }}
                       >
-                        View
+                        Transcript
                       </Button>
                     )}
                     {onRepeatState && (

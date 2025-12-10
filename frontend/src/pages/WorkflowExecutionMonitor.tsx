@@ -37,6 +37,8 @@ import { TranscriptViewerModal } from '../components/workflow-viz/TranscriptView
 import { MasterTranscriptPanel } from '../components/workflow-viz/MasterTranscriptPanel';
 import { useRemoteAgents } from '../components/workflow-viz/hooks/useRemoteAgents';
 import { WorkflowControlPanel } from '../components/workflow-viz/WorkflowControlPanel';
+import { ComponentOutputModal } from '../components/workflow-viz/ComponentOutputModal';
+import type { ComponentRunWithMetrics } from '../components/workflow-viz/types';
 
 interface WorkflowRunStatus {
   runId: string;
@@ -146,6 +148,9 @@ const WorkflowExecutionMonitor: React.FC = () => {
   const [artifactModalOpen, setArtifactModalOpen] = useState(false);
   const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
   const [artifactModalMode, setArtifactModalMode] = useState<'view' | 'edit'>('view');
+  // Component output modal state
+  const [outputModalOpen, setOutputModalOpen] = useState(false);
+  const [selectedComponentRun, setSelectedComponentRun] = useState<ComponentRunWithMetrics | null>(null);
 
   // Get project ID from context or localStorage
   const projectId = localStorage.getItem('selectedProjectId') ||
@@ -311,6 +316,12 @@ const WorkflowExecutionMonitor: React.FC = () => {
       setArtifactModalOpen(true);
     }
   }, [artifactsData]);
+
+  // Handle viewing component output
+  const handleViewOutput = useCallback((componentRun: ComponentRunWithMetrics) => {
+    setSelectedComponentRun(componentRun);
+    setOutputModalOpen(true);
+  }, []);
 
   // ST-168: Approval gate handlers
   const handleApprove = useCallback(async () => {
@@ -634,6 +645,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
                     onViewLiveFeed={handleViewLiveFeed}
                     onViewTranscript={handleViewTranscript}
                     onViewArtifact={handleViewArtifact}
+                    onViewOutput={handleViewOutput}
                     artifacts={artifactsData.map((a) => ({
                       id: a.id,
                       definitionKey: a.definitionKey,
@@ -835,6 +847,21 @@ const WorkflowExecutionMonitor: React.FC = () => {
           setSelectedArtifact(null);
         }}
         onModeChange={setArtifactModalMode}
+      />
+
+      {/* Component Output Modal */}
+      <ComponentOutputModal
+        open={outputModalOpen}
+        onClose={() => {
+          setOutputModalOpen(false);
+          setSelectedComponentRun(null);
+        }}
+        componentName={selectedComponentRun?.componentName}
+        status={selectedComponentRun?.status}
+        output={selectedComponentRun?.output}
+        componentSummary={selectedComponentRun?.componentSummary}
+        startedAt={selectedComponentRun?.startedAt ?? undefined}
+        completedAt={selectedComponentRun?.completedAt ?? undefined}
       />
     </Container>
   );

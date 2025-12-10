@@ -23,6 +23,7 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
   onViewLiveFeed,
   onViewTranscript,
   onViewArtifact,
+  onViewOutput,
 }) => {
   const sortedStates = [...states].sort((a, b) => a.order - b.order);
 
@@ -84,6 +85,7 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
               startedAt: run.startedAt ?? undefined,
               completedAt: run.completedAt ?? undefined,
               stateId: matchingState?.id || run.id, // Use matched state's ID, fallback to run.id
+              output: run.output, // Include component output for View modal
             };
           })}
           states={sortedStates}
@@ -95,6 +97,13 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
             }
           }}
           onViewArtifact={onViewArtifact}
+          onViewOutput={onViewOutput ? (run) => {
+            // Find the full componentRun from our props to get complete data
+            const fullRun = componentRuns?.find(cr => cr.id === run.id);
+            if (fullRun) {
+              onViewOutput(fullRun);
+            }
+          } : undefined}
         />
 
         {showLiveStream && (
