@@ -13,8 +13,9 @@ COPY shared/package*.json ./shared/
 
 # Install all dependencies (including devDependencies for build)
 # ST-115: BuildKit cache mount for faster subsequent builds
+# Using npm install instead of npm ci since lock files are not committed
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --include=dev
+    npm install --include=dev
 
 # Copy source code
 COPY backend ./backend
@@ -50,8 +51,9 @@ COPY shared/package*.json ./shared/
 
 # Install production dependencies only (rebuild native modules for Alpine)
 # ST-115: BuildKit cache mount for faster subsequent builds
+# Using npm install instead of npm ci since lock files are not committed
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --ignore-scripts && npm rebuild bcrypt --build-from-source
+    npm install --omit=dev --ignore-scripts && npm rebuild bcrypt --build-from-source
 
 # Copy built files from builder stage
 COPY --from=builder /app/backend/dist ./backend/dist

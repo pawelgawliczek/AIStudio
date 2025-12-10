@@ -13,8 +13,9 @@ COPY shared/package*.json ./shared/
 
 # Install dependencies
 # ST-115: BuildKit cache mount for faster subsequent builds
+# Using npm install instead of npm ci since lock files are not committed
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+    npm install
 
 # Copy source code
 COPY frontend ./frontend
