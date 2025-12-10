@@ -34,10 +34,10 @@ For **pre** phase:
 2. \`advance_step\` call to move to agent phase
 
 For **agent** phase:
-1. \`record_agent_start\` call with exact parameters
-2. Agent spawn instructions (Task tool with component details)
-3. \`record_agent_complete\` call with output
-4. \`advance_step\` call to move to post phase
+1. Call record_agent_start to track agent execution start
+2. Spawn agent via Task tool with component instructions
+3. Call record_agent_complete with agent output and status
+4. Call advance_step to move to post-execution phase
 
 For **post** phase:
 1. Manual post-execution instructions to execute
@@ -446,25 +446,25 @@ export async function handler(prisma: PrismaClient, params: {
           },
         };
 
-        // ST-188: Complete agent execution workflow
-        // Step 1: Record agent start
+        // ST-198: Explicit 4-step agent execution workflow
+        // Step 1: Record agent start for metrics tracking
         workflowSequence.push({
           step: 1,
           type: 'mcp_tool',
-          description: `Record start of ${componentName} agent`,
+          description: 'Record agent start for metrics tracking',
           tool: 'record_agent_start',
           parameters: {
             runId,
             componentId,
           },
-          notes: 'Creates ComponentRun record. Returns componentRunId for tracking.',
+          notes: 'Tracks when the agent starts executing. Required for metrics and telemetry.',
         });
 
-        // Step 2: Spawn the agent
+        // Step 2: Spawn the agent via Task tool
         workflowSequence.push({
           step: 2,
           type: 'agent_spawn',
-          description: `Spawn ${componentName} agent`,
+          description: `Spawn ${componentName} agent via Task tool`,
           agentConfig: {
             subagentType: 'general-purpose',
             model: componentModel,
@@ -473,41 +473,41 @@ export async function handler(prisma: PrismaClient, params: {
             componentName,
             tools: componentTools,
           },
-          notes: `Use Task tool with subagent_type="general-purpose" and model="${componentModel}". Save agent output for step 3.`,
+          notes: `⚠️ MUST use Task tool - DO NOT do the work yourself! You are the orchestrator. Use Task({ subagent_type: "general-purpose", model: "${componentModel}", prompt: <agentConfig.prompt> }). The spawned agent does the actual work. Capture the agent's output for the next step.`,
         });
 
-        // Step 3: Record agent completion
+        // Step 3: Record agent completion with output
         workflowSequence.push({
           step: 3,
           type: 'mcp_tool',
-          description: `Record completion of ${componentName} agent`,
+          description: 'Record agent completion with output and status',
           tool: 'record_agent_complete',
           parameters: {
             runId,
             componentId,
-            output: '{{AGENT_OUTPUT}}', // Placeholder - orchestrator fills this in
-            status: 'completed',
+            output: '{{AGENT_OUTPUT}}', // Placeholder - use actual output from step 2
+            status: 'completed', // or 'failed' if agent failed
           },
-          notes: 'Pass agent output from step 2. Use status="failed" with errorMessage if agent failed.',
+          notes: 'Replace {{AGENT_OUTPUT}} with the actual output from the Task agent in step 2. Set status to "failed" if the agent encountered errors.',
         });
 
         // Step 4: Advance to post phase
         workflowSequence.push({
           step: 4,
           type: 'mcp_tool',
-          description: 'Advance to post phase',
+          description: 'Advance to post-execution phase',
           tool: 'advance_step',
           parameters: {
             story: run.story?.key || runId,
-            output: '{{AGENT_OUTPUT}}', // Same output from step 2
+            output: '{{AGENT_OUTPUT}}', // Optional - include agent output for context
           },
-          notes: 'Stores agent output in checkpoint for context. Moves to post-execution phase.',
+          notes: 'Moves workflow to post-execution phase. The output parameter is optional but recommended for context preservation.',
         });
 
         nextAction = {
-          tool: 'advance_step',
-          parameters: { runId, output: {} },
-          hint: 'Call advance_step with agent output when the agent completes.',
+          tool: 'record_agent_start',
+          parameters: { runId, componentId },
+          hint: 'Start with record_agent_start, then follow the 4-step sequence.',
         };
       }
       break;
@@ -590,9 +590,32 @@ function buildResponse(
   const completedCount = checkpoint?.completedStates?.length || 0;
   const skippedCount = checkpoint?.skippedStates?.length || 0;
   const totalStates = run.workflow.states.length;
+  const phase = checkpoint?.currentPhase || 'pre';
+  const stateName = currentState?.name || 'unknown';
+
+  // ST-190: Build prominent message to guide LLM to follow workflowSequence
+  const stepCount = workflowSequence.length;
+  let message: string;
+  if (stepCount > 0) {
+    const stepDescriptions = workflowSequence.map(s => `${s.step}. ${s.description}`).join(', ');
+    message = `⚠️ EXECUTE ${stepCount} STEPS IN ORDER: ${stepDescriptions}. Follow the workflowSequence below - each step has exact MCP tool calls or instructions.`;
+  } else {
+    message = `Currently in ${stateName} state, ${phase} phase. Check instructions for what to do.`;
+  }
 
   return {
     success: true,
+
+    // ST-190: Prominent message at TOP of response to guide LLM behavior
+    // This is the FIRST thing the LLM should read and follow
+    message,
+
+    // ST-188: COMPLETE WORKFLOW SEQUENCE
+    // This is the KEY output - provides ALL steps needed for this phase
+    // Any LLM session can follow these steps to complete the current phase
+    // ⚠️ IMPORTANT: Execute these steps IN ORDER - do not skip steps!
+    workflowSequence,
+
     runId: run.id,
 
     // Current position
@@ -600,7 +623,7 @@ function buildResponse(
       id: currentState.id,
       name: currentState.name,
       order: currentState.order,
-      phase: checkpoint?.currentPhase || 'pre',
+      phase,
       phaseStatus: checkpoint?.phaseStatus || 'pending',
     } : null,
 
@@ -614,11 +637,6 @@ function buildResponse(
         ? Math.round(((completedCount + skippedCount) / totalStates) * 100)
         : 0,
     },
-
-    // ST-188: COMPLETE WORKFLOW SEQUENCE
-    // This is the KEY output - provides ALL steps needed for this phase
-    // Any LLM session can follow these steps to complete the current phase
-    workflowSequence,
 
     // Legacy: Single instruction (kept for backwards compatibility)
     instructions,

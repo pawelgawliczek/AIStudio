@@ -7,6 +7,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { resolveStory } from '../../shared/resolve-identifiers';
 import { storyFetchCommand } from '../../truncation-utils';
 import {
   GetStoryParams,
@@ -17,7 +18,6 @@ import {
   formatStory,
   handlePrismaError,
 } from '../../utils';
-import { resolveStory } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'get_story',

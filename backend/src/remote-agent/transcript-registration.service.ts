@@ -8,11 +8,11 @@
  * 4. record_agent_complete reads from unassigned_transcripts for metrics
  */
 
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { createReadStream } from 'fs';
 import * as fs from 'fs/promises';
 import * as readline from 'readline';
-import { createReadStream } from 'fs';
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface TranscriptDetectedPayload {
   agentId: string | null;

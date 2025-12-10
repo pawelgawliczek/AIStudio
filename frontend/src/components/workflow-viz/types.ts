@@ -128,6 +128,7 @@ export interface StandardStateListProps {
   expandedStates: Set<string>;
   onToggle: (stateId: string) => void;
   onStateClick?: (stateId: string) => void;
+  onViewLiveFeed?: (componentRunId: string) => void;
 }
 
 export interface FullStatePanelProps {

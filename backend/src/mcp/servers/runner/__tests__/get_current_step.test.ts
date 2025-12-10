@@ -144,7 +144,14 @@ describe('get_current_step MCP Tool', () => {
       expect(result.instructions.component).toBeDefined();
       expect(result.instructions.component.name).toBe('Architect');
       expect(result.instructions.component.tools).toEqual(['Read', 'Grep']);
-      expect(result.nextAction.tool).toBe('advance_step');
+      // ST-198: Now returns 4-step workflow sequence
+      expect(result.nextAction.tool).toBe('record_agent_start');
+      expect(result.workflowSequence).toBeDefined();
+      expect(result.workflowSequence.length).toBe(4);
+      expect(result.workflowSequence[0].tool).toBe('record_agent_start');
+      expect(result.workflowSequence[1].type).toBe('agent_spawn');
+      expect(result.workflowSequence[2].tool).toBe('record_agent_complete');
+      expect(result.workflowSequence[3].tool).toBe('advance_step');
     });
 
     it('should return post_execution instructions for post phase', async () => {

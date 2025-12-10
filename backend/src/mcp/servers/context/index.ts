@@ -7,12 +7,12 @@
  * common parameters (like projectId) to every tool call.
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { PrismaClient } from '@prisma/client';
 
 // Import tools
-import * as setContextTool from './set_context';
 import * as getContextTool from './get_context';
+import * as setContextTool from './set_context';
 
 // Tool registry
 const toolModules = [

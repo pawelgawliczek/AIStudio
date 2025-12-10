@@ -6,8 +6,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { validateArtifactQuota } from '../quota-validation';
 import { ValidationError } from '../../types';
+import { validateArtifactQuota } from '../quota-validation';
 
 // Mock Prisma
 const mockPrisma = {

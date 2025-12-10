@@ -46,6 +46,7 @@ import {
   createTestAgentParams,
   // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
+  createE2EWorkflowRunParams,
 } from './helpers/test-data-factory';
 
 // MCP Handler Imports - Core setup
@@ -252,14 +253,14 @@ describe('ST-147 Session Telemetry E2E Tests', () => {
         return;
       }
 
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId,
-        triggeredBy: 'st147-e2e-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId, 'st147-e2e-test', {
         context: {
           testType: 'session-telemetry',
           storyId: ctx.storyId,
         },
       });
+      const result = await startWorkflowRun(prisma, runParams);
 
       ctx.workflowRunId = result.runId;
       expect(result.runId).toBeDefined();

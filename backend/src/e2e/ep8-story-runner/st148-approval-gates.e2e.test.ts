@@ -35,6 +35,7 @@ import {
   // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
   createTestWorkflowStateParams,
+  createE2EWorkflowRunParams,
 } from './helpers/test-data-factory';
 
 // MCP Handler Imports - Core
@@ -200,13 +201,13 @@ describe('ST-148 Approval Gates E2E Tests', () => {
     it('should start workflow run', async () => {
       expect(ctx.workflowId).toBeDefined();
 
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'st148-e2e-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-e2e-test', {
         context: {
           testCase: 'approval-lifecycle',
         },
       });
+      const result = await startWorkflowRun(prisma, runParams);
 
       ctx.workflowRunId = result.runId;
       approvalRunId = result.runId;
@@ -350,10 +351,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
 
       beforeAll(async () => {
         // Create fresh run and approval for approve test
-        const runResult = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'st148-approve-test',
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-approve-test');
+        const runResult = await startWorkflowRun(prisma, runParams);
         approveTestRunId = runResult.runId;
 
         const approval = await prisma.approvalRequest.create({
@@ -411,10 +411,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
       let rerunTestApprovalId: string;
 
       beforeAll(async () => {
-        const runResult = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'st148-rerun-test',
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-rerun-test');
+        const runResult = await startWorkflowRun(prisma, runParams);
         rerunTestRunId = runResult.runId;
 
         const approval = await prisma.approvalRequest.create({
@@ -470,10 +469,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
 
       it('should reject rerun without feedback', async () => {
         // Create another approval for this test
-        const runResult = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'st148-rerun-validation',
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-rerun-validation');
+        const runResult = await startWorkflowRun(prisma, runParams);
 
         await prisma.approvalRequest.create({
           data: {
@@ -511,10 +509,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
 
       beforeAll(async () => {
         // Create run for cancel rejection
-        const cancelRun = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'st148-reject-cancel-test',
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const cancelRunParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-reject-cancel-test');
+        const cancelRun = await startWorkflowRun(prisma, cancelRunParams);
         rejectCancelRunId = cancelRun.runId;
 
         await prisma.approvalRequest.create({
@@ -535,10 +532,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
         });
 
         // Create run for pause rejection
-        const pauseRun = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'st148-reject-pause-test',
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const pauseRunParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-reject-pause-test');
+        const pauseRun = await startWorkflowRun(prisma, pauseRunParams);
         rejectPauseRunId = pauseRun.runId;
 
         await prisma.approvalRequest.create({
@@ -620,10 +616,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
 
       it('should reject approval on run without pending approval', async () => {
         // Create run without approval
-        const runResult = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'st148-no-approval-test',
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-no-approval-test');
+        const runResult = await startWorkflowRun(prisma, runParams);
 
         await expect(
           respondToApproval(prisma, {
@@ -638,10 +633,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
 
       it('should reject invalid action', async () => {
         // Create fresh approval for test
-        const runResult = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'st148-invalid-action-test',
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-invalid-action-test');
+        const runResult = await startWorkflowRun(prisma, runParams);
 
         await prisma.approvalRequest.create({
           data: {
@@ -681,13 +675,13 @@ describe('ST-148 Approval Gates E2E Tests', () => {
       expect(ctx.workflowId).toBeDefined();
 
       // Test mode: 'all' - require approval for all states
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'st148-override-all-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-override-all-test', {
         approvalOverrides: {
           mode: 'all',
         },
       });
+      const result = await startWorkflowRun(prisma, runParams);
 
       expect(result.runId).toBeDefined();
 
@@ -705,13 +699,13 @@ describe('ST-148 Approval Gates E2E Tests', () => {
     });
 
     it('should accept mode: none to skip all approvals', async () => {
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'st148-override-none-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-override-none-test', {
         approvalOverrides: {
           mode: 'none',
         },
       });
+      const result = await startWorkflowRun(prisma, runParams);
 
       const run = await prisma.workflowRun.findUnique({
         where: { id: result.runId },
@@ -725,9 +719,8 @@ describe('ST-148 Approval Gates E2E Tests', () => {
     });
 
     it('should accept stateOverrides for specific states', async () => {
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'st148-override-specific-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-override-specific-test', {
         approvalOverrides: {
           mode: 'default',
           stateOverrides: {
@@ -736,6 +729,7 @@ describe('ST-148 Approval Gates E2E Tests', () => {
           },
         },
       });
+      const result = await startWorkflowRun(prisma, runParams);
 
       const run = await prisma.workflowRun.findUnique({
         where: { id: result.runId },
@@ -752,10 +746,9 @@ describe('ST-148 Approval Gates E2E Tests', () => {
     });
 
     it('should default to mode: default when no overrides specified', async () => {
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'st148-no-override-test',
-      });
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st148-no-override-test');
+      const result = await startWorkflowRun(prisma, runParams);
 
       const run = await prisma.workflowRun.findUnique({
         where: { id: result.runId },

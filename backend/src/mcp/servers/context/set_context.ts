@@ -7,13 +7,13 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { resolveProject, resolveTeam, resolveStory } from '../../shared/resolve-identifiers';
 import {
   setContext,
   getContext,
   formatContext,
   type SessionContext,
 } from '../../shared/session-context';
-import { resolveProject, resolveTeam, resolveStory } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'set_context',

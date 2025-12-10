@@ -430,6 +430,138 @@ Documentation: `/docs/migrations/MIGRATION_RUNBOOK.md`
 - Component-based architecture: Orchestrator spawns component agents (PM, Explorer, Architect, Designer, Implementer, etc.)
 - Do NOT reference or query coordinator_agents table - it doesn't exist in current schema
 
+### Story Development Workflow Modes (EP-8/ST-190)
+
+**Two modes exist for developing stories with VibeStudio:**
+
+#### Mode 1: MasterSession Orchestration (Recommended for Interactive Development)
+
+**Use `get_current_step` MCP tool** - You (Claude) act as the orchestrator in a single session.
+
+**When to use:**
+- Interactive development with user present
+- Small to medium stories
+- When you need flexibility to ask questions mid-execution
+- When human oversight at each step is desired
+
+**Workflow:**
+```typescript
+// 1. Start a workflow run (if not already started)
+start_team_run({ teamId, triggeredBy, cwd, sessionId, transcriptPath })
+
+// 2. Get current step with complete instructions
+get_current_step({ story: "ST-123" })
+// Returns: workflowSequence with exact MCP tool calls for each phase
+
+// 3. Execute the phase (pre → agent → post)
+// For agent phase: Use Task tool to spawn component agents
+// For pre/post: Execute instructions yourself
+
+// 4. Advance to next step
+advance_step({ story: "ST-123" })
+
+// 5. Repeat until workflow_complete
+```
+
+**Key Tools:**
+- `get_current_step` - Returns complete orchestration instructions
+- `advance_step` - Move to next phase/state
+- `repeat_step` - Retry with feedback
+- `respond_to_approval` - Handle approval gates
+- `get_orchestration_context` - Restore context after compaction
+
+#### Mode 2: Dedicated Docker Runner (For Autonomous Execution)
+
+**Use `start_runner` MCP tool** - Spawns a Docker container that runs autonomously.
+
+**When to use:**
+- Long-running multi-state workflows
+- Background/unattended execution
+- When crash recovery is critical
+- Production-grade execution with checkpointing
+
+**Workflow:**
+```typescript
+// 1. Start the runner (spawns Docker container)
+start_runner({ runId, workflowId, story: "ST-123" })
+
+// 2. Monitor status
+get_runner_status({ story: "ST-123" })
+
+// 3. Control execution
+pause_runner({ story: "ST-123" })
+resume_runner({ runId })
+cancel_runner({ story: "ST-123" })
+
+// 4. Debug with breakpoints
+manage_breakpoints({ story: "ST-123", action: "set", stateName: "impl" })
+step_runner({ story: "ST-123" })  // Execute one state at a time
+```
+
+**Key Tools:**
+- `start_runner` / `resume_runner` - Start/resume Docker runner
+- `pause_runner` / `cancel_runner` - Control execution
+- `get_runner_status` / `get_runner_checkpoint` - Monitor progress
+- `manage_breakpoints` / `step_runner` - Debug step-by-step
+
+#### Comparison Table
+
+| Aspect | MasterSession (get_current_step) | Docker Runner (start_runner) |
+|--------|----------------------------------|------------------------------|
+| Execution | In your session | Separate Docker container |
+| Crash Recovery | Via `get_orchestration_context` | Built-in checkpointing |
+| User Interaction | Can ask questions mid-flow | Queues questions via AgentQuestion |
+| Best For | Interactive development | Autonomous/background execution |
+| Complexity | Simpler | More infrastructure |
+
+### Claude Code Hooks (VibeStudio Integration)
+
+Hooks in `.claude/settings.local.json` integrate Claude Code with VibeStudio:
+
+#### SessionStart Hook
+**File:** `.claude/hooks/vibestudio-session-start.sh`
+**Triggers:** On session start, resume, or context compaction
+
+**Purpose:**
+1. Track transcript paths in `running-workflows.json`
+2. Handle context compaction recovery (provides runId for `get_orchestration_context`)
+3. Prime context with VibeStudio workflow awareness
+
+**After Compaction:** The hook outputs instructions to call:
+```typescript
+get_orchestration_context({
+  story: '<story-key>',  // or runId if no story key
+  sessionId: '<new-session>',
+  transcriptPath: '<new-transcript>'
+})
+```
+
+#### PreCompact Hook
+**Inline command** - Saves session-to-workflow mapping before compaction (format: `sessionId:runId:storyKey`)
+
+#### SessionEnd Hook
+**File:** `.claude/hooks/vibestudio-session-end.sh`
+**Triggers:** On session end
+
+**Purpose:** Mark session ended, record final transcript path
+
+#### PostToolUse Hooks
+
+| Matcher | Hook File | Purpose |
+|---------|-----------|---------|
+| `ExitPlanMode` | `vibestudio-implementation.sh` | Guide to story/team workflow after planning |
+| `Task` | `vibestudio-track-agents.sh` | Track spawned agent transcripts |
+| `AskUserQuestion` | `vibestudio-track-questions.sh` | Track pending questions |
+
+#### Local Tracking File
+**File:** `.claude/running-workflows.json`
+
+Tracks:
+- `sessions[sessionId].runId` - Active workflow run
+- `sessions[sessionId].storyKey` - Story key for easy reference
+- `sessions[sessionId].masterTranscripts[]` - Transcript paths
+- `sessions[sessionId].spawnedAgentTranscripts[]` - Agent transcripts
+
 ### Frontend API Configuration (CRITICAL - Prevent Double /api/api)
 
 **⚠️ COMMON MISTAKE: Double `/api/api/` paths causing 404 errors**

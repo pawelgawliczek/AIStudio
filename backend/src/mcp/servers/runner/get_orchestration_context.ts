@@ -3,15 +3,19 @@
  * Returns MasterSession re-initialization context after compaction
  *
  * ST-164: Orchestration Context Recovery
+ * ST-190: Story Key Support + get_current_step Integration
  *
  * After context compaction, the MasterSession loses its role definition
  * and response format. This tool provides everything needed to re-initialize
  * the session so the Node.js Runner can continue orchestrating.
+ *
+ * Now supports story key lookup and reuses get_current_step logic for
+ * workflowSequence to maintain single source of truth.
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { buildMasterSessionInstructions, ComponentInfo } from '../execution/master-session-instructions';
+import { handler as getCurrentStepHandler } from './get_current_step';
 
 export const tool: Tool = {
   name: 'get_orchestration_context',
@@ -21,21 +25,21 @@ export const tool: Tool = {
 - MasterSession role and response format
 - Current workflow run state
 - Story context
-- Checkpoint information
+- Complete workflowSequence (reuses get_current_step logic)
 
 **ST-172: Automatic Transcript Registration**
 If \`sessionId\` and \`transcriptPath\` are provided, this tool will automatically
 register the new master transcript (if not already registered) before returning context.
 
-The Node.js Runner orchestrates the workflow. This tool restores the
-MasterSession's understanding of its role so it can continue executing
-pre/post instructions.
+**ST-190: Story Key Support**
+You can now use story key (e.g., ST-123) instead of runId. The tool will find
+the active workflow run for that story.
 
 **Usage:**
 \`\`\`typescript
 // After compaction (automatic transcript registration)
 get_orchestration_context({
-  runId: "uuid-here",
+  story: "ST-123",
   sessionId: "session-uuid",
   transcriptPath: "/path/to/transcript.jsonl"
 })
@@ -46,9 +50,13 @@ get_orchestration_context({ runId: "uuid-here" })
   inputSchema: {
     type: 'object',
     properties: {
+      story: {
+        type: 'string',
+        description: 'Story key (e.g., ST-123) or UUID - preferred input method',
+      },
       runId: {
         type: 'string',
-        description: 'WorkflowRun ID (required)',
+        description: 'WorkflowRun ID (optional - use if multiple runs exist for same story)',
       },
       sessionId: {
         type: 'string',
@@ -59,7 +67,7 @@ get_orchestration_context({ runId: "uuid-here" })
         description: 'Current transcript path (optional - for automatic transcript registration after compaction)',
       },
     },
-    required: ['runId'],
+    // Neither story nor runId required - at least one must be provided
   },
 };
 
@@ -71,45 +79,68 @@ export const metadata = {
   since: '2025-12-02',
 };
 
-interface RunnerCheckpoint {
-  version: number;
-  runId: string;
-  workflowId: string;
-  storyId?: string;
-  currentStateId: string;
-  currentPhase: 'pre' | 'agent' | 'post';
-  completedStates: string[];
-  skippedStates: string[];
-  masterSessionId: string;
-  resourceUsage: {
-    tokensUsed: number;
-    agentSpawns: number;
-    stateTransitions: number;
-    durationMs: number;
-  };
-  lastError?: {
-    message: string;
-    stateId: string;
-    phase: string;
-    timestamp: string;
-  };
-  checkpointedAt: string;
-  runStartedAt: string;
-}
-
 export async function handler(
   prisma: PrismaClient,
   params: {
-    runId: string;
+    story?: string;
+    runId?: string;
     sessionId?: string;
     transcriptPath?: string;
   }
 ) {
-  const { runId, sessionId, transcriptPath } = params;
+  const { sessionId, transcriptPath } = params;
+
+  // ST-190: Resolve story to runId if provided
+  let resolvedRunId = params.runId;
+  if (!params.runId && params.story) {
+    // Find active workflow runs for this story
+    const storyRuns = await prisma.workflowRun.findMany({
+      where: {
+        story: {
+          OR: [
+            { key: params.story },
+            { id: params.story },
+          ],
+        },
+        status: { in: ['running', 'paused'] },
+      },
+      orderBy: { startedAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+        workflow: { select: { name: true } },
+      },
+    });
+
+    if (storyRuns.length === 0) {
+      throw new Error(`No active workflow runs found for story: ${params.story}`);
+    }
+    if (storyRuns.length > 1) {
+      // Return list of runs for user to choose
+      return {
+        success: false,
+        error: 'multiple_runs',
+        message: `Multiple active runs for story ${params.story}. Specify runId:`,
+        runs: storyRuns.map(r => ({
+          runId: r.id,
+          status: r.status,
+          workflowName: r.workflow.name,
+          startedAt: r.startedAt?.toISOString(),
+        })),
+      };
+    }
+    resolvedRunId = storyRuns[0].id;
+  }
+
+  if (!resolvedRunId) {
+    throw new Error('Either story or runId is required');
+  }
 
   // Get workflow run with all related data
   const run = await prisma.workflowRun.findUnique({
-    where: { id: runId },
+    where: { id: resolvedRunId },
     include: {
       workflow: {
         include: {
@@ -130,7 +161,7 @@ export async function handler(
   });
 
   if (!run) {
-    throw new Error(`WorkflowRun not found: ${runId}`);
+    throw new Error(`WorkflowRun not found: ${resolvedRunId}`);
   }
 
   // ST-172: Automatic transcript registration after compaction
@@ -143,7 +174,7 @@ export async function handler(
     if (!existingPaths.includes(transcriptPath)) {
       // Add new transcript to array
       await prisma.workflowRun.update({
-        where: { id: runId },
+        where: { id: resolvedRunId },
         data: {
           masterTranscriptPaths: [...existingPaths, transcriptPath],
         },
@@ -152,122 +183,52 @@ export async function handler(
     }
   }
 
-  // Extract checkpoint from metadata
-  const runMetadata = run.metadata as Record<string, unknown> | null;
-  const checkpoint = runMetadata?.checkpoint as RunnerCheckpoint | undefined;
+  // ST-190: Call get_current_step to get the workflowSequence (single source of truth)
+  // This ensures any improvements to get_current_step automatically apply here
+  const currentStepResult = await getCurrentStepHandler(prisma, { runId: resolvedRunId });
 
-  // Get story context if available
-  const storyId = (runMetadata?.storyId || checkpoint?.storyId) as string | undefined;
-  let storyContext = null;
-  if (storyId) {
-    const story = await prisma.story.findUnique({
-      where: { id: storyId },
-      select: {
-        id: true,
-        key: true,
-        title: true,
-        summary: true,
-        description: true,
-        status: true,
-        type: true,
-      },
-    });
-    storyContext = story;
-  }
-
-  // Determine current state
-  const states = run.workflow.states;
-  let currentStateIndex = 0;
-  let currentState = states[0];
-
-  if (checkpoint) {
-    currentStateIndex = states.findIndex((s) => s.id === checkpoint.currentStateId);
-    if (currentStateIndex === -1) currentStateIndex = 0;
-    currentState = states[currentStateIndex];
-  }
-
-  const completedStateIds = checkpoint?.completedStates || [];
-
-  // Build components list from states for the shared instruction builder
-  const components: ComponentInfo[] = states.map((state, index) => ({
-    componentId: state.component?.id || state.id,
-    componentName: state.component?.name || state.name,
-    description: null,
-    order: index + 1,
-    status: completedStateIds.includes(state.id)
-      ? 'completed' as const
-      : state.id === currentState?.id
-        ? 'in_progress' as const
-        : 'pending' as const,
-  }));
-
-  // Build the re-initialization prompt using shared utility
-  const reinitPrompt = buildMasterSessionInstructions({
-    runId,
-    workflowId: run.workflowId,
-    workflowName: run.workflow.name,
-    components,
-    storyContext: storyContext ? {
-      storyId: storyContext.id,
-      storyKey: storyContext.key,
-      title: storyContext.title,
-    } : undefined,
-    currentPhase: checkpoint?.currentPhase || 'pre',
-    isRecovery: true,
-  });
+  // Get story context from get_current_step result or lookup
+  const storyContext = currentStepResult.story || null;
 
   // Build message with transcript registration info
-  let message = `MasterSession context restored for "${run.workflow.name}". Currently at state "${currentState?.name}" (${checkpoint?.currentPhase || 'pre'} phase). ${completedStateIds.length}/${states.length} states completed.`;
-
+  let message = `MasterSession context restored for "${run.workflow.name}".`;
+  if (currentStepResult.currentState) {
+    message += ` Currently at state "${currentStepResult.currentState.name}" (${currentStepResult.currentState.phase || 'pre'} phase).`;
+  }
+  if (currentStepResult.progress) {
+    message += ` ${currentStepResult.progress.completedStates?.length || 0}/${currentStepResult.progress.totalStates} states completed.`;
+  }
   if (transcriptAutoRegistered) {
     message += ` New master transcript registered: ${transcriptPath}`;
   }
+
+  // Reminder for the PROJECT MANAGER role
+  message += ' You are the PROJECT MANAGER orchestrating this story. Follow the workflowSequence to continue.';
 
   return {
     success: true,
 
     // IDs for reference
-    runId,
+    runId: resolvedRunId,
     workflowId: run.workflowId,
     workflowName: run.workflow.name,
-    masterSessionId: checkpoint?.masterSessionId,
 
-    // Current execution state
+    // Current execution state (from get_current_step)
     status: run.status,
-    currentState: currentState
-      ? {
-          id: currentState.id,
-          name: currentState.name,
-          order: currentState.order,
-          phase: checkpoint?.currentPhase || 'pre',
-          componentName: currentState.component?.name,
-        }
-      : null,
+    currentState: currentStepResult.currentState,
 
-    // Progress
-    progress: {
-      currentIndex: currentStateIndex,
-      totalStates: states.length,
-      completedCount: completedStateIds.length,
-      completedStates: completedStateIds,
-    },
+    // Progress (from get_current_step)
+    progress: currentStepResult.progress,
 
-    // Story context
+    // Story context (from get_current_step)
     story: storyContext,
 
-    // Resource usage
-    resourceUsage: checkpoint?.resourceUsage || {
-      tokensUsed: 0,
-      agentSpawns: 0,
-      stateTransitions: 0,
-      durationMs: 0,
-    },
+    // ST-190: workflowSequence from get_current_step - single source of truth
+    // Any updates to get_current_step logic are automatically reflected here
+    workflowSequence: currentStepResult.workflowSequence,
 
-    // Last error if any
-    lastError: checkpoint?.lastError,
-
-    // THE KEY PART - re-initialization prompt for MasterSession
-    reinitPrompt,
+    // Simple next step guidance
+    nextStep: 'Follow the workflowSequence above to continue execution.',
 
     // ST-172: Transcript registration info
     transcriptRegistration: transcriptAutoRegistered
@@ -278,13 +239,6 @@ export async function handler(
           totalMasterTranscripts: (run.masterTranscriptPaths?.length || 0) + 1,
         }
       : null,
-
-    // Recovery info
-    _recovery: {
-      command: 'get_orchestration_context',
-      runId,
-      slashCommand: `/orchestrate ${runId}`,
-    },
 
     message,
   };

@@ -44,6 +44,7 @@ import {
   createTestProjectParams,
   createTestEpicParams,
   createTestStoryParams,
+  createE2EWorkflowRunParams,
 } from './helpers/test-data-factory';
 
 // Prisma client with production database
@@ -435,11 +436,11 @@ describe('ST-160: Native Subagent Integration E2E Tests', () => {
         return;
       }
 
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId,
-        triggeredBy: 'st160-e2e-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId, 'st160-e2e-test', {
         context: { testType: 'native-subagent' },
       });
+      const result = await startWorkflowRun(prisma, runParams);
 
       ctx.workflowRunId = result.runId;
       expect(result.runId).toBeDefined();

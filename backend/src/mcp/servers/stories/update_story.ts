@@ -7,6 +7,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { resolveStory } from '../../shared/resolve-identifiers';
 import {
   UpdateStoryParams,
   StoryResponse,
@@ -18,7 +19,6 @@ import {
   handlePrismaError,
   autoTruncateSummary,
 } from '../../utils';
-import { resolveStory } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'update_story',

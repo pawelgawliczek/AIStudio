@@ -13,6 +13,7 @@ export const StandardStateList: React.FC<StandardStateListProps> = ({
   expandedStates,
   onToggle,
   onStateClick,
+  onViewLiveFeed,
 }) => {
   const sortedStates = [...states].sort((a, b) => a.order - b.order);
 
@@ -36,6 +37,7 @@ export const StandardStateList: React.FC<StandardStateListProps> = ({
             isExpanded={expandedStates.has(state.id)}
             onToggle={() => handleStateClick(state.id)}
             variant="standard"
+            onViewLiveFeed={onViewLiveFeed}
           />
         );
       })}

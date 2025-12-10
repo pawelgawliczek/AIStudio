@@ -93,14 +93,39 @@ After each component completes, update its status to "completed".
 
 ## Your Role
 1. ${isRecovery ? '**Restore todo list** with current progress' : '**Initialize todo list** with all components at start'}
-2. Execute components in order using the **Task tool** to spawn agents
-3. **Update todo status** before/after each component
-4. Before spawning each agent, call \`get_agent_instructions({ componentId })\` for full instructions
-5. **CRITICAL**: After spawning an agent, check the Task tool response for hook output with \`agentSpawned\` data:
-   - Extract \`agentId\` and \`transcriptPath\` from the hook output
-   - Immediately call \`add_transcript({ type: 'agent', runId: '${runId}', componentId: '<component-id>', agentId: '<agent-id>', transcriptPath: '<path>' })\`
-   - This registers the transcript so metrics can be captured later
-6. After each agent completes, call \`record_agent_complete({ runId, componentId, status, output, componentSummary })\` to record metrics
+2. **Update todo status** before/after each component
+3. For each component, use \`get_current_step({ story: '${storyContext?.storyKey || runId}' })\` to get exact execution steps
+
+## Agent Execution Sequence (ST-198: EXPLICIT 4-STEP WORKFLOW)
+For each agent phase, **you are responsible for the complete execution sequence**.
+
+**The 4-Step Agent Execution Sequence:**
+
+1. **Call record_agent_start** - Track when agent starts
+   \`\`\`typescript
+   record_agent_start({ runId: '${runId}', componentId })
+   \`\`\`
+
+2. **Spawn agent via Task tool** - Let the agent do the work
+   \`\`\`typescript
+   Task({ subagent_type: 'general-purpose', prompt: <instructions> })
+   \`\`\`
+
+3. **Call record_agent_complete** - Track completion with output
+   \`\`\`typescript
+   record_agent_complete({ runId: '${runId}', componentId, status: 'completed', output })
+   \`\`\`
+
+4. **Call advance_step** - Move to next phase
+   \`\`\`typescript
+   advance_step({ story: '${storyContext?.storyKey || runId}', output })
+   \`\`\`
+
+⚠️ **CRITICAL RULES:**
+- **DO NOT skip any step** - All 4 steps are required for proper tracking
+- **DO NOT do the work yourself** - You MUST spawn a Task agent. You are the ORCHESTRATOR, not the implementer.
+- The Task agent does the actual work (coding, analysis, etc.). You just coordinate.
+- **Use get_current_step for detailed instructions** - It provides the exact workflow sequence with all parameters
 
 ## Response Format
 After each action, respond with a JSON block:

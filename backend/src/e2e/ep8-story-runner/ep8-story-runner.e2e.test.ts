@@ -73,6 +73,7 @@ import {
   createTestWorkflowStateParams,
   createTestArtifactDefinitionParams,
   createTestArtifactContent,
+  createE2EWorkflowRunParams,
 } from './helpers/test-data-factory';
 
 // MCP Handler Imports - Projects
@@ -402,15 +403,14 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
     it('should start workflow run', async () => {
       expect(hasWorkflowReady(ctx)).toBe(true);
 
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'e2e-test',
-        cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'e2e-test', {
         context: {
           testRun: true,
           timestamp: Date.now(),
         },
       });
+      const result = await startWorkflowRun(prisma, runParams);
 
       ctx.workflowRunId = result.runId;
 
@@ -774,11 +774,9 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
     beforeAll(async () => {
       // Create a new workflow run specifically for breakpoint testing
       // This ensures we have a run in a testable state
-      const runResult = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'ep8-e2e-breakpoint-test',
-        cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
-      });
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'ep8-e2e-breakpoint-test');
+      const runResult = await startWorkflowRun(prisma, runParams);
       breakpointRunId = runResult.runId;
       console.log(`  ✓ Created breakpoint test run: ${breakpointRunId}`);
     });
@@ -1048,11 +1046,9 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
 
       beforeAll(async () => {
         // Create a fresh run for step testing
-        const runResult = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'ep8-e2e-step-test',
-          cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'ep8-e2e-step-test');
+        const runResult = await startWorkflowRun(prisma, runParams);
         stepTestRunId = runResult.runId;
 
         // Update run to paused state for step testing
@@ -1088,11 +1084,9 @@ describe('EP-8 Story Runner E2E Integration Tests', () => {
 
       it('should reject step_runner on running run', async () => {
         // Create a running (not paused) run
-        const runResult = await startWorkflowRun(prisma, {
-          workflowId: ctx.workflowId!,
-          triggeredBy: 'ep8-e2e-step-validation',
-          cwd: '/Users/pawelgawliczek/projects/AIStudio', // Required for transcript tracking
-        });
+        // ST-170: Use E2E helper for required sessionId and transcriptPath
+        const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'ep8-e2e-step-validation');
+        const runResult = await startWorkflowRun(prisma, runParams);
 
         // Keep it in running state without isPaused
         await prisma.workflowRun.update({

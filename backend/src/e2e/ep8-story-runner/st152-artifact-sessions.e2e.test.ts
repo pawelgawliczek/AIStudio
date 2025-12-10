@@ -40,6 +40,7 @@ import { handler as createWorkflow } from '../../mcp/servers/workflows/create_wo
 
 // MCP Handler Imports - Remote Agents
 import { TEST_CONFIG, testName } from './config/test-config';
+import { createE2EWorkflowRunParams } from './helpers/test-data-factory';
 
 const prisma = new PrismaClient();
 
@@ -287,10 +288,9 @@ describe('ST-152: Artifact Discussion Sessions E2E', () => {
     it('should start workflow run', async () => {
       expect(ctx.workflowId).toBeDefined();
 
-      const result = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId!,
-        triggeredBy: 'st152-e2e-test',
-      });
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId!, 'st152-e2e-test');
+      const result = await startWorkflowRun(prisma, runParams);
 
       ctx.workflowRunId = result.runId;
       cleanupIds.workflowRuns.push(result.runId);

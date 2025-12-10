@@ -92,5 +92,9 @@
     "agentic-framework"
   ],
   "author": "Vibe Studio Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@esbuild/darwin-arm64": "^0.27.1",
+    "esbuild": "^0.25.12"
+  }
 }

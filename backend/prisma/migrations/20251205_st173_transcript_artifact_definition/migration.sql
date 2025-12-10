@@ -20,8 +20,13 @@ WHERE NOT EXISTS (
 );
 
 -- Add index for efficient transcript queries by workflow run
--- (existing index on artifacts already covers workflowRunId, but adding specific comment)
-COMMENT ON INDEX ix_artifacts_workflow_run_id IS 'ST-173: Efficient lookup of transcripts by workflow run';
+-- Note: Index may already exist with a different name, skip if not found
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'ix_artifacts_workflow_run_id') THEN
+    COMMENT ON INDEX ix_artifacts_workflow_run_id IS 'ST-173: Efficient lookup of transcripts by workflow run';
+  END IF;
+END $$;
 
 -- Add metadata column index hint for redaction queries (if not exists)
 -- Note: The metadata column already exists with JSONB type, so no schema changes needed

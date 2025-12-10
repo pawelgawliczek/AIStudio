@@ -2,9 +2,9 @@ import * as os from 'os';
 import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { TranscriptRegistrationService } from '../../../remote-agent/transcript-registration.service';
 import { buildMasterSessionInstructions } from './master-session-instructions';
 import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
-import { TranscriptRegistrationService } from '../../../remote-agent/transcript-registration.service';
 
 export const tool: Tool = {
   name: 'start_team_run',

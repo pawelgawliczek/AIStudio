@@ -10,10 +10,10 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler } from '../upload_artifact_from_file';
-import { RemoteRunner } from '../../../utils/remote-runner';
 import { ValidationError, NotFoundError } from '../../../types';
+import { RemoteRunner } from '../../../utils/remote-runner';
 import { handler as uploadArtifact } from '../upload_artifact';
+import { handler } from '../upload_artifact_from_file';
 
 // Mock dependencies
 jest.mock('../../../utils/remote-runner');

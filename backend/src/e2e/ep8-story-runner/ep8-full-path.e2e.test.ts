@@ -16,7 +16,7 @@
 import { PrismaClient } from '@prisma/client';
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
-import { handler as getTranscriptMetrics } from '../../mcp/servers/execution/get_transcript_metrics';
+// Note: get_transcript_metrics was removed - transcript metrics are now handled via upload_transcript
 import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
 import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
 import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
@@ -40,6 +40,7 @@ import {
   // Note: ST-164 removed createTestCoordinatorParams
   createTestWorkflowParams,
   createTestWorkflowStateParams,
+  createE2EWorkflowRunParams,
 } from './helpers/test-data-factory';
 
 // MCP Handler Imports - Core setup
@@ -257,11 +258,11 @@ describe('EP-8 Full Path E2E Tests (Run from Laptop)', () => {
       }
 
       // Start a workflow run first
-      const runResult = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId,
-        triggeredBy: 'e2e-full-path-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runParams = createE2EWorkflowRunParams(ctx.workflowId, 'e2e-full-path-test', {
         context: { fullPathTest: true },
       });
+      const runResult = await startWorkflowRun(prisma, runParams);
       ctx.workflowRunId = runResult.runId;
 
       // Record component start
@@ -314,28 +315,23 @@ describe('EP-8 Full Path E2E Tests (Run from Laptop)', () => {
   // PHASE 7B: Transcript Metrics Collection
   // ============================================================
   describe('Phase 7B: Transcript Metrics', () => {
-    it('should get transcript metrics from agent execution', async () => {
+    it('should verify transcript metrics via upload_transcript', async () => {
+      // Note: get_transcript_metrics was removed
+      // Transcript metrics are now handled via the upload_transcript MCP tool
+      // and the ST-189 transcript registration system
       if (!ctx.workflowRunId) {
         console.log('  ⚠ Skipping - no workflow run');
         return;
       }
 
-      try {
-        const result = await getTranscriptMetrics(prisma, {
-          searchContent: ctx.workflowRunId,
-        });
+      // Verify workflow run has transcript tracking metadata
+      const run = await prisma.workflowRun.findUnique({
+        where: { id: ctx.workflowRunId },
+        select: { masterTranscriptPaths: true, metadata: true },
+      });
 
-        if (result.runLocally) {
-          console.log(`  ✓ Metrics require local execution: ${result.command}`);
-        } else if (result.metrics) {
-          console.log(`  ✓ Metrics retrieved: ${result.metrics.totalTokens} tokens`);
-        } else {
-          console.log(`  ✓ Metrics response: ${JSON.stringify(result).substring(0, 100)}...`);
-        }
-      } catch (error: any) {
-        // May not have transcript if agent didn't complete
-        console.log(`  ⚠ Transcript metrics: ${error.message.substring(0, 50)}...`);
-      }
+      console.log(`  ✓ Master transcript paths: ${run?.masterTranscriptPaths?.length || 0}`);
+      console.log(`  ✓ Metadata has tracking: ${!!(run?.metadata as any)?._transcriptTracking}`);
     });
 
     it('should record component complete with transcript metrics', async () => {
@@ -387,11 +383,11 @@ describe('EP-8 Full Path E2E Tests (Run from Laptop)', () => {
       }
 
       // Start a new workflow run for runner test
-      const runResult = await startWorkflowRun(prisma, {
-        workflowId: ctx.workflowId,
-        triggeredBy: 'e2e-runner-test',
+      // ST-170: Use E2E helper for required sessionId and transcriptPath
+      const runnerRunParams = createE2EWorkflowRunParams(ctx.workflowId, 'e2e-runner-test', {
         context: { runnerTest: true },
       });
+      const runResult = await startWorkflowRun(prisma, runnerRunParams);
 
       // Start the actual runner
       const runnerResult = await startRunner(prisma, {

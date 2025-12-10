@@ -133,3 +133,38 @@ Created: ${new Date().toISOString()}
 ${TEST_CONFIG.TIMESTAMP}
 `;
 }
+
+/**
+ * Create E2E test workflow run parameters
+ * ST-170: start_workflow_run now requires sessionId and transcriptPath for live streaming
+ * For E2E tests, we use test values that simulate what the SessionStart hook would provide
+ */
+export function createE2EWorkflowRunParams(
+  workflowId: string,
+  triggeredBy: string,
+  options?: {
+    cwd?: string;
+    context?: Record<string, unknown>;
+    approvalOverrides?: {
+      mode?: 'default' | 'all' | 'none';
+      stateOverrides?: Record<string, boolean>;
+    };
+  }
+) {
+  const timestamp = Date.now();
+  const sessionId = `e2e-test-session-${timestamp}`;
+  const cwd = options?.cwd || '/Users/pawelgawliczek/projects/AIStudio';
+  // Path escaping: /Users/pawelgawliczek/projects/AIStudio → -Users-pawelgawliczek-projects-AIStudio
+  const escapedPath = cwd.replace(/^\//, '-').replace(/\//g, '-');
+  const transcriptPath = `${cwd}/.claude/projects/${escapedPath}/${sessionId}.jsonl`;
+
+  return {
+    workflowId,
+    triggeredBy,
+    cwd,
+    sessionId,
+    transcriptPath,
+    context: options?.context,
+    approvalOverrides: options?.approvalOverrides,
+  };
+}
