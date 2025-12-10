@@ -58,6 +58,13 @@ export const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
       onStart?.(data.runId);
       onClose();
     },
+    onError: (error) => {
+      // Check if the workflow might have started despite the error
+      // Invalidate queries to refresh state
+      queryClient.invalidateQueries({ queryKey: ['workflow-run'] });
+      queryClient.invalidateQueries({ queryKey: ['story', storyId] });
+      console.error('Failed to start workflow:', error);
+    },
   });
 
   const handleStart = () => {

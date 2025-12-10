@@ -223,6 +223,16 @@ class AdvanceStepDto {
 }
 
 /**
+ * DTO for cancelling workflow run
+ * ST-202: Cancel runner implementation
+ */
+class CancelRunnerDto {
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+/**
  * Runner Controller
  * REST API endpoints for Story Runner communication
  *
@@ -599,5 +609,18 @@ export class RunnerController {
     resourceUsage?: unknown;
   }> {
     return await this.runnerControlService.getStatus(runId, false);
+  }
+
+  /**
+   * Cancel workflow run
+   * ST-202: POST /api/runner/:runId/cancel
+   */
+  @Post(':runId/cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancelRunner(
+    @Param('runId') runId: string,
+    @Body() dto: CancelRunnerDto,
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+    return await this.runnerControlService.cancelRunner(runId, dto.reason);
   }
 }

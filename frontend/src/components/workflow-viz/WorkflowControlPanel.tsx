@@ -178,10 +178,12 @@ export const WorkflowControlPanel: React.FC<WorkflowControlPanelProps> = ({
     resume,
     repeat,
     advance,
+    cancel,
     isPausing,
     isResuming,
     isRepeating,
     isAdvancing,
+    isCancelling,
   } = useRunnerControl({ runId });
 
   const [repeatModalOpen, setRepeatModalOpen] = useState(false);
@@ -222,11 +224,12 @@ export const WorkflowControlPanel: React.FC<WorkflowControlPanelProps> = ({
   };
 
   const handleCancel = async () => {
-    // TODO: Add cancel mutation to hook
-    console.warn('Cancel not implemented yet');
+    await cancel('Cancelled via control panel');
+    onStatusChange?.(status!);
   };
 
-  const currentStateName = status?.checkpoint?.currentState || 'Unknown';
+  const checkpoint = status?.checkpoint as { currentState?: string; completedStates?: string[] } | undefined;
+  const currentStateName = checkpoint?.currentState || 'Unknown';
   const runnerState = status?.status || 'initializing';
 
   if (isLoadingStatus && !status) {
@@ -277,9 +280,10 @@ export const WorkflowControlPanel: React.FC<WorkflowControlPanelProps> = ({
           </Button>
           <Button
             data-testid="cancel-btn"
-            disabled={!buttonStates.cancel}
+            disabled={!buttonStates.cancel || isCancelling}
             onClick={handleCancel}
             color="error"
+            startIcon={isCancelling ? <CircularProgress size={14} /> : null}
           >
             ⏹ Cancel
           </Button>
@@ -331,7 +335,7 @@ export const WorkflowControlPanel: React.FC<WorkflowControlPanelProps> = ({
             <strong>{runnerState.toUpperCase()}</strong> at "{currentStateName}"
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Progress: {status?.checkpoint?.completedStates?.length || 0}/{states.length} states
+            Progress: {checkpoint?.completedStates?.length || 0}/{states.length} states
           </Typography>
         </Box>
 
@@ -385,9 +389,9 @@ export const WorkflowControlPanel: React.FC<WorkflowControlPanelProps> = ({
             fullWidth
             variant="outlined"
             color="error"
-            disabled={!buttonStates.cancel}
+            disabled={!buttonStates.cancel || isCancelling}
             onClick={handleCancel}
-            startIcon={<span>⏹</span>}
+            startIcon={isCancelling ? <CircularProgress size={20} /> : <span>⏹</span>}
           >
             Cancel Run
           </Button>

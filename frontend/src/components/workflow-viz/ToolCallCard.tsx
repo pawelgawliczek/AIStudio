@@ -15,10 +15,10 @@ SyntaxHighlighter.registerLanguage('json', json);
 
 // Custom theme with ONLY safe fonts - prevents font fingerprinting probes
 // Based on VS2015 dark theme but without any system font fallbacks
-const safeCodeTheme = {
+const safeCodeTheme: { [key: string]: React.CSSProperties } = {
   'hljs': {
     display: 'block',
-    overflowX: 'auto',
+    overflowX: 'auto' as const,
     padding: '0.5em',
     background: '#1e1e1e',
     color: '#dcdcdc',

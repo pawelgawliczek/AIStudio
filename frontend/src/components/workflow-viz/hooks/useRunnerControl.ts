@@ -32,12 +32,14 @@ export interface UseRunnerControlReturn {
   resume: () => Promise<void>;
   repeat: (params: RepeatStepParams) => Promise<void>;
   advance: (params: AdvanceStepParams) => Promise<void>;
+  cancel: (reason?: string) => Promise<void>;
 
   // Loading states
   isPausing: boolean;
   isResuming: boolean;
   isRepeating: boolean;
   isAdvancing: boolean;
+  isCancelling: boolean;
 }
 
 export function useRunnerControl({
@@ -97,6 +99,15 @@ export function useRunnerControl({
     },
   });
 
+  // Cancel mutation (ST-202)
+  const cancelMutation = useMutation({
+    mutationFn: (reason?: string) => runnerService.cancelRunner(runId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runner-status', runId] });
+      queryClient.invalidateQueries({ queryKey: ['workflow-run'] });
+    },
+  });
+
   // Wrapper functions
   const pause = async (reason?: string) => {
     await pauseMutation.mutateAsync(reason);
@@ -114,6 +125,10 @@ export function useRunnerControl({
     await advanceMutation.mutateAsync(params);
   };
 
+  const cancel = async (reason?: string) => {
+    await cancelMutation.mutateAsync(reason);
+  };
+
   return {
     // Status query
     status,
@@ -125,11 +140,13 @@ export function useRunnerControl({
     resume,
     repeat,
     advance,
+    cancel,
 
     // Loading states
     isPausing: pauseMutation.isPending,
     isResuming: resumeMutation.isPending,
     isRepeating: repeatMutation.isPending,
     isAdvancing: advanceMutation.isPending,
+    isCancelling: cancelMutation.isPending,
   };
 }

@@ -45,7 +45,7 @@ export function MarkdownEditor({
       'fullscreen',
       '|',
       'guide',
-    ],
+    ] as const,
   }), [placeholder, minHeight]);
 
   const handleChange = useCallback((value: string) => {

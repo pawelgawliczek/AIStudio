@@ -10,8 +10,8 @@ import { formatDuration } from './utils/format-duration';
 interface ComponentRun {
   id: string;
   componentName?: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused';
-  componentSummary?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
+  componentSummary?: string | null;
   startedAt?: string;
   completedAt?: string;
   stateId: string;

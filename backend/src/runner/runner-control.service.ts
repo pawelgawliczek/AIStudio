@@ -285,6 +285,72 @@ export class RunnerControlService {
   }
 
   /**
+   * Cancel a workflow run (maps to cancel_runner MCP tool)
+   * M1: Authorization - Check user has access to project
+   * ST-202: Implement cancel functionality
+   */
+  async cancelRunner(
+    runId: string,
+    reason?: string,
+  ): Promise<{ success: boolean; runId: string; status: string; message?: string }> {
+    // Fetch run with workflow and project
+    const run = await this.prisma.workflowRun.findUnique({
+      where: { id: runId },
+      include: {
+        workflow: {
+          include: {
+            project: true,
+          },
+        },
+      },
+    });
+
+    if (!run) {
+      throw new NotFoundException('WorkflowRun not found');
+    }
+
+    // M1: Authorization check
+    if (!run.workflow?.project?.id) {
+      throw new ForbiddenException('Access denied to this workflow run');
+    }
+
+    // Validate run can be cancelled (running or paused)
+    if (!['running', 'paused'].includes(run.status)) {
+      throw new BadRequestException(`Cannot cancel workflow run with status: ${run.status}`);
+    }
+
+    // Update run status to cancelled
+    const updatedRun = await this.prisma.workflowRun.update({
+      where: { id: runId },
+      data: {
+        status: 'cancelled',
+        finishedAt: new Date(),
+      },
+    });
+
+    // Cancel any active remote jobs for this run
+    await this.prisma.remoteJob.updateMany({
+      where: {
+        workflowRunId: runId,
+        status: { in: ['pending', 'running'] },
+      },
+      data: {
+        status: 'cancelled',
+        completedAt: new Date(),
+      },
+    });
+
+    this.logger.log(`[ST-202] Cancelled workflow run ${runId}: ${reason || 'No reason provided'}`);
+
+    return {
+      success: true,
+      runId: updatedRun.id,
+      status: updatedRun.status,
+      message: reason || 'Workflow run cancelled',
+    };
+  }
+
+  /**
    * Get workflow run status (maps to get_runner_status MCP tool)
    * M1: Authorization - Check user has access to project
    */

@@ -100,4 +100,16 @@ export const runnerService = {
     const response = await apiClient.post<RunnerResponse>(`/runner/${runId}/advance`, params);
     return response.data;
   },
+
+  /**
+   * Cancel workflow run
+   * POST /runner/:runId/cancel
+   * ST-202: Cancel runner implementation
+   */
+  async cancelRunner(runId: string, reason?: string): Promise<RunnerResponse> {
+    const response = await apiClient.post<RunnerResponse>(`/runner/${runId}/cancel`, {
+      reason,
+    });
+    return response.data;
+  },
 };

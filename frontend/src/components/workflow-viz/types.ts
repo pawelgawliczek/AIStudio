@@ -15,6 +15,7 @@ export interface ComponentRunWithMetrics {
   completedAt: string | null;
   output: any;
   errorMessage: string | null;
+  componentSummary?: string | null; // ST-147: AI-generated summary of what this agent accomplished
   tokenMetrics?: {
     inputTokens: number;
     outputTokens: number;
