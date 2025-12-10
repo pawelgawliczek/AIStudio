@@ -353,6 +353,60 @@ export class BackendClient {
       throw error;
     }
   }
+
+  /**
+   * Register master transcript with backend
+   * ST-189: Updates WorkflowRun.masterTranscriptPaths
+   */
+  async registerMasterTranscript(payload: {
+    workflowRunId: string;
+    sessionId: string;
+    transcriptPath: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await this.client.post(
+        `/api/runner/workflow-runs/${payload.workflowRunId}/transcripts`,
+        {
+          type: 'master',
+          transcriptPath: payload.transcriptPath,
+          sessionId: payload.sessionId,
+        }
+      );
+      return { success: response.data?.success ?? true };
+    } catch (error) {
+      console.warn('[BackendClient] Master transcript registration failed:',
+        axios.isAxiosError(error) ? error.message : error);
+      return { success: false, error: axios.isAxiosError(error) ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Register agent transcript with backend
+   * ST-189: Updates WorkflowRun.metadata.spawnedAgentTranscripts
+   */
+  async registerAgentTranscript(payload: {
+    workflowRunId: string;
+    componentId: string;
+    agentId: string;
+    transcriptPath: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await this.client.post(
+        `/api/runner/workflow-runs/${payload.workflowRunId}/transcripts`,
+        {
+          type: 'agent',
+          componentId: payload.componentId,
+          agentId: payload.agentId,
+          transcriptPath: payload.transcriptPath,
+        }
+      );
+      return { success: response.data?.success ?? true };
+    } catch (error) {
+      console.warn('[BackendClient] Agent transcript registration failed:',
+        axios.isAxiosError(error) ? error.message : error);
+      return { success: false, error: axios.isAxiosError(error) ? error.message : 'Unknown error' };
+    }
+  }
 }
 
 /**

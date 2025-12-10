@@ -1,9 +1,7 @@
 /**
- * CLI Session exports
+ * CLI Session exports (ST-200: Master/Agent sessions removed, moved to laptop agent)
  */
 
-export { MasterSession, MasterSessionOptions } from './master-session';
-export { AgentSession, AgentSessionOptions, AgentResult, createAgentSession } from './agent-session';
 export {
   StreamParser,
   TranscriptRecord,

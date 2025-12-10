@@ -93,6 +93,8 @@ export interface RunnerConfig {
   checkpointDir: string;
   /** Database URL for direct access */
   databaseUrl: string;
+  /** ST-200: WebSocket orchestrator for laptop agent communication (optional - for testing) */
+  orchestrator?: any;
 }
 
 /**

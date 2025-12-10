@@ -1,6 +1,6 @@
 /**
- * Main Runner Class
- * Orchestrates workflow execution using Claude Code CLI sessions
+ * Main Runner Class (ST-200 Refactored)
+ * Orchestrates workflow execution via WebSocket to laptop Master Session
  */
 
 import { EventEmitter } from 'events';
@@ -18,12 +18,12 @@ import {
   updateTurnCounts,
   TurnCounts,
 } from './types';
-import { MasterSession } from './cli/master-session';
-import { AgentSession } from './cli/agent-session';
+import { WebSocketOrchestrator } from './websocket-orchestrator';
 import { CheckpointService } from './checkpoint/checkpoint-service';
 import { ResourceManager } from './resources/resource-manager';
 import { BackendClient, Breakpoint, BreakpointContext, ApprovalRequest } from './api/backend-client';
 import { ResponseHandler } from './state-machine/response-handler';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Runner state machine states
@@ -72,7 +72,7 @@ export class Runner extends EventEmitter {
   private state: RunnerState = 'created';
   private config: RunnerConfig;
   private checkpoint: RunnerCheckpoint | null = null;
-  private masterSession: MasterSession | null = null;
+  private orchestrator: WebSocketOrchestrator;
   private checkpointService: CheckpointService;
   private resourceManager: ResourceManager;
   private backendClient: BackendClient;
@@ -93,6 +93,10 @@ export class Runner extends EventEmitter {
   private approvalFeedback: string | null = null;
   private shouldRerunCurrentState: boolean = false;
 
+  // ST-200: Master session tracking
+  private masterSessionId: string | null = null;
+  private masterTranscriptPath: string | null = null;
+
   constructor(config: RunnerConfig) {
     super();
     this.config = config;
@@ -100,6 +104,16 @@ export class Runner extends EventEmitter {
     this.resourceManager = new ResourceManager(config.limits);
     this.backendClient = new BackendClient(config.backendUrl);
     this.responseHandler = new ResponseHandler(this);
+
+    // ST-200: Use provided orchestrator or create new one
+    if (config.orchestrator) {
+      this.orchestrator = config.orchestrator;
+    } else {
+      this.orchestrator = new WebSocketOrchestrator({
+        serverUrl: config.backendUrl,
+        apiKey: process.env.RUNNER_API_KEY || 'default-runner-key',
+      });
+    }
   }
 
   /**
@@ -157,28 +171,47 @@ export class Runner extends EventEmitter {
       this.workflowRun = await this.backendClient.getWorkflowRun(options.runId);
 
       // Initialize checkpoint
-      const masterSessionId = `master-${options.runId}`;
+      this.masterSessionId = `master-${options.runId}`;
       this.checkpoint = createCheckpoint(
         options.runId,
         options.workflowId,
-        masterSessionId,
+        this.masterSessionId,
         options.storyId
       );
       this.checkpoint.currentStateId = this.states[0].id;
 
-      // ST-147: Set runner transcript path
-      this.checkpoint.telemetry.runnerTranscriptPath =
-        `${this.config.workingDirectory}/.claude/projects/-opt-stack-AIStudio/${masterSessionId}.jsonl`;
+      // ST-200: Connect to WebSocket orchestrator
+      console.log(`[Runner] Connecting to WebSocket orchestrator...`);
+      await this.orchestrator.connect();
 
-      // Start master session
-      console.log(`[Runner] Starting master session...`);
-      this.masterSession = new MasterSession({
-        sessionId: masterSessionId,
-        workingDirectory: this.config.workingDirectory,
-        maxTurns: this.config.master.maxTurns,
-        model: this.config.master.model,
+      // ST-200: Start master session on laptop via WebSocket
+      console.log(`[Runner] Starting master session on laptop...`);
+      const sessionMetadata = await this.orchestrator.startMasterSession({
+        workflowRunId: options.runId,
+        projectPath: this.config.workingDirectory,
+        model: this.config.master.model || 'claude-sonnet-4-20250514',
+        jobToken: `runner-${options.runId}`,
       });
-      await this.masterSession.start();
+
+      this.masterSessionId = sessionMetadata.sessionId;
+      this.masterTranscriptPath = sessionMetadata.transcriptPath;
+
+      // ST-147: Set runner transcript path
+      this.checkpoint.telemetry.runnerTranscriptPath = this.masterTranscriptPath;
+
+      console.log(`[Runner] Master session started: ${this.masterSessionId}`);
+      console.log(`[Runner] Transcript path: ${this.masterTranscriptPath}`);
+
+      // ST-189: Register master transcript with backend
+      console.log(`[Runner] Registering master transcript: ${this.masterTranscriptPath}`);
+      const masterRegResult = await this.backendClient.registerMasterTranscript({
+        workflowRunId: options.runId,
+        sessionId: this.masterSessionId,
+        transcriptPath: this.masterTranscriptPath,
+      });
+      if (!masterRegResult.success) {
+        console.warn(`[Runner] Master transcript registration failed: ${masterRegResult.error}`);
+      }
 
       this.setState('ready');
 
@@ -234,15 +267,23 @@ export class Runner extends EventEmitter {
       // ST-148: Check for approval feedback on resume
       await this.checkApprovalFeedbackOnResume(runId);
 
-      // Resume master session
+      // ST-200: Connect to WebSocket orchestrator
+      console.log(`[Runner] Connecting to WebSocket orchestrator...`);
+      await this.orchestrator.connect();
+
+      // ST-200: Resume master session on laptop via WebSocket
       console.log(`[Runner] Resuming master session ${this.checkpoint.masterSessionId}...`);
-      this.masterSession = new MasterSession({
+      const sessionMetadata = await this.orchestrator.resumeMasterSession({
         sessionId: this.checkpoint.masterSessionId,
-        workingDirectory: this.config.workingDirectory,
-        maxTurns: this.config.master.maxTurns,
-        model: this.config.master.model,
+        workflowRunId: runId,
+        projectPath: this.config.workingDirectory,
+        model: this.config.master.model || 'claude-sonnet-4-20250514',
       });
-      await this.masterSession.resume();
+
+      this.masterSessionId = sessionMetadata.sessionId;
+      this.masterTranscriptPath = sessionMetadata.transcriptPath;
+
+      console.log(`[Runner] Master session resumed: ${this.masterSessionId}`);
 
       // Restore resource usage
       this.resourceManager.restore(this.checkpoint.resourceUsage);
@@ -732,7 +773,7 @@ export class Runner extends EventEmitter {
   }
 
   /**
-   * Execute instruction in master session
+   * Execute instruction in master session (ST-200: via WebSocket)
    */
   private async executeMasterInstruction(
     phase: 'pre' | 'post',
@@ -740,18 +781,62 @@ export class Runner extends EventEmitter {
     instructions: string,
     agentOutput?: unknown
   ): Promise<MasterResponse> {
-    if (!this.masterSession) {
+    if (!this.masterSessionId || !this.workflowRun) {
       throw new Error('Master session not initialized');
     }
 
     const context = this.buildContext(state, phase, agentOutput);
     const prompt = this.buildMasterPrompt(phase, state, instructions, context);
 
-    return await this.masterSession.execute(prompt);
+    // ST-200: Generate nonce for response validation
+    const nonce = uuidv4();
+
+    // ST-200: Send command via WebSocket
+    const result = await this.orchestrator.sendCommand({
+      workflowRunId: this.workflowRun.id,
+      command: prompt,
+      nonce,
+    });
+
+    // Parse the response into MasterResponse format
+    // The output should contain a JSON block with the response
+    return this.parseMasterResponse(result.output);
   }
 
   /**
-   * Spawn agent for a state
+   * Parse Master Session output into MasterResponse (ST-200)
+   */
+  private parseMasterResponse(output: string): MasterResponse {
+    // Try to extract JSON block from output
+    const jsonMatch = output.match(/```json:master-response\n([\s\S]*?)\n```/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[1]);
+        return {
+          action: parsed.action || 'proceed',
+          status: parsed.status || 'success',
+          message: parsed.message || '',
+          output: parsed.output,
+          control: parsed.control,
+        };
+      } catch (error) {
+        console.warn('[Runner] Failed to parse master response JSON:', error);
+      }
+    }
+
+    // Fallback: return a default "proceed" response
+    return {
+      action: 'proceed',
+      status: 'success',
+      message: output.substring(0, 200),
+      output: {
+        stateOutput: output,
+      },
+    };
+  }
+
+  /**
+   * Spawn agent for a state (ST-200: via Task tool in Master Session)
    */
   private async spawnAgent(
     state: WorkflowState
@@ -796,54 +881,53 @@ export class Runner extends EventEmitter {
     });
 
     try {
-      // Create agent session
-      const agent = new AgentSession({
-        workingDirectory: this.config.workingDirectory,
-        componentId: state.componentId!,
-        stateId: state.id,
-        maxTurns: state.component.config.maxRetries || this.config.agent.maxTurns,
-        timeout: state.component.config.timeout || this.config.agent.timeout,
-        model: state.component.config.modelId || this.config.agent.model,
-        allowedTools: state.component.tools,
-        storyContext: this.storyContext ? {
-          storyId: this.storyContext.id,
-          title: this.storyContext.title,
-          description: this.storyContext.description,
-        } : undefined,
+      // ST-200: Build agent prompt with component instructions
+      const agentPrompt = this.buildAgentPrompt(state);
+
+      // ST-200: Build Task tool command for Master Session
+      const taskCommand = `Use the Task tool to spawn a component agent with these instructions:
+
+Component: ${state.component.name}
+Component ID: ${state.componentId}
+State ID: ${state.id}
+
+${agentPrompt}
+
+IMPORTANT: After the agent completes, extract the output and respond with it in your master-response JSON block.`;
+
+      // ST-200: Send agent spawn command via WebSocket
+      const nonce = uuidv4();
+      const result = await this.orchestrator.sendCommand({
+        workflowRunId: this.workflowRun!.id,
+        command: taskCommand,
+        nonce,
       });
 
-      // Build agent prompt
-      const prompt = this.buildAgentPrompt(state);
+      // Parse the agent output from Master Session response
+      const masterResponse = this.parseMasterResponse(result.output);
 
-      // Execute agent
-      const result = await agent.execute(prompt);
-
-      this.emit('agent:completed', state.id, result.exitCode || 0);
+      this.emit('agent:completed', state.id, 0);
       this.resourceManager.recordAgentSpawn();
-      this.resourceManager.recordTokens(result.metrics.totalTokens);
 
-      // ST-147: Update telemetry with agent turn counts (if available)
-      if (result.metrics.turns) {
-        updateTurnCounts(this.checkpoint!.telemetry, result.metrics.turns as TurnCounts);
-      }
+      // Estimate token usage (will be tracked via transcripts)
+      const estimatedTokens = (result.metrics?.inputTokens || 0) + (result.metrics?.outputTokens || 0);
+      this.resourceManager.recordTokens(estimatedTokens);
 
       // Record completion in backend
       await this.backendClient.recordAgentComplete({
         componentRunId: componentRun.id,
-        success: result.success,
-        output: result.output,
-        errorMessage: result.error,
-        tokensInput: result.metrics.inputTokens,
-        tokensOutput: result.metrics.outputTokens,
-        // ST-147: Include turn metrics if available
-        turnMetrics: result.metrics.turns as TurnCounts | undefined,
+        success: masterResponse.status === 'success',
+        output: masterResponse.output,
+        errorMessage: masterResponse.status === 'error' ? masterResponse.message : undefined,
+        tokensInput: result.metrics?.inputTokens,
+        tokensOutput: result.metrics?.outputTokens,
       });
 
       return {
-        success: result.success,
-        output: result.output,
-        error: result.error,
-        tokensUsed: result.metrics.totalTokens,
+        success: masterResponse.status === 'success',
+        output: masterResponse.output,
+        error: masterResponse.status === 'error' ? masterResponse.message : undefined,
+        tokensUsed: estimatedTokens,
         componentRunId: componentRun.id,
       };
     } catch (error) {
@@ -1052,15 +1136,27 @@ Please carefully review the feedback above and ensure your output addresses all 
   }
 
   /**
-   * Complete the workflow run
+   * Complete the workflow run (ST-200: stop Master Session via WebSocket)
    */
   private async complete(): Promise<void> {
     console.log(`[Runner] Completing workflow run`);
     this.setState('completed');
 
-    if (this.masterSession) {
-      await this.masterSession.stop();
+    // ST-200: Stop Master Session on laptop via WebSocket
+    if (this.masterSessionId && this.workflowRun) {
+      try {
+        await this.orchestrator.stopMasterSession(this.workflowRun.id, {
+          timeoutMs: 5000,
+          forceKill: false,
+        });
+        console.log(`[Runner] Master session stopped gracefully`);
+      } catch (error) {
+        console.warn(`[Runner] Failed to stop master session:`, (error as Error).message);
+      }
     }
+
+    // Disconnect from WebSocket
+    await this.orchestrator.disconnect();
 
     if (this.workflowRun) {
       await this.backendClient.updateWorkflowRun(this.workflowRun.id, {
@@ -1072,15 +1168,27 @@ Please carefully review the feedback above and ensure your output addresses all 
   }
 
   /**
-   * Cancel the workflow run
+   * Cancel the workflow run (ST-200: force kill Master Session)
    */
   async cancel(): Promise<void> {
     console.log(`[Runner] Cancelling workflow run`);
     this.setState('cancelled');
 
-    if (this.masterSession) {
-      await this.masterSession.stop();
+    // ST-200: Force kill Master Session on laptop via WebSocket
+    if (this.masterSessionId && this.workflowRun) {
+      try {
+        await this.orchestrator.stopMasterSession(this.workflowRun.id, {
+          timeoutMs: 2000,
+          forceKill: true,
+        });
+        console.log(`[Runner] Master session killed`);
+      } catch (error) {
+        console.warn(`[Runner] Failed to kill master session:`, (error as Error).message);
+      }
     }
+
+    // Disconnect from WebSocket
+    await this.orchestrator.disconnect();
 
     if (this.workflowRun) {
       await this.backendClient.updateWorkflowRun(this.workflowRun.id, {
