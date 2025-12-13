@@ -74,3 +74,7 @@ worktrees/
 .claude/.current-run-id
 .claude/.session-workflow
 package-lock.json
+
+# Playwright MCP screenshots
+.playwright-mcp/*.png
+.playwright-mcp/**/*.png
