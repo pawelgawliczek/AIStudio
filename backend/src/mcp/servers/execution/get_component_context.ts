@@ -71,6 +71,27 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
 
   // Build response
+  // ST-197: Add note about MCP tool profile system
+  const coreVibeStudioTools = [
+    'get_story', 'update_story', 'create_story', 'search_stories', 'list_stories',
+    'upload_artifact', 'get_artifact', 'list_artifacts',
+    'get_component_context', 'start_team_run', 'record_agent_start', 'record_agent_complete',
+    'get_team_context', 'update_team_status', 'list_teams',
+    'get_current_step', 'advance_step', 'get_runner_status', 'repeat_step',
+    'git_create_worktree', 'git_get_worktree_status',
+    'list_projects', 'get_project', 'get_context', 'set_context',
+    'search_tools', 'invoke_tool',
+  ];
+
+  // Separate tools into core (direct call) and non-core (via invoke_tool)
+  const componentTools = component.tools || [];
+  const directTools = componentTools.filter(
+    (t: string) => !t.startsWith('mcp__vibestudio__') || coreVibeStudioTools.includes(t.replace('mcp__vibestudio__', ''))
+  );
+  const invokeTools = componentTools.filter(
+    (t: string) => t.startsWith('mcp__vibestudio__') && !coreVibeStudioTools.includes(t.replace('mcp__vibestudio__', ''))
+  );
+
   const response: any = {
     success: true,
     component: {
@@ -81,9 +102,18 @@ export async function handler(prisma: PrismaClient, params: any) {
       operationInstructions: component.operationInstructions,
       outputInstructions: component.outputInstructions,
       config: component.config,
-      tools: component.tools,
+      tools: directTools,
       onFailure: component.onFailure,
     },
+    // ST-197: Guidance for non-core MCP tools
+    mcpToolsNote: invokeTools.length > 0
+      ? {
+          message: 'Some allowed VibeStudio tools require invoke_tool (not in core profile)',
+          invokeToolRequired: invokeTools,
+          usage: 'invoke_tool({ toolName: "tool_name", params: { ... } })',
+          discovery: 'Use search_tools({ query: "keyword" }) to find tool schemas',
+        }
+      : undefined,
   };
 
   // If runId provided, include workflow context and transcript tracking
