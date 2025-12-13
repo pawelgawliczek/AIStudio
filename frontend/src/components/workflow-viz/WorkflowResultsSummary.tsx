@@ -35,6 +35,7 @@ interface WorkflowResultsSummaryProps {
   componentRuns?: ComponentRun[];
   states: WorkflowState[];
   artifacts?: Artifact[];
+  transcriptIds?: Record<string, string>; // ST-195: Map of componentRunId -> transcriptId
   onViewTranscript?: (componentRunId: string) => void;
   onViewArtifact?: (artifactId: string) => void;
   onRepeatState?: (stateId: string) => void;
@@ -45,6 +46,7 @@ export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
   componentRuns = [],
   states = [],
   artifacts = [],
+  transcriptIds = {},
   onViewTranscript,
   onViewArtifact,
   onRepeatState,
@@ -206,7 +208,8 @@ export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
                         View
                       </Button>
                     )}
-                    {run && onViewTranscript && (
+                    {/* ST-195: Only show Transcript button if transcript exists */}
+                    {run && onViewTranscript && transcriptIds[run.id] && (
                       <Button
                         size="small"
                         variant="outlined"

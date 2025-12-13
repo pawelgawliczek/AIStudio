@@ -770,6 +770,15 @@ launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plis
 
 ### KVM Server Setup
 
+**⚠️ SSH Hostname:** The production server SSH alias is `hostinger` (NOT "kvm"):
+
+```bash
+ssh hostinger       # ✅ Correct - connects to production KVM server
+ssh kvm             # ❌ Wrong - hostname doesn't exist
+```
+
+The alias is configured in `~/.ssh/config` on the laptop.
+
 **1. Environment variable:** Add to `/opt/stack/AIStudio/.env`:
 
 ```bash

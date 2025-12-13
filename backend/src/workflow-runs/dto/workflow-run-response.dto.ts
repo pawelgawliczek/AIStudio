@@ -218,4 +218,13 @@ export class ComponentRunSummaryDto {
 
   @ApiProperty()
   success: boolean;
+
+  @ApiProperty({ required: false, description: 'Component output data (JSON)' })
+  output?: any;
+
+  @ApiProperty({ required: false, description: 'AI-generated summary of what the component accomplished' })
+  componentSummary?: string;
+
+  @ApiProperty({ required: false, description: 'Error message if component failed' })
+  errorMessage?: string;
 }

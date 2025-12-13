@@ -686,6 +686,10 @@ export class WorkflowRunsService {
         locGenerated: run.locGenerated,
         status: run.status,
         success: run.success,
+        // ST-195: Add output, componentSummary, and errorMessage for Results Summary view
+        output: run.outputData,
+        componentSummary: run.componentSummary,
+        errorMessage: run.errorMessage,
       })),
     };
   }

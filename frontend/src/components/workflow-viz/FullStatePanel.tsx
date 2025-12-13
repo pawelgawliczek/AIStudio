@@ -90,6 +90,7 @@ export const FullStatePanel: React.FC<FullStatePanelProps> = ({
           })}
           states={sortedStates}
           artifacts={artifacts}
+          transcriptIds={transcriptIds}
           onViewTranscript={(componentRunId) => {
             const transcriptId = transcriptIds[componentRunId];
             if (transcriptId && onViewTranscript) {
