@@ -61,12 +61,20 @@ export class ToolRegistry {
 
   /**
    * Execute a tool by name
+   *
+   * ST-197: Meta tools (search_tools, invoke_tool) receive ToolRegistry
+   * instead of PrismaClient for special handling
    */
   async executeTool(name: string, params: any): Promise<any> {
     const toolModule = await this.loader.getToolByName(name);
 
     if (!toolModule) {
       throw new Error(`Tool not found: ${name}`);
+    }
+
+    // Meta tools need registry access instead of prisma
+    if (name === 'search_tools' || name === 'invoke_tool') {
+      return toolModule.handler(this, params);
     }
 
     // Execute handler with prisma client
