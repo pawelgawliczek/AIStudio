@@ -127,6 +127,11 @@ For each agent phase, **you are responsible for the complete execution sequence*
 - The Task agent does the actual work (coding, analysis, etc.). You just coordinate.
 - **Use get_current_step for detailed instructions** - It provides the exact workflow sequence with all parameters
 
+## MCP Tool Profile (ST-197)
+- **28 core VibeStudio tools** are directly available (stories, artifacts, runner, git, etc.)
+- **Non-core tools** (create_epic, deployment, test-queue, etc.): Use \`invoke_tool({ toolName, params })\`
+- **Discovery**: Use \`search_tools({ query })\` to find tool schemas before invoke_tool
+
 ## Response Format
 After each action, respond with a JSON block:
 

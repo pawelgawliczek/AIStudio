@@ -70,7 +70,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
 
   // Build response
-  // ST-197: Add note about MCP tool profile system
+  // ST-197: MCP Tool Profile System - Core 28 tools are directly available
   const coreVibeStudioTools = [
     'get_story', 'update_story', 'create_story', 'search_stories', 'list_stories',
     'upload_artifact', 'get_artifact', 'list_artifacts',
@@ -82,7 +82,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     'search_tools', 'invoke_tool',
   ];
 
-  // Separate tools into core (direct call) and non-core (via invoke_tool)
+  // Separate tools into direct (core + non-vibestudio) and invoke_tool required
   const componentTools = component.tools || [];
   const directTools = componentTools.filter(
     (t: string) => !t.startsWith('mcp__vibestudio__') || coreVibeStudioTools.includes(t.replace('mcp__vibestudio__', ''))
@@ -104,13 +104,23 @@ export async function handler(prisma: PrismaClient, params: any) {
       tools: directTools,
       onFailure: component.onFailure,
     },
-    // ST-197: Guidance for non-core MCP tools
+    // ST-197: Tool profile guidance for spawned agents
+    toolProfileNote: {
+      message: 'Tool categories: Claude Code tools (Read/Write/Glob/Grep/Bash), Playwright MCP, VibeStudio MCP (core vs non-core)',
+      coreVibeStudioTools: coreVibeStudioTools.length,
+      directToolsCount: directTools.length,
+      nonCoreToolsCount: invokeTools.length,
+      guidance: invokeTools.length > 0
+        ? `${invokeTools.length} tool(s) require invoke_tool: ${invokeTools.map((t: string) => t.replace('mcp__vibestudio__', '')).join(', ')}`
+        : 'All allowed VibeStudio tools are in the core profile - call directly.',
+    },
+    // ST-197: Explicit invoke_tool guidance if needed
     mcpToolsNote: invokeTools.length > 0
       ? {
-          message: 'Some allowed VibeStudio tools require invoke_tool (not in core profile)',
-          invokeToolRequired: invokeTools,
+          message: 'Non-core VibeStudio tools require invoke_tool wrapper',
+          invokeToolRequired: invokeTools.map((t: string) => t.replace('mcp__vibestudio__', '')),
           usage: 'invoke_tool({ toolName: "tool_name", params: { ... } })',
-          discovery: 'Use search_tools({ query: "keyword" }) to find tool schemas',
+          discovery: 'search_tools({ query: "keyword" }) returns tool schemas',
         }
       : undefined,
   };
