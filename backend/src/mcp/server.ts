@@ -111,16 +111,18 @@ const server = new Server(
 /**
  * List available tools
  *
- * Note: Returns all tools for Claude Code compatibility.
- * Progressive disclosure is still encouraged via search_tools for token efficiency.
+ * ST-197: Now supports profile-based filtering
+ * - MCP_PROFILE=core (default): Returns ~28 frequently-used tools
+ * - MCP_PROFILE=full: Returns all ~153 tools
+ *
+ * Tools not in profile can be called via invoke_tool
  */
 server.setRequestHandler(ListToolsRequestSchema, async (request) => {
   try {
-    // Return all tools to make them callable in Claude Code
-    // (Claude Code creates functions based on ListToolsRequest response)
+    const profile = registry.getActiveProfile();
     const tools = await registry.listTools();
 
-    log('debug', 'Listing tools', { count: tools.length });
+    log('info', 'Listing tools', { profile, count: tools.length });
 
     return { tools };
   } catch (error: any) {
@@ -144,15 +146,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     let result: any;
 
-    // Special case: search_tools needs registry access instead of prisma
-    if (name === 'search_tools') {
-      log('debug', 'Special handling for search_tools');
+    // Special case: Meta tools need registry access instead of prisma
+    if (name === 'search_tools' || name === 'invoke_tool') {
+      log('debug', `Special handling for ${name}`);
       const toolModule = await registry.discoverTools('meta');
-      const searchTool = toolModule.find((t) => t.tool.name === 'search_tools');
-      if (searchTool) {
-        result = await searchTool.handler(registry, args);
+      const metaTool = toolModule.find((t) => t.tool.name === name);
+      if (metaTool) {
+        result = await metaTool.handler(registry, args);
       } else {
-        throw new Error('search_tools not found');
+        throw new Error(`${name} not found`);
       }
     } else {
       // Execute tool via registry (passes prisma automatically)
@@ -199,11 +201,18 @@ async function main() {
   await prisma.$connect();
   log('info', 'Database connected');
 
-  // Discover available tools
+  // Get profile and discover tools
+  const profile = registry.getActiveProfile();
   const allTools = await registry.discoverTools();
+  const profileTools = await registry.listTools();
   const categories = Array.from(new Set(allTools.map((t) => t.metadata?.category).filter(Boolean)));
 
-  log('info', 'Server starting', { toolCount: allTools.length, categories });
+  log('info', 'Server starting', {
+    profile,
+    totalTools: allTools.length,
+    profileTools: profileTools.length,
+    categories,
+  });
 
   // Start MCP server with stdio transport
   const transport = new StdioServerTransport();

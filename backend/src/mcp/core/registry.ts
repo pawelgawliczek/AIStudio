@@ -5,11 +5,13 @@
  * - Tool discovery from filesystem
  * - Progressive disclosure (search with detail levels)
  * - Tool execution
+ * - Profile-based tool filtering (ST-197)
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { ToolLoader, ToolModule } from './loader.js';
+import { getActiveProfile, isToolInProfile, ProfileName } from './profiles.js';
 
 export class ToolRegistry {
   private loader: ToolLoader;
@@ -21,7 +23,8 @@ export class ToolRegistry {
   }
 
   /**
-   * Discover all available tools
+   * Discover all available tools (ignores profile filtering)
+   * Used internally for search_tools and invoke_tool
    */
   async discoverTools(category: string = 'all'): Promise<ToolModule[]> {
     return this.loader.discoverTools(category);
@@ -29,11 +32,31 @@ export class ToolRegistry {
 
   /**
    * Get tool definitions for ListToolsRequest
-   * Now returns minimal set by default (only meta tools)
+   *
+   * ST-197: Now supports profile-based filtering
+   * - MCP_PROFILE=core (default): Returns ~28 frequently-used tools
+   * - MCP_PROFILE=full: Returns all ~153 tools
+   *
+   * Tools not in profile can still be called via invoke_tool
    */
   async listTools(category?: string): Promise<Tool[]> {
     const modules = await this.loader.discoverTools(category || 'all');
-    return modules.map((m) => m.tool);
+    const profile = getActiveProfile();
+
+    // Full profile returns all tools
+    if (profile === 'full') {
+      return modules.map((m) => m.tool);
+    }
+
+    // Core profile filters to frequently-used tools
+    return modules.filter((m) => isToolInProfile(m.tool.name, profile)).map((m) => m.tool);
+  }
+
+  /**
+   * Get the current active profile name
+   */
+  getActiveProfile(): ProfileName {
+    return getActiveProfile();
   }
 
   /**
