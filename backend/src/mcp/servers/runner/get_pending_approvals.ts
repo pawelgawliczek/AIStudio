@@ -10,31 +10,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'get_pending_approvals',
-  description: `List pending approval requests awaiting human decision.
-
-**Filters:**
-- \`projectId\`: Filter by project
-- \`workflowId\`: Filter by workflow (team)
-- \`runId\`: Filter by specific workflow run
-
-**Returns:**
-- List of pending approvals with story context
-- Waiting time in minutes for each
-- Pagination support
-
-**Example - All pending for project:**
-\`\`\`typescript
-get_pending_approvals({
-  projectId: "uuid-here"
-})
-\`\`\`
-
-**Example - Specific run:**
-\`\`\`typescript
-get_pending_approvals({
-  runId: "uuid-here"
-})
-\`\`\``,
+  description: 'List pending approvals awaiting decision. Filter by projectId, workflowId, or runId.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -8,7 +8,7 @@ import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
 
 export const tool: Tool = {
   name: 'start_team_run',
-  description: 'Initialize a new team execution run. Returns a runId for tracking component executions. Use this at the start of every team execution. Automatically configures transcript tracking for metrics collection.',
+  description: 'Start workflow execution. Requires teamId, triggeredBy, cwd, sessionId, transcriptPath.',
   inputSchema: {
     type: 'object',
     properties: {

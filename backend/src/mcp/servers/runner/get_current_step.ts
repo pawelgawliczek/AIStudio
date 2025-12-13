@@ -16,44 +16,7 @@ import { resolveRunId, resolveStory, ResolvedStory } from '../../shared/resolve-
 
 export const tool: Tool = {
   name: 'get_current_step',
-  description: `Returns COMPLETE orchestration instructions for the current step.
-
-Provides ALL MCP tool calls needed for successful step execution, so ANY session
-can execute the workflow without prior context.
-
-**No Active Run:**
-If no active workflow run exists for the story, returns a workflow sequence to:
-1. \`list_teams\` - List available teams/workflows for the project
-2. \`start_team_run\` - Start a new run with selected team
-3. \`get_current_step\` - Get the first execution step
-
-**Workflow Sequence for Active Runs:**
-
-For **pre** phase:
-1. Manual pre-execution instructions to execute
-2. \`advance_step\` call to move to agent phase
-
-For **agent** phase:
-1. Call record_agent_start to track agent execution start
-2. Spawn agent via Task tool with component instructions
-3. Call record_agent_complete with agent output and status
-4. Call advance_step to move to post-execution phase
-
-For **post** phase:
-1. Manual post-execution instructions to execute
-2. If approval required: \`respond_to_approval\` guidance
-3. Otherwise: \`advance_step\` call to move to next state
-
-**Usage:**
-\`\`\`typescript
-get_current_step({ story: "ST-123" })
-\`\`\`
-
-**Response includes:**
-- \`currentState\`: Name, order, phase (null if no active run)
-- \`workflowSequence\`: Array of steps with exact tool calls and parameters
-- \`noActiveRun\`: Boolean flag if no run exists (guides to start one)
-- \`progress\`: Completed/total states`,
+  description: 'Get orchestration instructions for current phase. Returns workflowSequence with exact MCP calls.',
   inputSchema: {
     type: 'object',
     properties: {

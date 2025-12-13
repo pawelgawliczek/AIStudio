@@ -51,32 +51,7 @@ export interface CreateMigrationResponse {
 
 export const createMigrationTool: Tool = {
   name: 'create_migration',
-  description: `
-Create a new database migration file based on schema changes.
-
-**IMPORTANT:** This creates the migration file but does NOT apply it to the database.
-After creating, use run_safe_migration to apply with safeguards.
-
-Workflow:
-1. Edit backend/prisma/schema.prisma
-2. Call this tool to generate migration SQL
-3. Review the generated SQL file
-4. Use run_safe_migration to apply safely
-
-Usage:
-\`\`\`typescript
-create_migration({
-  name: "add_user_roles",
-  storyId: "uuid-here" // optional
-})
-\`\`\`
-
-The tool will:
-- Detect schema changes
-- Generate migration SQL file
-- Return path to migration file
-- NOT apply to database (use run_safe_migration for that)
-  `.trim(),
+  description: 'Create migration file from schema changes. Does NOT apply; use run_safe_migration to apply.',
   inputSchema: {
     type: 'object',
     properties: {

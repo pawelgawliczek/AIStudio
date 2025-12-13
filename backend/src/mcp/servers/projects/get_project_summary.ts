@@ -10,7 +10,7 @@ import { validateRequired, handlePrismaError } from '../../utils';
 
 export const tool: Tool = {
   name: 'get_project_summary',
-  description: 'Get aggregated statistics for a project (stories by status, type, epic counts)',
+  description: 'Get aggregated project statistics. Returns stories by status/type and epic counts.',
   inputSchema: {
     type: 'object',
     properties: {

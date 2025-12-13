@@ -17,31 +17,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'advance_step',
-  description: `Mark current phase complete and advance to next logical phase.
-
-**Phase Transitions:**
-- pre → agent (if component exists)
-- pre → post (if no component)
-- agent → post
-- post → next_state.pre (or workflow_complete)
-
-**Usage:**
-\`\`\`typescript
-// Simple advance (no output)
-advance_step({ story: "ST-123" })
-
-// With agent output
-advance_step({
-  story: "ST-123",
-  output: { result: "analysis complete", files: ["..."] }
-})
-
-// Skip to specific state (error recovery)
-advance_step({
-  story: "ST-123",
-  skipToState: "implementation"
-})
-\`\`\``,
+  description: 'Complete current phase, move to next. Call after executing phase instructions.',
   inputSchema: {
     type: 'object',
     properties: {

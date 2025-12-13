@@ -10,19 +10,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'get_runner_checkpoint',
-  description: `Get the detailed checkpoint data for a Story Runner execution.
-
-Returns full checkpoint including:
-- Current state and phase (pre/agent/post)
-- Completed and skipped states
-- Master session ID (for resume)
-- Resource usage counters
-- Last error details
-
-**Usage:**
-\`\`\`typescript
-get_runner_checkpoint({ runId: "uuid-here" })
-\`\`\``,
+  description: 'Get checkpoint data for debugging. Returns state/phase, resource usage, and error details.',
   inputSchema: {
     type: 'object',
     properties: {

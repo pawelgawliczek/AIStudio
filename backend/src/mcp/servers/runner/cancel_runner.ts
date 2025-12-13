@@ -12,30 +12,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'cancel_runner',
-  description: `Cancel a running or paused Story Runner execution.
-
-The runner will:
-1. Stop all execution immediately
-2. Save final checkpoint
-3. Update status to 'cancelled'
-4. Clean up resources
-
-Cancelled runs cannot be resumed.
-
-**Usage:**
-\`\`\`typescript
-// Using story key (preferred)
-cancel_runner({
-  story: "ST-123",
-  reason: "No longer needed"
-})
-
-// Using run ID
-cancel_runner({
-  runId: "uuid-here",
-  reason: "No longer needed"
-})
-\`\`\``,
+  description: 'Cancel workflow execution. Sets status to cancelled; cannot be resumed.',
   inputSchema: {
     type: 'object',
     properties: {

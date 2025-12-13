@@ -21,9 +21,7 @@ import {
 
 export const tool: Tool = {
   name: 'get_story',
-  description: `Get details for a specific story by ID with optional related data.
-
-**ST-188:** Accepts story key (e.g., ST-123) or UUID via the \`story\` parameter.`,
+  description: 'Get story details by ID or key (ST-123). For text search use search_stories; for filtered lists use list_stories.',
   inputSchema: {
     type: 'object',
     properties: {

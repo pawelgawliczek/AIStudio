@@ -28,7 +28,7 @@ export interface SearchStoriesParams {
 
 export const tool: Tool = {
   name: 'search_stories',
-  description: 'Search stories by ID, key, or title. Supports exact match (by ID/key) or fuzzy search (by title/query)',
+  description: 'Search stories by title/description text. Returns matches; for exact ID use get_story.',
   inputSchema: {
     type: 'object',
     properties: {

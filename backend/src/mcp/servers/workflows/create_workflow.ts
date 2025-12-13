@@ -41,7 +41,7 @@ export interface WorkflowResponse {
 
 export const tool: Tool = {
   name: 'create_team',
-  description: 'Create a new team with trigger configuration. A team is a group of agents working together.',
+  description: 'Create a new team with trigger configuration. Teams are groups of agents working together.',
   inputSchema: {
     type: 'object',
     properties: {

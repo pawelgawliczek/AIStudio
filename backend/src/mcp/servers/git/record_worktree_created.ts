@@ -19,15 +19,7 @@ import {
 
 export const tool: Tool = {
   name: 'record_worktree_created',
-  description: `Record a worktree in the database after local creation.
-
-Use this tool AFTER creating a worktree locally (via slash command or manual git commands).
-This records the worktree in the database with hostType='local'.
-
-Workflow:
-1. User runs /git_create_worktree or manual git commands locally
-2. User calls this tool to record the worktree in the database
-3. Worktree is tracked with hostType='local' and hostName from the local machine`,
+  description: 'Record locally-created worktree in database. Use after manual git worktree creation.',
   inputSchema: {
     type: 'object',
     properties: {

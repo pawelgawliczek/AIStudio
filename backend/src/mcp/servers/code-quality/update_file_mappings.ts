@@ -4,20 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'update_file_mappings',
-  description: `Manually create or update file-to-usecase mappings.
-
-Use this to:
-- Explicitly link files to use cases
-- Override low-confidence automatic mappings
-- Document architectural relationships
-- Correct incorrect automatic mappings
-
-The system will:
-- Create new mappings if they don't exist
-- Update existing mappings (increment occurrences, update confidence)
-- Track the source of the mapping
-
-Multiple use cases can be specified for a single file.`,
+  description: 'Manually create or update file-to-usecase mappings. Links files to use cases, overrides automatic mappings, and documents relationships. Multiple use cases per file supported.',
   inputSchema: {
     type: 'object',
     properties: {

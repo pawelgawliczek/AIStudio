@@ -19,34 +19,7 @@ import { handler as getCurrentStepHandler } from './get_current_step';
 
 export const tool: Tool = {
   name: 'get_orchestration_context',
-  description: `Re-initialize MasterSession context after compaction.
-
-**Use this tool after context compaction to restore:**
-- MasterSession role and response format
-- Current workflow run state
-- Story context
-- Complete workflowSequence (reuses get_current_step logic)
-
-**ST-172: Automatic Transcript Registration**
-If \`sessionId\` and \`transcriptPath\` are provided, this tool will automatically
-register the new master transcript (if not already registered) before returning context.
-
-**ST-190: Story Key Support**
-You can now use story key (e.g., ST-123) instead of runId. The tool will find
-the active workflow run for that story.
-
-**Usage:**
-\`\`\`typescript
-// After compaction (automatic transcript registration)
-get_orchestration_context({
-  story: "ST-123",
-  sessionId: "session-uuid",
-  transcriptPath: "/path/to/transcript.jsonl"
-})
-
-// Normal recovery (no transcript registration)
-get_orchestration_context({ runId: "uuid-here" })
-\`\`\``,
+  description: 'Re-initialize MasterSession after context compaction. Restores workflow state and workflowSequence.',
   inputSchema: {
     type: 'object',
     properties: {

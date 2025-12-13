@@ -10,41 +10,7 @@ import { PrismaClient, BreakpointPosition, Prisma } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'set_breakpoint',
-  description: `Add a breakpoint to pause Story Runner execution at a specific state.
-
-Breakpoints can be set to pause:
-- **before**: Pause before the state's agent executes
-- **after**: Pause after the state completes (including post-execution instructions)
-
-**State Identification:**
-You can identify the target state using any of:
-- stateId: Direct UUID reference
-- stateName: State name (e.g., "analysis", "implementation")
-- stateOrder: Execution order (1, 2, 3...)
-
-**Conditional Breakpoints:**
-Use the condition parameter with MongoDB-style operators:
-- \`{ "tokenCount": { "$gt": 10000 } }\` - Pause if tokens exceed 10k
-- \`{ "agentSpawns": { "$gte": 5 } }\` - Pause if 5+ agents spawned
-- \`{ "$and": [...] }\` - Combine conditions
-
-**Usage:**
-\`\`\`typescript
-// By state name
-set_breakpoint({
-  runId: "uuid-here",
-  stateName: "implementation",
-  position: "before"
-})
-
-// With condition
-set_breakpoint({
-  runId: "uuid-here",
-  stateId: "state-uuid",
-  position: "after",
-  condition: { "tokenCount": { "$gt": 50000 } }
-})
-\`\`\``,
+  description: 'Add breakpoint to pause at state. Prefer manage_breakpoints consolidated tool.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -11,22 +11,7 @@ import { getContext, formatContext, clearContext } from '../../shared/session-co
 
 export const tool: Tool = {
   name: 'get_context',
-  description: `Retrieve current session context.
-
-Shows all context values that will be automatically applied to subsequent tool calls.
-
-**Returns:**
-- \`projectId\` / \`projectName\` - Active project
-- \`teamId\` / \`teamName\` - Active team/workflow
-- \`storyId\` / \`storyKey\` - Active story
-- \`runId\` - Active workflow run
-- \`model\` - Default model
-
-**Example:**
-\`\`\`typescript
-get_context()
-// Returns: { projectId: "...", projectName: "AI Studio", ... }
-\`\`\``,
+  description: 'Get session context (projectId, teamId, storyId, runId, model).',
   inputSchema: {
     type: 'object',
     properties: {

@@ -4,13 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'get_architect_insights',
-  description: `Get AI-powered architecture insights for a project including:
-- Overall code health assessment
-- High-risk files (hotspots) requiring attention
-- Code quality issues by severity
-- Architectural recommendations
-
-This tool helps architects identify technical debt and plan refactoring work.`,
+  description: 'Get AI-powered architecture insights for a project. Returns health assessment, high-risk hotspots, and quality issues. Helps identify technical debt.',
   inputSchema: {
     type: 'object',
     properties: {

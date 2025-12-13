@@ -65,50 +65,7 @@ export interface ApproveDeploymentResponse {
 
 export const tool: Tool = {
   name: 'approve_deployment',
-  description: `Manually approve a deployment for direct commit mode (ST-84).
-
-**PURPOSE:**
-Enable production deployments via direct commits to main branch, bypassing PR workflow.
-Designed for solo development where developer acts as both implementer and reviewer.
-
-**WORKFLOW:**
-1. Validate story exists and is deployment-ready
-2. Set manualApproval=true with expiration timestamp
-3. Record approver and approval timestamp
-4. Deployment can proceed using deploy_to_production with directCommit=true
-
-**APPROVAL EXPIRATION:**
-- Default: 60 minutes from approval time
-- Configurable via expiresInMinutes parameter
-- Prevents stale approvals from being misused
-
-**SECURITY:**
-- Approval is single-use (cleared after deployment)
-- Time-limited to prevent approval reuse
-- Full audit trail in DeploymentLog
-
-**EXAMPLE USAGE:**
-\`\`\`typescript
-// Step 1: Approve deployment
-approve_deployment({
-  storyId: "2e809be4-cc67-4fc7-8c3d-4d337c0043d5",
-  approvedBy: "pawel",
-  approvalReason: "Hotfix for critical bug",
-  expiresInMinutes: 60
-})
-
-// Step 2: Deploy with direct commit
-deploy_to_production({
-  storyId: "2e809be4-cc67-4fc7-8c3d-4d337c0043d5",
-  directCommit: true,
-  triggeredBy: "claude-agent",
-  confirmDeploy: true
-})
-\`\`\`
-
-**RELATED:**
-- deploy_to_production (ST-77, ST-84)
-- ST-84: Direct commit workflow for solo development`,
+  description: 'Manually approve deployment for direct commit mode. Single-use approval with 60-minute expiration (configurable). For solo development bypassing PR workflow.',
 
   inputSchema: {
     type: 'object',

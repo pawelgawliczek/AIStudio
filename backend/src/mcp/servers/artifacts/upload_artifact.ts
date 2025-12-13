@@ -15,8 +15,7 @@ import { validateRequired, handlePrismaError } from '../../utils';
 
 export const tool: Tool = {
   name: 'upload_artifact',
-  description:
-    'Upload or update an artifact for a workflow run. Validates against artifact definition and access permissions.',
+  description: 'Create or update artifact. Requires workflowRunId and definitionKey, plus content.',
   inputSchema: {
     type: 'object',
     properties: {

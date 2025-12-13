@@ -22,7 +22,7 @@ import {
 
 export const tool: Tool = {
   name: 'create_story',
-  description: 'Create a new story within a project and optionally an epic',
+  description: 'Create a new story in a project. Requires projectId and title.',
   inputSchema: {
     type: 'object',
     properties: {

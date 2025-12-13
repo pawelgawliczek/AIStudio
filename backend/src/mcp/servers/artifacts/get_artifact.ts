@@ -17,8 +17,7 @@ import { formatArtifact } from './upload_artifact';
 
 export const tool: Tool = {
   name: 'get_artifact',
-  description:
-    'Get a specific artifact by ID or by definition key + workflow run ID.',
+  description: 'Get artifact by ID or definitionKey+workflowRunId. For listing use list_artifacts.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -37,7 +37,7 @@ export interface DeactivateComponentResponse {
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'deactivate_agent',
-  description: 'Deactivate an agent by setting active=false. Returns list of affected teams.',
+  description: 'Deactivate an agent by setting active=false. Returns affected teams.',
   inputSchema: {
     type: 'object',
     properties: {

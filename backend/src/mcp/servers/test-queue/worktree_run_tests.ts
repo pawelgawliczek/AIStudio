@@ -58,26 +58,7 @@ const TEST_CONFIGS: Record<string, TestConfig> = {
 
 export const tool: Tool = {
   name: 'mcp__vibestudio__worktree_run_tests',
-  description: `Execute automated tests using the isolated Docker test environment (ST-72).
-
-  This tool runs unit, integration, and/or e2e tests in an isolated test environment:
-  - unit: Jest backend unit tests
-  - integration: Jest backend integration tests
-  - e2e: Playwright end-to-end tests
-  - all (default): All test types sequentially (fail-fast)
-
-  Features:
-  - Isolated test containers (postgres:5434, redis:6381)
-  - Auto-start containers before tests, stop after
-  - tmpfs volumes for fast, ephemeral storage
-  - Automatic retry (3 attempts, 5-second delays)
-  - Timeout protection (30 minutes max)
-  - Comprehensive result capture and parsing
-  - TestQueue status updates (running → passed/failed)
-
-  Prerequisites:
-  - Story must have worktree created
-  - Docker must be running`,
+  description: 'Run tests in isolated Docker environment for worktree stories. Auto-manages test containers.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -5,7 +5,7 @@ import { buildMasterSessionInstructions, ComponentInfo } from './master-session-
 
 export const tool: Tool = {
   name: 'get_team_context',
-  description: 'Retrieve team state, project manager instructions, agent instructions, and previous agent outputs for project manager decision-making. Returns all information needed to orchestrate the team and spawn agent tasks using the Task tool.',
+  description: 'Get team state and agent outputs for orchestration. Returns info to spawn agent tasks.',
   inputSchema: {
     type: 'object',
     properties: {

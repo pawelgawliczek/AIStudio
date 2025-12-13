@@ -18,8 +18,7 @@ import {
 
 export const tool: Tool = {
   name: 'create_project',
-  description:
-    'Create a new project without default structure. Use bootstrap_project for a more complete setup.',
+  description: 'Create a new project without default structure. Use bootstrap_project for complete setup.',
   inputSchema: {
     type: 'object',
     properties: {

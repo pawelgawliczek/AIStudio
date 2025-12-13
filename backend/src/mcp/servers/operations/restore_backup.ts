@@ -24,8 +24,7 @@ const execAsync = promisify(exec);
 
 export const tool: Tool = {
   name: 'mcp__vibestudio__restore_backup',
-  description:
-    'Restore database from backup file. CRITICAL: This is a DESTRUCTIVE operation that will DESTROY all current database data! Requires confirm: true parameter.',
+  description: 'Restore database from backup file. DESTRUCTIVE operation - destroys current data! Requires confirm: true.',
   inputSchema: {
     type: 'object',
     properties: {

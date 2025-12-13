@@ -4,16 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'get_story_blast_radius',
-  description: `Analyze the blast radius of a story - what might break if we implement this change.
-
-Calculates:
-- Direct file changes (files you'll modify)
-- Indirect impact (files that depend on changed files)
-- Test files that should be updated
-- Related stories that might be affected
-- Risk assessment
-
-Critical for preventing breaking changes and planning testing strategy.`,
+  description: 'Analyze blast radius of a story. Calculates direct file changes, indirect impact, test files needed, and risk assessment. Critical for preventing breaking changes.',
   inputSchema: {
     type: 'object',
     properties: {

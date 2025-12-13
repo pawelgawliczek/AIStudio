@@ -4,20 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'get_file_health',
-  description: `Get detailed code health metrics for a specific file from background worker analysis.
-
-Returns comprehensive file-level metrics including:
-- Risk score (complexity × churn × (100 - maintainability))
-- Cyclomatic complexity
-- Cognitive complexity
-- Maintainability index (0-100)
-- Lines of code
-- Code churn rate (90-day window)
-- Code smells with details
-- Function-level breakdown
-- Refactoring recommendations
-
-Use this when you need detailed analysis of a specific file mentioned in a story or identified as a hotspot.`,
+  description: 'Get detailed code health metrics for a specific file. Returns risk score, complexity, maintainability, churn rate, and code smells. From background worker analysis.',
   inputSchema: {
     type: 'object',
     properties: {

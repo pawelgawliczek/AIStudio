@@ -29,14 +29,7 @@ import {
 
 export const tool: Tool = {
   name: 'git_create_worktree',
-  description: `Create a git worktree for a story with automatic branch naming and database tracking.
-
-ST-158: MCP-Orchestrated Laptop Worktree Creation
-- target='laptop': Creates worktree on laptop via remote agent (MCP orchestrated)
-- target='kvm': Creates worktree on KVM server (local execution)
-- target='auto': Auto-detect based on environment (default)
-
-When target='laptop', the MCP server executes git commands on the laptop via the remote agent infrastructure.`,
+  description: 'Create git worktree for story with auto branch naming. Tracks in database.',
   inputSchema: {
     type: 'object',
     properties: {

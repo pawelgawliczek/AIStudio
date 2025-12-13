@@ -17,29 +17,7 @@ import {
 
 export const tool: Tool = {
   name: 'set_context',
-  description: `Set session context for subsequent MCP tool calls.
-
-Once context is set, tools that require projectId, teamId, etc. will automatically
-use these values if not explicitly provided.
-
-**Context Values:**
-- \`project\` / \`projectId\` - Project name or UUID (most commonly used)
-- \`team\` / \`teamId\` - Team/workflow name or UUID
-- \`story\` / \`storyId\` - Story key (ST-123) or UUID
-- \`model\` - Default model for agent operations
-
-**Example Usage:**
-\`\`\`typescript
-// Set project context
-set_context({ project: "AI Studio" })
-
-// Now all tools use this project automatically
-list_stories({})           // Uses AI Studio project
-create_story({ title: "New feature" })  // Uses AI Studio project
-
-// Override for specific call
-list_stories({ projectId: "other-project-uuid" })
-\`\`\``,
+  description: 'Set session context for subsequent tool calls. Values auto-applied if not specified.',
   inputSchema: {
     type: 'object',
     properties: {

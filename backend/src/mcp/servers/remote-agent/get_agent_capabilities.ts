@@ -15,18 +15,7 @@ import {
 
 export const tool: Tool = {
   name: 'get_agent_capabilities',
-  description: `Get capabilities for a remote agent or list all approved capabilities.
-
-Returns:
-- For specific agent: Agent details with its registered capabilities, projectPath, and worktreeRoot
-- Without agentId: All approved scripts and capabilities with their configurations
-
-Capabilities include:
-- parse-transcript: Parse Claude Code transcripts for metrics
-- analyze-story-transcripts: Analyze transcripts for a story
-- list-transcripts: List available transcript files
-- claude-code: Execute Claude Code sessions (60 min timeout)
-- git-execute: Execute git commands on laptop (ST-153)`,
+  description: 'Get remote agent capabilities. Returns agent details with capabilities or list all approved capabilities.',
   inputSchema: {
     type: 'object',
     properties: {

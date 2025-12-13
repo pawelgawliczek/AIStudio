@@ -47,7 +47,7 @@ export interface WorkflowResponse {
 
 export const tool: Tool = {
   name: 'update_team',
-  description: 'Update an existing team definition. Supports partial updates - only provided fields will be modified. Auto-versions on structural changes.',
+  description: 'Update an existing team definition with partial updates. Auto-versions on structural changes.',
   inputSchema: {
     type: 'object',
     properties: {

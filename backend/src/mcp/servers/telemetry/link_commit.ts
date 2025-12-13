@@ -4,7 +4,7 @@ import { ImpactAnalysisService } from '../../../impact-analysis/impact-analysis.
 
 export const tool: Tool = {
   name: 'link_commit',
-  description: 'Link a git commit to a story or epic. Use this to track code changes and calculate metrics.',
+  description: 'Link a git commit to a story or epic. Tracks code changes and calculates metrics.',
   inputSchema: {
     type: 'object',
     properties: {

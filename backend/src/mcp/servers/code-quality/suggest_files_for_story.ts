@@ -4,17 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'suggest_files_for_story',
-  description: `Smart file suggestions based on story title and description.
-
-Analyzes:
-- Keywords in story title/description
-- Similar stories and their file changes
-- File naming patterns
-- Code structure
-
-Returns ranked list of files likely to be affected with confidence scores.
-
-Perfect for story planning and complexity estimation.`,
+  description: 'Smart file suggestions based on story title and description. Analyzes keywords, similar stories, and code patterns. Returns ranked files with confidence scores.',
   inputSchema: {
     type: 'object',
     properties: {

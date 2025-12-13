@@ -19,7 +19,7 @@ import { parseContextOutput, ContextMetrics } from './parse-context-output';
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'record_agent_complete',
-  description: 'Log the completion of an agent execution with output and metrics. Call this after agent logic finishes.',
+  description: 'Log agent completion with output. Call after agent finishes. Include componentSummary.',
   inputSchema: {
     type: 'object',
     properties: {

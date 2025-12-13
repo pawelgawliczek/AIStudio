@@ -122,31 +122,7 @@ class DeploymentError extends Error {
 // Tool definition
 export const tool: Tool = {
   name: 'mcp__vibestudio__deploy_to_test_env',
-  description: `Deploy a story to the ISOLATED test environment (ST-76, ST-64).
-
-IMPORTANT: This deploys to test containers (port 3001/5174), NOT production.
-Production containers remain untouched during testing.
-
-Deployment process:
-1. Validates story and worktree
-2. Fetches latest from origin
-3. Checks for merge conflicts with main (fails fast if conflicts)
-4. Builds test containers using 'docker build' with explicit worktree context
-   - Ensures story code is built, not main worktree code
-   - Uses worktreePath parameter (auto-detected or manually specified)
-5. Starts isolated test stack (test-postgres:5434, test-redis:6381)
-6. Applies migrations to TEST database only
-7. Waits for test stack health checks (backend:3001, frontend:5174)
-8. Updates test queue status to 'running'
-
-Key isolation guarantees:
-- Builds from story worktree (latest code changes included)
-- NO checkout in main worktree (production code untouched)
-- NO production database changes
-- NO production container restarts
-- Tests run against isolated test-postgres (port 5434)
-
-The tool supports EP-7 worktree workflow for parallel development and testing.`,
+  description: 'Deploy story to isolated test environment (port 3001/5174). Builds from worktree, runs migrations on test DB (5434), and performs health checks. Production untouched.',
   inputSchema: {
     type: 'object',
     properties: {

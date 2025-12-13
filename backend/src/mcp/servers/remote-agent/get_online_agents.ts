@@ -10,16 +10,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'get_online_agents',
-  description: `List all currently online remote agents.
-
-Returns connected agents with:
-- Agent ID and hostname
-- Capabilities (parse-transcript, claude-code, etc.)
-- Claude Code availability and version
-- Current execution status
-- Last heartbeat timestamp
-
-Use this to discover available execution hosts before spawning agents.`,
+  description: 'List online remote agents. Filter by capability; use to discover execution hosts.',
   inputSchema: {
     type: 'object',
     properties: {

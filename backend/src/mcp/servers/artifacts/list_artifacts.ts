@@ -16,8 +16,7 @@ import { formatArtifact } from './upload_artifact';
 
 export const tool: Tool = {
   name: 'list_artifacts',
-  description:
-    'List all artifacts for a workflow run. Can filter by definition key or type.',
+  description: 'List artifacts for a workflow run. Filter by definitionKey or type.',
   inputSchema: {
     type: 'object',
     properties: {

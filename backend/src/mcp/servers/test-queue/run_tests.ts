@@ -59,25 +59,7 @@ const TEST_CONFIGS: Record<string, TestConfig> = {
 
 export const tool: Tool = {
   name: 'mcp__vibestudio__run_tests',
-  description: `Execute automated tests for a deployed story with retry logic and result capture.
-
-  This tool runs unit, integration, and/or e2e tests based on testType parameter:
-  - unit: Jest backend unit tests
-  - integration: Jest backend integration tests
-  - e2e: Playwright end-to-end tests
-  - all (default): All test types sequentially (fail-fast)
-
-  Features:
-  - Automatic retry (3 attempts, 5-second delays)
-  - Timeout protection (30 minutes max)
-  - Comprehensive result capture and parsing
-  - Breaking migration rollback warnings
-  - TestQueue status updates (running → passed/failed)
-
-  Prerequisites:
-  - Story must be deployed (deploy_to_test_env)
-  - TestQueue entry must have status='running'
-  - Docker containers must be healthy`,
+  description: 'Run tests for deployed story. Supports unit/integration/e2e with retry and result capture.',
   inputSchema: {
     type: 'object',
     properties: {

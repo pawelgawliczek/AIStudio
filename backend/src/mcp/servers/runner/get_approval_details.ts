@@ -10,31 +10,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'get_approval_details',
-  description: `Get detailed information about an approval request.
-
-**Lookup methods:**
-- By \`requestId\`: Direct lookup of specific approval
-- By \`runId\`: Get the pending approval for a workflow run
-
-**Returns:**
-- Full approval request details
-- Workflow run context (status, story)
-- State information
-- Resolution details (if resolved)
-
-**Example - By request ID:**
-\`\`\`typescript
-get_approval_details({
-  requestId: "approval-uuid"
-})
-\`\`\`
-
-**Example - By run ID (pending approval):**
-\`\`\`typescript
-get_approval_details({
-  runId: "run-uuid"
-})
-\`\`\``,
+  description: 'Get approval details by requestId or runId. Returns status, context, and available actions.',
   inputSchema: {
     type: 'object',
     properties: {

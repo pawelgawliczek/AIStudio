@@ -24,7 +24,7 @@ import {
 
 export const tool: Tool = {
   name: 'mcp__vibestudio__lock_test_queue',
-  description: 'Lock test queue to prevent test execution during schema migrations. Returns lock ID and expiration time.',
+  description: 'Lock test queue to prevent execution during migrations. Singleton lock with expiration (default 60 min). Returns lock ID.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -138,15 +138,6 @@ export async function handler(prisma: PrismaClient, params: any) {
  */
 export const definition = {
   name: 'upload_transcript',
-  description: `Upload completed transcript to KVM storage (ST-170).
-
-Called by the laptop TranscriptWatcher daemon when an agent or master session completes execution.
-
-Features:
-- Stores full JSONL transcript content in database
-- Records ST-27 metrics (tokens, tools, duration)
-- Updates ComponentRun status to 'completed'
-- Prevents duplicate uploads
-- Supports both agent and master session transcripts`,
+  description: 'Store completed transcript in database. Records metrics and updates ComponentRun status.',
   inputSchema: UploadTranscriptSchema,
 };

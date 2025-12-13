@@ -4,17 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'get_project_health',
-  description: `Get overall code health metrics for entire project from background worker analysis.
-
-Returns project-wide metrics including:
-- Overall health score (0-100)
-- Aggregated metrics by folder (frontend, backend, shared, etc)
-- Top 20 subfolders ranked by health
-- Critical hotspots that need immediate attention
-- Technical debt summary
-- Actionable recommendations
-
-Use this for high-level project assessment and planning refactoring efforts.`,
+  description: 'Get overall code health metrics for entire project. Returns health score, metrics by folder, top hotspots, and technical debt summary. For project assessment.',
   inputSchema: {
     type: 'object',
     properties: {

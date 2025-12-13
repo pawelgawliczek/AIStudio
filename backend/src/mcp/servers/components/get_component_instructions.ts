@@ -36,9 +36,7 @@ export interface ComponentInstructionsResponse {
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'get_agent_instructions',
-  description:
-    'Retrieve work instructions for an agent. Returns input/operation/output instructions, config, and tools. ' +
-    'Used by spawned agents to get their instructions on-demand, enabling token-efficient team orchestration.',
+  description: 'Retrieve work instructions for an agent. Returns instructions, config, and tools for on-demand execution.',
   inputSchema: {
     type: 'object',
     properties: {

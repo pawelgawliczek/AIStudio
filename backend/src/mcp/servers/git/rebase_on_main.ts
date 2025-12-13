@@ -23,19 +23,7 @@ import { execGit, execGitLocationAware, parseGitStatus, validateWorktreePath } f
 // Tool definition
 export const tool: Tool = {
   name: 'mcp__vibestudio__rebase_on_main',
-  description: `Rebase worktree branch on latest main with conflict detection and pause mechanism.
-
-This tool safely rebases a story branch on the latest main branch, handling three outcomes:
-- Success: Branch cleanly rebased, returns new HEAD commit
-- Paused: Conflicts detected, leaves rebase paused for manual resolution
-- Failed: Unexpected error, automatically aborts rebase
-
-Features:
-- Fetches latest main before rebasing
-- Validates clean worktree (no uncommitted changes)
-- Creates subtask for manual resolution when conflicts detected
-- Updates Story.metadata with rebase status
-- Automatic rollback on errors (git rebase --abort)`,
+  description: 'Rebase story branch on main. Pauses on conflicts for manual resolution; auto-aborts on errors.',
   inputSchema: {
     type: 'object',
     properties: {

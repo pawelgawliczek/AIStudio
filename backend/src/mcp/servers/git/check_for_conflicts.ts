@@ -20,15 +20,7 @@ import { execGit, execGitLocationAware, validateWorktreePath } from './git_utils
 // Tool definition
 export const tool: Tool = {
   name: 'mcp__vibestudio__check_for_conflicts',
-  description: `Non-destructive conflict detection using git merge-tree to simulate merge without modifying worktree.
-
-Checks if a story branch has merge conflicts with main before deployment, preventing wasted test queue resources.
-
-Features:
-- Uses git merge-tree --write-tree for non-destructive conflict detection
-- Detects content conflicts, rename/delete conflicts, and binary file conflicts
-- Updates Story.metadata with conflict details
-- Returns structured conflict information with file paths and types`,
+  description: 'Check for merge conflicts without modifying worktree. Uses git merge-tree simulation.',
   inputSchema: {
     type: 'object',
     properties: {

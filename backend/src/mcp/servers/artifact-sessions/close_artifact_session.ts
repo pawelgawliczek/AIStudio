@@ -13,10 +13,7 @@ import { validateRequired, handlePrismaError } from '../../utils';
 
 export const tool: Tool = {
   name: 'close_artifact_session',
-  description: `Close an artifact editing session without saving changes.
-
-Use save_artifact_changes first if you want to persist changes before closing.
-This marks the job as cancelled and releases the agent for other work.`,
+  description: 'Close artifact session without saving. Use save_artifact_changes first if you need to persist.',
   inputSchema: {
     type: 'object',
     properties: {

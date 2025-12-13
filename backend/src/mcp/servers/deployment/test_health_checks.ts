@@ -191,7 +191,7 @@ export async function handler(
 
 export const definition = {
   name: 'test_health_checks',
-  description: 'Test health check connectivity and logic (ST-87 debugging tool). Runs the same health check logic as production deployments but without requiring full deployment.',
+  description: 'Test health check connectivity and logic. Runs same checks as production deployments without full deployment. Debugging tool.',
   inputSchema: TestHealthChecksParamsSchema,
   outputSchema: z.object({
     success: z.boolean(),

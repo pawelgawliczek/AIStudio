@@ -80,8 +80,8 @@ export interface ComponentResponse {
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'create_agent',
-  description: 'Create a new agent with 3 instruction sets (input, operation, output). Agents are AI workers that execute specific tasks within teams.',
-    inputSchema: {
+  description: 'Create a new agent with input/operation/output instructions. Agents execute specific tasks within teams.',
+  inputSchema: {
     type: 'object',
     properties: {
       projectId: {

@@ -18,14 +18,7 @@ import { handler as getArtifactHandler } from '../artifacts/get_artifact';
 
 export const tool: Tool = {
   name: 'open_artifact_session',
-  description: `Start a Claude Code session with artifact content as context for interactive editing.
-
-The session allows you to:
-- Discuss the artifact with Claude
-- Make edits interactively
-- Save changes back to the artifact with version increment
-
-**Returns:** jobId for tracking, use save_artifact_changes to persist edits.`,
+  description: 'Start interactive artifact editing session. Returns jobId; use save_artifact_changes to persist.',
   inputSchema: {
     type: 'object',
     properties: {

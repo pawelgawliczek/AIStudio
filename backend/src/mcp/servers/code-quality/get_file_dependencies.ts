@@ -4,16 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'get_file_dependencies',
-  description: `Get dependency information for a specific file.
-
-Returns:
-- Direct imports (what this file depends on)
-- Imported by (what files depend on this)
-- External dependencies (npm packages)
-- Coupling score (high/medium/low based on number of dependents)
-- Circular dependency warnings
-
-Critical for understanding change impact and refactoring safety.`,
+  description: 'Get dependency information for a specific file. Returns imports, dependents, external packages, coupling score, and circular dependency warnings. For impact analysis.',
   inputSchema: {
     type: 'object',
     properties: {

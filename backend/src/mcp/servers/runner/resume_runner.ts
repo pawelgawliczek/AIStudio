@@ -11,23 +11,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'resume_runner',
-  description: `Resume a paused or crashed Story Runner execution.
-
-Resumes from the last checkpoint:
-1. Loads checkpoint from database
-2. Restores Master CLI session
-3. Continues from current state/phase
-4. Preserves resource usage counts
-
-**When to use:**
-- After manual pause via pause_runner
-- After crash/timeout recovery
-- After resolving a blocking error
-
-**Usage:**
-\`\`\`typescript
-resume_runner({ runId: "uuid-here" })
-\`\`\``,
+  description: 'Resume paused or crashed workflow from checkpoint. Requires runId.',
   inputSchema: {
     type: 'object',
     properties: {

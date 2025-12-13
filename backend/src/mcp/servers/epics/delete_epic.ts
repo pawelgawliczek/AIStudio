@@ -36,7 +36,7 @@ export interface DeleteEpicResponse {
 
 export const tool: Tool = {
   name: 'delete_epic',
-  description: 'Delete an epic by ID with optional cascade delete of stories. Requires confirm: true parameter for safety.',
+  description: 'Delete epic by ID with optional cascade. Requires confirm: true for safety.',
   inputSchema: {
     type: 'object',
     properties: {

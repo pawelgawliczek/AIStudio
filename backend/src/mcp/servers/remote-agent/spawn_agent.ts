@@ -17,24 +17,7 @@ import {
 
 export const tool: Tool = {
   name: 'spawn_agent',
-  description: `Spawn a Claude Code agent on a remote laptop or locally.
-
-This tool dispatches agent work to connected laptop agents via WebSocket.
-If no agent is online, returns offline fallback instructions.
-
-**Prerequisites:**
-- Remote agent must be online with 'claude-code' capability
-- Instructions must not contain secrets (auto-validated)
-- Allowed tools must be whitelisted
-
-**Usage:**
-1. Call get_online_agents to check availability
-2. Call spawn_agent with component context
-3. Monitor progress via WebSocket or poll job status
-
-**Offline Handling:**
-If no agent is online, returns { agentOffline: true, offlineFallback: "pause" | "skip" | "local" }
-The Story Runner should pause/skip based on the fallback setting.`,
+  description: 'Spawn Claude Code agent on remote laptop. Returns jobId; handles offline agents gracefully.',
   inputSchema: {
     type: 'object',
     properties: {

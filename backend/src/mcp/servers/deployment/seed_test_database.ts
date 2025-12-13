@@ -41,31 +41,7 @@ export interface SeedTestDatabaseResponse {
 // Tool definition
 export const tool: Tool = {
   name: 'mcp__vibestudio__seed_test_database',
-  description: `Seed test database with production data snapshot.
-
-**PURPOSE:**
-Creates a read-only snapshot of production data and loads it into the test database.
-This allows testing with realistic data without affecting production.
-
-**WHEN TO USE:**
-- Initial test environment setup
-- After test database cleanup/reset
-- When test data needs refresh from production
-
-**SAFETY:**
-- Only targets test database (port 5434)
-- Production database is read-only source
-- Automatic truncate before seeding (if force=true)
-
-**PROCESS:**
-1. Validates test database connection
-2. Dumps production data (read-only)
-3. Truncates test database tables (if force=true)
-4. Restores production data to test DB
-5. Verifies data integrity
-
-**PARAMETERS:**
-- force (optional): Truncate existing test data before seeding (default: false)`,
+  description: 'Seed test database with production data snapshot. Read-only copy for realistic testing. Use force=true to truncate existing test data.',
   inputSchema: {
     type: 'object',
     properties: {

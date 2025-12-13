@@ -12,23 +12,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'get_runner_status',
-  description: `Get the current status of a Story Runner execution.
-
-Returns:
-- Runner state (initializing, executing, paused, completed, failed)
-- Current state being executed
-- Resource usage (tokens, agents, duration)
-- Checkpoint information
-- Warnings if approaching limits
-
-**Usage:**
-\`\`\`typescript
-// Using story key (preferred)
-get_runner_status({ story: "ST-123" })
-
-// Using run ID
-get_runner_status({ runId: "uuid-here" })
-\`\`\``,
+  description: 'Get runner state, progress, resources. Returns current state and checkpoint info.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -8,8 +8,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'list_teams',
-  description:
-    'List all available teams for a project. A team is a group of agents working together on stories or epics. Use this to discover teams that can be assigned to execute work.',
+  description: 'List available teams/workflows for a project. Filter by active status or trigger type.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -91,42 +91,7 @@ interface PhaseStatus {
 
 export const runSafeMigrationTool: Tool = {
   name: 'run_safe_migration',
-  description: `
-Execute database migration with comprehensive safety checks.
-
-**CRITICAL: This is the ONLY approved way to run database migrations.**
-
-This tool replaces ALL unsafe Prisma commands:
-- ❌ BLOCKED: npx prisma db push --accept-data-loss
-- ❌ BLOCKED: npx prisma db push
-- ❌ BLOCKED: npx prisma migrate deploy
-- ❌ BLOCKED: npx prisma migrate resolve
-- ✅ SAFE: Use this MCP tool instead
-
-Safety features:
-- Automatic pre-migration backup
-- Backup integrity verification
-- Queue lock (prevents concurrent migrations)
-- Multi-level validation (schema, data, health, smoke tests)
-- Automatic rollback on failure
-- Complete audit trail
-
-Usage:
-\`\`\`typescript
-run_safe_migration({
-  storyId: "uuid-here",
-  confirmMigration: true,
-  environment: "production"
-})
-\`\`\`
-
-Dry-run mode (preview only):
-\`\`\`typescript
-run_safe_migration({
-  dryRun: true
-})
-\`\`\`
-  `.trim(),
+  description: 'Execute database migration with safety checks. ONLY approved method for migrations. Automatic backup, queue lock, validation, and rollback on failure.',
   inputSchema: {
     type: 'object',
     properties: {

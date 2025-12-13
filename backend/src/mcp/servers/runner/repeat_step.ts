@@ -16,25 +16,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'repeat_step',
-  description: `Reset and retry the current step.
-
-Useful for:
-- Retrying after a failure
-- Re-running with additional feedback
-- Refining agent output
-
-**Usage:**
-\`\`\`typescript
-// Simple retry
-repeat_step({ story: "ST-123" })
-
-// Retry with feedback
-repeat_step({
-  story: "ST-123",
-  reason: "Previous output was incomplete",
-  feedback: "Include error handling for edge cases. Check null values."
-})
-\`\`\``,
+  description: 'Retry current step with feedback. Use when step failed or needs refinement.',
   inputSchema: {
     type: 'object',
     properties: {

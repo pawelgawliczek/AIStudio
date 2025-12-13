@@ -12,7 +12,7 @@ import { ToolRegistry } from '../../core/registry.js';
 
 export const tool: Tool = {
   name: 'search_tools',
-  description: 'Search and discover available MCP tools with progressive detail levels',
+  description: 'Discover MCP tools by query/category. Returns non-core tools only (core already loaded).',
   inputSchema: {
     type: 'object',
     properties: {

@@ -37,7 +37,7 @@ import {
 
 export const tool: Tool = {
   name: 'git_get_worktree_status',
-  description: 'Get detailed status for a specific story\'s worktree including git status, file changes, and filesystem info',
+  description: 'Get worktree status including git status, changes, filesystem info.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -13,38 +13,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'get_approvals',
-  description: `Query approval requests with unified interface.
-
-**Actions:**
-- \`list\` - List pending approvals with filters
-- \`details\` - Get detailed info about specific approval
-
-**Usage:**
-\`\`\`typescript
-// List pending approvals for a story
-get_approvals({
-  action: "list",
-  story: "ST-123"
-})
-
-// List all pending for project
-get_approvals({
-  action: "list",
-  projectId: "uuid-here"
-})
-
-// Get details for specific approval
-get_approvals({
-  action: "details",
-  requestId: "approval-uuid"
-})
-
-// Get pending approval for a run
-get_approvals({
-  action: "details",
-  story: "ST-123"
-})
-\`\`\``,
+  description: 'Query approvals: action=list for pending list, action=details for specific approval. Consolidates get_pending_approvals and get_approval_details.',
   inputSchema: {
     type: 'object',
     properties: {

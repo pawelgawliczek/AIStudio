@@ -4,20 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'analyze_file_impact',
-  description: `Analyze which use cases are affected by file changes.
-
-Given one or more file paths, returns:
-- All use cases that these files implement or affect
-- Confidence scores for each mapping
-- Risk levels (high/medium/low)
-- Related stories and test coverage
-- Impact summary and recommendations
-
-Perfect for:
-- Pre-commit impact analysis
-- PR risk assessment
-- Understanding blast radius of changes
-- Planning testing strategy`,
+  description: 'Analyze which use cases are affected by file changes. Returns use cases, confidence scores, risk levels, and test coverage. For impact analysis and PR risk assessment.',
   inputSchema: {
     type: 'object',
     properties: {

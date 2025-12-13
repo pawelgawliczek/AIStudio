@@ -12,27 +12,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'step_runner',
-  description: `Execute one state and pause. Used for step-by-step debugging.
-
-Works ONLY on paused runs:
-1. Creates temporary breakpoint at the next state
-2. Resumes execution
-3. Runner executes current state
-4. Runner hits temp breakpoint at next state, pauses
-5. Temp breakpoint is auto-deleted after being hit
-
-**Prerequisites:**
-- Run must be in 'paused' status
-- Use pause_runner first if run is active
-
-**Usage:**
-\`\`\`typescript
-// Using story key (preferred)
-step_runner({ story: "ST-123" })
-
-// Using run ID
-step_runner({ runId: "uuid-here" })
-\`\`\``,
+  description: 'Execute one state and pause. For debugging paused runs only; creates temp breakpoint at next state.',
   inputSchema: {
     type: 'object',
     properties: {

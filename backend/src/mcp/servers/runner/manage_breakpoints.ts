@@ -13,44 +13,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'manage_breakpoints',
-  description: `Manage breakpoints for Story Runner execution.
-
-**Actions:**
-- \`set\` - Add a breakpoint at a state
-- \`clear\` - Remove breakpoints (by ID, state, or all)
-- \`list\` - List all breakpoints for a run
-
-**Usage:**
-\`\`\`typescript
-// Set breakpoint (using story key)
-manage_breakpoints({
-  story: "ST-123",
-  action: "set",
-  stateName: "implementation",
-  position: "before"
-})
-
-// List breakpoints
-manage_breakpoints({
-  story: "ST-123",
-  action: "list"
-})
-
-// Clear specific breakpoint
-manage_breakpoints({
-  story: "ST-123",
-  action: "clear",
-  stateName: "implementation",
-  position: "before"
-})
-
-// Clear all breakpoints
-manage_breakpoints({
-  story: "ST-123",
-  action: "clear",
-  clearAll: true
-})
-\`\`\``,
+  description: 'Set/clear/list breakpoints: action=set adds breakpoint, action=clear removes, action=list shows all.',
   inputSchema: {
     type: 'object',
     properties: {

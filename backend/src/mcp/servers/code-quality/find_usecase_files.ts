@@ -4,22 +4,7 @@ import { ToolMetadata } from '../../types.js';
 
 export const tool: Tool = {
   name: 'find_usecase_files',
-  description: `Find all files that implement a use case.
-
-Given a use case (by ID or key), returns:
-- All files that implement/affect this use case
-- Confidence scores for each file
-- Code metrics (LOC, complexity, maintainability, test coverage)
-- Recent commits for each file
-- Risk assessment
-- Related stories
-
-Perfect for:
-- Understanding use case implementation
-- Planning refactoring
-- Impact analysis before changes
-- Identifying technical debt
-- Test planning`,
+  description: 'Find all files that implement a use case. Returns files with confidence scores, code metrics, and risk assessment. For refactoring and impact analysis.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -35,23 +35,7 @@ export interface PreviewMigrationResponse {
 
 export const previewMigrationTool: Tool = {
   name: 'preview_migration',
-  description: `
-Preview pending database migrations without applying them.
-
-This is a safe, read-only operation that shows what migrations are waiting to be applied.
-
-Usage:
-\`\`\`typescript
-preview_migration({})
-\`\`\`
-
-Returns:
-- List of pending migration names
-- Migration count
-- Readable message
-
-To apply migrations after preview, use run_safe_migration tool.
-  `.trim(),
+  description: 'Preview pending migrations without applying. Read-only; use run_safe_migration to apply.',
   inputSchema: {
     type: 'object',
     properties: {},

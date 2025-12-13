@@ -31,7 +31,7 @@ export interface ComponentUsageResponse {
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'get_agent_usage',
-  description: 'Get usage statistics for an agent including team count, execution count, and last used date',
+  description: 'Get usage statistics for an agent. Returns team count, execution count, and last used date.',
   inputSchema: {
     type: 'object',
     properties: {

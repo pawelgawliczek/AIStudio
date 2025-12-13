@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'get_component_test_coverage',
-  description: 'Get component-level test coverage for a project. Shows coverage aggregated by component/area with breakdown by use case. Optionally filter by specific component.',
+  description: 'Get component-level test coverage for a project. Returns coverage by component/area with use case breakdown. Optional component filter.',
   inputSchema: {
     type: 'object',
     properties: {

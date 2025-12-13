@@ -18,7 +18,7 @@ import {
 
 export const tool: Tool = {
   name: 'list_stories',
-  description: 'List stories with optional filters and pagination',
+  description: 'List stories with filters (projectId, status, type, epicId). For text search use search_stories.',
   inputSchema: {
     type: 'object',
     properties: {

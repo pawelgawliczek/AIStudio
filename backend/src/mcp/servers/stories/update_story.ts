@@ -22,14 +22,7 @@ import {
 
 export const tool: Tool = {
   name: 'update_story',
-  description: `Update an existing story (title, description, status, complexity, framework).
-
-**ST-188:** Accepts story key (e.g., ST-123) or UUID via the \`story\` parameter.
-
-**DEPRECATED (ST-152):** The analysis fields (architectAnalysis, baAnalysis, designerAnalysis, contextExploration) are deprecated.
-Use the Artifact system instead:
-- upload_artifact({ definitionKey: "ARCH_ANALYSIS", workflowRunId, content }) for architect analysis
-- open_artifact_session() for interactive artifact editing`,
+  description: 'Update story fields by ID or key (ST-123). Accepts title, description, status, complexity scores.',
   inputSchema: {
     type: 'object',
     properties: {

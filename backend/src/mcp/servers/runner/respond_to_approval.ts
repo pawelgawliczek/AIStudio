@@ -12,51 +12,7 @@ import { broadcastApprovalResolved } from '../../services/websocket-gateway.inst
 
 export const tool: Tool = {
   name: 'respond_to_approval',
-  description: `Respond to a pending approval gate (approve, rerun, or reject).
-
-**Actions:**
-- \`approve\`: Continue to next state
-- \`rerun\`: Re-execute current state with feedback injected into agent prompt
-- \`reject\`: Cancel or pause workflow
-
-**Behavior by action:**
-
-| Action | Effect | WorkflowRun Status | Next Step |
-|--------|--------|-------------------|-----------|
-| approve | Continue to next state | Running | Runner resumes, moves to next state |
-| rerun | Re-execute with feedback | Running | Runner resumes, re-executes same state |
-| reject+cancel | Workflow cancelled | Cancelled | Must start new workflow run |
-| reject+pause | Workflow paused | Paused | Can manually fix and resume later |
-
-**Example - Approve:**
-\`\`\`typescript
-respond_to_approval({
-  runId: "abc-123",
-  action: "approve",
-  decidedBy: "pawel"
-})
-\`\`\`
-
-**Example - Rerun with feedback:**
-\`\`\`typescript
-respond_to_approval({
-  runId: "abc-123",
-  action: "rerun",
-  decidedBy: "pawel",
-  feedback: "Tests are failing. Fix the authentication test - mock should return 200"
-})
-\`\`\`
-
-**Example - Reject but keep paused:**
-\`\`\`typescript
-respond_to_approval({
-  runId: "abc-123",
-  action: "reject",
-  rejectMode: "pause",
-  decidedBy: "pawel",
-  reason: "Implementation doesn't meet requirements"
-})
-\`\`\``,
+  description: 'Respond to approval gate: approve (continue), rerun (with feedback), or reject (pause/cancel). Requires decidedBy.',
   inputSchema: {
     type: 'object',
     properties: {

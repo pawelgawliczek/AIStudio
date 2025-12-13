@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'create_test_case',
-  description: 'Create a new test case linked to a use case. Test cases define the specific tests (unit/integration/e2e) needed to verify use case functionality.',
+  description: 'Create a new test case linked to a use case. Defines specific tests (unit/integration/e2e) for verification.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -22,8 +22,7 @@ const execAsync = promisify(exec);
 
 export const tool: Tool = {
   name: 'mcp__vibestudio__run_backup',
-  description:
-    'Execute database backup for specified environment (production or development). Returns backup filename, size, and execution time.',
+  description: 'Execute database backup for production or development. Returns backup filename, size, and execution time.',
   inputSchema: {
     type: 'object',
     properties: {

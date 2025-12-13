@@ -19,8 +19,7 @@ import {
 
 export const tool: Tool = {
   name: 'bootstrap_project',
-  description:
-    'Bootstrap a new project with default structure, including initial epic and framework configuration. This is the recommended way to start a new project.',
+  description: 'Bootstrap a new project with default epic and framework. Recommended for new projects.',
   inputSchema: {
     type: 'object',
     properties: {

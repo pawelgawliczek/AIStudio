@@ -111,78 +111,7 @@ interface PhaseStatus {
 
 export const tool: Tool = {
   name: 'deploy_to_production',
-  description: `Deploy a story to production environment with comprehensive safety checks.
-
-**DEPLOYMENT MODES (ST-84):**
-
-**1. PR Mode (Traditional):**
-- Requires approved and merged PR
-- GitHub API validation
-- Team collaboration workflow
-
-**2. Direct Commit Mode (Solo Development):**
-- Requires manual approval via approve_deployment tool
-- Bypasses PR workflow
-- For solo developers with direct main commits
-
-**CRITICAL REQUIREMENTS:**
-- Story must be in 'qa' or 'done' status
-- EITHER: PR must be approved AND merged to main (PR mode)
-- OR: Manual approval via approve_deployment (direct commit mode)
-- Deployment lock available (only 1 production deployment at a time)
-- Pre-deployment backup created automatically
-- 3 consecutive health checks must pass
-- Complete audit trail logged
-
-**WORKFLOW:**
-1. Validate story and approval (PR or manual)
-2. Acquire deployment lock (blocks concurrent deployments)
-3. Create pre-deployment backup
-4. Build backend container (--no-cache)
-5. Build frontend container (--no-cache)
-6. Restart backend container
-7. Restart frontend container
-8. Run health checks (3 consecutive successes)
-9. Release deployment lock
-10. On failure: Auto-rollback from backup
-
-**EMERGENCY OPTIONS:**
-- skipBackup: true - Skip backup creation (USE WITH EXTREME CAUTION)
-- skipHealthChecks: true - Skip health checks (USE WITH EXTREME CAUTION)
-
-**OPTIMIZATION OPTIONS (ST-87):**
-- skipBackendBuild: true - Skip backend build (for frontend-only changes)
-- skipFrontendBuild: true - Skip frontend build (for backend-only changes)
-
-**EXAMPLE USAGE:**
-
-PR Mode:
-\`\`\`typescript
-deploy_to_production({
-  storyId: "905d1a9c-1337-4cf7-b7f6-72b55db9e336",
-  prNumber: 42,
-  triggeredBy: "claude-agent",
-  confirmDeploy: true
-})
-\`\`\`
-
-Direct Commit Mode:
-\`\`\`typescript
-// Step 1: Approve
-approve_deployment({
-  storyId: "2e809be4-cc67-4fc7-8c3d-4d337c0043d5",
-  approvedBy: "pawel",
-  approvalReason: "Hotfix for critical bug"
-})
-
-// Step 2: Deploy
-deploy_to_production({
-  storyId: "2e809be4-cc67-4fc7-8c3d-4d337c0043d5",
-  directCommit: true,
-  triggeredBy: "claude-agent",
-  confirmDeploy: true
-})
-\`\`\``,
+  description: 'Deploy story to production with safety checks. Supports PR mode (requires approval) or direct commit mode (requires approve_deployment). Includes automatic backup, health checks, and rollback.',
 
   inputSchema: {
     type: 'object',

@@ -10,31 +10,7 @@ import { PrismaClient, BreakpointPosition } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'clear_breakpoint',
-  description: `Remove breakpoints from a Story Runner execution.
-
-**Clearing Options:**
-1. By breakpoint ID (most precise)
-2. By state + position (convenient for single breakpoint)
-3. Clear all breakpoints for a run
-
-**Usage:**
-\`\`\`typescript
-// By breakpoint ID
-clear_breakpoint({ breakpointId: "uuid-here" })
-
-// By state name + position
-clear_breakpoint({
-  runId: "uuid-here",
-  stateName: "implementation",
-  position: "before"
-})
-
-// Clear all breakpoints for a run
-clear_breakpoint({
-  runId: "uuid-here",
-  clearAll: true
-})
-\`\`\``,
+  description: 'Remove breakpoints by ID, state+position, or clearAll. Prefer manage_breakpoints consolidated tool.',
   inputSchema: {
     type: 'object',
     properties: {

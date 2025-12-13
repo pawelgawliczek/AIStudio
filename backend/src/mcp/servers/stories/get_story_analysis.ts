@@ -19,12 +19,7 @@ import {
 
 export const tool: Tool = {
   name: 'get_story_analysis',
-  description: `Get analysis fields for a story.
-
-**DEPRECATED (ST-152):** These fields are deprecated. Use the Artifact system instead:
-- list_artifacts({ workflowRunId }) to get analysis artifacts
-- get_artifact({ definitionKey: "ARCH_ANALYSIS", workflowRunId }) for specific analysis
-- open_artifact_session() for interactive editing`,
+  description: 'DEPRECATED: Get story analysis fields. Use list_artifacts with workflowRunId instead.',
   inputSchema: {
     type: 'object',
     properties: {

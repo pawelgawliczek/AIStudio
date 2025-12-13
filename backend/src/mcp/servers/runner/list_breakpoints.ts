@@ -10,25 +10,7 @@ import { PrismaClient } from '@prisma/client';
 
 export const tool: Tool = {
   name: 'list_breakpoints',
-  description: `List breakpoints for a Story Runner execution.
-
-Returns all breakpoints set for the run, including:
-- State name and execution order
-- Position (before/after)
-- Active status
-- Hit timestamp (if breakpoint was triggered)
-- Condition (if conditional breakpoint)
-
-**Usage:**
-\`\`\`typescript
-list_breakpoints({ runId: "uuid-here" })
-
-// Include inactive (cleared) breakpoints
-list_breakpoints({
-  runId: "uuid-here",
-  includeInactive: true
-})
-\`\`\``,
+  description: 'List breakpoints for a run. Prefer manage_breakpoints consolidated tool.',
   inputSchema: {
     type: 'object',
     properties: {

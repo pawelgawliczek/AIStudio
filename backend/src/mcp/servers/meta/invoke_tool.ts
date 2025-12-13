@@ -15,8 +15,7 @@ import { ToolRegistry } from '../../core/registry.js';
 
 export const tool: Tool = {
   name: 'invoke_tool',
-  description:
-    'Execute any MCP tool by name. Use search_tools to discover available tools and their parameters first.',
+  description: 'Call any MCP tool by name. Use for tools not in core profile.',
   inputSchema: {
     type: 'object',
     properties: {

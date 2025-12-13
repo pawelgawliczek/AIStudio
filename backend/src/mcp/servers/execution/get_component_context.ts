@@ -9,8 +9,7 @@ import {
 
 export const tool: Tool = {
   name: 'get_component_context',
-  description:
-    'Retrieve work instructions for a component agent. Returns input/operation/output instructions, config, tools, and accessible artifacts. Used by spawned component agents to get their instructions on-demand, enabling token-efficient workflow orchestration.',
+  description: 'Get component instructions, config, tools, and accessible artifacts. Used by spawned agents.',
   inputSchema: {
     type: 'object',
     properties: {

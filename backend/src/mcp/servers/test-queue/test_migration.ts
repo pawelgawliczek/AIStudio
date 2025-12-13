@@ -67,30 +67,7 @@ export interface TestMigrationResponse {
 
 export const tool: Tool = {
   name: 'mcp__vibestudio__test_migration',
-  description: `Run migrations against isolated test database (port 5434) before applying to production.
-
-  This tool validates migrations are safe before touching production data:
-  1. Starts/reuses isolated test containers (postgres:5434, redis:6381)
-  2. Syncs test schema from production (pg_dump --schema-only)
-  3. Applies pending migrations to test DB
-  4. Validates schema (tables, indexes, constraints)
-  5. Runs integration tests against migrated test DB
-
-  Edge Cases Handled:
-  - Containers already running: Health check, reuse if healthy
-  - Containers unhealthy: Stop and restart with fresh state
-  - Test schema drift: Always sync from production before testing
-  - Partial migration failure: Capture error, report which migration failed
-  - Test DB connection failure: Retry 3x with backoff, then fail gracefully
-
-  Integration with migrate:safe:
-  - Call this tool before production migration
-  - If success → proceed with production migration
-  - If failure → abort, no production changes
-
-  Prerequisites:
-  - Docker must be running
-  - Production database must be accessible`,
+  description: 'Test migrations against isolated test database before production. Validates schema and runs tests.',
   inputSchema: {
     type: 'object',
     properties: {

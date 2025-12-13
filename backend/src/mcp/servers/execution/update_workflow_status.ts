@@ -8,7 +8,7 @@ import { unregisterWorkflowOnLaptop } from './workflow-tracker-utils';
 
 export const tool: Tool = {
   name: 'update_team_status',
-  description: 'Update team execution status. Use this to mark team as completed, failed, paused, or cancelled.',
+  description: 'Update workflow run status (running, paused, completed, failed, cancelled).',
   inputSchema: {
     type: 'object',
     properties: {

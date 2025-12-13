@@ -12,30 +12,7 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 
 export const tool: Tool = {
   name: 'pause_runner',
-  description: `Pause a running Story Runner execution.
-
-The runner will:
-1. Complete current operation (won't interrupt mid-agent)
-2. Save checkpoint to database
-3. Update status to 'paused'
-4. Exit gracefully
-
-Use resume_runner to continue execution later.
-
-**Usage:**
-\`\`\`typescript
-// Using story key (preferred)
-pause_runner({
-  story: "ST-123",
-  reason: "Manual pause for review"
-})
-
-// Using run ID
-pause_runner({
-  runId: "uuid-here",
-  reason: "Manual pause for review"
-})
-\`\`\``,
+  description: 'Pause running workflow after current operation. Use resume_runner to continue later.',
   inputSchema: {
     type: 'object',
     properties: {

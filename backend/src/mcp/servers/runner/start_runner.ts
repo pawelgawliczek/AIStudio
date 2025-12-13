@@ -15,28 +15,7 @@ import { resolveStory, isStoryKey, isUUID } from '../../shared/resolve-identifie
 
 export const tool: Tool = {
   name: 'start_runner',
-  description: `Start the Story Runner for a workflow run.
-
-Launches the Story Runner via laptop orchestrator that:
-1. Loads workflow and states from backend
-2. Starts persistent Master CLI session on laptop agent
-3. Executes states sequentially (pre → agent → post)
-4. Saves checkpoints for crash recovery
-5. Reports status back to backend
-
-**Prerequisites:**
-- Workflow must have states defined
-- WorkflowRun must exist (use start_team_run first)
-- Laptop agent must be online with claude-code capability
-
-**Usage:**
-\`\`\`typescript
-start_runner({
-  runId: "uuid-here",
-  workflowId: "workflow-uuid",
-  story: "ST-123"  // optional - story key or UUID
-})
-\`\`\``,
+  description: 'Start Docker Runner for autonomous workflow execution. Requires runId and workflowId.',
   inputSchema: {
     type: 'object',
     properties: {

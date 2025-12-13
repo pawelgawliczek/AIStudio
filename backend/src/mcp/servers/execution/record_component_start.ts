@@ -6,7 +6,7 @@ import { broadcastComponentStarted, startTranscriptTailing } from '../../service
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'record_agent_start',
-  description: 'Log the start of an agent execution within a team run. Call this before executing agent logic.',
+  description: 'Log agent execution start. Call before agent logic. Requires runId and componentId.',
     inputSchema: {
     type: 'object',
     properties: {

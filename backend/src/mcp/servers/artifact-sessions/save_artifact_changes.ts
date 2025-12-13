@@ -14,15 +14,7 @@ import { handler as uploadArtifactHandler } from '../artifacts/upload_artifact';
 
 export const tool: Tool = {
   name: 'save_artifact_changes',
-  description: `Save modified content back to the artifact from an editing session.
-
-Extracts final content from session output or accepts direct content parameter.
-Auto-increments artifact version on save.
-
-**Content Extraction:**
-- Looks for code blocks matching artifact type: \`\`\`markdown ... \`\`\`
-- Falls back to generic code blocks: \`\`\` ... \`\`\`
-- Or provide content directly via the content parameter`,
+  description: 'Save edited artifact content from session. Auto-increments version; extracts from output or accepts content param.',
   inputSchema: {
     type: 'object',
     properties: {
