@@ -480,15 +480,34 @@ export async function handler(prisma: PrismaClient, params: {
         workflowSequence.push({
           step: 3,
           type: 'mcp_tool',
-          description: 'Record agent completion with output and status',
+          description: 'Record agent completion with output, status, and summary',
           tool: 'record_agent_complete',
           parameters: {
             runId,
             componentId,
             output: '{{AGENT_OUTPUT}}', // Placeholder - use actual output from step 2
             status: 'completed', // or 'failed' if agent failed
+            componentSummary: '{{AGENT_SUMMARY}}', // Required - see notes for format
           },
-          notes: 'Replace {{AGENT_OUTPUT}} with the actual output from the Task agent in step 2. Set status to "failed" if the agent encountered errors.',
+          notes: `Replace placeholders:
+- {{AGENT_OUTPUT}}: Actual output from Task agent in step 2
+- {{AGENT_SUMMARY}}: 2-3 sentence summary with completion status
+
+**Summary Format**:
+1. [Action] [what was done] [key detail]
+2. [Status]: Complete|Partial|Blocked|Failed - X/Y tasks done
+3. [Next step or blocker if any]
+
+**Status Keywords**:
+- Complete: All planned work done, no blockers
+- Partial: Some work done, remaining items listed
+- Blocked: Cannot proceed, blocker explained
+- Failed: Work attempted but failed, reason given
+
+**Examples**:
+- "Implemented auth endpoints with JWT tokens. Complete: 5/5 tasks done. All tests passing."
+- "Explored codebase structure. Partial: 2/3 areas done. Blocked: no access to payments module."
+- "Ran integration tests. Failed: 3/20 tests failing. Token expiration tests need fix."`,
         });
 
         // Step 4: Advance to post phase

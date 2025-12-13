@@ -151,6 +151,10 @@ describe('get_current_step MCP Tool', () => {
       expect(result.workflowSequence[0].tool).toBe('record_agent_start');
       expect(result.workflowSequence[1].type).toBe('agent_spawn');
       expect(result.workflowSequence[2].tool).toBe('record_agent_complete');
+      // ST-195: Verify componentSummary template is included
+      expect(result.workflowSequence[2].parameters.componentSummary).toBe('{{AGENT_SUMMARY}}');
+      expect(result.workflowSequence[2].notes).toContain('Summary Format');
+      expect(result.workflowSequence[2].notes).toContain('Complete|Partial|Blocked|Failed');
       expect(result.workflowSequence[3].tool).toBe('advance_step');
     });
 
