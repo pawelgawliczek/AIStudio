@@ -83,6 +83,9 @@ export class ToolRegistry {
 
   /**
    * Search tools with progressive disclosure
+   *
+   * ST-197: Only returns tools NOT in core profile (core tools already loaded).
+   * This prevents context bloat when search_tools is called.
    */
   async searchTools(
     query: string,
@@ -91,7 +94,15 @@ export class ToolRegistry {
   ): Promise<any> {
     console.error(`📊 searchTools: discovering tools for category="${category}"`);
     let tools = await this.discoverTools(category);
-    console.error(`📊 searchTools: found ${tools.length} tools`);
+    console.error(`📊 searchTools: found ${tools.length} total tools`);
+
+    // ST-197: Exclude core profile tools - they're already loaded via listTools()
+    const profile = getActiveProfile();
+    if (profile === 'core') {
+      const beforeCount = tools.length;
+      tools = tools.filter((t) => !isToolInProfile(t.tool.name, 'core'));
+      console.error(`📊 searchTools: excluded ${beforeCount - tools.length} core tools, ${tools.length} remain`);
+    }
 
     // Filter by query
     if (query) {
@@ -114,6 +125,7 @@ export class ToolRegistry {
           tools: tools.map((t) => t.tool.name),
           total: tools.length,
           detail_level: 'names_only',
+          note: profile === 'core' ? 'Excludes 28 core tools (already loaded). Use invoke_tool to call these.' : undefined,
         };
 
       case 'with_descriptions':
@@ -125,6 +137,7 @@ export class ToolRegistry {
           })),
           total: tools.length,
           detail_level: 'with_descriptions',
+          note: profile === 'core' ? 'Excludes 28 core tools (already loaded). Use invoke_tool to call these.' : undefined,
         };
 
       case 'full_schema':
@@ -138,6 +151,7 @@ export class ToolRegistry {
           })),
           total: tools.length,
           detail_level: 'full_schema',
+          note: profile === 'core' ? 'Excludes 28 core tools (already loaded). Use invoke_tool to call these.' : undefined,
         };
 
       default:
