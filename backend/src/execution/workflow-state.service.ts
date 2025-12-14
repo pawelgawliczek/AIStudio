@@ -265,11 +265,22 @@ export class WorkflowStateService {
   /**
    * Get artifacts for a workflow run from the artifacts table
    * ST-168: Query actual artifacts table instead of componentRun.output.artifacts
+   * ST-214: Artifacts are now story-scoped, query by storyId from the workflow run
    */
   async getWorkflowArtifacts(runId: string, includeContent = false): Promise<ArtifactInfo[]> {
+    // ST-214: Get the workflow run to find storyId (artifacts are story-scoped)
+    const workflowRun = await this.prisma.workflowRun.findUnique({
+      where: { id: runId },
+      select: { storyId: true },
+    });
+
+    if (!workflowRun?.storyId) {
+      return []; // No story = no artifacts
+    }
+
     const artifacts = await this.prisma.artifact.findMany({
       where: {
-        workflowRunId: runId,
+        storyId: workflowRun.storyId, // ST-214: Query by storyId instead of workflowRunId
       },
       include: {
         definition: true,
@@ -397,7 +408,11 @@ export class WorkflowStateService {
       })),
       remainingComponents: [],
       aggregatedMetrics: {
-        totalTokens: workflowRun.totalTokens,
+        // ST-240: Calculate totalTokens from component runs instead of reading DB field
+        // The DB field (workflowRun.totalTokens) is often not updated when components complete
+        totalTokens: workflowRun.componentRuns.reduce(
+          (sum, cr) => sum + (cr.totalTokens || 0), 0
+        ) || workflowRun.totalTokens || null,
         totalCost: workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null,
         totalDuration: workflowRun.durationSeconds,
         componentsCompleted: workflowRun.componentRuns.length,
