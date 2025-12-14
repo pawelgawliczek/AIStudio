@@ -65,22 +65,24 @@ The Live Streaming system provides real-time visibility into AI agent execution 
 │  │ Namespace: /remote-agent                                     │  │
 │  │                                                              │  │
 │  │ Handlers:                                                    │  │
-│  │  - transcript:lines          → relay to AppWebSocketGateway │  │
-│  │  - transcript:batch          → relay to AppWebSocketGateway │  │
-│  │  - transcript:error          → relay to AppWebSocketGateway │  │
-│  │  - transcript:streaming_started → relay                     │  │
-│  │  - transcript:streaming_stopped → relay                     │  │
+│  │  - transcript:lines          → broadcast to room directly   │  │
+│  │  - transcript:batch          → broadcast to room directly   │  │
+│  │  - transcript:error          → broadcast to room directly   │  │
+│  │  - transcript:streaming_started → broadcast to room directly│  │
+│  │  - transcript:streaming_stopped → broadcast to room directly│  │
+│  │                                                              │  │
+│  │ ST-233: Direct broadcasting via appWebSocketGateway.server  │  │
 │  └──────────────────────┬───────────────────────────────────────┘  │
 │                         │                                           │
-│                         │ relayMasterTranscriptLines()              │
+│                         │ appWebSocketGateway.server.to(room).emit()│
 │                         ▼                                           │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ AppWebSocketGateway                                          │  │
 │  │ Namespace: / (default)                                       │  │
 │  │                                                              │  │
-│  │ Relays to room: master-transcript:{runId}                   │  │
+│  │ Rooms: master-transcript:{runId}                            │  │
 │  │                                                              │  │
-│  │ Events emitted:                                              │  │
+│  │ Events emitted by RemoteAgentGateway:                        │  │
 │  │  - master-transcript:streaming_started                       │  │
 │  │  - master-transcript:lines                                   │  │
 │  │  - master-transcript:batch                                   │  │
@@ -990,6 +992,7 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
 - **ST-203**: Structured Component Summary
 - **ST-215**: Automatic Agent Tracking in advance_step
 - **ST-220**: Unified Live Streaming Documentation (this document)
+- **ST-233**: Live Streaming Architecture Simplification (relay pattern removal)
 
 ---
 
