@@ -7,7 +7,7 @@
  * for use in both standalone MCP tools and advance_step automatic tracking.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import {
   broadcastComponentStarted,
   broadcastComponentCompleted,
@@ -127,13 +127,13 @@ export async function startAgentTracking(
         componentId: params.componentId,
         executionOrder: nextExecutionOrder,
         status: 'running',
-        inputData: params.input || {},
-        metadata: {},
+        inputData: (params.input || {}) as Prisma.InputJsonValue,
+        metadata: {} as Prisma.InputJsonValue,
         startedAt: new Date(),
         userPrompts: 0,
         systemIterations: 1,
         humanInterventions: 0,
-        iterationLog: [],
+        iterationLog: [] as Prisma.InputJsonValue,
       },
     });
 
@@ -255,13 +255,13 @@ export async function completeAgentTracking(
           componentId: params.componentId,
           executionOrder: nextExecutionOrder,
           status: 'running',
-          inputData: {},
-          metadata: { retroactive: true },
+          inputData: {} as Prisma.InputJsonValue,
+          metadata: { retroactive: true } as Prisma.InputJsonValue,
           startedAt: new Date(),
           userPrompts: 0,
           systemIterations: 1,
           humanInterventions: 0,
-          iterationLog: [],
+          iterationLog: [] as Prisma.InputJsonValue,
         },
       });
     }
@@ -282,7 +282,7 @@ export async function completeAgentTracking(
       where: { id: componentRun.id },
       data: {
         status,
-        outputData: params.output || {},
+        outputData: (params.output || {}) as Prisma.InputJsonValue,
         componentSummary: params.componentSummary || null,
         errorMessage: params.errorMessage || null,
         durationSeconds,

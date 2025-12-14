@@ -1338,16 +1338,22 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       return;
     }
 
-    // Upload to Artifact table
+    // Upload to Artifact table (ST-214: story-scoped)
+    if (!workflowRun.storyId) {
+      this.logger.warn('WorkflowRun has no storyId, skipping transcript upload');
+      return;
+    }
     const artifact = await this.prisma.artifact.create({
       data: {
         definitionId: transcriptDef.id,
+        storyId: workflowRun.storyId,
         workflowRunId,
+        lastUpdatedRunId: workflowRunId,
         content: transcriptContent,
         contentType: 'application/x-jsonlines',
         contentPreview: transcriptContent.substring(0, 500),
         size: Buffer.byteLength(transcriptContent, 'utf8'),
-        version: 1,
+        currentVersion: 1,
         createdByComponentId: componentRun.componentId, // Non-null = agent transcript
       },
     });

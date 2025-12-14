@@ -68,7 +68,7 @@ export class TranscriptsService {
       // 1. Get workflow run and project info
       const workflowRun = await this.prisma.workflowRun.findUnique({
         where: { id: workflowRunId },
-        select: { id: true, projectId: true, workflowId: true },
+        select: { id: true, projectId: true, workflowId: true, storyId: true },
       });
 
       if (!workflowRun) {
@@ -114,16 +114,21 @@ export class TranscriptsService {
       // 6. Redact sensitive data
       const { redactedContent } = redactSensitiveData(content);
 
-      // 7. Create artifact
+      // 7. Create artifact (ST-214: story-scoped)
+      if (!workflowRun.storyId) {
+        throw new BadRequestException('WorkflowRun must be associated with a story');
+      }
       const artifact = await this.prisma.artifact.create({
         data: {
           definitionId: transcriptDef.id,
+          storyId: workflowRun.storyId,
           workflowRunId,
+          lastUpdatedRunId: workflowRunId,
           content: redactedContent,
           contentType: 'application/x-jsonlines',
           contentPreview: redactedContent.slice(0, CONTENT_PREVIEW_LENGTH),
           size,
-          version: 1,
+          currentVersion: 1,
           createdByComponentId: componentId, // Non-null = agent transcript
         },
       });
@@ -180,6 +185,7 @@ export class TranscriptsService {
           id: true,
           projectId: true,
           workflowId: true,
+          storyId: true,
           masterTranscriptPaths: true,
           metadata: true,
         },
@@ -237,16 +243,22 @@ export class TranscriptsService {
           // Redact sensitive data
           const { redactedContent } = redactSensitiveData(content);
 
-          // Create artifact (null componentId = master transcript)
+          // Create artifact (null componentId = master transcript, ST-214: story-scoped)
+          if (!workflowRun.storyId) {
+            this.logger.warn('WorkflowRun has no storyId, skipping master transcript upload');
+            continue;
+          }
           const artifact = await this.prisma.artifact.create({
             data: {
               definitionId: transcriptDef.id,
+              storyId: workflowRun.storyId,
               workflowRunId,
+              lastUpdatedRunId: workflowRunId,
               content: redactedContent,
               contentType: 'application/x-jsonlines',
               contentPreview: redactedContent.slice(0, CONTENT_PREVIEW_LENGTH),
               size,
-              version: 1,
+              currentVersion: 1,
               createdByComponentId: null, // Null = master transcript
             },
           });
