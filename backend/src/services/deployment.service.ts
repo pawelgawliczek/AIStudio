@@ -955,6 +955,7 @@ export class DeploymentService {
   /**
    * Build Docker container for a service
    * ST-115: Added useCache parameter for faster builds when cache is safe
+   * ST-236: Use docker compose build instead of docker buildx (not available on all hosts)
    */
   private async buildDockerContainer(
     service: 'backend' | 'frontend',
@@ -964,17 +965,10 @@ export class DeploymentService {
     console.log(`[DeploymentService] Building ${service} container ${cacheMode}...`);
 
     try {
-      // Ensure vibestudio-prod builder exists for isolated production cache
-      await this.ensureBuilderExists('vibestudio-prod');
-
-      // Use production Dockerfile with isolated builder (per CLAUDE.md requirements)
-      // Use docker buildx build with isolated builder to prevent test/prod cache conflicts
-      const dockerfile = service === 'backend' ? 'backend/Dockerfile' : 'frontend/Dockerfile';
-      const imageName = `aistudio-${service}`;
-
+      // ST-236: Use docker compose build instead of buildx for compatibility
       // ST-115: Only add --no-cache flag when useCache is false (default for production safety)
       const cacheFlag = useCache ? '' : '--no-cache';
-      const buildCommand = `docker buildx build --builder vibestudio-prod --load ${cacheFlag} -t ${imageName} -f ${dockerfile} .`.replace(/\s+/g, ' ').trim();
+      const buildCommand = `docker compose build ${cacheFlag} ${service}`.replace(/\s+/g, ' ').trim();
 
       execSync(buildCommand, {
         cwd: this.projectRoot,
