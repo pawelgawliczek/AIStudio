@@ -331,6 +331,11 @@ export class DeploymentService {
         execSync('git pull origin main', {
           cwd: this.projectRoot,
           stdio: 'inherit',
+          env: {
+            ...process.env,
+            // ST-236: Use SSH without config file (avoids permission issues with mounted .ssh)
+            GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -F /dev/null',
+          },
         });
         console.log('[DeploymentService] ✅ Git pull completed');
       } catch (gitPullError: any) {
