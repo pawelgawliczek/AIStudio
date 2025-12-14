@@ -583,11 +583,16 @@ describe('CodeMetricsService', () => {
       // Mock coverage file not found by keeping testExecution empty
       mockPrismaService.testExecution.findMany.mockResolvedValue([]);
 
-      // This will throw NotFoundException for coverage file - which is expected behavior
-      // when there are no test executions and no coverage file
-      await expect(service.getTestSummary('test-project')).rejects.toThrow(
-        'Coverage report not found'
-      );
+      // Should gracefully return default values when no data is available
+      const result = await service.getTestSummary('test-project');
+
+      expect(result).toEqual({
+        totalTests: 0,
+        passing: 0,
+        failing: 0,
+        skipped: 0,
+        coveragePercentage: 0,
+      });
     });
 
     it('should count test execution results correctly', async () => {

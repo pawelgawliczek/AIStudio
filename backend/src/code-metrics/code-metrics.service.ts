@@ -860,7 +860,19 @@ export class CodeMetricsService {
 
     // Fallback to coverage file
     this.logger.log(`No test executions found for project ${projectId}, falling back to coverage file`);
-    return this.getTestSummaryFromCoverage(projectId);
+    try {
+      return await this.getTestSummaryFromCoverage(projectId);
+    } catch (error) {
+      // If coverage file doesn't exist, return default values gracefully
+      this.logger.log(`No coverage data available for project ${projectId}: ${error.message}`);
+      return {
+        totalTests: 0,
+        passing: 0,
+        failing: 0,
+        skipped: 0,
+        coveragePercentage: 0,
+      };
+    }
   }
 
   /**
