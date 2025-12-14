@@ -243,20 +243,24 @@ export async function handler(prisma: PrismaClient, params: any) {
 
         if (accessRules.length > 0) {
           // Get artifacts for accessible definitions
+          // ST-214: Query by storyId for cross-run continuity (not workflowRunId)
           const definitionIds = accessRules.map((ar) => ar.definitionId);
-          const artifacts = await prisma.artifact.findMany({
-            where: {
-              workflowRunId: params.runId,
-              definitionId: { in: definitionIds },
-            },
-            include: {
-              definition: true,
-              createdByComponent: {
-                select: { id: true, name: true },
-              },
-            },
-            orderBy: { createdAt: 'desc' },
-          });
+          const storyId = metadata?.storyId;
+          const artifacts = storyId
+            ? await prisma.artifact.findMany({
+                where: {
+                  storyId,
+                  definitionId: { in: definitionIds },
+                },
+                include: {
+                  definition: true,
+                  createdByComponent: {
+                    select: { id: true, name: true },
+                  },
+                },
+                orderBy: { createdAt: 'desc' },
+              })
+            : [];
 
           // Build artifact map with access info
           // In summaryMode, exclude content and provide fetch instructions
