@@ -251,7 +251,7 @@ export async function handler(
       artifactId: artifact.id,
       artifactKey: artifact.definition?.key,
       artifactName: artifact.definition?.name,
-      currentVersion: artifact.currentVersion,
+      version: artifact.currentVersion,
       agentId: selectedAgent.id,
       agentHostname: selectedAgent.hostname,
       status: 'pending',

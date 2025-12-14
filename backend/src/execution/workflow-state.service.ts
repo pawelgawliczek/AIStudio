@@ -293,7 +293,7 @@ export class WorkflowStateService {
       definitionName: artifact.definition.name,
       type: artifact.definition.type,
       workflowRunId: artifact.workflowRunId,
-      version: artifact.version,
+      version: artifact.currentVersion,
       content: includeContent ? artifact.content : null,
       contentPreview: artifact.contentPreview,
       contentType: artifact.contentType,
