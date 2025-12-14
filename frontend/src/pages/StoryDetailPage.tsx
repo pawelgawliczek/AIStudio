@@ -72,6 +72,8 @@ export function StoryDetailPage() {
   const [editingSubtask, setEditingSubtask] = useState<string | null>(null);
   const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
   const [startWorkflowModalOpen, setStartWorkflowModalOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // New subtask form
   const [newSubtask, setNewSubtask] = useState<CreateSubtaskDto>({
@@ -244,6 +246,19 @@ export function StoryDetailPage() {
     }
   };
 
+  const handleDeleteStory = async () => {
+    if (!story?.id) return;
+    try {
+      setIsDeleting(true);
+      await storiesService.delete(story.id);
+      navigate('/epic-planning');
+    } catch (error) {
+      alert('Failed to delete story');
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (isLoading || !story) {
     return (
       <div className="text-center py-12">
@@ -311,13 +326,23 @@ export function StoryDetailPage() {
               </div>
             )}
           </div>
-          <button
-            onClick={() => navigate(`/epic-planning?editStory=${story.key}`)}
-            className="ml-4 px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm inline-flex items-center"
-          >
-            <PencilIcon className="h-4 w-4 mr-1" />
-            Edit
-          </button>
+          <div className="flex gap-2 ml-4">
+            <button
+              onClick={() => navigate(`/epic-planning?editStory=${story.key}`)}
+              className="px-4 py-2 rounded-md font-semibold bg-accent text-accent-fg hover:bg-accent-dark shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm inline-flex items-center"
+            >
+              <PencilIcon className="h-4 w-4 mr-1" />
+              Edit
+            </button>
+            <button
+              data-testid="delete-story-btn"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 rounded-md font-semibold bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm inline-flex items-center"
+            >
+              <TrashIcon className="h-4 w-4 mr-1" />
+              Delete
+            </button>
+          </div>
         </div>
 
         {/* Complexity Warning */}
@@ -693,6 +718,51 @@ export function StoryDetailPage() {
             loadStory();
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-fg">Delete Story</h3>
+            </div>
+            <p className="text-muted mb-6">
+              Are you sure you want to delete <strong className="text-fg">{story.key}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                data-testid="cancel-delete-btn"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-md font-semibold bg-bg-secondary text-fg hover:bg-muted/20 border border-border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                data-testid="confirm-delete-btn"
+                onClick={handleDeleteStory}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-md font-semibold bg-red-600 text-white hover:bg-red-700 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm inline-flex items-center disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <TrashIcon className="h-4 w-4 mr-1" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
