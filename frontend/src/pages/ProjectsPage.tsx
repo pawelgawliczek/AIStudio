@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, Transition } from '@headlessui/react';
+import { Dialog, Transition, Tab } from '@headlessui/react';
 import { Fragment } from 'react';
 import {
   PlusIcon,
@@ -12,7 +12,12 @@ import {
   RectangleStackIcon,
 } from '@heroicons/react/24/outline';
 import { projectsService } from '../services/projects.service';
+import { TaxonomyManager } from '../components/project/TaxonomyManager';
 import type { Project } from '../types';
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 export function ProjectsPage() {
   const navigate = useNavigate();
@@ -252,6 +257,19 @@ function ProjectModal({
 }: ProjectModalProps) {
   const [name, setName] = useState(project?.name || '');
   const [description, setDescription] = useState(project?.description || '');
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+
+  // Reset form and tab when modal state changes
+  useEffect(() => {
+    if (project) {
+      setName(project.name);
+      setDescription(project.description || '');
+    } else {
+      setName('');
+      setDescription('');
+    }
+    setSelectedTabIndex(0);
+  }, [project, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,6 +279,71 @@ function ProjectModal({
       setDescription('');
     }
   };
+
+  // Reusable form fields JSX
+  const formFields = (
+    <>
+      <div>
+        <label
+          htmlFor="name"
+          className="block text-sm font-medium text-fg"
+        >
+          Project Name <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          id="name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder="My Awesome Project"
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="description"
+          className="block text-sm font-medium text-fg"
+        >
+          Description
+        </label>
+        <textarea
+          id="description"
+          rows={3}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder="Describe your project..."
+        />
+      </div>
+    </>
+  );
+
+  // Reusable form buttons JSX
+  const formButtons = (
+    <div className="mt-5 sm:mt-6 flex gap-3">
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isLoading}
+        className="flex-1 inline-flex justify-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-fg shadow-sm hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="flex-1 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+      >
+        {isLoading
+          ? 'Saving...'
+          : project
+          ? 'Update Project'
+          : 'Create Project'}
+      </button>
+    </div>
+  );
 
   return (
     <Transition.Root show={open} as={Fragment}>
@@ -288,72 +371,78 @@ function ProjectModal({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-card px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-card px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6 max-h-[90vh] overflow-y-auto">
                 <Dialog.Title
                   as="h3"
                   className="text-lg font-semibold leading-6 text-fg mb-4"
                 >
-                  {project ? 'Edit Project' : 'Create New Project'}
+                  {project ? 'Project Settings' : 'Create New Project'}
                 </Dialog.Title>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-sm font-medium text-fg"
-                    >
-                      Project Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      placeholder="My Awesome Project"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="description"
-                      className="block text-sm font-medium text-fg"
-                    >
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      rows={3}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      placeholder="Describe your project..."
-                    />
-                  </div>
-
-                  <div className="mt-5 sm:mt-6 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      disabled={isLoading}
-                      className="flex-1 inline-flex justify-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-fg shadow-sm hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="flex-1 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                    >
-                      {isLoading
-                        ? 'Saving...'
-                        : project
-                        ? 'Update Project'
-                        : 'Create Project'}
-                    </button>
-                  </div>
-                </form>
+                {/* Create mode: Simple form without tabs */}
+                {!project ? (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {formFields}
+                    {formButtons}
+                  </form>
+                ) : (
+                  /* Edit mode: Tabbed interface */
+                  <Tab.Group selectedIndex={selectedTabIndex} onChange={setSelectedTabIndex}>
+                    <Tab.List className="flex space-x-1 rounded-xl bg-accent/10 p-1 mb-4">
+                      <Tab
+                        className={({ selected }) =>
+                          classNames(
+                            'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                            'ring-white ring-opacity-60 ring-offset-2 ring-offset-accent focus:outline-none focus:ring-2',
+                            selected
+                              ? 'bg-card shadow text-accent'
+                              : 'text-accent hover:bg-card/50 hover:text-accent'
+                          )
+                        }
+                      >
+                        General Settings
+                      </Tab>
+                      <Tab
+                        className={({ selected }) =>
+                          classNames(
+                            'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                            'ring-white ring-opacity-60 ring-offset-2 ring-offset-accent focus:outline-none focus:ring-2',
+                            selected
+                              ? 'bg-card shadow text-accent'
+                              : 'text-accent hover:bg-card/50 hover:text-accent'
+                          )
+                        }
+                      >
+                        Taxonomy Settings
+                      </Tab>
+                    </Tab.List>
+                    <Tab.Panels>
+                      {/* General Settings Tab */}
+                      <Tab.Panel>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          {formFields}
+                          {formButtons}
+                        </form>
+                      </Tab.Panel>
+                      {/* Taxonomy Settings Tab */}
+                      <Tab.Panel>
+                        <div className="min-h-[300px]">
+                          <TaxonomyManager projectId={project.id} />
+                        </div>
+                        {/* Close button for Taxonomy tab */}
+                        <div className="mt-5 sm:mt-6">
+                          <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-full inline-flex justify-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-fg shadow-sm hover:bg-bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Close
+                          </button>
+                        </div>
+                      </Tab.Panel>
+                    </Tab.Panels>
+                  </Tab.Group>
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>
