@@ -7,7 +7,6 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  CogIcon,
   ChartBarIcon,
   RectangleStackIcon,
 } from '@heroicons/react/24/outline';
@@ -78,10 +77,6 @@ export function ProjectsPage() {
         alert(error.message || 'Failed to delete project');
       }
     }
-  };
-
-  const handleManageLayersComponents = (projectId: string) => {
-    navigate(`/layers-components?projectId=${projectId}`);
   };
 
   if (isLoading) {
@@ -169,19 +164,12 @@ export function ProjectsPage() {
                   </div>
                 )}
 
-                <div className="mt-6 flex flex-wrap gap-2">
+                <div className="mt-6">
                   <button
                     onClick={() => navigate(`/planning?projectId=${project.id}`)}
-                    className="flex-1 inline-flex justify-center items-center px-3 py-2 border border-border text-sm font-medium rounded-md text-fg bg-card hover:bg-muted/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="w-full inline-flex justify-center items-center px-3 py-2 border border-border text-sm font-medium rounded-md text-fg bg-card hover:bg-muted/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     Open Planning
-                  </button>
-                  <button
-                    onClick={() => handleManageLayersComponents(project.id)}
-                    className="inline-flex items-center px-3 py-2 border border-border text-sm font-medium rounded-md text-fg bg-card hover:bg-muted/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    title="Manage Layers & Components"
-                  >
-                    <CogIcon className="h-4 w-4" />
                   </button>
                 </div>
 

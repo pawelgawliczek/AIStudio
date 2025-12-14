@@ -424,10 +424,10 @@ describe('TrendChart', () => {
 
     it('should handle special characters in title', () => {
       render(
-        <TrendChart title="Test <>&\"'" data={mockData} />
+        <TrendChart title={'Test <>&"\''} data={mockData} />
       );
 
-      expect(screen.getByText("Test <>&\"'")).toBeInTheDocument();
+      expect(screen.getByText('Test <>&"\'')).toBeInTheDocument();
     });
   });
 

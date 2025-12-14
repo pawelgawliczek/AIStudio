@@ -10,7 +10,6 @@ import { EpicPlanningView } from './pages/EpicPlanningView';
 import { StoryDetailPage } from './pages/StoryDetailPage';
 import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
-import { LayersComponentsPage } from './pages/LayersComponentsPage';
 import { AgentLibraryView } from './pages/AgentLibraryView';
 import { AgentDetailPage } from './pages/AgentDetailPage';
 import { TeamManagementView } from './pages/TeamManagementView';
@@ -62,7 +61,6 @@ function AppContent() {
               <Route path="code-quality/:projectId" element={<CodeQualityDashboard />} />
               <Route path="test-coverage/use-case/:useCaseId" element={<TestCaseCoverageDashboard />} />
               <Route path="test-coverage/project/:projectId" element={<ComponentCoverageView />} />
-              <Route path="layers-components" element={<LayersComponentsPage />} />
               {/* New user-friendly routes */}
               <Route path="agents" element={<AgentLibraryView />} />
               <Route path="agents/:id" element={<AgentDetailPage />} />
