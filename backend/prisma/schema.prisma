@@ -878,6 +878,9 @@ model ComponentRun {
   sessionId String? @map("session_id") // Claude Code session ID (transcript-based metrics)
 
   // ST-110: Token Breakdown from /context command (replaces cache metrics)
+  // @deprecated ST-110: Cache metrics (tokensCacheCreation, tokensCacheRead, cacheHitRate) were REMOVED
+  // They no longer exist as dedicated fields. Cache data is stored in metadata.cacheTokens if needed.
+  // Frontend UI no longer displays cache metrics as of ST-234.
   tokensSystemPrompt Int? @default(0) @map("tokens_system_prompt") // System prompt tokens
   tokensSystemTools  Int? @default(0) @map("tokens_system_tools") // System tools tokens
   tokensMcpTools     Int? @default(0) @map("tokens_mcp_tools") // MCP tools tokens

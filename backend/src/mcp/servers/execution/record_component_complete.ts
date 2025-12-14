@@ -347,6 +347,62 @@ export async function handler(prisma: PrismaClient, params: any) {
     console.warn(`[ST-176] Failed to stop transcript tailing: ${tailError.message}`);
   }
 
+  // ST-234: Get code impact metrics from git diff
+  let codeImpactMetrics: { linesAdded: number; linesDeleted: number; filesModified: string[] } | null = null;
+  try {
+    // Get workflow run to find story's worktree
+    const workflowRunForWorktree = await prisma.workflowRun.findUnique({
+      where: { id: params.runId },
+      select: { storyId: true },
+    });
+
+    if (workflowRunForWorktree?.storyId) {
+      const worktree = await prisma.worktree.findFirst({
+        where: { storyId: workflowRunForWorktree.storyId, status: 'active' },
+        select: { worktreePath: true },
+      });
+
+      if (worktree?.worktreePath) {
+        // Use RemoteRunner to get git diff from laptop
+        const runner = new RemoteRunner();
+        const gitResult = await runner.execute<{ stdout: string; stderr: string }>('exec-command', [
+          '--command=git diff main...HEAD --numstat',
+          `--cwd=${worktree.worktreePath}`,
+        ], {
+          requestedBy: 'record_agent_complete',
+        });
+
+        if (gitResult.executed && gitResult.success && gitResult.result?.stdout) {
+          let linesAdded = 0;
+          let linesDeleted = 0;
+          const filesModified: string[] = [];
+
+          for (const line of gitResult.result.stdout.split('\n').filter((l: string) => l.trim())) {
+            const parts = line.split('\t');
+            if (parts.length >= 3) {
+              const added = parseInt(parts[0] || '0', 10) || 0;
+              const deleted = parseInt(parts[1] || '0', 10) || 0;
+              const file = parts[2];
+              linesAdded += added;
+              linesDeleted += deleted;
+              if (file) filesModified.push(file);
+            }
+          }
+
+          codeImpactMetrics = { linesAdded, linesDeleted, filesModified };
+          console.log(`[ST-234] Code impact for component ${params.componentId}:`, {
+            linesAdded,
+            linesDeleted,
+            filesModified: filesModified.length,
+          });
+        }
+      }
+    }
+  } catch (gitError: any) {
+    // Non-fatal - log and continue
+    console.warn(`[ST-234] Failed to get code impact metrics: ${gitError.message}`);
+  }
+
   // Update ComponentRun record with /context or transcript metrics
   const updatedComponentRun = await prisma.componentRun.update({
     where: { id: componentRun.id },
@@ -389,6 +445,10 @@ export async function handler(prisma: PrismaClient, params: any) {
       durationSeconds,
       finishedAt: completedAt,
       errorMessage: params.errorMessage || null,
+      // ST-234: Code impact metrics from git diff
+      linesAdded: codeImpactMetrics?.linesAdded ?? null,
+      linesDeleted: codeImpactMetrics?.linesDeleted ?? null,
+      filesModified: codeImpactMetrics?.filesModified ?? [],
     },
   });
 
@@ -408,6 +468,12 @@ export async function handler(prisma: PrismaClient, params: any) {
     // ST-147: Aggregate turn metrics
     totalTurns: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTurns || 0), 0),
     totalManualPrompts: allComponentRuns.reduce((sum, cr) => sum + (cr.manualPrompts || 0), 0),
+    // ST-234: Aggregate execution metrics
+    totalIterations: allComponentRuns.reduce((sum, cr) => sum + (cr.systemIterations || 0), 0),
+    totalInterventions: allComponentRuns.reduce((sum, cr) => sum + (cr.humanInterventions || 0), 0),
+    // ST-234: Aggregate code impact metrics
+    totalLinesAdded: allComponentRuns.reduce((sum, cr) => sum + (cr.linesAdded || 0), 0),
+    totalLinesDeleted: allComponentRuns.reduce((sum, cr) => sum + (cr.linesDeleted || 0), 0),
   };
 
   const componentCount = allComponentRuns.length;
@@ -431,6 +497,11 @@ export async function handler(prisma: PrismaClient, params: any) {
       avgPromptsPerComponent: componentCount > 0
         ? aggregatedMetrics.totalManualPrompts / componentCount
         : null,
+      // ST-234: Aggregated execution metrics
+      totalIterations: aggregatedMetrics.totalIterations || null,
+      totalInterventions: aggregatedMetrics.totalInterventions || null,
+      // ST-234: Aggregated code impact metrics
+      totalLocGenerated: (aggregatedMetrics.totalLinesAdded - aggregatedMetrics.totalLinesDeleted) || null,
     },
   });
 

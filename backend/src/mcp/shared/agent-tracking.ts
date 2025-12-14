@@ -381,7 +381,63 @@ export async function completeAgentTracking(
       console.warn(`[agent-tracking] Telemetry parsing failed (non-fatal): ${telemetryError.message}`);
     }
 
-    // Update ComponentRun with telemetry
+    // ST-234: Get code impact metrics from git diff
+    let codeImpactMetrics: { linesAdded: number; linesDeleted: number; filesModified: string[] } | null = null;
+    try {
+      // Get workflow run to find story's worktree
+      const workflowRunForWorktree = await prisma.workflowRun.findUnique({
+        where: { id: params.runId },
+        select: { storyId: true },
+      });
+
+      if (workflowRunForWorktree?.storyId) {
+        const worktree = await prisma.worktree.findFirst({
+          where: { storyId: workflowRunForWorktree.storyId, status: 'active' },
+          select: { worktreePath: true },
+        });
+
+        if (worktree?.worktreePath) {
+          // Use RemoteRunner to get git diff from laptop
+          const runner = new RemoteRunner();
+          const gitResult = await runner.execute<{ stdout: string; stderr: string }>('exec-command', [
+            '--command=git diff main...HEAD --numstat',
+            `--cwd=${worktree.worktreePath}`,
+          ], {
+            requestedBy: 'completeAgentTracking',
+          });
+
+          if (gitResult.executed && gitResult.success && gitResult.result?.stdout) {
+            let linesAdded = 0;
+            let linesDeleted = 0;
+            const filesModified: string[] = [];
+
+            for (const line of gitResult.result.stdout.split('\n').filter((l: string) => l.trim())) {
+              const parts = line.split('\t');
+              if (parts.length >= 3) {
+                const added = parseInt(parts[0] || '0', 10) || 0;
+                const deleted = parseInt(parts[1] || '0', 10) || 0;
+                const file = parts[2];
+                linesAdded += added;
+                linesDeleted += deleted;
+                if (file) filesModified.push(file);
+              }
+            }
+
+            codeImpactMetrics = { linesAdded, linesDeleted, filesModified };
+            console.log(`[agent-tracking] Code impact for ${params.componentId}:`, {
+              linesAdded,
+              linesDeleted,
+              filesModified: filesModified.length,
+            });
+          }
+        }
+      }
+    } catch (gitError: any) {
+      // Non-fatal - log and continue
+      console.warn(`[agent-tracking] Failed to get code impact metrics: ${gitError.message}`);
+    }
+
+    // Update ComponentRun with telemetry and code impact
     const updatedComponentRun = await prisma.componentRun.update({
       where: { id: componentRun.id },
       data: {
@@ -396,6 +452,12 @@ export async function completeAgentTracking(
           tokensInput: telemetryMetrics.tokensInput,
           tokensOutput: telemetryMetrics.tokensOutput,
           totalTokens: telemetryMetrics.totalTokens,
+        }),
+        // ST-234: Add code impact metrics if available
+        ...(codeImpactMetrics && {
+          linesAdded: codeImpactMetrics.linesAdded,
+          linesDeleted: codeImpactMetrics.linesDeleted,
+          filesModified: codeImpactMetrics.filesModified,
         }),
       },
     });

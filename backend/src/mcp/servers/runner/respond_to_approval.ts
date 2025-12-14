@@ -146,6 +146,31 @@ export async function handler(
     },
   });
 
+  // ST-234: Track intervention on the current ComponentRun
+  // Find the most recent running or completed component for this workflow
+  try {
+    const currentComponentRun = await prisma.componentRun.findFirst({
+      where: {
+        workflowRunId: runId,
+        status: { in: ['running', 'completed'] },
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    if (currentComponentRun) {
+      await prisma.componentRun.update({
+        where: { id: currentComponentRun.id },
+        data: {
+          humanInterventions: { increment: 1 },
+        },
+      });
+      console.log(`[ST-234] Incremented humanInterventions for ComponentRun ${currentComponentRun.id}`);
+    }
+  } catch (interventionError) {
+    // Non-fatal - log and continue
+    console.warn(`[ST-234] Failed to track intervention: ${interventionError}`);
+  }
+
   // Update workflow run status if needed
   if (newRunStatus) {
     await prisma.workflowRun.update({
