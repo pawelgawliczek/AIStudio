@@ -19,6 +19,7 @@ export default defineConfig({
   testMatch: [
     '**/15-transcript-streaming-e2e.spec.ts',
     '**/17-earlier-agent-tracking-st216.spec.ts',
+    '**/live-streaming.e2e.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
