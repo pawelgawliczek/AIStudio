@@ -16,7 +16,10 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   // Only run specific production tests
-  testMatch: '**/15-transcript-streaming-e2e.spec.ts',
+  testMatch: [
+    '**/15-transcript-streaming-e2e.spec.ts',
+    '**/17-earlier-agent-tracking-st216.spec.ts',
+  ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0, // No retries for production tests - we want to know if it fails

@@ -240,7 +240,8 @@ export class ApiHelper {
       data: { email, password },
     });
     const data = await response.json();
-    return data.access_token;
+    // API returns 'accessToken' (camelCase)
+    return data.accessToken || data.access_token;
   }
 
   static async register(
