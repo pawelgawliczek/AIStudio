@@ -7,6 +7,8 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
+import * as path from 'path';
 import { generateNonce, validateNonce, sanitizeError } from './security/sanitization';
 
 export interface MasterSessionConfig {
@@ -43,6 +45,52 @@ interface SessionInfo {
 
 export class MasterSessionManager {
   private sessions: Map<string, SessionInfo> = new Map();
+
+  /**
+   * ST-231: Update running-workflows.json to enable agent tracking hooks
+   * This links the session to the workflow run so vibestudio-track-agents.sh can work
+   */
+  private updateRunningWorkflows(
+    projectPath: string,
+    sessionId: string,
+    workflowRunId: string
+  ): void {
+    try {
+      const workflowsFile = path.join(projectPath, '.claude', 'running-workflows.json');
+
+      // Ensure .claude directory exists
+      const claudeDir = path.dirname(workflowsFile);
+      if (!fs.existsSync(claudeDir)) {
+        fs.mkdirSync(claudeDir, { recursive: true });
+      }
+
+      // Read existing or create new
+      let data: Record<string, unknown> = { currentRunId: null, sessions: {} };
+      if (fs.existsSync(workflowsFile)) {
+        try {
+          data = JSON.parse(fs.readFileSync(workflowsFile, 'utf-8'));
+        } catch {
+          // If file is corrupted, start fresh
+        }
+      }
+
+      // Update with session info
+      data.currentRunId = workflowRunId;
+      const sessions = (data.sessions as Record<string, unknown>) || {};
+      sessions[sessionId] = {
+        runId: workflowRunId,
+        masterTranscripts: [],
+        startedAt: new Date().toISOString(),
+      };
+      data.sessions = sessions;
+
+      fs.writeFileSync(workflowsFile, JSON.stringify(data, null, 2));
+      console.log(`[ST-231] Updated running-workflows.json for session ${sessionId}`);
+    } catch (error) {
+      // Non-fatal - hooks may not work but session still starts
+      console.warn(`[ST-231] Failed to update running-workflows.json:`, error);
+    }
+  }
 
   /**
    * Start a new Master Session with Claude CLI
@@ -86,6 +134,9 @@ export class MasterSessionManager {
       };
 
       this.sessions.set(config.workflowRunId, sessionInfo);
+
+      // ST-231: Update running-workflows.json to enable agent tracking hooks
+      this.updateRunningWorkflows(config.projectPath, sessionId, config.workflowRunId);
 
       // Monitor stdout for transcript path (async, doesn't block resolve)
       process.stdout?.on('data', (data: Buffer) => {
@@ -154,6 +205,9 @@ export class MasterSessionManager {
       };
 
       this.sessions.set(config.workflowRunId, sessionInfo);
+
+      // ST-231: Update running-workflows.json to enable agent tracking hooks
+      this.updateRunningWorkflows(config.projectPath, config.sessionId!, config.workflowRunId);
 
       // Monitor stdout for transcript path (async)
       process.stdout?.on('data', (data: Buffer) => {
