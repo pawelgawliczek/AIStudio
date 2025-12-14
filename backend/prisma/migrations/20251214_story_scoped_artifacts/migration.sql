@@ -52,7 +52,7 @@ SELECT
     a."current_version",
     a."workflow_run_id",
     a."content",
-    COALESCE(a."content_hash", encode(sha256(a."content"::bytea), 'hex')),
+    COALESCE(a."content_hash", md5(a."content")),
     a."content_type",
     a."size",
     a."created_by_component_id",
