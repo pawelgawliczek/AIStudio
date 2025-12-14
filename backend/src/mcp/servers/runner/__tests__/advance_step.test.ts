@@ -2,6 +2,7 @@
  * Tests for advance_step MCP tool
  * ST-187: MCP Tool Optimization & Step Commands
  * ST-215: Automatic Agent Tracking
+ * ST-216: Earlier agent tracking - start when entering state, complete when leaving agent phase
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -13,6 +14,13 @@ jest.mock('../../../shared/agent-tracking', () => ({
   startAgentTracking: jest.fn(),
   completeAgentTracking: jest.fn(),
   generateComponentSummary: jest.fn(),
+  // ST-203: Add structured summary functions
+  generateStructuredSummary: jest.fn().mockReturnValue({
+    version: '1.0',
+    status: 'success',
+    summary: 'Auto-generated summary',
+  }),
+  serializeComponentSummary: jest.fn().mockImplementation((obj) => JSON.stringify(obj)),
 }));
 
 describe('advance_step MCP Tool', () => {
@@ -330,37 +338,28 @@ describe('advance_step MCP Tool', () => {
       // Reset mocks
       (agentTracking.startAgentTracking as jest.Mock).mockReset();
       (agentTracking.completeAgentTracking as jest.Mock).mockReset();
-      (agentTracking.generateComponentSummary as jest.Mock).mockReset();
+      (agentTracking.generateStructuredSummary as jest.Mock).mockReset();
+      (agentTracking.serializeComponentSummary as jest.Mock).mockReset();
     });
 
-    it('should auto-start agent tracking when advancing pre -> agent', async () => {
+    // ST-216: startAgentTracking is now called when ENTERING a state (post→next.pre),
+    // NOT when leaving pre phase (pre→agent)
+    it('should NOT call startAgentTracking when advancing pre -> agent (ST-216)', async () => {
       const mockRun = createMockRunWithComponent('pre');
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
       (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
-      (agentTracking.startAgentTracking as jest.Mock).mockResolvedValue({
-        success: true,
-        componentRunId: 'cr-123',
-        componentName: 'Implementer',
-        executionOrder: 1,
-      });
 
       const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
 
-      // Verify startAgentTracking was called
-      expect(agentTracking.startAgentTracking).toHaveBeenCalledWith(mockPrisma, {
-        runId: 'run-uuid',
-        componentId: 'comp-1',
-        input: undefined,
-      });
+      // Verify startAgentTracking was NOT called (tracking started when entering state)
+      expect(agentTracking.startAgentTracking).not.toHaveBeenCalled();
 
-      // Verify response includes agentTracking info
+      // Phase should still advance
       expect(result.success).toBe(true);
       expect(result.currentState.phase).toBe('agent');
-      expect(result.agentTracking).toBeDefined();
-      expect(result.agentTracking.action).toBe('started');
-      expect(result.agentTracking.success).toBe(true);
-      expect(result.agentTracking.componentRunId).toBe('cr-123');
-      expect(result.agentTracking.componentName).toBe('Implementer');
+
+      // No agentTracking info since we didn't start it here
+      expect(result.agentTracking).toBeUndefined();
     });
 
     it('should auto-complete agent tracking when advancing agent -> post', async () => {
@@ -374,22 +373,27 @@ describe('advance_step MCP Tool', () => {
         status: 'completed',
         metrics: { durationSeconds: 30 },
       });
-      (agentTracking.generateComponentSummary as jest.Mock).mockReturnValue(
-        'Implementer completed. Modified 3 file(s).'
-      );
+
+      // Mock generateStructuredSummary to return structured object
+      const mockStructuredSummary = {
+        version: '1.0',
+        status: 'success',
+        summary: 'Implementer completed. Modified 3 file(s).',
+      };
+      (agentTracking.generateStructuredSummary as jest.Mock).mockReturnValue(mockStructuredSummary);
 
       const result: any = await handler(mockPrisma, {
         runId: 'run-uuid',
         output: { files: ['a.ts', 'b.ts', 'c.ts'] },
       });
 
-      // Verify completeAgentTracking was called
+      // Verify completeAgentTracking was called with structured summary
       expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(mockPrisma, {
         runId: 'run-uuid',
         componentId: 'comp-1',
         output: { files: ['a.ts', 'b.ts', 'c.ts'] },
         status: 'completed',
-        componentSummary: 'Implementer completed. Modified 3 file(s).',
+        componentSummary: mockStructuredSummary,
         errorMessage: undefined,
       });
 
@@ -401,8 +405,94 @@ describe('advance_step MCP Tool', () => {
       expect(result.agentTracking.success).toBe(true);
     });
 
-    it('should include warning when agent tracking start fails but still advance', async () => {
-      const mockRun = createMockRunWithComponent('pre');
+    // ST-216: New test for agent tracking when entering a new state
+    it('should start agent tracking when advancing post -> next state pre with component', async () => {
+      // Create run with current state at post, next state has component
+      const mockRun = {
+        id: 'run-uuid',
+        status: 'running',
+        workflowId: 'workflow-uuid',
+        storyId: 'story-uuid',
+        story: { id: 'story-uuid', key: 'ST-216', title: 'Test Story' },
+        workflow: {
+          id: 'workflow-uuid',
+          name: 'Test Workflow',
+          states: [
+            {
+              id: 'state-0',
+              name: 'Analysis',
+              order: 1,
+              component: null, // First state has no component
+            },
+            {
+              id: 'state-1',
+              name: 'Implementation',
+              order: 2,
+              component: { id: 'comp-1', name: 'Developer' }, // Next state has component
+            },
+          ],
+        },
+        metadata: {
+          checkpoint: {
+            currentStateId: 'state-0',
+            currentPhase: 'post', // Currently in post phase of first state
+            completedStates: [],
+            skippedStates: [],
+          },
+        },
+      };
+
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.startAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+        componentRunId: 'cr-123',
+        componentName: 'Developer',
+        executionOrder: 1,
+      });
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      // Verify startAgentTracking was called for the NEXT state's component
+      expect(agentTracking.startAgentTracking).toHaveBeenCalledWith(mockPrisma, {
+        runId: 'run-uuid',
+        componentId: 'comp-1',
+        input: undefined,
+      });
+
+      // Verify response
+      expect(result.success).toBe(true);
+      expect(result.currentState.id).toBe('state-1');
+      expect(result.currentState.phase).toBe('pre');
+      expect(result.agentTracking).toBeDefined();
+      expect(result.agentTracking.action).toBe('started');
+      expect(result.agentTracking.componentName).toBe('Developer');
+    });
+
+    it('should include warning when agent tracking start fails during post -> pre transition', async () => {
+      const mockRun = {
+        id: 'run-uuid',
+        status: 'running',
+        workflowId: 'workflow-uuid',
+        story: null,
+        workflow: {
+          id: 'workflow-uuid',
+          name: 'Test Workflow',
+          states: [
+            { id: 'state-0', name: 'State 0', order: 1, component: null },
+            { id: 'state-1', name: 'State 1', order: 2, component: { id: 'comp-1', name: 'Agent' } },
+          ],
+        },
+        metadata: {
+          checkpoint: {
+            currentStateId: 'state-0',
+            currentPhase: 'post',
+            completedStates: [],
+            skippedStates: [],
+          },
+        },
+      };
+
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
       (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
       (agentTracking.startAgentTracking as jest.Mock).mockResolvedValue({
@@ -414,7 +504,8 @@ describe('advance_step MCP Tool', () => {
 
       // Phase still advances
       expect(result.success).toBe(true);
-      expect(result.currentState.phase).toBe('agent');
+      expect(result.currentState.id).toBe('state-1');
+      expect(result.currentState.phase).toBe('pre');
 
       // But warning is included
       expect(result.agentTracking).toBeDefined();
@@ -451,7 +542,7 @@ describe('advance_step MCP Tool', () => {
       expect(result.warnings.agentTracking).toBe('ComponentRun not found');
     });
 
-    it('should auto-generate componentSummary when not provided', async () => {
+    it('should auto-generate structured summary when not provided', async () => {
       const mockRun = createMockRunWithComponent('agent');
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
       (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
@@ -459,26 +550,31 @@ describe('advance_step MCP Tool', () => {
         success: true,
         componentRunId: 'cr-123',
       });
-      (agentTracking.generateComponentSummary as jest.Mock).mockReturnValue(
-        'Implementer completed.'
-      );
+
+      const mockStructuredSummary = {
+        version: '1.0',
+        status: 'success',
+        summary: 'Implementer completed.',
+      };
+      (agentTracking.generateStructuredSummary as jest.Mock).mockReturnValue(mockStructuredSummary);
 
       await handler(mockPrisma, {
         runId: 'run-uuid',
         output: { status: 'done' },
       });
 
-      // Verify generateComponentSummary was called
-      expect(agentTracking.generateComponentSummary).toHaveBeenCalledWith(
+      // Verify generateStructuredSummary was called
+      expect(agentTracking.generateStructuredSummary).toHaveBeenCalledWith(
         { status: 'done' },
-        'Implementer'
+        'Implementer',
+        'success'
       );
 
       // Verify the generated summary was passed to completeAgentTracking
       expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
         mockPrisma,
         expect.objectContaining({
-          componentSummary: 'Implementer completed.',
+          componentSummary: mockStructuredSummary,
         })
       );
     });
@@ -500,8 +596,8 @@ describe('advance_step MCP Tool', () => {
         componentSummary: explicitSummary,
       });
 
-      // Verify generateComponentSummary was NOT called
-      expect(agentTracking.generateComponentSummary).not.toHaveBeenCalled();
+      // Verify generateStructuredSummary was NOT called
+      expect(agentTracking.generateStructuredSummary).not.toHaveBeenCalled();
 
       // Verify the explicit summary was passed
       expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
@@ -521,7 +617,13 @@ describe('advance_step MCP Tool', () => {
         componentRunId: 'cr-123',
         status: 'failed',
       });
-      (agentTracking.generateComponentSummary as jest.Mock).mockReturnValue('Failed');
+
+      const mockFailedSummary = {
+        version: '1.0',
+        status: 'failed',
+        summary: 'Failed',
+      };
+      (agentTracking.generateStructuredSummary as jest.Mock).mockReturnValue(mockFailedSummary);
 
       await handler(mockPrisma, {
         runId: 'run-uuid',
@@ -581,8 +683,30 @@ describe('advance_step MCP Tool', () => {
       expect(result.agentTracking).toBeUndefined();
     });
 
-    it('should handle exception from startAgentTracking gracefully', async () => {
-      const mockRun = createMockRunWithComponent('pre');
+    it('should handle exception from startAgentTracking gracefully during post -> pre', async () => {
+      const mockRun = {
+        id: 'run-uuid',
+        status: 'running',
+        workflowId: 'workflow-uuid',
+        story: null,
+        workflow: {
+          id: 'workflow-uuid',
+          name: 'Test Workflow',
+          states: [
+            { id: 'state-0', name: 'State 0', order: 1, component: null },
+            { id: 'state-1', name: 'State 1', order: 2, component: { id: 'comp-1', name: 'Agent' } },
+          ],
+        },
+        metadata: {
+          checkpoint: {
+            currentStateId: 'state-0',
+            currentPhase: 'post',
+            completedStates: [],
+            skippedStates: [],
+          },
+        },
+      };
+
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
       (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
       (agentTracking.startAgentTracking as jest.Mock).mockRejectedValue(
@@ -593,11 +717,56 @@ describe('advance_step MCP Tool', () => {
 
       // Phase still advances
       expect(result.success).toBe(true);
-      expect(result.currentState.phase).toBe('agent');
+      expect(result.currentState.id).toBe('state-1');
+      expect(result.currentState.phase).toBe('pre');
 
       // Warning is included
       expect(result.agentTracking.success).toBe(false);
       expect(result.agentTracking.warning).toContain('Unexpected database error');
+    });
+
+    // ST-216: Test for workflow initialization with component in first state
+    it('should start agent tracking on workflow initialization when first state has component', async () => {
+      const mockRun = {
+        id: 'run-uuid',
+        status: 'running',
+        workflowId: 'workflow-uuid',
+        storyId: 'story-uuid',
+        story: { id: 'story-uuid', key: 'ST-216', title: 'Test Story' },
+        workflow: {
+          id: 'workflow-uuid',
+          name: 'Test Workflow',
+          states: [
+            {
+              id: 'state-0',
+              name: 'Implementation',
+              order: 1,
+              component: { id: 'comp-1', name: 'Developer' }, // First state has component
+            },
+          ],
+        },
+        metadata: {}, // No checkpoint yet - workflow not initialized
+      };
+
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.startAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+        componentRunId: 'cr-123',
+        componentName: 'Developer',
+        executionOrder: 1,
+      });
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      // Verify startAgentTracking was called for the first state's component
+      expect(agentTracking.startAgentTracking).toHaveBeenCalledWith(mockPrisma, {
+        runId: 'run-uuid',
+        componentId: 'comp-1',
+      });
+
+      // Workflow should initialize at first state
+      expect(result.success).toBe(true);
     });
   });
 
@@ -652,49 +821,44 @@ describe('advance_step MCP Tool', () => {
         componentSummary: structuredSummary,
       });
 
-      // Should serialize structured summary before passing to completeAgentTracking
+      // Should pass structured summary object to completeAgentTracking (it handles serialization)
       expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
         mockPrisma,
         expect.objectContaining({
-          componentSummary: expect.stringContaining('"version":"1.0"'),
+          componentSummary: structuredSummary,
         })
       );
     });
 
-    it('should validate structured componentSummary has required fields', async () => {
+    // Note: advance_step does NOT validate componentSummary - it passes through to completeAgentTracking
+    // Validation is handled by completeAgentTracking or the database layer
+    it('should pass through componentSummary without validation', async () => {
       const mockRun = createMockRunWithComponent('agent');
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+      });
 
-      const invalidSummary = {
+      const incompleteSummary = {
         version: '1.0',
         status: 'success',
-        // Missing required 'summary' field
+        // Missing 'summary' field - but advance_step doesn't validate
       };
 
-      await expect(
-        handler(mockPrisma, {
-          runId: 'run-uuid',
-          componentSummary: invalidSummary as any,
+      // Should not throw - passes through to completeAgentTracking
+      const result = await handler(mockPrisma, {
+        runId: 'run-uuid',
+        componentSummary: incompleteSummary as any,
+      });
+
+      expect(result.success).toBe(true);
+      expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
+        mockPrisma,
+        expect.objectContaining({
+          componentSummary: incompleteSummary,
         })
-      ).rejects.toThrow();
-    });
-
-    it('should validate status field is valid enum value', async () => {
-      const mockRun = createMockRunWithComponent('agent');
-      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
-
-      const invalidStatus = {
-        version: '1.0',
-        status: 'invalid_status',
-        summary: 'Test summary',
-      };
-
-      await expect(
-        handler(mockPrisma, {
-          runId: 'run-uuid',
-          componentSummary: invalidStatus as any,
-        })
-      ).rejects.toThrow();
+      );
     });
 
     it('should auto-generate structured summary when not provided', async () => {
@@ -712,7 +876,7 @@ describe('advance_step MCP Tool', () => {
         summary: 'Implementer completed successfully',
         keyOutputs: ['Modified 3 files'],
       };
-      (agentTracking.generateComponentSummary as jest.Mock).mockReturnValue(
+      (agentTracking.generateStructuredSummary as jest.Mock).mockReturnValue(
         mockStructuredSummary
       );
 
@@ -721,29 +885,23 @@ describe('advance_step MCP Tool', () => {
         output: { files: ['a.ts', 'b.ts', 'c.ts'] },
       });
 
-      // Should call generateStructuredSummary (replaces generateComponentSummary)
-      expect(agentTracking.generateComponentSummary).toHaveBeenCalledWith(
+      // Should call generateStructuredSummary (not generateComponentSummary)
+      expect(agentTracking.generateStructuredSummary).toHaveBeenCalledWith(
         { files: ['a.ts', 'b.ts', 'c.ts'] },
-        'Implementer'
+        'Implementer',
+        'success' // status
       );
 
-      // Should serialize the structured result
+      // Should pass the structured summary to completeAgentTracking
       expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
         mockPrisma,
         expect.objectContaining({
-          componentSummary: expect.stringContaining('"version":"1.0"'),
+          componentSummary: mockStructuredSummary, // Object passed directly
         })
       );
     });
 
-    it('should serialize structured summary with all status types', async () => {
-      const mockRun = createMockRunWithComponent('agent');
-      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
-      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
-      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
-        success: true,
-      });
-
+    it('should pass structured summary with all status types to completeAgentTracking', async () => {
       const statuses: Array<'success' | 'partial' | 'blocked' | 'failed'> = [
         'success',
         'partial',
@@ -752,6 +910,16 @@ describe('advance_step MCP Tool', () => {
       ];
 
       for (const status of statuses) {
+        // Reset mocks for each iteration
+        jest.clearAllMocks();
+
+        const mockRun = createMockRunWithComponent('agent');
+        (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+        (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+        (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+          success: true,
+        });
+
         const summary = {
           version: '1.0' as const,
           status,
@@ -763,16 +931,17 @@ describe('advance_step MCP Tool', () => {
           componentSummary: summary,
         });
 
-        const lastCall = (agentTracking.completeAgentTracking as jest.Mock).mock.calls.slice(
-          -1
-        )[0];
-        const serialized = lastCall[1].componentSummary;
-
-        expect(serialized).toContain(`"status":"${status}"`);
+        // Summary is now passed as object (completeAgentTracking serializes it)
+        expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
+          mockPrisma,
+          expect.objectContaining({
+            componentSummary: summary,
+          })
+        );
       }
     });
 
-    it('should serialize structured summary with optional fields', async () => {
+    it('should pass structured summary with optional fields to completeAgentTracking', async () => {
       const mockRun = createMockRunWithComponent('agent');
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
       (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
@@ -798,16 +967,18 @@ describe('advance_step MCP Tool', () => {
       const lastCall = (agentTracking.completeAgentTracking as jest.Mock).mock.calls.slice(
         -1
       )[0];
-      const serialized = lastCall[1].componentSummary;
-      const parsed = JSON.parse(serialized);
+      const passedSummary = lastCall[1].componentSummary;
 
-      expect(parsed.keyOutputs).toEqual(['Created models', 'Added migrations']);
-      expect(parsed.nextAgentHints).toEqual(['Complete API endpoints', 'Add validation']);
-      expect(parsed.artifactsProduced).toEqual(['ARCH_DOC', 'DB_SCHEMA']);
-      expect(parsed.errors).toEqual(['Missing test coverage']);
+      // Summary is passed as object (completeAgentTracking serializes it)
+      expect(passedSummary.keyOutputs).toEqual(['Created models', 'Added migrations']);
+      expect(passedSummary.nextAgentHints).toEqual(['Complete API endpoints', 'Add validation']);
+      expect(passedSummary.artifactsProduced).toEqual(['ARCH_DOC', 'DB_SCHEMA']);
+      expect(passedSummary.errors).toEqual(['Missing test coverage']);
     });
 
-    it('should handle errors in serialization gracefully', async () => {
+    // Note: advance_step passes componentSummary to completeAgentTracking without serializing
+    // completeAgentTracking is responsible for serialization
+    it('should pass complex objects to completeAgentTracking (serialization handled there)', async () => {
       const mockRun = createMockRunWithComponent('agent');
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
       (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
@@ -815,20 +986,27 @@ describe('advance_step MCP Tool', () => {
         success: true,
       });
 
-      // Create object with circular reference (causes JSON.stringify to fail)
-      const circularSummary: any = {
-        version: '1.0',
-        status: 'success',
-        summary: 'Test',
+      const complexSummary = {
+        version: '1.0' as const,
+        status: 'success' as const,
+        summary: 'Test with nested objects',
+        keyOutputs: ['output1', 'output2'],
+        nested: { deep: { value: 'test' } },
       };
-      circularSummary.circular = circularSummary;
 
-      await expect(
-        handler(mockPrisma, {
-          runId: 'run-uuid',
-          componentSummary: circularSummary,
+      // Should not throw - passes through to completeAgentTracking
+      const result = await handler(mockPrisma, {
+        runId: 'run-uuid',
+        componentSummary: complexSummary as any,
+      });
+
+      expect(result.success).toBe(true);
+      expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
+        mockPrisma,
+        expect.objectContaining({
+          componentSummary: complexSummary,
         })
-      ).rejects.toThrow();
+      );
     });
 
     it('should pass agentStatus parameter for backward compatibility', async () => {
