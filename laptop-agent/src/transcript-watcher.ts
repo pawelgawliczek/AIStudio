@@ -86,8 +86,9 @@ export class TranscriptWatcher {
     const filename = path.basename(filePath);
     this.logger.info('Checking filename pattern', { filename });
 
-    // Check if it's an agent transcript (agent-{8-char-hex}.jsonl)
-    const agentMatch = filename.match(/^agent-([a-f0-9]{8})\.jsonl$/);
+    // Check if it's an agent transcript (agent-{6-16-char-hex}.jsonl)
+    // Claude Code uses variable-length hex IDs (typically 7-8 chars)
+    const agentMatch = filename.match(/^agent-([a-f0-9]{6,16})\.jsonl$/);
     if (agentMatch) {
       const agentId = agentMatch[1];
 
