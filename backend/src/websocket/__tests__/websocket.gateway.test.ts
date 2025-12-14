@@ -2,6 +2,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Socket, Server } from 'socket.io';
 import { AppWebSocketGateway } from '../websocket.gateway';
+import { PrismaService } from '../../prisma/prisma.service';
+import { RemoteAgentGateway } from '../../remote-agent/remote-agent.gateway';
 
 describe('AppWebSocketGateway', () => {
   let gateway: AppWebSocketGateway;
@@ -16,6 +18,23 @@ describe('AppWebSocketGateway', () => {
   };
 
   // Helper to create mock socket with custom handshake
+  const mockPrismaService = {
+    workflowRun: {
+      findUnique: jest.fn(),
+    },
+    componentRun: {
+      findUnique: jest.fn(),
+    },
+  };
+
+  const mockRemoteAgentGateway = {
+    server: {
+      to: jest.fn().mockReturnValue({
+        emit: jest.fn(),
+      }),
+    },
+  };
+
   const createMockSocket = (handshakeOverrides: Partial<Socket['handshake']> = {}): Partial<Socket> => ({
     id: 'socket-123',
     handshake: {
@@ -32,11 +51,16 @@ describe('AppWebSocketGateway', () => {
     } as Socket['handshake'],
     data: {},
     disconnect: jest.fn(),
+    join: jest.fn(),
+    leave: jest.fn(),
   });
 
   beforeEach(async () => {
     mockServer = {
       emit: jest.fn(),
+      to: jest.fn().mockReturnValue({
+        emit: jest.fn(),
+      }),
     };
 
     mockSocket = createMockSocket();
@@ -49,6 +73,14 @@ describe('AppWebSocketGateway', () => {
           useValue: {
             verifyAsync: jest.fn(),
           },
+        },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+        {
+          provide: RemoteAgentGateway,
+          useValue: mockRemoteAgentGateway,
         },
       ],
     }).compile();

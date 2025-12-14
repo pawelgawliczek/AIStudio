@@ -1582,8 +1582,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.log(`[ST-182] Streaming started: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
 
-    // Relay to all subscribed frontend clients on default namespace
-    this.appWebSocketGateway.relayMasterTranscriptStreamingStarted(data);
+    // ST-233: Broadcast directly to frontend clients on default namespace
+    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:streaming_started', data);
   }
 
   /**
@@ -1603,8 +1603,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       timestamp: string;
     },
   ) {
-    // Relay to all subscribed frontend clients on default namespace
-    this.appWebSocketGateway.relayMasterTranscriptLines(data);
+    // ST-233: Broadcast directly to frontend clients on default namespace
+    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
   }
 
   /**
@@ -1626,8 +1626,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.log(`[ST-182] Batch received: runId=${data.runId}, lines=${data.lines.length}`);
 
-    // Relay to all subscribed frontend clients on default namespace
-    this.appWebSocketGateway.relayMasterTranscriptBatch(data);
+    // ST-233: Broadcast directly to frontend clients on default namespace
+    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
   }
 
   /**
@@ -1648,8 +1648,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.error(`[ST-182] Transcript error: runId=${data.runId}, code=${data.code}, error=${data.error}`);
 
-    // Relay to all subscribed frontend clients on default namespace
-    this.appWebSocketGateway.relayMasterTranscriptError(data);
+    // ST-233: Broadcast directly to frontend clients on default namespace
+    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:error', data);
   }
 
   /**
@@ -1665,8 +1665,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.log(`[ST-182] Streaming stopped: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
 
-    // Relay to all subscribed frontend clients on default namespace
-    this.appWebSocketGateway.relayMasterTranscriptStopped(data);
+    // ST-233: Broadcast directly to frontend clients on default namespace
+    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:stopped', data);
   }
 
   /**

@@ -4,6 +4,8 @@ import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RemoteAgentGateway } from '../remote-agent.gateway';
 import { StreamEventService } from '../stream-event.service';
+import { TranscriptRegistrationService } from '../transcript-registration.service';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 
 describe('RemoteAgentGateway', () => {
   let gateway: RemoteAgentGateway;
@@ -37,6 +39,21 @@ describe('RemoteAgentGateway', () => {
 
   const mockJwtService = {
     signAsync: jest.fn(),
+  };
+
+  const mockTranscriptRegistrationService = {
+    registerTranscript: jest.fn(),
+    unregisterTranscript: jest.fn(),
+    getTranscriptRegistration: jest.fn(),
+    isTranscriptRegistered: jest.fn(),
+  };
+
+  const mockAppWebSocketGateway = {
+    server: {
+      to: jest.fn().mockReturnValue({
+        emit: jest.fn(),
+      }),
+    },
   };
 
   const createMockSocket = (customData: Partial<Socket['data']> = {}): Partial<Socket> => ({
@@ -75,6 +92,14 @@ describe('RemoteAgentGateway', () => {
         {
           provide: StreamEventService,
           useValue: mockStreamEventService,
+        },
+        {
+          provide: TranscriptRegistrationService,
+          useValue: mockTranscriptRegistrationService,
+        },
+        {
+          provide: AppWebSocketGateway,
+          useValue: mockAppWebSocketGateway,
         },
       ],
     }).compile();
@@ -174,6 +199,7 @@ describe('RemoteAgentGateway', () => {
           // ST-150: Claude Code fields (defaults)
           claudeCodeAvailable: false,
           claudeCodeVersion: null,
+          config: {}, // ST-158: Agent config
         },
         update: {
           socketId: 'socket-123',
@@ -184,6 +210,7 @@ describe('RemoteAgentGateway', () => {
           claudeCodeAvailable: false,
           claudeCodeVersion: null,
           currentExecutionId: null, // ST-150: Clear execution on reconnect
+          config: {}, // ST-158: Agent config
         },
       });
 

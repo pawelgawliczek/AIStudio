@@ -308,6 +308,209 @@ Component transcript finished.
 
 ---
 
+## Session Tracker Mechanism
+
+### Overview
+
+The Session Tracker is a critical component that manages the registration and tracking of Claude Code transcripts for both master orchestrator sessions and spawned component agents. It ensures that transcripts are properly linked to workflow runs and component executions for live streaming and telemetry collection.
+
+### TranscriptRegistrationService
+
+**Location:** `backend/src/remote-agent/transcript-registration.service.ts`
+
+**Purpose:** Centralized service for registering and tracking transcripts across the system.
+
+**Key Methods:**
+
+#### `registerMasterTranscript(params)`
+Registers a master orchestrator transcript at workflow start.
+
+```typescript
+registerMasterTranscript({
+  sessionId: string;        // Pre-generated or actual Claude Code sessionId
+  transcriptPath: string;   // Absolute path to transcript file
+  workflowRunId: string;    // WorkflowRun UUID
+  projectPath: string;      // Project directory
+})
+```
+
+**Actions:**
+- Stores transcript path in `WorkflowRun.masterTranscriptPaths`
+- Stores tracking metadata in `WorkflowRun.metadata._transcriptTracking`
+- Broadcasts `master-transcript:registered` WebSocket event
+
+#### `updateSessionId(params)`
+Updates the sessionId when Claude Code reports its actual session ID.
+
+```typescript
+updateSessionId({
+  workflowRunId: string;
+  actualSessionId: string;
+})
+```
+
+**Actions:**
+- Updates `WorkflowRun.metadata._transcriptTracking.actualSessionId`
+- Maintains backward compatibility with pre-generated sessionId
+
+#### `resolveTranscriptBySessionId(sessionId)`
+Matches a transcript to a workflow run using sessionId.
+
+```typescript
+resolveTranscriptBySessionId(sessionId: string): Promise<WorkflowRun | null>
+```
+
+**Use Case:** When laptop agent detects a new transcript file, it reports the sessionId. This method finds the corresponding workflow run.
+
+### Agent Tracking Functions
+
+**Location:** `backend/src/mcp/servers/workflows/agent-tracking.ts`
+
+#### `startAgentTracking(prisma, params)`
+Creates a ComponentRun record when a component agent starts execution.
+
+```typescript
+startAgentTracking(prisma, {
+  runId: string;          // WorkflowRun UUID
+  componentId: string;    // Component UUID from workflow state
+  transcriptPath?: string; // Optional: transcript path if known
+  sessionId?: string;     // Optional: Claude Code sessionId
+})
+```
+
+**Actions:**
+- Creates `ComponentRun` with `status='running'`
+- Stores transcript metadata in `spawnedAgentTranscripts` array
+- Broadcasts `component:started` WebSocket event
+- Records `startedAt` timestamp
+
+**Called By:**
+- Manual Mode: `advance_step` when entering agent phase
+- Docker Runner: `backendClient.recordAgentStart()` API
+
+#### `completeAgentTracking(prisma, params)`
+Updates a ComponentRun record when a component agent completes.
+
+```typescript
+completeAgentTracking(prisma, {
+  runId: string;
+  componentId: string;
+  output?: object;              // Agent output data
+  status: 'completed' | 'failed';
+  errorMessage?: string;
+  componentSummary?: string | object; // Structured summary
+})
+```
+
+**Actions:**
+- Updates `ComponentRun` with `status`, `output`, `finishedAt`
+- Parses transcript for token metrics (if transcript available)
+- Generates or stores component summary
+- Broadcasts `component:completed` WebSocket event
+- Calculates execution duration
+
+**Called By:**
+- Manual Mode: `advance_step` when exiting agent phase
+- Docker Runner: `backendClient.recordAgentComplete()` API
+
+### Data Structures
+
+#### WorkflowRun.metadata._transcriptTracking
+
+```typescript
+{
+  _transcriptTracking: {
+    sessionId: string;              // Pre-generated sessionId (ST-172)
+    actualSessionId?: string;       // Actual Claude Code sessionId (ST-195)
+    orchestratorTranscript: string; // Expected transcript path
+    projectPath: string;            // Project directory
+    transcriptDirectory: string;    // ~/.claude/sessions/
+    orchestratorStartTime: string;  // ISO timestamp
+  }
+}
+```
+
+**Purpose:**
+- Track expected vs actual sessionId for matching
+- Store project context for transcript resolution
+- Record workflow start time for debugging
+
+#### WorkflowRun.spawnedAgentTranscripts
+
+```typescript
+{
+  spawnedAgentTranscripts: Array<{
+    componentId: string;      // Component UUID
+    transcriptPath: string;   // Absolute path to agent transcript
+    sessionId: string;        // Claude Code sessionId
+    spawnedAt: string;        // ISO timestamp
+  }>
+}
+```
+
+**Purpose:**
+- Track all component agent transcripts for a workflow run
+- Enable live streaming for component executions
+- Support telemetry collection and cost tracking
+
+#### ComponentRun Fields
+
+```typescript
+{
+  id: string;
+  workflowRunId: string;
+  componentId: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: Date;
+  finishedAt?: Date;
+  durationSeconds?: number;
+  output?: object;
+  componentSummary?: object;  // Structured summary (ST-203)
+  tokensInput: number;
+  tokensOutput: number;
+  tokensCacheWrite: number;
+  tokensCacheRead: number;
+  estimatedCost: number;
+}
+```
+
+### Flow Example
+
+**Manual Mode (advance_step):**
+
+```
+1. start_team_run
+   └─ registerMasterTranscript() → stores transcript path, sessionId
+
+2. advance_step (enter agent phase)
+   └─ startAgentTracking() → creates ComponentRun with status='running'
+
+3. advance_step (exit agent phase)
+   └─ completeAgentTracking()
+      ├─ Parse transcript for metrics
+      ├─ Generate component summary
+      └─ Update ComponentRun with results
+```
+
+**Docker Runner:**
+
+```
+1. start_team_run
+   └─ registerMasterTranscript() → stores transcript path, sessionId
+
+2. runner.spawnAgentForState()
+   └─ backendClient.recordAgentStart()
+      └─ POST /api/component-runs/start
+         └─ startAgentTracking() → creates ComponentRun
+
+3. runner (agent completes)
+   └─ backendClient.recordAgentComplete()
+      └─ POST /api/component-runs/:id/complete
+         └─ completeAgentTracking() → updates ComponentRun
+```
+
+---
+
 ## Transcript Tracking Lifecycle
 
 ### 1. Workflow Start (ST-172)
