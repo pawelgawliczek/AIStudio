@@ -17,21 +17,29 @@ import { formatArtifact } from './upload_artifact';
 
 export const tool: Tool = {
   name: 'get_artifact',
-  description: 'Get artifact by ID or definitionKey+workflowRunId. For listing use list_artifacts.',
+  description: 'Get artifact by ID, storyId+definitionKey, or workflowRunId+definitionKey. Optionally get specific version.',
   inputSchema: {
     type: 'object',
     properties: {
       artifactId: {
         type: 'string',
-        description: 'Artifact UUID (provide this OR definitionKey + workflowRunId)',
+        description: 'Artifact UUID (provide this OR definitionKey + storyId/workflowRunId)',
       },
       definitionKey: {
         type: 'string',
-        description: 'Artifact definition key (e.g., "ARCH_DOC"). Requires workflowRunId.',
+        description: 'Artifact definition key (e.g., "ARCH_DOC"). Requires storyId or workflowRunId.',
+      },
+      storyId: {
+        type: 'string',
+        description: 'Story UUID (use with definitionKey for story-scoped lookup)',
       },
       workflowRunId: {
         type: 'string',
-        description: 'Workflow Run UUID (required if using definitionKey)',
+        description: 'Workflow Run UUID (use with definitionKey, will resolve to story)',
+      },
+      version: {
+        type: 'number',
+        description: 'Specific version to retrieve (default: latest)',
       },
       includeContent: {
         type: 'boolean',
@@ -55,7 +63,13 @@ export async function handler(
   params: GetArtifactParams,
 ): Promise<ArtifactResponse> {
   try {
+    // ST-214: Validate version parameter
+    if (params.version !== undefined && params.version < 1) {
+      throw new ValidationError('Version must be >= 1');
+    }
+
     let artifact;
+    let artifactVersion;
 
     if (params.artifactId) {
       // Direct lookup by ID
@@ -65,25 +79,72 @@ export async function handler(
           definition: true,
           createdByComponent: true,
           workflowRun: true,
+          story: true,
         },
       });
 
       if (!artifact) {
         throw new NotFoundError('Artifact', params.artifactId);
       }
-    } else if (params.definitionKey && params.workflowRunId) {
-      // Lookup by definition key and workflow run
-      const workflowRun = await prisma.workflowRun.findUnique({
-        where: { id: params.workflowRunId },
+
+      // ST-214: If version requested, fetch from version history
+      if (params.version && params.version !== artifact.currentVersion) {
+        artifactVersion = await prisma.artifactVersion.findUnique({
+          where: {
+            artifactId_version: {
+              artifactId: params.artifactId,
+              version: params.version,
+            },
+          },
+        });
+
+        if (!artifactVersion) {
+          throw new NotFoundError(
+            'ArtifactVersion',
+            `artifact=${params.artifactId} version=${params.version}`,
+          );
+        }
+      }
+    } else if (params.definitionKey && (params.storyId || params.workflowRunId)) {
+      // ST-214: Resolve storyId from workflowRunId if needed
+      let storyId = params.storyId;
+
+      if (!storyId && params.workflowRunId) {
+        const workflowRun = await prisma.workflowRun.findUnique({
+          where: { id: params.workflowRunId },
+        });
+
+        if (!workflowRun) {
+          throw new NotFoundError('WorkflowRun', params.workflowRunId);
+        }
+
+        if (!workflowRun.storyId) {
+          throw new ValidationError('WorkflowRun must be associated with a story');
+        }
+
+        storyId = workflowRun.storyId;
+      }
+
+      if (!storyId) {
+        throw new ValidationError('Could not resolve storyId');
+      }
+
+      // Get story to find workflow
+      const story = await prisma.story.findUnique({
+        where: { id: storyId },
       });
 
-      if (!workflowRun) {
-        throw new NotFoundError('WorkflowRun', params.workflowRunId);
+      if (!story) {
+        throw new NotFoundError('Story', storyId);
+      }
+
+      if (!story.assignedWorkflowId) {
+        throw new ValidationError('Story does not have an assigned workflow');
       }
 
       const definition = await prisma.artifactDefinition.findFirst({
         where: {
-          workflowId: workflowRun.workflowId,
+          workflowId: story.assignedWorkflowId,
           key: params.definitionKey.toUpperCase(),
         },
       });
@@ -95,28 +156,85 @@ export async function handler(
         );
       }
 
+      // ST-214: Story-scoped lookup
       artifact = await prisma.artifact.findFirst({
         where: {
           definitionId: definition.id,
-          workflowRunId: params.workflowRunId,
+          storyId,
         },
         include: {
           definition: true,
           createdByComponent: true,
           workflowRun: true,
+          story: true,
         },
       });
 
       if (!artifact) {
         throw new NotFoundError(
           'Artifact',
-          `key=${params.definitionKey} in run=${params.workflowRunId}`,
+          `key=${params.definitionKey} in story=${storyId}`,
         );
+      }
+
+      // ST-214: If version requested, fetch from version history
+      if (params.version && params.version !== artifact.currentVersion) {
+        artifactVersion = await prisma.artifactVersion.findUnique({
+          where: {
+            artifactId_version: {
+              artifactId: artifact.id,
+              version: params.version,
+            },
+          },
+        });
+
+        if (!artifactVersion) {
+          throw new NotFoundError(
+            'ArtifactVersion',
+            `artifact=${artifact.id} version=${params.version}`,
+          );
+        }
       }
     } else {
       throw new ValidationError(
-        'Either artifactId or (definitionKey + workflowRunId) must be provided',
+        'Either artifactId or (definitionKey + storyId/workflowRunId) must be provided',
       );
+    }
+
+    // ST-214: If fetching a specific version, return version data instead
+    if (artifactVersion) {
+      const versionResponse: any = {
+        id: artifactVersion.id,
+        artifactId: artifactVersion.artifactId,
+        version: artifactVersion.version,
+        workflowRunId: artifactVersion.workflowRunId,
+        content: artifactVersion.content,
+        contentHash: artifactVersion.contentHash,
+        contentType: artifactVersion.contentType,
+        size: artifactVersion.size,
+        createdByComponentId: artifactVersion.createdByComponentId,
+        createdAt: artifactVersion.createdAt.toISOString(),
+        definition: artifact.definition
+          ? {
+              id: artifact.definition.id,
+              name: artifact.definition.name,
+              key: artifact.definition.key,
+              type: artifact.definition.type,
+            }
+          : undefined,
+      };
+
+      if (params.includeContent !== true) {
+        const contentSize = artifactVersion.content?.length || 0;
+        versionResponse.content = null;
+        versionResponse._truncated = markOmitted(
+          'content',
+          contentSize,
+          artifactFetchCommand(artifact.id),
+        );
+      }
+
+      return versionResponse;
     }
 
     const response = formatArtifact(artifact);

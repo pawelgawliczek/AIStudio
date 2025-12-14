@@ -196,6 +196,7 @@ model Story {
   pullRequests      PullRequest[]
   deploymentLocks   DeploymentLock[]
   deploymentLogs    DeploymentLog[]
+  artifacts         Artifact[] // ST-214: Story-scoped artifacts
 
   @@unique([projectId, key])
   @@index([projectId, status, type])
@@ -644,6 +645,7 @@ model Component {
   children         Component[]     @relation("ComponentVersions")
   workflowStates   WorkflowState[] // ST-143: States that use this component
   createdArtifacts Artifact[]      // ST-151: Artifacts created by this component
+  createdArtifactVersions ArtifactVersion[] // ST-214: Artifact versions created by this component
 
   @@index([projectId])
   @@index([projectId, active])
@@ -807,6 +809,9 @@ model WorkflowRun {
   // ST-170: Transcript storage
   transcripts            Transcript[]
   unassignedTranscripts  UnassignedTranscript[]
+  // ST-214: Artifact version history
+  artifactVersions       ArtifactVersion[]
+  artifactsLastUpdated   Artifact[]        @relation("ArtifactLastUpdatedRun")
 
   @@index([projectId])
   @@index([workflowId])
@@ -1847,18 +1852,20 @@ model ArtifactDefinition {
   @@map("artifact_definitions")
 }
 
-// Artifact - Actual artifact content for a workflow run
+// Artifact - Story-scoped artifact with version history (ST-214)
 model Artifact {
   id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   definitionId  String @map("definition_id") @db.Uuid
-  workflowRunId String @map("workflow_run_id") @db.Uuid
+  storyId       String @map("story_id") @db.Uuid
+  workflowRunId String? @map("workflow_run_id") @db.Uuid
 
   content        String  @db.Text // Actual content or S3 URL
   contentPreview String? @map("content_preview") @db.VarChar(500) // First 500 chars for token-efficient queries
   contentHash    String? @map("content_hash") @db.VarChar(64) // SHA256 for change detection
   contentType    String  @map("content_type") // MIME type
   size           Int     @default(0)
-  version        Int     @default(1)
+  currentVersion Int     @default(1) @map("current_version") // Latest version number
+  lastUpdatedRunId String? @map("last_updated_run_id") @db.Uuid // WorkflowRun that last updated this
 
   // Provenance
   createdByComponentId String? @map("created_by_component_id") @db.Uuid
@@ -1867,13 +1874,43 @@ model Artifact {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  definition         ArtifactDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
-  workflowRun        WorkflowRun        @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-  createdByComponent Component?         @relation(fields: [createdByComponentId], references: [id], onDelete: SetNull)
+  definition         ArtifactDefinition  @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  story              Story               @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  workflowRun        WorkflowRun?        @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
+  lastUpdatedRun     WorkflowRun?        @relation("ArtifactLastUpdatedRun", fields: [lastUpdatedRunId], references: [id], onDelete: SetNull)
+  createdByComponent Component?          @relation(fields: [createdByComponentId], references: [id], onDelete: SetNull)
+  versions           ArtifactVersion[]
 
+  @@unique([definitionId, storyId])
+  @@index([storyId])
   @@index([workflowRunId])
-  @@index([definitionId, workflowRunId])
+  @@index([definitionId, storyId])
   @@map("artifacts")
+}
+
+// ArtifactVersion - Version history for artifacts (ST-214)
+model ArtifactVersion {
+  id              String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  artifactId      String @map("artifact_id") @db.Uuid
+  version         Int
+  workflowRunId   String? @map("workflow_run_id") @db.Uuid
+
+  content         String @db.Text
+  contentHash     String @map("content_hash") @db.VarChar(64)
+  contentType     String @map("content_type")
+  size            Int    @default(0)
+
+  createdByComponentId String? @map("created_by_component_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  artifact      Artifact     @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  workflowRun   WorkflowRun? @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
+  createdByComponent Component? @relation(fields: [createdByComponentId], references: [id], onDelete: SetNull)
+
+  @@unique([artifactId, version])
+  @@index([artifactId, version(sort: Desc)])
+  @@index([workflowRunId])
+  @@map("artifact_versions")
 }
 
 // ArtifactAccess - Controls which states can access which artifacts

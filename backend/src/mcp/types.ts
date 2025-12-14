@@ -942,7 +942,8 @@ export interface ArtifactAccessResponse {
 export interface UploadArtifactParams {
   definitionId?: string;
   definitionKey?: string;
-  workflowRunId: string;
+  storyId?: string; // ST-214: Direct story-scoped upload
+  workflowRunId?: string; // Now optional - can derive storyId from run
   content: string;
   contentType?: string;
   componentId?: string;
@@ -968,25 +969,32 @@ export interface UploadArtifactFromFileResponse {
 export interface GetArtifactParams {
   artifactId?: string;
   definitionKey?: string;
-  workflowRunId?: string;
+  storyId?: string; // ST-214: Story-scoped lookup
+  workflowRunId?: string; // Backward compat - derives storyId
+  version?: number; // ST-214: Fetch specific version from history
   includeContent?: boolean;
 }
 
 export interface ListArtifactsParams extends PaginationParams {
-  workflowRunId: string;
+  storyId?: string; // ST-214: List by story
+  workflowRunId?: string; // Backward compat - derives storyId
   definitionKey?: string;
   type?: ArtifactType;
   includeContent?: boolean;
+  includeVersionCounts?: boolean; // ST-214: Include version history counts
 }
 
 export interface ArtifactResponse {
   id: string;
   definitionId: string;
-  workflowRunId: string;
+  storyId: string; // ST-214: Now required
+  workflowRunId?: string; // ST-214: Now optional
   content: string;
   contentType: string;
   size: number;
-  version: number;
+  currentVersion: number; // ST-214: Renamed from version
+  lastUpdatedRunId?: string; // ST-214: Track which run last modified
+  contentHash?: string; // ST-214: For deduplication
   createdByComponentId?: string;
   createdAt: string;
   updatedAt: string;
@@ -1000,6 +1008,7 @@ export interface ArtifactResponse {
     id: string;
     name: string;
   };
+  versionCount?: number; // ST-214: Number of versions when includeVersionCounts
 }
 
 export interface DeleteArtifactDefinitionResponse {

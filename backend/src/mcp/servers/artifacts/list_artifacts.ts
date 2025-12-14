@@ -16,13 +16,17 @@ import { formatArtifact } from './upload_artifact';
 
 export const tool: Tool = {
   name: 'list_artifacts',
-  description: 'List artifacts for a workflow run. Filter by definitionKey or type.',
+  description: 'List artifacts by storyId or workflowRunId. Filter by definitionKey or type. Optionally include version counts.',
   inputSchema: {
     type: 'object',
     properties: {
+      storyId: {
+        type: 'string',
+        description: 'Story UUID (provide this OR workflowRunId)',
+      },
       workflowRunId: {
         type: 'string',
-        description: 'Workflow Run UUID (required)',
+        description: 'Workflow Run UUID (will resolve to story)',
       },
       definitionKey: {
         type: 'string',
@@ -37,6 +41,10 @@ export const tool: Tool = {
         type: 'boolean',
         description: 'Include full content in response (default: false for list)',
       },
+      includeVersionCounts: {
+        type: 'boolean',
+        description: 'Include version count for each artifact (default: false)',
+      },
       page: {
         type: 'number',
         description: 'Page number (default: 1)',
@@ -46,7 +54,7 @@ export const tool: Tool = {
         description: 'Items per page (default: 20, max: 100)',
       },
     },
-    required: ['workflowRunId'],
+    required: [],
   },
 };
 
@@ -63,27 +71,52 @@ export async function handler(
   params: ListArtifactsParams,
 ): Promise<PaginatedResponse<ArtifactResponse>> {
   try {
-    validateRequired(params, ['workflowRunId']);
+    // ST-214: Resolve storyId from workflowRunId if needed
+    let storyId = params.storyId;
 
-    // Verify workflow run exists
-    const workflowRun = await prisma.workflowRun.findUnique({
-      where: { id: params.workflowRunId },
-    });
+    if (!storyId && params.workflowRunId) {
+      const workflowRun = await prisma.workflowRun.findUnique({
+        where: { id: params.workflowRunId },
+      });
 
-    if (!workflowRun) {
-      throw new NotFoundError('WorkflowRun', params.workflowRunId);
+      if (!workflowRun) {
+        throw new NotFoundError('WorkflowRun', params.workflowRunId);
+      }
+
+      if (!workflowRun.storyId) {
+        throw new ValidationError('WorkflowRun must be associated with a story');
+      }
+
+      storyId = workflowRun.storyId;
     }
 
-    // Build where clause
+    if (!storyId) {
+      throw new ValidationError('Either storyId or workflowRunId must be provided');
+    }
+
+    // Verify story exists
+    const story = await prisma.story.findUnique({
+      where: { id: storyId },
+    });
+
+    if (!story) {
+      throw new NotFoundError('Story', storyId);
+    }
+
+    // Build where clause - ST-214: story-scoped
     const where: any = {
-      workflowRunId: params.workflowRunId,
+      storyId,
     };
 
     // Filter by definition key
     if (params.definitionKey) {
+      if (!story.assignedWorkflowId) {
+        throw new ValidationError('Story does not have an assigned workflow');
+      }
+
       const definition = await prisma.artifactDefinition.findFirst({
         where: {
-          workflowId: workflowRun.workflowId,
+          workflowId: story.assignedWorkflowId,
           key: params.definitionKey.toUpperCase(),
         },
       });
@@ -130,14 +163,25 @@ export async function handler(
 
     const totalPages = Math.ceil(total / pageSize);
 
-    // Format artifacts, optionally excluding content
-    const data = artifacts.map((artifact) => {
-      const formatted = formatArtifact(artifact);
-      if (params.includeContent !== true) {
-        formatted.content = `[${formatted.size} bytes]`;
-      }
-      return formatted;
-    });
+    // Format artifacts, optionally excluding content and adding version counts
+    const data = await Promise.all(
+      artifacts.map(async (artifact) => {
+        const formatted = formatArtifact(artifact);
+        if (params.includeContent !== true) {
+          formatted.content = `[${formatted.size} bytes]`;
+        }
+
+        // ST-214: Add version count if requested
+        if (params.includeVersionCounts) {
+          const versionCount = await prisma.artifactVersion.count({
+            where: { artifactId: artifact.id },
+          });
+          (formatted as any).versionCount = versionCount;
+        }
+
+        return formatted;
+      }),
+    );
 
     return {
       data,
