@@ -454,9 +454,24 @@ advance_step AUTOMATICALLY:
 - Stores output for workflow context
 
 Optional params for better tracking:
-- componentSummary: "2-3 sentence summary of what agent did"
+- componentSummary: Structured JSON object (preferred) or string
+  Format: {
+    version: "1.0",
+    status: "success" | "partial" | "blocked" | "failed",
+    summary: "1-2 sentence description (max 200 chars)",
+    keyOutputs: ["bullet 1", "bullet 2", ...], // max 5
+    nextAgentHints: ["hint for next agent", ...], // max 3
+    artifactsProduced: ["ARCH_DOC", ...],
+    errors: ["error msg", ...] // max 3
+  }
 - agentStatus: "completed" (default) or "failed"
-- errorMessage: "error details if agentStatus is failed"`,
+- errorMessage: "error details if agentStatus is failed"
+
+Status meanings:
+- success: work completed fully
+- partial: some work done, but incomplete
+- blocked: couldn't proceed due to external blocker
+- failed: encountered errors during execution`,
         });
 
         nextAction = {

@@ -20,6 +20,7 @@ import React, { useEffect, useState } from 'react';
 import { StateBlockProps, StateStatus, ArtifactInstance, ArtifactAccess } from './types';
 import { getStatusClasses, getStatusLabel } from './utils/status-colors';
 import { formatDuration, formatTokens } from './utils/format-duration';
+import { StructuredSummaryDisplay } from './StructuredSummaryDisplay';
 
 // Extended props for artifact and transcript support
 interface ExtendedStateBlockProps extends StateBlockProps {
@@ -346,11 +347,11 @@ export const StateBlock: React.FC<ExtendedStateBlockProps> = ({
             </div>
           </div>
 
-          {/* Agent Summary - Display after agent phase when completed/failed */}
+          {/* Agent Summary - Display after agent phase when completed/failed - ST-203: Use StructuredSummaryDisplay */}
           {componentRun?.componentSummary && (componentRun.status === 'completed' || componentRun.status === 'failed') && (
-            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs">
-              <div className="font-semibold text-gray-600 dark:text-gray-400 mb-1">📝 Agent Summary</div>
-              <div className="text-gray-700 dark:text-gray-300">{componentRun.componentSummary}</div>
+            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+              <div className="font-semibold text-gray-600 dark:text-gray-400 mb-2 text-xs">📝 Agent Summary</div>
+              <StructuredSummaryDisplay summary={componentRun.componentSummary} variant="compact" />
             </div>
           )}
 

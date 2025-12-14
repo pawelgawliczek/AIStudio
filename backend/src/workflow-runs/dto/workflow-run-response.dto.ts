@@ -1,6 +1,30 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { RunStatus } from '@prisma/client';
 
+// ST-203: Structured component summary DTO
+export class ComponentSummaryDto {
+  @ApiProperty()
+  version: string;
+
+  @ApiProperty({ enum: ['success', 'partial', 'blocked', 'failed'] })
+  status: string;
+
+  @ApiProperty()
+  summary: string;
+
+  @ApiProperty({ required: false, type: [String] })
+  keyOutputs?: string[];
+
+  @ApiProperty({ required: false, type: [String] })
+  nextAgentHints?: string[];
+
+  @ApiProperty({ required: false, type: [String] })
+  artifactsProduced?: string[];
+
+  @ApiProperty({ required: false, type: [String] })
+  errors?: string[];
+}
+
 // ST-57: Define CoordinatorMetricsDto FIRST to avoid circular dependency
 export class CoordinatorMetricsDto {
   @ApiProperty({ required: false })
@@ -222,8 +246,8 @@ export class ComponentRunSummaryDto {
   @ApiProperty({ required: false, description: 'Component output data (JSON)' })
   output?: any;
 
-  @ApiProperty({ required: false, description: 'AI-generated summary of what the component accomplished' })
-  componentSummary?: string;
+  @ApiProperty({ required: false, type: ComponentSummaryDto, description: 'Structured summary of what the component accomplished (ST-203)' })
+  componentSummary?: ComponentSummaryDto | null;
 
   @ApiProperty({ required: false, description: 'Error message if component failed' })
   errorMessage?: string;

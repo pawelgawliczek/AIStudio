@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import axios from '../../../lib/axios';
 import { useWebSocket } from '../../../services/websocket.service';
-import type { WorkflowRunWithStates, WorkflowState, ComponentRunWithMetrics } from '../types';
+import type { WorkflowRunWithStates, WorkflowState, ComponentRunWithMetrics, ComponentSummaryStructured } from '../types';
 
 interface UseWorkflowRunOptions {
   runId: string;
@@ -53,7 +53,8 @@ interface ApiWorkflowRunResponse {
     finishedAt: string | null;
     output: any;
     errorMessage: string | null;
-    componentSummary?: string | null; // ST-147: AI-generated summary
+    // ST-203: componentSummary is now structured
+    componentSummary?: ComponentSummaryStructured | null;
     // Token metrics can come in different formats from the API
     tokenMetrics?: {
       inputTokens: number;

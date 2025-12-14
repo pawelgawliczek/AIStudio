@@ -5,6 +5,19 @@
 
 import { WorkflowRunStatus } from '../../types/workflow-tracking';
 
+// ST-203: Structured component summary
+export type ComponentSummaryStatus = 'success' | 'partial' | 'blocked' | 'failed';
+
+export interface ComponentSummaryStructured {
+  version: '1.0';
+  status: ComponentSummaryStatus;
+  summary: string; // 1-2 sentence description (max 200 chars)
+  keyOutputs?: string[]; // Bullet points (max 5)
+  nextAgentHints?: string[]; // Suggestions for next agent (max 3)
+  artifactsProduced?: string[]; // Artifact keys created
+  errors?: string[]; // Errors if any (max 3)
+}
+
 // Extended ComponentRun with token metrics for visualization
 export interface ComponentRunWithMetrics {
   id: string;
@@ -15,7 +28,8 @@ export interface ComponentRunWithMetrics {
   completedAt: string | null;
   output: any;
   errorMessage: string | null;
-  componentSummary?: string | null; // ST-147: AI-generated summary of what this agent accomplished
+  // ST-203: componentSummary is now structured JSON (backwards compatible with null)
+  componentSummary?: ComponentSummaryStructured | null;
   tokenMetrics?: {
     inputTokens: number;
     outputTokens: number;

@@ -600,4 +600,266 @@ describe('advance_step MCP Tool', () => {
       expect(result.agentTracking.warning).toContain('Unexpected database error');
     });
   });
+
+  // ST-203: Structured componentSummary Tests
+  describe('Structured componentSummary (ST-203)', () => {
+    const createMockRunWithComponent = (phase: string) => ({
+      id: 'run-uuid',
+      status: 'running',
+      workflowId: 'workflow-uuid',
+      storyId: 'story-uuid',
+      story: { id: 'story-uuid', key: 'ST-203', title: 'Test Story' },
+      workflow: {
+        id: 'workflow-uuid',
+        name: 'Test Workflow',
+        states: [
+          {
+            id: 'state-0',
+            name: 'Implementation',
+            order: 1,
+            component: { id: 'comp-1', name: 'Implementer' },
+          },
+        ],
+      },
+      metadata: {
+        checkpoint: {
+          currentStateId: 'state-0',
+          currentPhase: phase,
+          phaseOutputs: {},
+        },
+      },
+    });
+
+    it('should accept structured componentSummary object', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+        componentRunId: 'cr-123',
+      });
+
+      const structuredSummary = {
+        version: '1.0' as const,
+        status: 'success' as const,
+        summary: 'Implemented feature successfully',
+        keyOutputs: ['Created API endpoint', 'Added unit tests'],
+        artifactsProduced: ['API_SPEC'],
+      };
+
+      await handler(mockPrisma, {
+        runId: 'run-uuid',
+        componentSummary: structuredSummary,
+      });
+
+      // Should serialize structured summary before passing to completeAgentTracking
+      expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
+        mockPrisma,
+        expect.objectContaining({
+          componentSummary: expect.stringContaining('"version":"1.0"'),
+        })
+      );
+    });
+
+    it('should validate structured componentSummary has required fields', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+
+      const invalidSummary = {
+        version: '1.0',
+        status: 'success',
+        // Missing required 'summary' field
+      };
+
+      await expect(
+        handler(mockPrisma, {
+          runId: 'run-uuid',
+          componentSummary: invalidSummary as any,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should validate status field is valid enum value', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+
+      const invalidStatus = {
+        version: '1.0',
+        status: 'invalid_status',
+        summary: 'Test summary',
+      };
+
+      await expect(
+        handler(mockPrisma, {
+          runId: 'run-uuid',
+          componentSummary: invalidStatus as any,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should auto-generate structured summary when not provided', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+      });
+
+      // Mock generateStructuredSummary to return structured object
+      const mockStructuredSummary = {
+        version: '1.0' as const,
+        status: 'success' as const,
+        summary: 'Implementer completed successfully',
+        keyOutputs: ['Modified 3 files'],
+      };
+      (agentTracking.generateComponentSummary as jest.Mock).mockReturnValue(
+        mockStructuredSummary
+      );
+
+      await handler(mockPrisma, {
+        runId: 'run-uuid',
+        output: { files: ['a.ts', 'b.ts', 'c.ts'] },
+      });
+
+      // Should call generateStructuredSummary (replaces generateComponentSummary)
+      expect(agentTracking.generateComponentSummary).toHaveBeenCalledWith(
+        { files: ['a.ts', 'b.ts', 'c.ts'] },
+        'Implementer'
+      );
+
+      // Should serialize the structured result
+      expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
+        mockPrisma,
+        expect.objectContaining({
+          componentSummary: expect.stringContaining('"version":"1.0"'),
+        })
+      );
+    });
+
+    it('should serialize structured summary with all status types', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+      });
+
+      const statuses: Array<'success' | 'partial' | 'blocked' | 'failed'> = [
+        'success',
+        'partial',
+        'blocked',
+        'failed',
+      ];
+
+      for (const status of statuses) {
+        const summary = {
+          version: '1.0' as const,
+          status,
+          summary: `Work ${status}`,
+        };
+
+        await handler(mockPrisma, {
+          runId: 'run-uuid',
+          componentSummary: summary,
+        });
+
+        const lastCall = (agentTracking.completeAgentTracking as jest.Mock).mock.calls.slice(
+          -1
+        )[0];
+        const serialized = lastCall[1].componentSummary;
+
+        expect(serialized).toContain(`"status":"${status}"`);
+      }
+    });
+
+    it('should serialize structured summary with optional fields', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+      });
+
+      const summaryWithOptionals = {
+        version: '1.0' as const,
+        status: 'partial' as const,
+        summary: 'Partial implementation',
+        keyOutputs: ['Created models', 'Added migrations'],
+        nextAgentHints: ['Complete API endpoints', 'Add validation'],
+        artifactsProduced: ['ARCH_DOC', 'DB_SCHEMA'],
+        errors: ['Missing test coverage'],
+      };
+
+      await handler(mockPrisma, {
+        runId: 'run-uuid',
+        componentSummary: summaryWithOptionals,
+      });
+
+      const lastCall = (agentTracking.completeAgentTracking as jest.Mock).mock.calls.slice(
+        -1
+      )[0];
+      const serialized = lastCall[1].componentSummary;
+      const parsed = JSON.parse(serialized);
+
+      expect(parsed.keyOutputs).toEqual(['Created models', 'Added migrations']);
+      expect(parsed.nextAgentHints).toEqual(['Complete API endpoints', 'Add validation']);
+      expect(parsed.artifactsProduced).toEqual(['ARCH_DOC', 'DB_SCHEMA']);
+      expect(parsed.errors).toEqual(['Missing test coverage']);
+    });
+
+    it('should handle errors in serialization gracefully', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+      });
+
+      // Create object with circular reference (causes JSON.stringify to fail)
+      const circularSummary: any = {
+        version: '1.0',
+        status: 'success',
+        summary: 'Test',
+      };
+      circularSummary.circular = circularSummary;
+
+      await expect(
+        handler(mockPrisma, {
+          runId: 'run-uuid',
+          componentSummary: circularSummary,
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should pass agentStatus parameter for backward compatibility', async () => {
+      const mockRun = createMockRunWithComponent('agent');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+      (agentTracking.completeAgentTracking as jest.Mock).mockResolvedValue({
+        success: true,
+      });
+
+      const summary = {
+        version: '1.0' as const,
+        status: 'failed' as const,
+        summary: 'Tests failed',
+        errors: ['Unit tests failing'],
+      };
+
+      await handler(mockPrisma, {
+        runId: 'run-uuid',
+        componentSummary: summary,
+        agentStatus: 'failed',
+        errorMessage: 'Test execution failed',
+      });
+
+      expect(agentTracking.completeAgentTracking).toHaveBeenCalledWith(
+        mockPrisma,
+        expect.objectContaining({
+          status: 'failed',
+          errorMessage: 'Test execution failed',
+        })
+      );
+    });
+  });
 });

@@ -6,12 +6,15 @@
 import React from 'react';
 import { Box, Typography, Button, Chip } from '@mui/material';
 import { formatDuration } from './utils/format-duration';
+import { StructuredSummaryDisplay } from './StructuredSummaryDisplay';
+import { ComponentSummaryStructured } from './types';
 
 interface ComponentRun {
   id: string;
   componentName?: string;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
-  componentSummary?: string | null;
+  // ST-203: componentSummary is now structured
+  componentSummary?: ComponentSummaryStructured | null;
   startedAt?: string;
   completedAt?: string;
   stateId: string;
@@ -145,19 +148,20 @@ export const WorkflowResultsSummary: React.FC<WorkflowResultsSummaryProps> = ({
                   />
                 </Box>
 
-                {/* Component summary */}
+                {/* Component summary - ST-203: Use StructuredSummaryDisplay */}
                 {run?.componentSummary && (
                   <Box
                     sx={{
-                      p: 1,
+                      p: 1.5,
                       bgcolor: 'action.hover',
                       borderRadius: 1,
                       mb: 1,
                     }}
                   >
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      📝 {run.componentSummary}
-                    </Typography>
+                    <StructuredSummaryDisplay
+                      summary={run.componentSummary}
+                      variant="compact"
+                    />
                   </Box>
                 )}
 

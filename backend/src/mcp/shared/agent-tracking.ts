@@ -14,6 +14,11 @@ import {
   startTranscriptTailing,
   stopTranscriptTailing,
 } from '../services/websocket-gateway.instance';
+import {
+  generateStructuredSummary,
+  serializeComponentSummary,
+  ComponentSummaryStructured,
+} from '../../types/component-summary.types';
 
 export interface StartAgentResult {
   success: boolean;
@@ -213,7 +218,7 @@ export async function completeAgentTracking(
     componentId: string;
     output?: Record<string, unknown>;
     status?: 'completed' | 'failed';
-    componentSummary?: string;
+    componentSummary?: string | ComponentSummaryStructured; // ST-203: Accept structured or string
     errorMessage?: string;
   },
 ): Promise<CompleteAgentResult> {
@@ -277,13 +282,33 @@ export async function completeAgentTracking(
       select: { name: true },
     });
 
+    // ST-203: Generate or serialize structured summary
+    let summaryJson: string | null = null;
+    if (params.componentSummary) {
+      if (typeof params.componentSummary === 'string') {
+        // Already a string - assume it's JSON
+        summaryJson = params.componentSummary;
+      } else {
+        // Structured object - serialize it
+        summaryJson = serializeComponentSummary(params.componentSummary);
+      }
+    } else {
+      // Auto-generate from output
+      const structured = generateStructuredSummary(
+        params.output,
+        component?.name || 'Unknown',
+        status === 'failed' ? 'failed' : 'success',
+      );
+      summaryJson = serializeComponentSummary(structured);
+    }
+
     // Update ComponentRun
     const updatedComponentRun = await prisma.componentRun.update({
       where: { id: componentRun.id },
       data: {
         status,
         outputData: (params.output || {}) as Prisma.InputJsonValue,
-        componentSummary: params.componentSummary || null,
+        componentSummary: summaryJson,
         errorMessage: params.errorMessage || null,
         durationSeconds,
         finishedAt: completedAt,
@@ -344,10 +369,14 @@ export async function completeAgentTracking(
 }
 
 /**
+ * @deprecated ST-203: Use generateStructuredSummary from component-summary.types instead
+ *
  * Generate a basic summary from output data
  *
  * Extracts meaningful information from common output patterns.
  * Returns a concise summary (max 500 chars).
+ *
+ * This function is kept for backwards compatibility but should not be used in new code.
  */
 export function generateComponentSummary(
   output: Record<string, unknown> | undefined,
@@ -397,3 +426,6 @@ export function generateComponentSummary(
 
   return parts.join(' ').substring(0, 500);
 }
+
+// ST-203: Re-export from component-summary.types for convenience
+export { generateStructuredSummary, serializeComponentSummary, parseComponentSummary } from '../../types/component-summary.types';

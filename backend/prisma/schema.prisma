@@ -841,7 +841,7 @@ model ComponentRun {
   inputData     Json?   @map("input_data") // Data received
   outputData    Json?   @map("output_data") // Data produced
   output        String? @db.Text // Output text
-  outputSummary String? @map("output_summary") @db.VarChar(1000) // AI-generated summary for token-efficient queries
+  // outputSummary removed in ST-203 - use componentSummary instead (JSON with structured format)
 
   // Universal metrics
   tokensInput     Int?   @default(0) @map("tokens_input")

@@ -17,6 +17,8 @@ import {
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
 import { vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { StructuredSummaryDisplay } from './StructuredSummaryDisplay';
+import { ComponentSummaryStructured } from './types';
 
 // Register JSON language
 SyntaxHighlighter.registerLanguage('json', json);
@@ -27,7 +29,8 @@ interface ComponentOutputModalProps {
   componentName?: string;
   status?: string;
   output?: any;
-  componentSummary?: string | null;
+  // ST-203: componentSummary is now structured
+  componentSummary?: ComponentSummaryStructured | null;
   startedAt?: string;
   completedAt?: string;
 }
@@ -94,7 +97,7 @@ export const ComponentOutputModal: React.FC<ComponentOutputModalProps> = ({
           </Box>
         )}
 
-        {/* Component Summary */}
+        {/* Component Summary - ST-203: Use StructuredSummaryDisplay */}
         {componentSummary && (
           <Box
             sx={{
@@ -109,7 +112,7 @@ export const ComponentOutputModal: React.FC<ComponentOutputModalProps> = ({
             <Typography variant="subtitle2" color="primary" gutterBottom>
               📝 Summary
             </Typography>
-            <Typography variant="body2">{componentSummary}</Typography>
+            <StructuredSummaryDisplay summary={componentSummary} variant="full" />
           </Box>
         )}
 

@@ -4,12 +4,14 @@
  *
  * ST-187: MCP Tool Optimization & Step Commands
  * ST-215: Automatic Agent Tracking - auto-calls record_agent_start/complete
+ * ST-216: Earlier agent tracking - start when entering state, complete when leaving agent phase
  *
  * Phase transitions:
- *   pre  → agent (if component exists) - AUTO: calls startAgentTracking
+ *   post → next_state.pre - AUTO: calls startAgentTracking for NEW state (if has component)
+ *   pre  → agent (if component exists)
  *   pre  → post  (if no component)
  *   agent → post - AUTO: calls completeAgentTracking
- *   post → next_state.pre (or workflow_complete)
+ *   (workflow init) → first_state.pre - AUTO: calls startAgentTracking (if has component)
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -18,10 +20,12 @@ import { resolveRunId } from '../../shared/resolve-identifiers';
 import {
   startAgentTracking,
   completeAgentTracking,
-  generateComponentSummary,
+  generateStructuredSummary,
+  serializeComponentSummary,
   StartAgentResult,
   CompleteAgentResult,
 } from '../../shared/agent-tracking';
+import { ComponentSummaryStructured } from '../../../types/component-summary.types';
 
 export const tool: Tool = {
   name: 'advance_step',
@@ -46,9 +50,10 @@ export const tool: Tool = {
         description: 'State name or ID to skip to (for error recovery)',
       },
       // ST-215: New params for agent tracking
+      // ST-203: Accept structured summary object or string
       componentSummary: {
-        type: 'string',
-        description: 'Summary of agent work. Auto-generated if not provided.',
+        type: ['string', 'object'],
+        description: 'Summary of agent work (structured JSON or string). Auto-generated if not provided. Format: {version: "1.0", status: "success"|"partial"|"blocked"|"failed", summary: "...", keyOutputs?: [...], nextAgentHints?: [...], artifactsProduced?: [...], errors?: [...]}',
       },
       agentStatus: {
         type: 'string',
@@ -106,7 +111,8 @@ export async function handler(prisma: PrismaClient, params: {
   output?: Record<string, unknown>;
   skipToState?: string;
   // ST-215: New params for agent tracking
-  componentSummary?: string;
+  // ST-203: Accept structured object or string
+  componentSummary?: string | ComponentSummaryStructured;
   agentStatus?: 'completed' | 'failed';
   errorMessage?: string;
 }) {
@@ -173,7 +179,10 @@ export async function handler(prisma: PrismaClient, params: {
   let checkpoint = (metadata?.checkpoint || {}) as Partial<RunnerCheckpoint>;
 
   // Initialize checkpoint if not exists
+  // ST-216: Track initialization to call startAgentTracking for first state
+  let isInitialization = false;
   if (!checkpoint.currentStateId) {
+    isInitialization = true;
     const firstState = run.workflow.states[0];
     if (!firstState) {
       throw new Error('Workflow has no states defined.');
@@ -198,6 +207,25 @@ export async function handler(prisma: PrismaClient, params: {
       checkpointedAt: new Date().toISOString(),
       runStartedAt: new Date().toISOString(),
     };
+
+    // ST-216: Start agent tracking for first state if it has a component
+    // This shows the agent as "running" in the UI from the very beginning
+    if (firstState.component) {
+      try {
+        const startResult = await startAgentTracking(prisma, {
+          runId: run.id,
+          componentId: firstState.component.id,
+        });
+
+        if (!startResult.success) {
+          console.warn(`[advance_step] Agent tracking start failed for first state ${firstState.component.name}: ${startResult.error}`);
+        } else {
+          console.log(`[advance_step] Started agent tracking for first state: ${firstState.component.name}`);
+        }
+      } catch (error: any) {
+        console.warn(`[advance_step] Failed to start agent tracking for first state: ${error.message}`);
+      }
+    }
   }
 
   // Handle skipToState
@@ -268,37 +296,10 @@ export async function handler(prisma: PrismaClient, params: {
 
   switch (currentPhase) {
     case 'pre':
+      // ST-216: Agent tracking was already started when we entered this state
+      // Just transition to agent phase (if component) or post phase (if no component)
       if (currentState.component) {
         // Has component - go to agent phase
-        // ST-215: AUTO - Call startAgentTracking
-        try {
-          const startResult = await startAgentTracking(prisma, {
-            runId: run.id,
-            componentId: currentState.component.id,
-            input: params.output, // Pre-phase output can be agent input
-          });
-
-          agentTrackingResult = {
-            action: 'started',
-            componentRunId: startResult.componentRunId,
-            componentName: startResult.componentName || currentState.component.name,
-            success: startResult.success,
-            warning: startResult.warning || startResult.error,
-          };
-
-          if (!startResult.success) {
-            console.warn(`[advance_step] Agent tracking start failed: ${startResult.error}`);
-          }
-        } catch (error: any) {
-          agentTrackingResult = {
-            action: 'started',
-            componentName: currentState.component.name,
-            success: false,
-            warning: `Failed to start agent tracking: ${error.message}`,
-          };
-          console.warn(`[advance_step] ${agentTrackingResult.warning}`);
-        }
-
         nextPhase = 'agent';
         checkpoint.resourceUsage = {
           ...(checkpoint.resourceUsage || { tokensUsed: 0, agentSpawns: 0, stateTransitions: 0, durationMs: 0 }),
@@ -315,10 +316,19 @@ export async function handler(prisma: PrismaClient, params: {
       // ST-215: AUTO - Call completeAgentTracking
       if (currentState.component) {
         try {
-          // Generate summary if not provided
-          const summary =
-            params.componentSummary ||
-            generateComponentSummary(params.output, currentState.component.name);
+          // ST-203: Generate structured summary if not provided
+          let summary: string | ComponentSummaryStructured;
+          if (params.componentSummary) {
+            summary = params.componentSummary;
+          } else {
+            // Auto-generate structured summary from output
+            const structured = generateStructuredSummary(
+              params.output,
+              currentState.component.name,
+              params.agentStatus === 'failed' ? 'failed' : 'success',
+            );
+            summary = structured; // Pass structured object
+          }
 
           const completeResult = await completeAgentTracking(prisma, {
             runId: run.id,
@@ -371,6 +381,38 @@ export async function handler(prisma: PrismaClient, params: {
           ...(checkpoint.resourceUsage || { tokensUsed: 0, agentSpawns: 0, stateTransitions: 0, durationMs: 0 }),
           stateTransitions: (checkpoint.resourceUsage?.stateTransitions || 0) + 1,
         };
+
+        // ST-216: Start agent tracking for the NEXT state when entering its pre phase
+        // This shows the agent as "running" in the UI even during pre-execution
+        if (nextState.component) {
+          try {
+            const startResult = await startAgentTracking(prisma, {
+              runId: run.id,
+              componentId: nextState.component.id,
+              input: params.output, // Previous state's output as context
+            });
+
+            agentTrackingResult = {
+              action: 'started',
+              componentRunId: startResult.componentRunId,
+              componentName: startResult.componentName || nextState.component.name,
+              success: startResult.success,
+              warning: startResult.warning || startResult.error,
+            };
+
+            if (!startResult.success) {
+              console.warn(`[advance_step] Agent tracking start failed for ${nextState.component.name}: ${startResult.error}`);
+            }
+          } catch (error: any) {
+            agentTrackingResult = {
+              action: 'started',
+              componentName: nextState.component.name,
+              success: false,
+              warning: `Failed to start agent tracking: ${error.message}`,
+            };
+            console.warn(`[advance_step] ${agentTrackingResult.warning}`);
+          }
+        }
       } else {
         // No more states - workflow complete
         workflowComplete = true;

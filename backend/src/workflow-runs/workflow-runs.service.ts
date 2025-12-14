@@ -9,6 +9,7 @@ import {
   WorkflowRunResponseDto,
   ComponentRunSummaryDto,
 } from './dto';
+import { parseComponentSummary } from '../types/component-summary.types';
 
 @Injectable()
 export class WorkflowRunsService {
@@ -688,7 +689,8 @@ export class WorkflowRunsService {
         success: run.success,
         // ST-195: Add output, componentSummary, and errorMessage for Results Summary view
         output: run.outputData,
-        componentSummary: run.componentSummary,
+        // ST-203: Parse componentSummary JSON to structured object
+        componentSummary: run.componentSummary ? parseComponentSummary(run.componentSummary) : null,
         errorMessage: run.errorMessage,
       })),
     };
