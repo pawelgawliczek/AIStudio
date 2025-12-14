@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUUID, MaxLength, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsUUID, MaxLength, IsNotEmpty, IsBoolean } from 'class-validator';
 
 export class CreateUseCaseDto {
   @ApiProperty({
@@ -53,4 +53,20 @@ export class CreateUseCaseDto {
   @IsOptional()
   @MaxLength(500)
   summary?: string;
+
+  @ApiPropertyOptional({
+    description: 'User ID creating this use case',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsUUID()
+  @IsOptional()
+  createdById?: string;
+
+  @ApiPropertyOptional({
+    description: 'ST-207: Auto-add area to project taxonomy if it does not exist',
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  autoAddArea?: boolean;
 }

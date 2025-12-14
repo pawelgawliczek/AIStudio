@@ -9,6 +9,7 @@ import {
   LinkUseCaseToStoryDto,
   UseCaseResponse,
 } from './dto';
+import { normalizeArea, findSimilarAreas, SimilarAreaMatch } from './taxonomy.util';
 
 @Injectable()
 export class UseCasesService {
@@ -30,7 +31,7 @@ export class UseCasesService {
   /**
    * Create a new use case with initial version
    */
-  async create(dto: CreateUseCaseDto, createdById: string): Promise<UseCaseResponse> {
+  async create(dto: CreateUseCaseDto, createdById?: string): Promise<UseCaseResponse> {
     // Check if project exists
     const project = await this.prisma.project.findUnique({
       where: { id: dto.projectId },
@@ -38,6 +39,16 @@ export class UseCasesService {
 
     if (!project) {
       throw new NotFoundException(`Project with ID ${dto.projectId} not found`);
+    }
+
+    // ST-207: Validate and normalize area against taxonomy
+    let normalizedArea: string | undefined;
+    if (dto.area) {
+      normalizedArea = await this.validateAndNormalizeArea(
+        dto.projectId,
+        dto.area,
+        dto.autoAddArea
+      );
     }
 
     // Check if key is unique within project
@@ -67,6 +78,9 @@ export class UseCasesService {
       }
     }
 
+    // Use the createdById from dto if not provided as parameter (backward compatibility)
+    const userId = createdById || dto.createdById;
+
     // Create use case with initial version in a transaction
     const useCase = await this.prisma.$transaction(async (tx) => {
       const newUseCase = await tx.useCase.create({
@@ -74,7 +88,7 @@ export class UseCasesService {
           projectId: dto.projectId,
           key: dto.key,
           title: dto.title,
-          area: dto.area,
+          area: normalizedArea,
         },
       });
 
@@ -88,7 +102,7 @@ export class UseCasesService {
           ${dto.summary},
           ${dto.content},
           ${embedding ? `[${embedding.join(',')}]` : null}::vector,
-          ${createdById}::uuid
+          ${userId}::uuid
         )
       `;
 
@@ -251,7 +265,7 @@ export class UseCasesService {
   /**
    * Update a use case (creates a new version)
    */
-  async update(id: string, dto: UpdateUseCaseDto, createdById: string): Promise<UseCaseResponse> {
+  async update(id: string, dto: UpdateUseCaseDto, createdById?: string): Promise<UseCaseResponse> {
     const useCase = await this.prisma.useCase.findUnique({
       where: { id },
       include: {
@@ -264,6 +278,16 @@ export class UseCasesService {
 
     if (!useCase) {
       throw new NotFoundException(`Use case with ID ${id} not found`);
+    }
+
+    // ST-207: Validate and normalize area if being updated
+    let normalizedArea: string | undefined;
+    if (dto.area !== undefined) {
+      normalizedArea = await this.validateAndNormalizeArea(
+        useCase.projectId,
+        dto.area,
+        dto.autoAddArea
+      );
     }
 
     // Generate embedding if content is updated and OpenAI is available
@@ -286,7 +310,7 @@ export class UseCasesService {
         where: { id },
         data: {
           title: dto.title ?? undefined,
-          area: dto.area ?? undefined,
+          area: normalizedArea ?? undefined,
         },
       });
 
@@ -1036,5 +1060,145 @@ export class UseCasesService {
     }
 
     this.logger.log('Finished regenerating embeddings');
+  }
+
+  /**
+   * ST-207: Validate area against project taxonomy
+   * Returns true if area exists in taxonomy (after normalization), false otherwise
+   */
+  async validateArea(projectId: string, area: string): Promise<boolean> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { taxonomy: true },
+    });
+
+    if (!project) {
+      return false;
+    }
+
+    const taxonomy = (project.taxonomy as string[]) || [];
+    const normalizedArea = normalizeArea(area);
+
+    // Check for exact match (case-insensitive)
+    return taxonomy.some(
+      (t) => normalizeArea(t).toLowerCase() === normalizedArea.toLowerCase()
+    );
+  }
+
+  /**
+   * ST-207: Get similar areas for suggestions
+   * Returns areas with Levenshtein distance <= 3, sorted by similarity
+   */
+  async getSimilarAreas(projectId: string, area: string): Promise<SimilarAreaMatch[]> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { taxonomy: true },
+    });
+
+    if (!project) {
+      return [];
+    }
+
+    const taxonomy = (project.taxonomy as string[]) || [];
+    return findSimilarAreas(area, taxonomy);
+  }
+
+  /**
+   * ST-207: Bulk update use case areas when taxonomy area is renamed
+   * Returns the number of use cases updated
+   */
+  async bulkUpdateArea(
+    projectId: string,
+    oldArea: string,
+    newArea: string
+  ): Promise<number> {
+    const useCases = await this.prisma.useCase.findMany({
+      where: {
+        projectId,
+        area: oldArea,
+      },
+    });
+
+    for (const useCase of useCases) {
+      await this.prisma.useCase.update({
+        where: { id: useCase.id },
+        data: { area: newArea },
+      });
+    }
+
+    return useCases.length;
+  }
+
+  /**
+   * ST-207: Private helper to validate and normalize area
+   * Throws BadRequestException if area is invalid
+   * Auto-adds to taxonomy if autoAddArea is true
+   * Returns normalized area name
+   */
+  private async validateAndNormalizeArea(
+    projectId: string,
+    area: string,
+    autoAddArea?: boolean
+  ): Promise<string> {
+    // Normalize the area first
+    const normalizedArea = normalizeArea(area);
+
+    // Handle empty area
+    if (!normalizedArea) {
+      throw new BadRequestException('Area name cannot be empty');
+    }
+
+    // Get project with taxonomy
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { taxonomy: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    const taxonomy = (project.taxonomy as string[]) || [];
+
+    // Check for exact match (case-insensitive after normalization)
+    const exactMatch = taxonomy.find(
+      (t) => normalizeArea(t).toLowerCase() === normalizedArea.toLowerCase()
+    );
+
+    if (exactMatch) {
+      // Return the exact match from taxonomy to preserve original casing
+      return exactMatch;
+    }
+
+    // No exact match - check if we should auto-add or suggest alternatives
+    if (autoAddArea) {
+      // Add the new area to taxonomy
+      const updatedTaxonomy = [...taxonomy, normalizedArea];
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: { taxonomy: updatedTaxonomy },
+      });
+      return normalizedArea;
+    }
+
+    // Find similar areas for suggestions
+    const suggestions = findSimilarAreas(area, taxonomy);
+
+    if (suggestions.length > 0) {
+      // Area is similar to existing areas - suggest alternatives
+      const error: any = new BadRequestException(
+        `Area '${normalizedArea}' is not in the taxonomy. Did you mean one of these similar areas? Use autoAddArea: true to add new areas.`
+      );
+      error.response = {
+        ...error.response,
+        suggestions: suggestions.map((s) => s.area),
+      };
+      throw error;
+    }
+
+    // No similar areas found - just reject
+    throw new BadRequestException(
+      `Area '${normalizedArea}' is not in the taxonomy. Use autoAddArea: true to add new areas.`
+    );
   }
 }

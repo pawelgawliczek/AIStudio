@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, MaxLength, IsBoolean } from 'class-validator';
 
 export class UpdateUseCaseDto {
   @ApiPropertyOptional({
@@ -36,4 +36,12 @@ export class UpdateUseCaseDto {
   @IsOptional()
   @MaxLength(500)
   summary?: string;
+
+  @ApiPropertyOptional({
+    description: 'ST-207: Auto-add area to project taxonomy if it does not exist',
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  autoAddArea?: boolean;
 }

@@ -44,6 +44,7 @@ model Project {
   localPath     String?       @map("local_path") // Local path to git repository for code analysis (Docker container path)
   hostPath      String?       @map("host_path") // Host filesystem path for transcript tracking (where Claude Code runs)
   status        ProjectStatus @default(active)
+  taxonomy      Json?         // ST-207: Controlled vocabulary for use case areas (array of strings)
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 

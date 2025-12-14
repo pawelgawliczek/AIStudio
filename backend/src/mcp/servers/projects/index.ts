@@ -10,3 +10,4 @@ export * as createProject from './create_project.js';
 export * as listProjects from './list_projects.js';
 export * as getProject from './get_project.js';
 export * as getProjectSummary from './get_project_summary.js';
+export * as manageProjectTaxonomy from './manage_project_taxonomy.js';
