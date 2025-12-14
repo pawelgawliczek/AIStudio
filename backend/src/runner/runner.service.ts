@@ -561,13 +561,13 @@ Repeat until workflow is complete:
    Follow each step in \`workflowSequence\` exactly:
    - For MCP tool calls: Use the specified tool with exact parameters
    - For "Task" tool calls: Spawn the component agent as instructed
-   - For agent phases: Wait for agent to complete, then call record_agent_complete
+   - For agent phases: Spawn agent, then call advance_step with output (tracking is automatic)
 
-3. **Advance to Next Phase**
-   After completing current phase:
-   \`\`\`
-   advance_step({ runId: "${runId}" })
-   \`\`\`
+3. **Agent Phases (ST-215: Simplified 2-Step)**
+   For agent phases, just follow the 2-step workflow:
+   1. Spawn agent via Task tool
+   2. Call \`advance_step({ runId: "${runId}", output: <agent_output> })\`
+   Agent tracking (record_agent_start/complete) is handled AUTOMATICALLY by advance_step.
 
 4. **Check for Completion**
    When \`get_current_step\` returns \`workflow_complete: true\`, the workflow is done.
@@ -583,8 +583,8 @@ get_runner_status({ runId: "${runId}" })
 ## Important Rules
 1. **Follow workflowSequence exactly** - Don't skip or modify steps
 2. **One phase at a time** - Complete pre → agent → post before advancing
-3. **Report progress** - Use record_agent_start/complete for agent phases
-4. **Handle errors gracefully** - If an agent fails, report it and continue or pause
+3. **Pass agent output to advance_step** - This enables automatic tracking and context preservation
+4. **Handle errors gracefully** - If an agent fails, pass agentStatus: 'failed' to advance_step
 
 ## Context
 - Workflow ID: ${workflowId}

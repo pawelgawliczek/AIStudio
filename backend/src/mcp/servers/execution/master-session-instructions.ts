@@ -96,36 +96,31 @@ After each component completes, update its status to "completed".
 2. **Update todo status** before/after each component
 3. For each component, use \`get_current_step({ story: '${storyContext?.storyKey || runId}' })\` to get exact execution steps
 
-## Agent Execution Sequence (ST-198: EXPLICIT 4-STEP WORKFLOW)
-For each agent phase, **you are responsible for the complete execution sequence**.
+## Agent Execution Sequence (ST-215: SIMPLIFIED 2-STEP WORKFLOW)
+For each agent phase, follow this simplified sequence. **Agent tracking is AUTOMATIC.**
 
-**The 4-Step Agent Execution Sequence:**
+**The 2-Step Agent Execution Sequence:**
 
-1. **Call record_agent_start** - Track when agent starts
-   \`\`\`typescript
-   record_agent_start({ runId: '${runId}', componentId })
-   \`\`\`
-
-2. **Spawn agent via Task tool** - Let the agent do the work
+1. **Spawn agent via Task tool** - Let the agent do the work
    \`\`\`typescript
    Task({ subagent_type: 'general-purpose', prompt: <instructions> })
    \`\`\`
 
-3. **Call record_agent_complete** - Track completion with output
+2. **Call advance_step with output** - Move to next phase (auto-completes tracking)
    \`\`\`typescript
-   record_agent_complete({ runId: '${runId}', componentId, status: 'completed', output })
+   advance_step({ story: '${storyContext?.storyKey || runId}', output: <agent_output> })
    \`\`\`
 
-4. **Call advance_step** - Move to next phase
-   \`\`\`typescript
-   advance_step({ story: '${storyContext?.storyKey || runId}', output })
-   \`\`\`
+✅ **Agent tracking is AUTOMATIC:**
+- \`advance_step\` automatically calls \`record_agent_start\` when entering agent phase
+- \`advance_step\` automatically calls \`record_agent_complete\` when leaving agent phase
+- ComponentSummary is auto-generated from output (or provide explicit \`componentSummary\` param)
 
 ⚠️ **CRITICAL RULES:**
-- **DO NOT skip any step** - All 4 steps are required for proper tracking
 - **DO NOT do the work yourself** - You MUST spawn a Task agent. You are the ORCHESTRATOR, not the implementer.
 - The Task agent does the actual work (coding, analysis, etc.). You just coordinate.
 - **Use get_current_step for detailed instructions** - It provides the exact workflow sequence with all parameters
+- **Pass agent output to advance_step** - This enables automatic tracking and context preservation
 
 ## MCP Tool Profile (ST-197)
 - **28 core VibeStudio tools** are directly available (stories, artifacts, runner, git, etc.)

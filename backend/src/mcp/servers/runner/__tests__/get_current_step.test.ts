@@ -144,18 +144,17 @@ describe('get_current_step MCP Tool', () => {
       expect(result.instructions.component).toBeDefined();
       expect(result.instructions.component.name).toBe('Architect');
       expect(result.instructions.component.tools).toEqual(['Read', 'Grep']);
-      // ST-198: Now returns 4-step workflow sequence
-      expect(result.nextAction.tool).toBe('record_agent_start');
+      // ST-215: Simplified 2-step workflow (agent tracking is automatic)
+      expect(result.nextAction.tool).toBe('Task');
+      expect(result.nextAction.hint).toContain('advance_step handles tracking automatically');
       expect(result.workflowSequence).toBeDefined();
-      expect(result.workflowSequence.length).toBe(4);
-      expect(result.workflowSequence[0].tool).toBe('record_agent_start');
-      expect(result.workflowSequence[1].type).toBe('agent_spawn');
-      expect(result.workflowSequence[2].tool).toBe('record_agent_complete');
-      // ST-195: Verify componentSummary template is included
-      expect(result.workflowSequence[2].parameters.componentSummary).toBe('{{AGENT_SUMMARY}}');
-      expect(result.workflowSequence[2].notes).toContain('Summary Format');
-      expect(result.workflowSequence[2].notes).toContain('Complete|Partial|Blocked|Failed');
-      expect(result.workflowSequence[3].tool).toBe('advance_step');
+      expect(result.workflowSequence.length).toBe(2);
+      // Step 1: Spawn agent via Task tool
+      expect(result.workflowSequence[0].type).toBe('agent_spawn');
+      expect(result.workflowSequence[0].notes).toContain('Task tool');
+      // Step 2: advance_step (auto-completes tracking)
+      expect(result.workflowSequence[1].tool).toBe('advance_step');
+      expect(result.workflowSequence[1].notes).toContain('AUTOMATIC');
     });
 
     it('should return post_execution instructions for post phase', async () => {
