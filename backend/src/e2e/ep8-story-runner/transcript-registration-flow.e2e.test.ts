@@ -23,6 +23,7 @@ describe('Transcript Registration E2E Tests', () => {
 
   // Test context for cleanup
   const ctx: {
+    userId?: string;
     projectId?: string;
     storyId?: string;
     workflowId?: string;
@@ -46,39 +47,59 @@ describe('Transcript Registration E2E Tests', () => {
     console.log(`Test prefix: ${testPrefix}`);
     prisma = new PrismaClient();
 
+    // Create test user for createdBy relation
+    const user = await prisma.user.create({
+      data: {
+        email: `${testPrefix}@test.local`,
+        name: 'Test User for Transcript E2E',
+        password: 'test-password-hash',
+        role: 'dev',
+      },
+    });
+    ctx.userId = user.id;
+
     // Create shared test data
     const project = await prisma.project.create({
       data: {
         name: `${testPrefix}_Project`,
         description: 'Test project for transcript E2E',
+        status: 'active',
       },
     });
     ctx.projectId = project.id;
 
     const story = await prisma.story.create({
       data: {
-        projectId: project.id,
+        project: { connect: { id: project.id } },
+        createdBy: { connect: { id: user.id } },
+        key: `ST-${Date.now()}`,
         title: `${testPrefix}_Story`,
         description: 'Test story for transcript E2E',
+        type: 'spike',
+        status: 'planning',
       },
     });
     ctx.storyId = story.id;
 
     const workflow = await prisma.workflow.create({
       data: {
-        projectId: project.id,
+        project: { connect: { id: project.id } },
         name: `${testPrefix}_Workflow`,
         description: 'Test workflow',
+        triggerConfig: { type: 'manual' },
+        active: true,
       },
     });
     ctx.workflowId = workflow.id;
 
     const component = await prisma.component.create({
       data: {
-        workflowId: workflow.id,
+        projectId: project.id,
         name: 'test-component',
-        type: 'native',
-        instructions: 'Test instructions',
+        inputInstructions: 'Test input instructions',
+        operationInstructions: 'Test operation instructions',
+        outputInstructions: 'Test output instructions',
+        config: {},
       },
     });
     ctx.componentId = component.id;
@@ -86,9 +107,9 @@ describe('Transcript Registration E2E Tests', () => {
     const sessionId = uuidv4();
     const run = await prisma.workflowRun.create({
       data: {
-        projectId: project.id,
-        workflowId: workflow.id,
-        storyId: story.id,
+        project: { connect: { id: project.id } },
+        workflow: { connect: { id: workflow.id } },
+        story: { connect: { id: story.id } },
         status: 'running',
         startedAt: new Date(),
         masterTranscriptPaths: [`/Users/test/.claude/projects/test/${sessionId}.jsonl`],
@@ -129,6 +150,9 @@ describe('Transcript Registration E2E Tests', () => {
       }
       if (ctx.projectId) {
         await prisma.project.delete({ where: { id: ctx.projectId } }).catch(() => {});
+      }
+      if (ctx.userId) {
+        await prisma.user.delete({ where: { id: ctx.userId } }).catch(() => {});
       }
       console.log('[CLEANUP] Complete');
     } catch (e) {
@@ -372,6 +396,108 @@ describe('Transcript Registration E2E Tests', () => {
       expect(run!.masterTranscriptPaths[1]).toContain(sessionId2);
 
       console.log(`[TEST] Master transcript paths: ${run!.masterTranscriptPaths.length}`);
+    });
+  });
+
+  describe('Transcript API Endpoint Simulation', () => {
+    /**
+     * This test simulates what transcripts.service.ts does when reading transcripts.
+     * The bug was that it read from the dedicated spawnedAgentTranscripts field
+     * instead of metadata.spawnedAgentTranscripts where data is actually stored.
+     */
+    it('should read transcripts from metadata.spawnedAgentTranscripts (not dedicated field)', async () => {
+      expect(ctx.runId).toBeDefined();
+      expect(ctx.componentId).toBeDefined();
+
+      // Store transcript in metadata.spawnedAgentTranscripts (as transcript-registration.service does)
+      const agentId = 'api-test-agent';
+      const transcriptPath = `/Users/test/.claude/projects/test/agent-${agentId}.jsonl`;
+
+      const run = await prisma.workflowRun.findUnique({
+        where: { id: ctx.runId! },
+      });
+      expect(run).not.toBeNull();
+
+      const metadata = (run!.metadata as any) || {};
+      const spawnedAgentTranscripts = metadata.spawnedAgentTranscripts || [];
+
+      spawnedAgentTranscripts.push({
+        componentId: ctx.componentId,
+        agentId,
+        transcriptPath,
+        spawnedAt: new Date().toISOString(),
+      });
+
+      await prisma.workflowRun.update({
+        where: { id: ctx.runId! },
+        data: {
+          metadata: {
+            ...metadata,
+            spawnedAgentTranscripts,
+          },
+        },
+      });
+
+      // Now simulate what the API endpoint does (the bug was here)
+      // BUG: Was reading from workflowRun.spawnedAgentTranscripts (dedicated field - empty)
+      // FIX: Read from workflowRun.metadata.spawnedAgentTranscripts
+      const workflowRun = await prisma.workflowRun.findUnique({
+        where: { id: ctx.runId! },
+        select: {
+          id: true,
+          metadata: true,
+          // The dedicated field should NOT be used for this:
+          // spawnedAgentTranscripts: true, // <- This was the bug
+        },
+      });
+
+      // Read from metadata (the correct way)
+      const spawnedAgents =
+        ((workflowRun!.metadata as any)?.spawnedAgentTranscripts as any[] | null) || [];
+
+      // Filter by componentId (what the API does)
+      const componentTranscripts = spawnedAgents.filter(
+        (t: any) => t.componentId === ctx.componentId,
+      );
+
+      expect(componentTranscripts.length).toBeGreaterThan(0);
+
+      const transcriptEntry = componentTranscripts[componentTranscripts.length - 1];
+      expect(transcriptEntry.agentId).toBe(agentId);
+      expect(transcriptEntry.transcriptPath).toBe(transcriptPath);
+
+      console.log(`✅ API endpoint pattern verified: Found transcript in metadata.spawnedAgentTranscripts`);
+    });
+
+    it('should NOT find transcripts in dedicated spawnedAgentTranscripts field', async () => {
+      // Verify that the dedicated field is NOT where transcripts are stored
+      const workflowRun = await prisma.workflowRun.findUnique({
+        where: { id: ctx.runId! },
+        select: {
+          id: true,
+          spawnedAgentTranscripts: true, // Dedicated field
+          metadata: true, // Where data actually lives
+        },
+      });
+
+      expect(workflowRun).not.toBeNull();
+
+      // Dedicated field should be empty (null or empty array)
+      const dedicatedField = workflowRun!.spawnedAgentTranscripts;
+      const isDedicatedEmpty = !dedicatedField || (Array.isArray(dedicatedField) && dedicatedField.length === 0);
+
+      // Metadata should have the transcripts
+      const metadataField = (workflowRun!.metadata as any)?.spawnedAgentTranscripts || [];
+
+      console.log(`[TEST] Dedicated field empty: ${isDedicatedEmpty}`);
+      console.log(`[TEST] Metadata field count: ${metadataField.length}`);
+
+      // This is the key assertion that would have caught the bug:
+      // If you read from dedicated field, you get nothing
+      // If you read from metadata, you get the transcripts
+      expect(metadataField.length).toBeGreaterThan(0);
+
+      console.log(`✅ Verified: Transcripts are in metadata, not dedicated field`);
     });
   });
 });

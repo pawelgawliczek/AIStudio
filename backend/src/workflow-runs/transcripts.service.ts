@@ -402,12 +402,13 @@ export class TranscriptsService {
       }
     }
 
-    // 3. Fallback: Get workflow run with spawnedAgentTranscripts
+    // 3. Fallback: Get workflow run with spawnedAgentTranscripts from metadata
+    // NOTE: Transcripts are stored in metadata.spawnedAgentTranscripts, NOT in the dedicated field
     const workflowRun = await this.prisma.workflowRun.findUnique({
       where: { id: runId },
       select: {
         id: true,
-        spawnedAgentTranscripts: true,
+        metadata: true,
       },
     });
 
@@ -415,8 +416,8 @@ export class TranscriptsService {
       throw new NotFoundException(`Workflow run not found: ${runId}`);
     }
 
-    // 4. Find transcript entry for this component in metadata
-    const spawnedAgents = (workflowRun.spawnedAgentTranscripts as any[] | null) || [];
+    // 4. Find transcript entry for this component in metadata.spawnedAgentTranscripts
+    const spawnedAgents = ((workflowRun.metadata as any)?.spawnedAgentTranscripts as any[] | null) || [];
     const transcriptEntry = spawnedAgents
       .filter((t: any) => t.componentId === componentId)
       .sort((a: any, b: any) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime())[0];
