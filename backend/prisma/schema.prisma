@@ -766,7 +766,10 @@ model WorkflowRun {
 
   // ST-172: Hook-based transcript tracking
   masterTranscriptPaths    String[] @default([]) @map("master_transcript_paths") // All master session transcripts (including post-compact)
-  spawnedAgentTranscripts  Json?    @map("spawned_agent_transcripts") // [{componentId, agentId, transcriptPath, spawnedAt}]
+  // @deprecated DO NOT USE - Data is stored in metadata.spawnedAgentTranscripts instead!
+  // This field exists but is NEVER populated. Always read from metadata.spawnedAgentTranscripts.
+  // TODO: Remove this field in a future migration once all code references are cleaned up.
+  spawnedAgentTranscripts  Json?    @map("spawned_agent_transcripts") // DEPRECATED - see metadata.spawnedAgentTranscripts
 
   // ST-147: Turn Tracking (distinguish all turns vs manual input)
   totalTurns         Int? @default(0) @map("total_turns") // All human messages in transcripts

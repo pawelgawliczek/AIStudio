@@ -165,14 +165,15 @@ export async function startAgentTracking(
 
     // Non-fatal: Start transcript tailing if available
     try {
+      // NOTE: spawnedAgentTranscripts is stored in metadata, NOT in the dedicated field
       const runForTranscript = await prisma.workflowRun.findUnique({
         where: { id: params.runId },
-        select: { spawnedAgentTranscripts: true },
+        select: { metadata: true },
       });
 
       if (runForTranscript) {
         const spawnedAgents =
-          (runForTranscript.spawnedAgentTranscripts as any[] | null) || [];
+          ((runForTranscript.metadata as any)?.spawnedAgentTranscripts as any[] | null) || [];
         const agentEntry = spawnedAgents.find(
           (a: any) => a.componentId === params.componentId,
         );
