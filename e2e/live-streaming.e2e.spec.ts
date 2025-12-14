@@ -71,11 +71,15 @@ test.describe('ST-220: Live Streaming Browser Tests', () => {
   });
 
   test.afterAll(async ({ browser }) => {
-    // Cleanup
-    if (testStoryId && api) {
+    // Cleanup - create fresh context since beforeAll closed its context
+    if (testStoryId) {
       try {
-        await api.deleteStory(testStoryId);
+        const context = await browser.newContext();
+        const token = await ApiHelper.login(context.request, 'admin@aistudio.local', 'admin123');
+        const cleanupApi = new ApiHelper(context.request, token);
+        await cleanupApi.deleteStory(testStoryId);
         console.log(`Cleaned up test story: ${testStoryId}`);
+        await context.close();
       } catch (e) {
         console.log('Cleanup: Story may have been already deleted');
       }
