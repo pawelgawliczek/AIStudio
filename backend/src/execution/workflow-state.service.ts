@@ -188,7 +188,10 @@ export class WorkflowStateService {
       completedAt: workflowRun.finishedAt?.toISOString(),
       errorMessage: workflowRun.errorMessage || undefined,
       metrics: {
-        totalTokens: workflowRun.totalTokens,
+        // ST-240: Calculate totalTokens from component runs instead of reading DB field
+        totalTokens: workflowRun.componentRuns.reduce(
+          (sum, cr) => sum + (cr.totalTokens || 0), 0
+        ) || workflowRun.totalTokens,
         // ST-27 Token Breakdown
         totalInputTokens: aggregatedMetrics.totalInputTokens,
         totalOutputTokens: aggregatedMetrics.totalOutputTokens,
