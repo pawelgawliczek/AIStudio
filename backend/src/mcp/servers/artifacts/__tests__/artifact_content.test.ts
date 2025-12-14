@@ -77,7 +77,7 @@ describe('Artifact Content Tools', () => {
       });
 
       expect(result.id).toBe('artifact-uuid');
-      expect(result.version).toBe(1);
+      expect(result.currentVersion).toBe(1);
       expect(result.contentType).toBe('text/markdown');
       expect(mockPrisma.artifact.create).toHaveBeenCalled();
     });
@@ -97,7 +97,7 @@ describe('Artifact Content Tools', () => {
         content: '# Updated Architecture\n\nNew content.',
       });
 
-      expect(result.version).toBe(2);
+      expect(result.currentVersion).toBe(2);
       expect(mockPrisma.artifact.update).toHaveBeenCalled();
     });
 

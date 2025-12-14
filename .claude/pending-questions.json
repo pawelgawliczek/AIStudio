@@ -491,3 +491,354 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-13T16:39:55Z",
+  "session_id": "6f7e57c4-c2b6-48c1-b772-83b9156f9385",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "The core profile includes ~30 most-used tools. Should I adjust this list based on your workflow, or is the usage-based selection good?",
+      "header": "Core Tools",
+      "options": [
+        {
+          "label": "Usage-based is good",
+          "description": "Use the top 30 tools from transcript analysis"
+        },
+        {
+          "label": "I'll review the list",
+          "description": "Show me the full list, I'll suggest changes"
+        },
+        {
+          "label": "Add specific tools",
+          "description": "I have specific tools that must be in core"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should we also trim verbose tool descriptions as part of this work? Currently descriptions are 500-1500 chars each.",
+      "header": "Descriptions",
+      "options": [
+        {
+          "label": "Yes, trim them",
+          "description": "Reduce descriptions to 1-2 sentences (~50% more savings)"
+        },
+        {
+          "label": "No, keep verbose",
+          "description": "Descriptions help Claude understand tool usage"
+        },
+        {
+          "label": "Separate story",
+          "description": "Do it later as a separate optimization"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "For the Playwright MCP server (~14k tokens), how should we handle it?",
+      "header": "Playwright",
+      "options": [
+        {
+          "label": "Keep always loaded",
+          "description": "I use browser testing frequently"
+        },
+        {
+          "label": "Disable by default",
+          "description": "Only enable when I need browser testing"
+        },
+        {
+          "label": "Out of scope",
+          "description": "Don't change Playwright config"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-13T16:43:22Z",
+  "session_id": "6f7e57c4-c2b6-48c1-b772-83b9156f9385",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Review the 28-tool core profile. Any tools to add or remove?",
+      "header": "Core List",
+      "options": [
+        {
+          "label": "Looks good",
+          "description": "Proceed with this list"
+        },
+        {
+          "label": "Add tools",
+          "description": "I need specific tools always available"
+        },
+        {
+          "label": "Remove tools",
+          "description": "Some tools should be invoke_tool only"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-13T18:03:51Z",
+  "session_id": "6f7e57c4-c2b6-48c1-b772-83b9156f9385",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "For the ~125 non-core tools, should I optimize all of them now, or focus only on the core 28 + confusion clusters and defer the rest?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "Core 28 + clusters only",
+          "description": "Optimize 28 core tools + ~20 confusion cluster tools (~50 total). Faster, immediate impact."
+        },
+        {
+          "label": "All 153 tools",
+          "description": "Complete optimization of every tool. More work but consistent codebase."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T05:52:20Z",
+  "session_id": "95614b25-3d41-4c9b-a77a-557d5b0f268b",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Should artifacts persist and accumulate across workflow runs of the same story, or should each new run replace the previous artifacts?",
+      "header": "Persistence",
+      "options": [
+        {
+          "label": "Accumulate",
+          "description": "New runs add new versions, all history preserved. E.g., ARCH_DOC v1 from run 1, v2 from run 2, etc."
+        },
+        {
+          "label": "Replace (Latest)",
+          "description": "Each run overwrites artifacts. Only the most recent version exists per story."
+        },
+        {
+          "label": "Inherit + Extend",
+          "description": "New runs start with previous run's artifacts and can modify/add to them."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What's the primary use case driving this change?",
+      "header": "Use Case",
+      "options": [
+        {
+          "label": "Cross-run continuity",
+          "description": "Agents in new runs need to see/use artifacts from previous failed/partial runs."
+        },
+        {
+          "label": "Story-level reporting",
+          "description": "Want to view all artifacts for a story regardless of which run produced them."
+        },
+        {
+          "label": "Reduce duplication",
+          "description": "Same artifacts get regenerated on every run, wasting time and tokens."
+        },
+        {
+          "label": "Artifact evolution",
+          "description": "Track how artifacts (like arch docs) evolve across multiple runs of the same story."
+        }
+      ],
+      "multiSelect": true
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T05:58:15Z",
+  "session_id": "95614b25-3d41-4c9b-a77a-557d5b0f268b",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "When planning without a story context (e.g., general exploration), where should the plan artifact go?",
+      "header": "No-Story Plan",
+      "options": [
+        {
+          "label": "Require story first",
+          "description": "User must set story context before planning. Error if no story."
+        },
+        {
+          "label": "Project-level artifacts",
+          "description": "Create project-level artifacts for plans without story context. Extend artifact system."
+        },
+        {
+          "label": "Keep .md fallback",
+          "description": "Use artifacts when story exists, fall back to .md files when no story context."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T06:04:11Z",
+  "session_id": "95614b25-3d41-4c9b-a77a-557d5b0f268b",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Which workflow should we use for ST-214 (Story-Scoped Artifacts)?",
+      "header": "Workflow",
+      "options": [
+        {
+          "label": "With Approved Plan (Recommended)",
+          "description": "Skips exploration/planning since plan is approved. Goes: Security → Architecture → Approval → TDD → Implementation → Review"
+        },
+        {
+          "label": "Standard Dev Workflow",
+          "description": "Full 9 states including exploration and planning phases. More thorough but redundant given existing plan."
+        },
+        {
+          "label": "Simplified Workflow",
+          "description": "Only 3 states (explore → implement → test). Fast but may miss security/architecture review for this complex change."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T06:25:55Z",
+  "session_id": "95614b25-3d41-4c9b-a77a-557d5b0f268b",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Do you approve proceeding to TDD Testing and Implementation with the security fixes incorporated?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve",
+          "description": "Proceed with implementation. Security fixes will be incorporated during TDD and implementation phases."
+        },
+        {
+          "label": "Request Changes",
+          "description": "Need modifications to the plan before proceeding."
+        },
+        {
+          "label": "Cancel Workflow",
+          "description": "Stop the workflow and revisit the requirements."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T06:32:38Z",
+  "session_id": "69eb1d37-9ce5-49f9-871f-1181c32d7606",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Should the automatic tracking be always-on, or controlled by a flag (e.g., `autoTrackAgent: boolean` in advance_step params)?",
+      "header": "Behavior",
+      "options": [
+        {
+          "label": "Always automatic",
+          "description": "Simplest approach - always track agent start/complete when transitioning to/from agent phase"
+        },
+        {
+          "label": "Optional flag",
+          "description": "Add autoTrackAgent param to advance_step to enable/disable automatic tracking (default: true)"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What should happen if record_agent_start or record_agent_complete fails during advance_step?",
+      "header": "Error handling",
+      "options": [
+        {
+          "label": "Fail the transition",
+          "description": "Return error from advance_step if tracking fails - ensures consistent state"
+        },
+        {
+          "label": "Log and continue",
+          "description": "Log warning but continue with phase transition - tracking is non-blocking"
+        },
+        {
+          "label": "Return warning",
+          "description": "Complete transition but include warning in response about tracking failure"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should we handle the componentSummary field that record_agent_complete expects?",
+      "header": "Summary",
+      "options": [
+        {
+          "label": "Optional param",
+          "description": "Add componentSummary as optional param to advance_step when transitioning from agent phase"
+        },
+        {
+          "label": "Auto-generate",
+          "description": "Generate a basic summary from the output data automatically"
+        },
+        {
+          "label": "Skip it",
+          "description": "Don't require componentSummary for automatic tracking - it can be added manually later"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T06:44:40Z",
+  "session_id": "95614b25-3d41-4c9b-a77a-557d5b0f268b",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "The code review found 4 critical issues. How would you like to proceed?",
+      "header": "Next Step",
+      "options": [
+        {
+          "label": "Fix issues first",
+          "description": "Go back to implementation to fix the migration SQL and types.ts issues before deployment."
+        },
+        {
+          "label": "Skip to verification",
+          "description": "Proceed with TypeScript check and deployment as-is (may fail if issues exist)."
+        },
+        {
+          "label": "Complete workflow",
+          "description": "Mark workflow as complete with code review findings documented. Fix issues in a follow-up story."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T06:48:57Z",
+  "session_id": "95614b25-3d41-4c9b-a77a-557d5b0f268b",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "ST-214 is a backend/schema change. How should we handle the Playwright verification phase?",
+      "header": "Verification",
+      "options": [
+        {
+          "label": "Skip & Complete",
+          "description": "Skip Playwright verification and mark workflow complete. Deploy will happen separately."
+        },
+        {
+          "label": "Run verification anyway",
+          "description": "Deploy to production and run Playwright to verify no regressions."
+        },
+        {
+          "label": "Mark as pending",
+          "description": "Pause workflow here. Complete verification later after manual deployment."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

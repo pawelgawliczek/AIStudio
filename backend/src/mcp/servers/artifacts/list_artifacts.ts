@@ -9,6 +9,7 @@ import {
   ListArtifactsParams,
   ArtifactResponse,
   NotFoundError,
+  ValidationError,
   PaginatedResponse,
 } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
@@ -155,7 +156,7 @@ export async function handler(
       },
       orderBy: [
         { definition: { key: 'asc' } },
-        { version: 'desc' },
+        { currentVersion: 'desc' },
       ],
       skip,
       take: pageSize,

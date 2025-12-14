@@ -120,6 +120,52 @@
       "startedAt": "2025-12-10T07:01:19Z",
       "endedAt": "2025-12-10T07:10:59Z",
       "endReason": "other"
+    },
+    "76c49147-eae1-4f07-b9f3-f90e8123461f": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/76c49147-eae1-4f07-b9f3-f90e8123461f.jsonl"
+      ],
+      "startedAt": "2025-12-13T15:35:34Z",
+      "endedAt": "2025-12-13T16:29:22Z",
+      "endReason": "clear"
+    },
+    "6f7e57c4-c2b6-48c1-b772-83b9156f9385": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/6f7e57c4-c2b6-48c1-b772-83b9156f9385.jsonl",
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/95614b25-3d41-4c9b-a77a-557d5b0f268b.jsonl"
+      ],
+      "startedAt": "2025-12-13T16:29:22Z",
+      "endedAt": "2025-12-13T16:58:50Z",
+      "endReason": "prompt_input_exit"
+    },
+    "4701208d-8da9-4a51-b57a-808544f447b8": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/4701208d-8da9-4a51-b57a-808544f447b8.jsonl"
+      ],
+      "startedAt": "2025-12-13T17:11:58Z",
+      "endedAt": "2025-12-13T17:11:58Z",
+      "endReason": "other"
+    },
+    "d7f36449-d7e7-450f-863d-72c6cd74a28d": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/d7f36449-d7e7-450f-863d-72c6cd74a28d.jsonl"
+      ],
+      "startedAt": "2025-12-13T18:51:04Z",
+      "endedAt": "2025-12-14T05:45:34Z",
+      "endReason": "clear"
+    },
+    "95614b25-3d41-4c9b-a77a-557d5b0f268b": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/69eb1d37-9ce5-49f9-871f-1181c32d7606.jsonl",
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/95614b25-3d41-4c9b-a77a-557d5b0f268b.jsonl"
+      ],
+      "startedAt": "2025-12-14T05:45:34Z"
+    },
+    "69eb1d37-9ce5-49f9-871f-1181c32d7606": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/69eb1d37-9ce5-49f9-871f-1181c32d7606.jsonl"
+      ],
+      "startedAt": "2025-12-14T06:27:47Z"
     }
   }
 }

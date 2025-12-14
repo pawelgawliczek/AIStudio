@@ -88,7 +88,7 @@ interface OpenArtifactSessionResponse {
 function buildSessionContext(
   artifact: {
     content: string;
-    version: number;
+    currentVersion: number;
     definition?: {
       name: string;
       key: string;
@@ -98,7 +98,7 @@ function buildSessionContext(
   },
   discussionPrompt?: string,
 ): string {
-  const { definition, content, version } = artifact;
+  const { definition, content, currentVersion } = artifact;
   const name = definition?.name || 'Unknown';
   const key = definition?.key || 'UNKNOWN';
   const type = definition?.type || 'markdown';
@@ -106,7 +106,7 @@ function buildSessionContext(
 
   let context = `# Artifact: ${name} (${key})
 Type: ${type}
-Version: ${version}
+Version: ${currentVersion}
 `;
 
   if (schema) {
@@ -176,7 +176,7 @@ export async function handler(
     const instructions = buildSessionContext(
       {
         content: artifact.content,
-        version: artifact.version,
+        currentVersion: artifact.currentVersion,
         definition: artifact.definition,
       },
       discussionPrompt,
@@ -251,7 +251,7 @@ export async function handler(
       artifactId: artifact.id,
       artifactKey: artifact.definition?.key,
       artifactName: artifact.definition?.name,
-      version: artifact.version,
+      currentVersion: artifact.currentVersion,
       agentId: selectedAgent.id,
       agentHostname: selectedAgent.hostname,
       status: 'pending',

@@ -274,7 +274,7 @@ export async function handler(prisma: PrismaClient, params: any) {
                     content: null,
                     contentType: artifact.contentType,
                     size: artifact.size,
-                    version: artifact.version,
+                    currentVersion: artifact.currentVersion,
                     createdBy: artifact.createdByComponent?.name || 'unknown',
                     updatedAt: artifact.updatedAt.toISOString(),
                     _truncated: markOmitted(
@@ -290,7 +290,7 @@ export async function handler(prisma: PrismaClient, params: any) {
                     content: artifact.content,
                     contentType: artifact.contentType,
                     size: artifact.size,
-                    version: artifact.version,
+                    currentVersion: artifact.currentVersion,
                     createdBy: artifact.createdByComponent?.name || 'unknown',
                     updatedAt: artifact.updatedAt.toISOString(),
                   };

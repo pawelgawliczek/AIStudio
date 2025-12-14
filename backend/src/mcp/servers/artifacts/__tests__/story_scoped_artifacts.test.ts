@@ -393,7 +393,7 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
       });
 
       // Should return existing artifact without version bump
-      expect(result.version).toBe(3);
+      expect(result.currentVersion).toBe(3);
       expect(mockPrisma.artifact.update).not.toHaveBeenCalled();
       expect(mockPrisma.artifactVersion.create).not.toHaveBeenCalled();
     });
@@ -450,7 +450,7 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
         content: newContent,
       });
 
-      expect(result.version).toBe(2);
+      expect(result.currentVersion).toBe(2);
       expect(mockPrisma.artifact.update).toHaveBeenCalled();
       expect(mockPrisma.artifactVersion.create).toHaveBeenCalled();
     });
@@ -527,7 +527,7 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
 
       expect(result.id).toBe('artifact-uuid');
       expect(result.storyId).toBe('story-uuid');
-      expect(result.version).toBe(3);
+      expect(result.currentVersion).toBe(3);
     });
 
     it('should get artifact by workflowRunId (backward compat)', async () => {
@@ -613,7 +613,7 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
         version: 2,
       });
 
-      expect(result.version).toBe(2);
+      expect(result.currentVersion).toBe(2);
       expect(result.content).toBe('# Version 2');
       expect(mockPrisma.artifactVersion.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -694,9 +694,9 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
       });
 
       expect(result.artifacts).toHaveLength(2);
-      expect(result.artifacts[0].version).toBe(3);
+      expect(result.artifacts[0].currentVersion).toBe(3);
       expect(result.artifacts[0].versionCount).toBe(3);
-      expect(result.artifacts[1].version).toBe(1);
+      expect(result.artifacts[1].currentVersion).toBe(1);
       expect(result.artifacts[1].versionCount).toBe(1);
     });
 
@@ -786,8 +786,8 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
       });
 
       expect(result.artifacts[0].versionHistory).toHaveLength(3);
-      expect(result.artifacts[0].versionHistory[0].version).toBe(1);
-      expect(result.artifacts[0].versionHistory[2].version).toBe(3);
+      expect(result.artifacts[0].versionHistory[0].currentVersion).toBe(1);
+      expect(result.artifacts[0].versionHistory[2].currentVersion).toBe(3);
     });
   });
 
@@ -1170,7 +1170,7 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
         content,
       });
 
-      expect(result.version).toBe(6);
+      expect(result.currentVersion).toBe(6);
       expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
 
@@ -1225,8 +1225,8 @@ describe('Story-Scoped Artifacts (ST-214)', () => {
       });
 
       // Versions should be sequential
-      expect(result1.version).toBe(11);
-      expect(result2.version).toBe(12);
+      expect(result1.currentVersion).toBe(11);
+      expect(result2.currentVersion).toBe(12);
     });
   });
 });

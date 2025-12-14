@@ -167,8 +167,8 @@ export async function handler(
       success: true,
       artifactId: artifact.id,
       artifactKey: artifact.definition?.key,
-      previousVersion: artifact.version,
-      newVersion: result.version,
+      previousVersion: artifact.currentVersion,
+      newVersion: result.currentVersion,
       size: result.size,
     };
   } catch (error: any) {
