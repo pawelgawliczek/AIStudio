@@ -322,6 +322,20 @@ export class DeploymentService {
       }
 
       // ========================================================================
+      // PHASE 4.9: Pull Latest Code from Main
+      // ========================================================================
+      console.log('[DeploymentService] Phase 4.9: Pulling latest code from main...');
+      try {
+        execSync('git pull origin main', {
+          cwd: this.projectRoot,
+          stdio: 'inherit',
+        });
+        console.log('[DeploymentService] ✅ Git pull completed');
+      } catch (gitPullError: any) {
+        throw new Error(`Git pull failed: ${gitPullError.message}`);
+      }
+
+      // ========================================================================
       // PHASE 5 & 6: Build Containers (AC5) - Parallel Execution
       // ========================================================================
       console.log('[DeploymentService] Phase 5 & 6: Building containers (parallel)');
