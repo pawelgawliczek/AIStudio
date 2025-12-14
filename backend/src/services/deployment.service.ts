@@ -120,7 +120,9 @@ export class DeploymentService {
     this.lockService = lockService || new DeploymentLockService(this.prisma);
     this.backupService = backupService || new BackupService();
     this.restoreService = restoreService || new RestoreService();
-    this.projectRoot = path.resolve(__dirname, '../../../');
+    // ST-236: Use PROJECT_PATH env var (host path) for git/docker operations
+    // Falls back to resolved path for local development
+    this.projectRoot = process.env.PROJECT_PATH || path.resolve(__dirname, '../../../');
     this.buildDecisionService = buildDecisionService || new BuildDecisionService(this.prisma, this.projectRoot);
     this.websocketGateway = websocketGateway || null;
   }
