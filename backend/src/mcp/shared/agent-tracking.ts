@@ -19,6 +19,25 @@ import {
   serializeComponentSummary,
   ComponentSummaryStructured,
 } from '../../types/component-summary.types';
+import { RemoteRunner } from '../utils/remote-runner';
+
+// Metrics from transcript parsing
+interface TranscriptMetrics {
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationTokens: number;
+  cacheReadTokens: number;
+  totalTokens: number;
+  model: string;
+  transcriptPath: string;
+  agentId?: string;
+  sessionId?: string;
+  turns?: {
+    totalTurns: number;
+    manualPrompts: number;
+    autoContinues: number;
+  };
+}
 
 export interface StartAgentResult {
   success: boolean;
@@ -36,6 +55,9 @@ export interface CompleteAgentResult {
   status?: 'completed' | 'failed';
   metrics?: {
     durationSeconds: number | null;
+    tokensInput?: number | null;
+    tokensOutput?: number | null;
+    totalTokens?: number | null;
   };
   warning?: string;
   error?: string;
@@ -205,12 +227,10 @@ export async function startAgentTracking(
 /**
  * Complete agent execution tracking
  *
- * Updates ComponentRun record with output, status, and duration
+ * Updates ComponentRun record with output, status, duration, AND telemetry metrics
+ * Parses transcript files on laptop for token counts (via RemoteRunner)
  * Broadcasts WebSocket event (non-fatal if fails)
  * Stops transcript tailing (non-fatal if fails)
- *
- * Note: This is a simplified version that does NOT parse transcripts for detailed metrics.
- * For full metrics (tokens, cache), use record_agent_complete directly.
  */
 export async function completeAgentTracking(
   prisma: PrismaClient,
@@ -303,7 +323,65 @@ export async function completeAgentTracking(
       summaryJson = serializeComponentSummary(structured);
     }
 
-    // Update ComponentRun
+    // Parse transcript for telemetry (non-fatal if fails)
+    let telemetryMetrics: {
+      tokensInput: number | null;
+      tokensOutput: number | null;
+      totalTokens: number | null;
+      tokensCacheCreation: number | null;
+      tokensCacheRead: number | null;
+    } | null = null;
+
+    try {
+      // Look for transcript in metadata.spawnedAgentTranscripts
+      const workflowRunForTranscripts = await prisma.workflowRun.findUnique({
+        where: { id: params.runId },
+        select: { metadata: true },
+      });
+
+      const spawnedAgentTranscripts =
+        ((workflowRunForTranscripts?.metadata as any)?.spawnedAgentTranscripts as any[] | null) || [];
+
+      // Find transcript for this component, most recent first
+      const matchingTranscripts = spawnedAgentTranscripts
+        .filter((t: any) => t.componentId === params.componentId)
+        .sort((a: any, b: any) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
+
+      if (matchingTranscripts.length > 0) {
+        const transcriptPath = matchingTranscripts[0].transcriptPath;
+        console.log(`[agent-tracking] Found transcript for ${params.componentId}: ${transcriptPath}`);
+
+        // Parse transcript on laptop via RemoteRunner
+        const runner = new RemoteRunner();
+        const result = await runner.execute<TranscriptMetrics>('parse-transcript', [`--file=${transcriptPath}`], {
+          requestedBy: 'completeAgentTracking',
+        });
+
+        if (result.executed && result.success && result.result) {
+          const metrics = result.result;
+          telemetryMetrics = {
+            tokensInput: metrics.inputTokens,
+            tokensOutput: metrics.outputTokens,
+            totalTokens: metrics.inputTokens + metrics.outputTokens + (metrics.cacheCreationTokens || 0),
+            tokensCacheCreation: metrics.cacheCreationTokens,
+            tokensCacheRead: metrics.cacheReadTokens,
+          };
+          console.log(`[agent-tracking] Parsed telemetry for ${params.componentId}:`, {
+            tokensInput: telemetryMetrics.tokensInput,
+            tokensOutput: telemetryMetrics.tokensOutput,
+            totalTokens: telemetryMetrics.totalTokens,
+          });
+        } else {
+          console.warn(`[agent-tracking] Failed to parse transcript: ${result.error || 'unknown error'}`);
+        }
+      } else {
+        console.log(`[agent-tracking] No transcript found for component ${params.componentId}`);
+      }
+    } catch (telemetryError: any) {
+      console.warn(`[agent-tracking] Telemetry parsing failed (non-fatal): ${telemetryError.message}`);
+    }
+
+    // Update ComponentRun with telemetry
     const updatedComponentRun = await prisma.componentRun.update({
       where: { id: componentRun.id },
       data: {
@@ -313,6 +391,12 @@ export async function completeAgentTracking(
         errorMessage: params.errorMessage || null,
         durationSeconds,
         finishedAt: completedAt,
+        // Add telemetry if available
+        ...(telemetryMetrics && {
+          tokensInput: telemetryMetrics.tokensInput,
+          tokensOutput: telemetryMetrics.tokensOutput,
+          totalTokens: telemetryMetrics.totalTokens,
+        }),
       },
     });
 
@@ -359,7 +443,12 @@ export async function completeAgentTracking(
       componentRunId: updatedComponentRun.id,
       componentName: component?.name,
       status,
-      metrics: { durationSeconds },
+      metrics: {
+        durationSeconds,
+        tokensInput: telemetryMetrics?.tokensInput,
+        tokensOutput: telemetryMetrics?.tokensOutput,
+        totalTokens: telemetryMetrics?.totalTokens,
+      },
     };
   } catch (error: any) {
     return {
