@@ -154,6 +154,33 @@ export class WorkflowRunsController {
     return this.workflowRunsService.getArtifactAccess(id);
   }
 
+  @Put(':runId/artifacts/:artifactId')
+  @ApiOperation({ summary: 'Update artifact content (ST-217)' })
+  @ApiParam({ name: 'projectId', description: 'Project UUID' })
+  @ApiParam({ name: 'runId', description: 'Workflow Run UUID' })
+  @ApiParam({ name: 'artifactId', description: 'Artifact UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Artifact updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Access denied' })
+  @ApiResponse({ status: 404, description: 'Artifact not found' })
+  async updateArtifactContent(
+    @Param('projectId') projectId: string,
+    @Param('runId') runId: string,
+    @Param('artifactId') artifactId: string,
+    @Body() body: { content: string },
+    @Req() request: any,
+  ): Promise<any> {
+    // Validate access
+    await this.validateProjectAccess(request.user?.userId, projectId);
+    await this.validateRunBelongsToProject(runId, projectId);
+    await this.validateArtifactBelongsToRun(artifactId, runId);
+
+    return this.workflowRunsService.updateArtifactContent(artifactId, body.content, runId);
+  }
+
   @Get(':id/context')
   @ApiOperation({ summary: 'Get workflow context (for coordinator decisions)' })
   @ApiResponse({

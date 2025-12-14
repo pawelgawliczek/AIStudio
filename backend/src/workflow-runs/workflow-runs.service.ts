@@ -591,6 +591,101 @@ export class WorkflowRunsService {
     };
   }
 
+  /**
+   * ST-217: Update artifact content with version history
+   */
+  async updateArtifactContent(
+    artifactId: string,
+    content: string,
+    workflowRunId?: string,
+  ): Promise<any> {
+    const artifact = await this.prisma.artifact.findUnique({
+      where: { id: artifactId },
+      include: { definition: true },
+    });
+
+    if (!artifact) {
+      throw new NotFoundException(`Artifact not found: ${artifactId}`);
+    }
+
+    // Calculate new hash to check for duplicate content
+    const crypto = await import('crypto');
+    const contentHash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+
+    // Skip update if content hasn't changed
+    if (artifact.contentHash === contentHash) {
+      return {
+        id: artifact.id,
+        definitionId: artifact.definitionId,
+        definitionKey: artifact.definition.key,
+        definitionName: artifact.definition.name,
+        type: artifact.definition.type,
+        workflowRunId: artifact.workflowRunId,
+        version: artifact.currentVersion,
+        content: artifact.content,
+        contentPreview: artifact.content?.substring(0, 500) || null,
+        contentType: artifact.contentType,
+        size: artifact.size,
+        createdAt: artifact.createdAt.toISOString(),
+        updatedAt: artifact.updatedAt.toISOString(),
+        createdBy: null,
+        skipped: true,
+        message: 'Content unchanged, no new version created',
+      };
+    }
+
+    const size = Buffer.byteLength(content, 'utf8');
+    const newVersion = artifact.currentVersion + 1;
+
+    // Use transaction for atomic update
+    const updatedArtifact = await this.prisma.$transaction(async (tx) => {
+      // Update the artifact
+      const updated = await tx.artifact.update({
+        where: { id: artifactId },
+        data: {
+          content,
+          contentHash,
+          size,
+          currentVersion: newVersion,
+          lastUpdatedRunId: workflowRunId,
+        },
+        include: { definition: true },
+      });
+
+      // Create version history entry
+      await tx.artifactVersion.create({
+        data: {
+          artifactId,
+          version: newVersion,
+          workflowRunId,
+          content,
+          contentHash,
+          contentType: artifact.contentType,
+          size,
+        },
+      });
+
+      return updated;
+    });
+
+    return {
+      id: updatedArtifact.id,
+      definitionId: updatedArtifact.definitionId,
+      definitionKey: updatedArtifact.definition.key,
+      definitionName: updatedArtifact.definition.name,
+      type: updatedArtifact.definition.type,
+      workflowRunId: updatedArtifact.workflowRunId,
+      version: updatedArtifact.currentVersion,
+      content: updatedArtifact.content,
+      contentPreview: updatedArtifact.content?.substring(0, 500) || null,
+      contentType: updatedArtifact.contentType,
+      size: updatedArtifact.size,
+      createdAt: updatedArtifact.createdAt.toISOString(),
+      updatedAt: updatedArtifact.updatedAt.toISOString(),
+      createdBy: null,
+    };
+  }
+
   // ==========================================================================
   // ST-173: Validation Helpers for Transcript Endpoints
   // ==========================================================================

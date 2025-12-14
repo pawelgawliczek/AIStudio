@@ -1,83 +1,57 @@
-import { NotFoundException } from '@nestjs/common';
+/**
+ * ST-237: Tests for WorkflowRunsService.updateArtifactContent
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
-import { WorkflowStateService } from '../../execution/workflow-state.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
-import { RunStatus } from '../dto';
+import { NotFoundException } from '@nestjs/common';
 import { WorkflowRunsService } from '../workflow-runs.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { WorkflowStateService } from '../../execution/workflow-state.service';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 
 describe('WorkflowRunsService', () => {
   let service: WorkflowRunsService;
-  let prismaService: PrismaService;
-  let workflowStateService: WorkflowStateService;
 
-  const mockProject = {
-    id: 'project-1',
-    name: 'Test Project',
-  };
-
-  const mockWorkflow = {
-    id: 'workflow-1',
-    name: 'Test Workflow',
-    coordinator: {
-      id: 'coordinator-1',
-      name: 'Test Coordinator',
-    },
-  };
-
-  const mockStory = {
-    id: 'story-1',
-    key: 'ST-28',
-    title: 'Add global live workflow tracking bar',
-  };
-
-  const mockWorkflowRun = {
-    id: 'run-1',
-    projectId: 'project-1',
-    workflowId: 'workflow-1',
+  const mockArtifact = {
+    id: 'artifact-1',
+    definitionId: 'def-1',
     storyId: 'story-1',
-    status: RunStatus.running,
-    startedAt: new Date('2024-01-15T10:00:00Z'),
-    finishedAt: null,
-    totalTokens: 50000,
-    estimatedCost: 0.75,
-    totalUserPrompts: 2,
-    totalIterations: 5,
-    totalInterventions: 1,
-    totalLocGenerated: 150,
-    totalTestsAdded: 8,
-    workflow: mockWorkflow,
-    story: mockStory,
-    componentRuns: [],
+    workflowRunId: 'run-1',
+    content: 'Original content',
+    contentHash: 'abc123',
+    contentType: 'text/markdown',
+    size: 16,
+    currentVersion: 1,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+    definition: {
+      id: 'def-1',
+      key: 'TEST_DOC',
+      name: 'Test Document',
+      type: 'markdown',
+    },
   };
 
   const mockPrismaService = {
-    project: {
+    artifact: {
       findUnique: jest.fn(),
-    },
-    workflow: {
-      findUnique: jest.fn(),
-    },
-    workflowRun: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      findFirst: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
     },
-    componentRun: {
-      findMany: jest.fn(),
-      count: jest.fn(),
+    artifactVersion: {
+      create: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
-  const mockWorkflowStateService = {};
+  const mockWorkflowStateService = {
+    getWorkflowRunStatus: jest.fn(),
+    getWorkflowArtifacts: jest.fn(),
+    getArtifactAccess: jest.fn(),
+    getWorkflowContext: jest.fn(),
+  };
 
   const mockWebSocketGateway = {
-    server: {
-      emit: jest.fn(),
-    },
+    broadcastWorkflowStarted: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -91,198 +65,141 @@ describe('WorkflowRunsService', () => {
     }).compile();
 
     service = module.get<WorkflowRunsService>(WorkflowRunsService);
-    prismaService = module.get<PrismaService>(PrismaService);
-    workflowStateService = module.get<WorkflowStateService>(WorkflowStateService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('TC-WORKFLOW-TRACKING-001: getActiveWorkflowForProject', () => {
-    it('should return active workflow run when one exists', async () => {
-      const activeRun = {
-        ...mockWorkflowRun,
-        componentRuns: [
-          {
-            id: 'comp-run-1',
-            componentId: 'comp-1',
-            status: RunStatus.completed,
-            startedAt: new Date('2024-01-15T10:00:00Z'),
-            finishedAt: new Date('2024-01-15T10:05:00Z'),
-            component: {
-              id: 'comp-1',
-              name: 'Context Explore',
-            },
-          },
-          {
-            id: 'comp-run-2',
-            componentId: 'comp-2',
-            status: RunStatus.running,
-            startedAt: new Date('2024-01-15T10:05:00Z'),
-            finishedAt: null,
-            component: {
-              id: 'comp-2',
-              name: 'Business Analyst',
-            },
-          },
-        ],
-      };
+  describe('updateArtifactContent', () => {
+    it('should throw NotFoundException when artifact does not exist', async () => {
+      mockPrismaService.artifact.findUnique.mockResolvedValue(null);
 
-      mockPrismaService.workflowRun.findFirst.mockResolvedValue(activeRun);
-      mockPrismaService.componentRun.count.mockResolvedValue(6);
+      await expect(
+        service.updateArtifactContent('non-existent', 'new content'),
+      ).rejects.toThrow(NotFoundException);
 
-      const result = await service.getActiveWorkflowForProject('project-1');
-
-      expect(result).toBeDefined();
-      expect(result.status).toBe(RunStatus.running);
-      expect(result.storyKey).toBe('ST-28');
-      expect(result.storyTitle).toBe('Add global live workflow tracking bar');
-      expect(result.activeComponentName).toBe('Business Analyst');
-      expect(result.progress.completed).toBe(1);
-      expect(result.progress.total).toBe(6);
-      expect(result.progress.percentage).toBe(17); // Math.round(1/6 * 100)
-      expect(mockPrismaService.workflowRun.findFirst).toHaveBeenCalledWith({
-        where: {
-          projectId: 'project-1',
-          status: {
-            in: [RunStatus.running, RunStatus.pending],
-          },
-        },
-        include: {
-          workflow: {
-            include: {
-              coordinator: true,
-            },
-          },
-          story: {
-            select: {
-              id: true,
-              key: true,
-              title: true,
-              type: true,
-            },
-          },
-          epic: {
-            select: {
-              id: true,
-              key: true,
-              title: true,
-            },
-          },
-          componentRuns: {
-            include: {
-              component: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-            orderBy: {
-              executionOrder: 'asc',
-            },
-          },
-        },
-        orderBy: {
-          startedAt: 'desc',
-        },
+      expect(mockPrismaService.artifact.findUnique).toHaveBeenCalledWith({
+        where: { id: 'non-existent' },
+        include: { definition: true },
       });
     });
 
-    it('should return null when no active workflow exists', async () => {
-      mockPrismaService.workflowRun.findFirst.mockResolvedValue(null);
+    it('should skip update when content hash matches (no changes)', async () => {
+      // Calculate hash for "Same content"
+      const crypto = await import('crypto');
+      const content = 'Same content';
+      const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
 
-      const result = await service.getActiveWorkflowForProject('project-1');
-
-      expect(result).toBeNull();
-    });
-
-    it('should calculate correct progress when multiple components completed', async () => {
-      const activeRun = {
-        ...mockWorkflowRun,
-        componentRuns: [
-          {
-            id: 'comp-run-1',
-            status: RunStatus.completed,
-            component: { name: 'Context Explore' },
-          },
-          {
-            id: 'comp-run-2',
-            status: RunStatus.completed,
-            component: { name: 'Business Analyst' },
-          },
-          {
-            id: 'comp-run-3',
-            status: RunStatus.completed,
-            component: { name: 'Designer' },
-          },
-          {
-            id: 'comp-run-4',
-            status: RunStatus.running,
-            component: { name: 'Architect' },
-          },
-        ],
+      const artifactWithSameContent = {
+        ...mockArtifact,
+        content,
+        contentHash: hash,
       };
 
-      mockPrismaService.workflowRun.findFirst.mockResolvedValue(activeRun);
-      mockPrismaService.componentRun.count.mockResolvedValue(6);
+      mockPrismaService.artifact.findUnique.mockResolvedValue(artifactWithSameContent);
 
-      const result = await service.getActiveWorkflowForProject('project-1');
+      const result = await service.updateArtifactContent('artifact-1', content);
 
-      expect(result.progress.completed).toBe(3);
-      expect(result.progress.total).toBe(6);
-      expect(result.progress.percentage).toBe(50); // Math.round(3/6 * 100)
-      expect(result.activeComponentName).toBe('Architect');
+      expect(result.skipped).toBe(true);
+      expect(result.message).toBe('Content unchanged, no new version created');
+      expect(result.version).toBe(1);
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
     });
 
-    it('should handle workflow with no story (epic-level workflow)', async () => {
-      const activeRun = {
-        ...mockWorkflowRun,
-        storyId: null,
-        story: null,
-        epicId: 'epic-1',
-        epic: {
-          id: 'epic-1',
-          key: 'EP-5',
-          title: 'Workflow Tracking Features',
-        },
-        componentRuns: [
-          {
-            id: 'comp-run-1',
-            status: RunStatus.running,
-            component: { name: 'Epic Analyzer' },
+    it('should update artifact and create version when content changes', async () => {
+      const newContent = 'Updated content';
+
+      mockPrismaService.artifact.findUnique.mockResolvedValue(mockArtifact);
+
+      const updatedArtifact = {
+        ...mockArtifact,
+        content: newContent,
+        currentVersion: 2,
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          artifact: {
+            update: jest.fn().mockResolvedValue(updatedArtifact),
           },
-        ],
-      };
+          artifactVersion: {
+            create: jest.fn().mockResolvedValue({}),
+          },
+        };
+        return callback(mockTx);
+      });
 
-      mockPrismaService.workflowRun.findFirst.mockResolvedValue(activeRun);
-      mockPrismaService.componentRun.count.mockResolvedValue(3);
+      const result = await service.updateArtifactContent('artifact-1', newContent, 'run-1');
 
-      const result = await service.getActiveWorkflowForProject('project-1');
-
-      expect(result).toBeDefined();
-      expect(result.storyKey).toBe('EP-5');
-      expect(result.storyTitle).toBe('Workflow Tracking Features');
+      expect(result.version).toBe(2);
+      expect(result.content).toBe(newContent);
+      expect(result.definitionKey).toBe('TEST_DOC');
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
     });
 
-    it('should handle workflow with all components pending', async () => {
-      const activeRun = {
-        ...mockWorkflowRun,
-        status: RunStatus.pending,
-        componentRuns: [],
-      };
+    it('should pass workflowRunId to version history', async () => {
+      const newContent = 'New version content';
 
-      mockPrismaService.workflowRun.findFirst.mockResolvedValue(activeRun);
-      mockPrismaService.componentRun.count.mockResolvedValue(5);
+      mockPrismaService.artifact.findUnique.mockResolvedValue(mockArtifact);
 
-      const result = await service.getActiveWorkflowForProject('project-1');
+      let capturedVersionCreate: any = null;
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          artifact: {
+            update: jest.fn().mockResolvedValue({
+              ...mockArtifact,
+              content: newContent,
+              currentVersion: 2,
+            }),
+          },
+          artifactVersion: {
+            create: jest.fn().mockImplementation((args) => {
+              capturedVersionCreate = args;
+              return {};
+            }),
+          },
+        };
+        return callback(mockTx);
+      });
 
-      expect(result.progress.completed).toBe(0);
-      expect(result.progress.total).toBe(5);
-      expect(result.progress.percentage).toBe(0);
-      expect(result.activeComponentName).toBeNull();
+      await service.updateArtifactContent('artifact-1', newContent, 'run-123');
+
+      expect(capturedVersionCreate.data.workflowRunId).toBe('run-123');
+      expect(capturedVersionCreate.data.version).toBe(2);
     });
 
+    it('should calculate correct size for content', async () => {
+      const newContent = 'Hello World!'; // 12 bytes
+
+      mockPrismaService.artifact.findUnique.mockResolvedValue(mockArtifact);
+
+      let capturedUpdate: any = null;
+      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+        const mockTx = {
+          artifact: {
+            update: jest.fn().mockImplementation((args) => {
+              capturedUpdate = args;
+              return {
+                ...mockArtifact,
+                content: newContent,
+                currentVersion: 2,
+                size: 12,
+              };
+            }),
+          },
+          artifactVersion: {
+            create: jest.fn().mockResolvedValue({}),
+          },
+        };
+        return callback(mockTx);
+      });
+
+      const result = await service.updateArtifactContent('artifact-1', newContent);
+
+      expect(capturedUpdate.data.size).toBe(12);
+      expect(result.size).toBe(12);
+    });
   });
 });

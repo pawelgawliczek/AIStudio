@@ -173,7 +173,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
   });
 
   // ST-168: Fetch artifacts for the workflow run using new hook
-  const { artifacts: artifactsData } = useArtifacts({
+  const { artifacts: artifactsData, refetch: refetchArtifacts } = useArtifacts({
     runId: runId || '',
     enabled: !!runId,
   });
@@ -313,6 +313,42 @@ const WorkflowExecutionMonitor: React.FC = () => {
       setArtifactModalOpen(true);
     }
   }, [artifactsData]);
+
+  // ST-217: Save artifact content handler
+  const handleSaveArtifact = useCallback(async (content: string) => {
+    if (!selectedArtifact || !runId) return;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || '/api'}/projects/${projectId}/workflow-runs/${runId}/artifacts/${selectedArtifact.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify({ content }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to save artifact: ${errorText}`);
+    }
+
+    const updated = await response.json();
+
+    // Update selected artifact with new version
+    setSelectedArtifact({
+      ...selectedArtifact,
+      content,
+      version: updated.version,
+      updatedAt: updated.updatedAt,
+      size: updated.size,
+    });
+
+    // Refresh artifacts list
+    refetchArtifacts();
+  }, [selectedArtifact, runId, projectId, refetchArtifacts]);
 
   // Handle viewing component output
   const handleViewOutput = useCallback((componentRun: ComponentRunWithMetrics) => {
@@ -844,6 +880,7 @@ const WorkflowExecutionMonitor: React.FC = () => {
           setSelectedArtifact(null);
         }}
         onModeChange={setArtifactModalMode}
+        onSave={handleSaveArtifact}
       />
 
       {/* Component Output Modal */}
