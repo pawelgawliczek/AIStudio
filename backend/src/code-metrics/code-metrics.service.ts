@@ -75,7 +75,17 @@ export class CodeMetricsService {
     // ST-135 Fix: Use TestExecution table as single source of truth for coverage
     // This ensures KPI matches the Test Summary section
     const testSummary = await this.getTestSummaryUnified(projectId);
-    const avgCoverage = testSummary.coveragePercentage || 0;
+    let avgCoverage = testSummary.coveragePercentage || 0;
+
+    // Fallback to CodeMetrics aggregate if TestExecution has no coverage data
+    // This ensures project-level coverage matches folder-level coverage
+    if (avgCoverage === 0 && metrics.length > 0) {
+      const weightedCoverage = metrics.reduce(
+        (sum, m) => sum + ((m.testCoverage || 0) * m.linesOfCode),
+        0
+      );
+      avgCoverage = totalLoc > 0 ? weightedCoverage / totalLoc : 0;
+    }
 
     // LOC by language
     const locByLanguage: Record<string, number> = {};
