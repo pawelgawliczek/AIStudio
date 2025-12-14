@@ -34,7 +34,26 @@ AND wr."story_id" IS NOT NULL;
 -- These are artifacts from workflow runs without a story
 DELETE FROM "artifacts" WHERE "story_id" IS NULL;
 
--- Step 4: Copy existing artifacts to version history
+-- Step 4: Deduplicate artifacts per (definition_id, story_id)
+-- Keep the newest artifact (by updated_at) for each unique pair
+-- First, identify which artifacts to delete (duplicates, not the latest)
+WITH ranked_artifacts AS (
+    SELECT
+        id,
+        definition_id,
+        story_id,
+        ROW_NUMBER() OVER (
+            PARTITION BY definition_id, story_id
+            ORDER BY updated_at DESC, created_at DESC
+        ) as rn
+    FROM "artifacts"
+)
+DELETE FROM "artifacts"
+WHERE id IN (
+    SELECT id FROM ranked_artifacts WHERE rn > 1
+);
+
+-- Step 5: Copy existing artifacts to version history
 -- This preserves the current state as version 1
 INSERT INTO "artifact_versions" (
     "artifact_id",
@@ -59,33 +78,33 @@ SELECT
     a."created_at"
 FROM "artifacts" a;
 
--- Step 5: Set last_updated_run_id to current workflow_run_id
+-- Step 6: Set last_updated_run_id to current workflow_run_id
 UPDATE "artifacts"
 SET "last_updated_run_id" = "workflow_run_id";
 
--- Step 6: Drop old unique constraint BEFORE making changes
+-- Step 7: Drop old unique constraint BEFORE making changes
 ALTER TABLE "artifacts" DROP CONSTRAINT IF EXISTS "artifacts_definition_id_workflow_run_id_key";
 
--- Step 7: Make workflow_run_id nullable and story_id required
+-- Step 8: Make workflow_run_id nullable and story_id required
 ALTER TABLE "artifacts" ALTER COLUMN "workflow_run_id" DROP NOT NULL;
 ALTER TABLE "artifacts" ALTER COLUMN "story_id" SET NOT NULL;
 
--- Step 8: Create new unique constraint for story-scoped artifacts
+-- Step 9: Create new unique constraint for story-scoped artifacts
 CREATE UNIQUE INDEX "artifacts_definition_id_story_id_key" ON "artifacts"("definition_id", "story_id");
 
--- Step 8: Add new indexes
+-- Step 10: Add new indexes
 CREATE INDEX "artifacts_story_id_idx" ON "artifacts"("story_id");
 CREATE INDEX "artifacts_definition_id_story_id_idx" ON "artifacts"("definition_id", "story_id");
 
--- Step 9: Add indexes for artifact_versions
+-- Step 11: Add indexes for artifact_versions
 CREATE UNIQUE INDEX "artifact_versions_artifact_id_version_key" ON "artifact_versions"("artifact_id", "version");
 CREATE INDEX "artifact_versions_artifact_id_version_idx" ON "artifact_versions"("artifact_id", "version" DESC);
 CREATE INDEX "artifact_versions_workflow_run_id_idx" ON "artifact_versions"("workflow_run_id");
 
--- Step 10: Add foreign key constraints
+-- Step 12: Add foreign key constraints
 ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_story_id_fkey" FOREIGN KEY ("story_id") REFERENCES "stories"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_last_updated_run_id_fkey" FOREIGN KEY ("last_updated_run_id") REFERENCES "workflow_runs"("id") ON DELETE SET NULL ON UPDATE CASCADE;
--- Note: workflow_run_id already made nullable in Step 7, FK constraint already exists
+-- Note: workflow_run_id already made nullable in Step 8, FK constraint already exists
 
 ALTER TABLE "artifact_versions" ADD CONSTRAINT "artifact_versions_artifact_id_fkey" FOREIGN KEY ("artifact_id") REFERENCES "artifacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "artifact_versions" ADD CONSTRAINT "artifact_versions_workflow_run_id_fkey" FOREIGN KEY ("workflow_run_id") REFERENCES "workflow_runs"("id") ON DELETE SET NULL ON UPDATE CASCADE;

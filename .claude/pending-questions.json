@@ -842,3 +842,63 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-14T07:13:30Z",
+  "session_id": "82d26cf7-4794-424a-ab84-244db2629393",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "For the structured componentSummary format (status, summary, keyOutputs, nextAgentHints, artifactsProduced), should it be stored as JSON or as formatted text?",
+      "header": "Format",
+      "options": [
+        {
+          "label": "JSON object",
+          "description": "Structured JSON in componentSummary field - easier for programmatic access and display flexibility"
+        },
+        {
+          "label": "Formatted text",
+          "description": "Markdown/text with standard sections - simpler, human-readable in raw form"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should we remove the dead `outputSummary` field from ComponentRun as part of this work?",
+      "header": "Cleanup",
+      "options": [
+        {
+          "label": "Yes, remove it",
+          "description": "Clean up dead code - outputSummary exists in schema but is never used or displayed"
+        },
+        {
+          "label": "No, keep separate",
+          "description": "Keep outputSummary for potential future use or backwards compatibility"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Where should the unified summary be displayed? Select all that apply.",
+      "header": "Display",
+      "options": [
+        {
+          "label": "Workflow Results panel",
+          "description": "Current WorkflowResultsSummary side panel showing per-state summaries"
+        },
+        {
+          "label": "Story detail page",
+          "description": "Show agent summaries on story detail page alongside implementation summary"
+        },
+        {
+          "label": "Workflow list views",
+          "description": "Show brief summary in workflow run list/cards"
+        },
+        {
+          "label": "All of the above",
+          "description": "Unified display everywhere summaries are shown"
+        }
+      ],
+      "multiSelect": true
+    }
+  ]
+}
