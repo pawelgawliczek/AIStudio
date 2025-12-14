@@ -16,21 +16,25 @@ import { validateRequired, handlePrismaError } from '../../utils';
 
 export const tool: Tool = {
   name: 'upload_artifact',
-  description: 'Create or update artifact. Requires workflowRunId and definitionKey, plus content.',
+  description: 'Create or update story-scoped artifact. Provide storyId OR workflowRunId (derives storyId).',
   inputSchema: {
     type: 'object',
     properties: {
+      storyId: {
+        type: 'string',
+        description: 'Story UUID - direct story-scoped upload (ST-214). Use this OR workflowRunId.',
+      },
       definitionId: {
         type: 'string',
-        description: 'Artifact Definition UUID (provide this OR definitionKey + workflowId)',
+        description: 'Artifact Definition UUID (provide this OR definitionKey)',
       },
       definitionKey: {
         type: 'string',
-        description: 'Artifact key (e.g., "ARCH_DOC"). Requires looking up via workflowRunId.',
+        description: 'Artifact key (e.g., "THE_PLAN", "ARCH_DOC").',
       },
       workflowRunId: {
         type: 'string',
-        description: 'Workflow Run UUID (required)',
+        description: 'Workflow Run UUID - derives storyId from run. Use this OR storyId.',
       },
       content: {
         type: 'string',
@@ -45,7 +49,7 @@ export const tool: Tool = {
         description: 'Component UUID that is creating this artifact (optional)',
       },
     },
-    required: ['workflowRunId', 'content'],
+    required: ['content'],
   },
 };
 
@@ -111,40 +115,84 @@ export async function handler(
   params: UploadArtifactParams,
 ): Promise<ArtifactResponse> {
   try {
-    validateRequired(params, ['workflowRunId', 'content']);
+    validateRequired(params, ['content']);
 
-    // Verify workflow run exists and get workflow ID + story
-    const workflowRun = await prisma.workflowRun.findUnique({
-      where: { id: params.workflowRunId },
-      include: {
-        workflow: { include: { project: true } },
-        story: true,
-      },
-    });
-
-    if (!workflowRun) {
-      throw new NotFoundError('WorkflowRun', params.workflowRunId);
+    // ST-214: Support direct storyId OR workflowRunId
+    if (!params.storyId && !params.workflowRunId) {
+      throw new ValidationError('Either storyId or workflowRunId must be provided');
     }
 
-    if (!workflowRun.storyId) {
-      throw new ValidationError('WorkflowRun must be associated with a story');
+    let storyId: string;
+    let workflowId: string | null = null;
+    let projectId: string;
+    let workflowRunId: string | undefined = params.workflowRunId;
+
+    if (params.storyId) {
+      // Direct story-scoped upload (ST-214)
+      const story = await prisma.story.findUnique({
+        where: { id: params.storyId },
+        include: { project: true },
+      });
+
+      if (!story) {
+        throw new NotFoundError('Story', params.storyId);
+      }
+
+      storyId = story.id;
+      projectId = story.projectId;
+
+      // If workflowRunId also provided, validate it belongs to this story
+      if (params.workflowRunId) {
+        const run = await prisma.workflowRun.findUnique({
+          where: { id: params.workflowRunId },
+        });
+        if (run && run.storyId !== storyId) {
+          throw new ValidationError('WorkflowRun does not belong to the specified story');
+        }
+        workflowId = run?.workflowId || null;
+      }
+    } else {
+      // Derive storyId from workflowRunId (original behavior)
+      const workflowRun = await prisma.workflowRun.findUnique({
+        where: { id: params.workflowRunId! },
+        include: {
+          workflow: { include: { project: true } },
+          story: true,
+        },
+      });
+
+      if (!workflowRun) {
+        throw new NotFoundError('WorkflowRun', params.workflowRunId!);
+      }
+
+      if (!workflowRun.storyId) {
+        throw new ValidationError('WorkflowRun must be associated with a story');
+      }
+
+      storyId = workflowRun.storyId;
+      workflowId = workflowRun.workflowId;
+      projectId = workflowRun.workflow.projectId;
     }
 
     // Resolve definition ID
     let definitionId = params.definitionId;
 
     if (!definitionId && params.definitionKey) {
+      // ST-214: When no workflowId, find definition from any workflow in the project
+      const whereClause = workflowId
+        ? { workflowId, key: params.definitionKey.toUpperCase() }
+        : { workflow: { projectId }, key: params.definitionKey.toUpperCase() };
+
       const definition = await prisma.artifactDefinition.findFirst({
-        where: {
-          workflowId: workflowRun.workflowId,
-          key: params.definitionKey.toUpperCase(),
-        },
+        where: whereClause,
       });
 
       if (!definition) {
         throw new NotFoundError(
           'ArtifactDefinition',
-          `key=${params.definitionKey} in workflow=${workflowRun.workflowId}`,
+          workflowId
+            ? `key=${params.definitionKey} in workflow=${workflowId}`
+            : `key=${params.definitionKey} in project`,
         );
       }
 
@@ -157,25 +205,20 @@ export async function handler(
       );
     }
 
-    // Verify definition exists and belongs to the workflow
+    // Verify definition exists
     const definition = await prisma.artifactDefinition.findUnique({
       where: { id: definitionId },
+      include: { workflow: true },
     });
 
     if (!definition) {
       throw new NotFoundError('ArtifactDefinition', definitionId);
     }
 
-    if (definition.workflowId !== workflowRun.workflowId) {
+    // ST-214: Verify definition belongs to same project
+    if (definition.workflow.projectId !== projectId) {
       throw new ValidationError(
-        'Artifact definition must belong to the same workflow as the run',
-      );
-    }
-
-    // ST-214: Authorization - verify story belongs to same project as workflow
-    if (workflowRun.story?.projectId !== workflowRun.workflow.projectId) {
-      throw new ValidationError(
-        'Story must belong to the same project as the workflow',
+        'Artifact definition must belong to the same project as the story',
       );
     }
 
@@ -207,7 +250,7 @@ export async function handler(
     const existingArtifact = await prisma.artifact.findFirst({
       where: {
         definitionId,
-        storyId: workflowRun.storyId,
+        storyId,
       },
       include: {
         versions: {
@@ -225,7 +268,7 @@ export async function handler(
     // ST-214: Quota checks before creating new version
     if (!existingArtifact) {
       const storyArtifactCount = await prisma.artifact.count({
-        where: { storyId: workflowRun.storyId },
+        where: { storyId },
       });
 
       if (storyArtifactCount >= MAX_ARTIFACTS_PER_STORY) {
@@ -236,7 +279,7 @@ export async function handler(
     }
 
     const storyTotalSize = await prisma.artifact.aggregate({
-      where: { storyId: workflowRun.storyId },
+      where: { storyId },
       _sum: { size: true },
     });
 
@@ -263,8 +306,8 @@ export async function handler(
             contentType,
             size,
             currentVersion: newVersion,
-            lastUpdatedRunId: params.workflowRunId,
-            workflowRunId: params.workflowRunId,
+            lastUpdatedRunId: workflowRunId,
+            workflowRunId: workflowRunId,
             createdByComponentId: params.componentId || existingArtifact.createdByComponentId,
           },
           include: {
@@ -278,7 +321,7 @@ export async function handler(
           data: {
             artifactId: existingArtifact.id,
             version: newVersion,
-            workflowRunId: params.workflowRunId,
+            workflowRunId,
             content: params.content,
             contentHash,
             contentType,
@@ -291,9 +334,9 @@ export async function handler(
         result = await tx.artifact.create({
           data: {
             definitionId,
-            storyId: workflowRun.storyId,
-            workflowRunId: params.workflowRunId,
-            lastUpdatedRunId: params.workflowRunId,
+            storyId,
+            workflowRunId,
+            lastUpdatedRunId: workflowRunId,
             content: params.content,
             contentHash,
             contentType,
@@ -312,7 +355,7 @@ export async function handler(
           data: {
             artifactId: result.id,
             version: 1,
-            workflowRunId: params.workflowRunId,
+            workflowRunId,
             content: params.content,
             contentHash,
             contentType,
