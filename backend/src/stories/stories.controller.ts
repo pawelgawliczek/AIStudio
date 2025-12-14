@@ -71,7 +71,7 @@ export class StoriesController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
   create(@Body() createStoryDto: CreateStoryDto, @Request() req: any) {
-    return this.storiesService.create(createStoryDto, req.user.id);
+    return this.storiesService.create(createStoryDto, req.user.userId);
   }
 
   @Patch(':id')
