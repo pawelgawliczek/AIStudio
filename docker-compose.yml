@@ -80,6 +80,8 @@ services:
     volumes:
       # ST-236: Mount full project for git/docker deployment operations
       - .:/opt/stack/AIStudio
+      # ST-236: Mount SSH keys for git pull (deploy_to_production)
+      - ~/.ssh:/home/nodejs/.ssh:ro
       # For hot-reload during development
       - ./backend/src:/app/backend/src
       - ./backend/prisma:/app/backend/prisma

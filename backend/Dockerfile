@@ -41,8 +41,9 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install dumb-init, OpenSSL for Prisma, git for code analysis, build tools for native modules,
-# postgresql-client for backup operations (ST-130), and docker-cli for spawning Docker Runner (ST-195)
-RUN apk add --no-cache dumb-init openssl git python3 make g++ postgresql-client docker-cli
+# postgresql-client for backup operations (ST-130), docker-cli for spawning Docker Runner (ST-195),
+# and openssh-client for git SSH operations (ST-236)
+RUN apk add --no-cache dumb-init openssl git python3 make g++ postgresql-client docker-cli openssh-client
 
 # Copy package files
 COPY package*.json ./
