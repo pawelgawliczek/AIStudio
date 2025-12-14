@@ -462,6 +462,17 @@ export async function handler(prisma: PrismaClient, params: any) {
     },
   });
 
+  // ST-234: Aggregate cache tokens from ComponentRun.metadata.cacheTokens
+  let totalCacheCreation = 0;
+  let totalCacheRead = 0;
+  for (const cr of allComponentRuns) {
+    const metadata = cr.metadata as Record<string, any> | null;
+    if (metadata?.cacheTokens) {
+      totalCacheCreation += metadata.cacheTokens.creation || 0;
+      totalCacheRead += metadata.cacheTokens.read || 0;
+    }
+  }
+
   const aggregatedMetrics = {
     totalTokens: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0),
     durationSeconds: allComponentRuns.reduce((sum, cr) => sum + (cr.durationSeconds || 0), 0),
@@ -474,6 +485,9 @@ export async function handler(prisma: PrismaClient, params: any) {
     // ST-234: Aggregate code impact metrics
     totalLinesAdded: allComponentRuns.reduce((sum, cr) => sum + (cr.linesAdded || 0), 0),
     totalLinesDeleted: allComponentRuns.reduce((sum, cr) => sum + (cr.linesDeleted || 0), 0),
+    // ST-234: Aggregate cache metrics
+    totalCacheCreation,
+    totalCacheRead,
   };
 
   const componentCount = allComponentRuns.length;
@@ -483,6 +497,12 @@ export async function handler(prisma: PrismaClient, params: any) {
   // - compact hook fires (adds new transcript to masterTranscriptPaths)
   // - Task hook fires (adds spawned agent to spawnedAgentTranscripts)
   // No need to update them here - they're already in the DB
+
+  // Get existing costBreakdown to merge with cache data
+  const existingRun = await prisma.workflowRun.findUnique({
+    where: { id: params.runId },
+  });
+  const existingCostBreakdown = ((existingRun as any)?.costBreakdown as Record<string, any>) || {};
 
   await prisma.workflowRun.update({
     where: { id: params.runId },
@@ -502,7 +522,13 @@ export async function handler(prisma: PrismaClient, params: any) {
       totalInterventions: aggregatedMetrics.totalInterventions || null,
       // ST-234: Aggregated code impact metrics
       totalLocGenerated: (aggregatedMetrics.totalLinesAdded - aggregatedMetrics.totalLinesDeleted) || null,
-    },
+      // ST-234: Store cache metrics in costBreakdown JSON field
+      costBreakdown: {
+        ...existingCostBreakdown,
+        cacheCreation: aggregatedMetrics.totalCacheCreation,
+        cacheRead: aggregatedMetrics.totalCacheRead,
+      },
+    } as any,
   });
 
   // ST-129: Broadcast component completed event via HTTP to backend

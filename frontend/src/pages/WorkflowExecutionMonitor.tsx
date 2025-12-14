@@ -54,12 +54,9 @@ interface WorkflowRunStatus {
     // ST-27 Token Breakdown
     totalInputTokens: number;
     totalOutputTokens: number;
-    totalCacheRead: number;
-    totalCacheWrite: number;
-    // Cache Performance
-    totalCacheHits: number;
-    totalCacheMisses: number;
-    avgCacheHitRate: number;
+    // ST-234: Cache metrics from costBreakdown
+    totalCacheCreation?: number;
+    totalCacheRead?: number;
     // Cost Metrics
     totalCost: number | null;
     costPerLOC: number;

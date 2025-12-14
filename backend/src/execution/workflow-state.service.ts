@@ -15,12 +15,9 @@ export interface WorkflowRunStatus {
     // ST-27 Token Breakdown
     totalInputTokens: number;
     totalOutputTokens: number;
-    totalCacheRead: number;
-    totalCacheWrite: number;
-    // Cache Performance
-    totalCacheHits: number;
-    totalCacheMisses: number;
-    avgCacheHitRate: number;
+    // ST-234: Cache metrics from costBreakdown
+    totalCacheCreation?: number;
+    totalCacheRead?: number;
     // Cost Metrics
     totalCost: number | null;
     costPerLOC: number;
@@ -192,15 +189,12 @@ export class WorkflowStateService {
       errorMessage: workflowRun.errorMessage || undefined,
       metrics: {
         totalTokens: workflowRun.totalTokens,
-        // ST-27 Token Breakdown (ST-110: Cache metrics removed)
+        // ST-27 Token Breakdown
         totalInputTokens: aggregatedMetrics.totalInputTokens,
         totalOutputTokens: aggregatedMetrics.totalOutputTokens,
-        // ST-110: Cache metrics removed - now using /context command
-        totalCacheRead: 0,
-        totalCacheWrite: 0,
-        totalCacheHits: 0,
-        totalCacheMisses: 0,
-        avgCacheHitRate: 0,
+        // ST-234: Cache metrics from costBreakdown
+        totalCacheCreation: ((workflowRun as any).costBreakdown as any)?.cacheCreation || 0,
+        totalCacheRead: ((workflowRun as any).costBreakdown as any)?.cacheRead || 0,
         // Cost Metrics
         totalCost: aggregatedMetrics.totalCost || (workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null),
         costPerLOC,

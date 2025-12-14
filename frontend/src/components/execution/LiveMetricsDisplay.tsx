@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Input,
   Output,
+  Cached,
 } from '@mui/icons-material';
 
 interface Metrics {
@@ -20,12 +21,9 @@ interface Metrics {
   // ST-27 Token Breakdown
   totalInputTokens: number;
   totalOutputTokens: number;
-  // @deprecated ST-110: Cache metrics removed - no longer displayed
+  // ST-234: Cache metrics restored - stored in WorkflowRun.costBreakdown
+  totalCacheCreation?: number;
   totalCacheRead?: number;
-  totalCacheWrite?: number;
-  totalCacheHits?: number;
-  totalCacheMisses?: number;
-  avgCacheHitRate?: number;
   // Cost Metrics
   totalCost: number | null;
   costPerLOC: number;
@@ -127,7 +125,7 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, mt: 2 }}>
         Token Usage
       </Typography>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
         <div>
           <MetricCard
             icon={<Token />}
@@ -150,6 +148,24 @@ const LiveMetricsDisplay: React.FC<LiveMetricsDisplayProps> = ({ metrics, status
             label="Output Tokens"
             value={formatNumber(metrics.totalOutputTokens)}
             color="secondary"
+          />
+        </div>
+        <div>
+          <MetricCard
+            icon={<Cached />}
+            label="Cache Creation"
+            value={formatNumber(metrics.totalCacheCreation ?? 0)}
+            color="success"
+            tooltip="Tokens written to prompt cache"
+          />
+        </div>
+        <div>
+          <MetricCard
+            icon={<Cached />}
+            label="Cache Read"
+            value={formatNumber(metrics.totalCacheRead ?? 0)}
+            color="success"
+            tooltip="Tokens read from prompt cache (cost savings)"
           />
         </div>
       </div>
