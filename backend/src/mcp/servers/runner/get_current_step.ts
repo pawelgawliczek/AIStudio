@@ -4,10 +4,17 @@
  *
  * ST-187: MCP Tool Optimization & Step Commands
  * ST-188: Enhanced to provide full workflow sequence for any LLM session
+ * ST-215: Simplified agent phase to 2 steps (tracking is automatic in advance_step)
  *
  * This tool queries the Runner's checkpoint state and returns COMPLETE instructions
  * including ALL MCP tool calls needed for successful step execution.
  * Any LLM session can follow these instructions without prior context.
+ *
+ * Agent phase is now simplified:
+ *   1. Task(spawn agent)
+ *   2. advance_step(output) - auto-calls record_agent_complete
+ *
+ * (Previously was 4 steps with manual record_agent_start/complete calls)
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -409,23 +416,11 @@ export async function handler(prisma: PrismaClient, params: {
           },
         };
 
-        // ST-198: Explicit 4-step agent execution workflow
-        // Step 1: Record agent start for metrics tracking
+        // ST-215: Simplified 2-step agent execution workflow
+        // Agent tracking (record_agent_start/complete) is now AUTOMATIC in advance_step
+        // Step 1: Spawn the agent via Task tool
         workflowSequence.push({
           step: 1,
-          type: 'mcp_tool',
-          description: 'Record agent start for metrics tracking',
-          tool: 'record_agent_start',
-          parameters: {
-            runId,
-            componentId,
-          },
-          notes: 'Tracks when the agent starts executing. Required for metrics and telemetry.',
-        });
-
-        // Step 2: Spawn the agent via Task tool
-        workflowSequence.push({
-          step: 2,
           type: 'agent_spawn',
           description: `Spawn ${componentName} agent via Task tool`,
           agentConfig: {
@@ -436,60 +431,38 @@ export async function handler(prisma: PrismaClient, params: {
             componentName,
             tools: componentTools,
           },
-          notes: `⚠️ MUST use Task tool - DO NOT do the work yourself! You are the orchestrator. Use Task({ subagent_type: "general-purpose", model: "${componentModel}", prompt: <agentConfig.prompt> }). The spawned agent does the actual work. Capture the agent's output for the next step.`,
+          notes: `⚠️ MUST use Task tool - DO NOT do the work yourself! You are the orchestrator. Use Task({ subagent_type: "general-purpose", model: "${componentModel}", prompt: <agentConfig.prompt> }). The spawned agent does the actual work. Capture the agent's output for the next step.
+
+Agent tracking is AUTOMATIC - advance_step handles record_agent_start/complete internally.`,
         });
 
-        // Step 3: Record agent completion with output
+        // Step 2: Advance to post phase (auto-completes agent tracking)
         workflowSequence.push({
-          step: 3,
+          step: 2,
           type: 'mcp_tool',
-          description: 'Record agent completion with output, status, and summary',
-          tool: 'record_agent_complete',
-          parameters: {
-            runId,
-            componentId,
-            output: '{{AGENT_OUTPUT}}', // Placeholder - use actual output from step 2
-            status: 'completed', // or 'failed' if agent failed
-            componentSummary: '{{AGENT_SUMMARY}}', // Required - see notes for format
-          },
-          notes: `Replace placeholders:
-- {{AGENT_OUTPUT}}: Actual output from Task agent in step 2
-- {{AGENT_SUMMARY}}: 2-3 sentence summary with completion status
-
-**Summary Format**:
-1. [Action] [what was done] [key detail]
-2. [Status]: Complete|Partial|Blocked|Failed - X/Y tasks done
-3. [Next step or blocker if any]
-
-**Status Keywords**:
-- Complete: All planned work done, no blockers
-- Partial: Some work done, remaining items listed
-- Blocked: Cannot proceed, blocker explained
-- Failed: Work attempted but failed, reason given
-
-**Examples**:
-- "Implemented auth endpoints with JWT tokens. Complete: 5/5 tasks done. All tests passing."
-- "Explored codebase structure. Partial: 2/3 areas done. Blocked: no access to payments module."
-- "Ran integration tests. Failed: 3/20 tests failing. Token expiration tests need fix."`,
-        });
-
-        // Step 4: Advance to post phase
-        workflowSequence.push({
-          step: 4,
-          type: 'mcp_tool',
-          description: 'Advance to post-execution phase',
+          description: 'Advance to post-execution phase (auto-completes agent tracking)',
           tool: 'advance_step',
           parameters: {
             story: run.story?.key || runId,
-            output: '{{AGENT_OUTPUT}}', // Optional - include agent output for context
+            output: '{{AGENT_OUTPUT}}', // Agent output - used for tracking and context
           },
-          notes: 'Moves workflow to post-execution phase. The output parameter is optional but recommended for context preservation.',
+          notes: `Replace {{AGENT_OUTPUT}} with actual output from Task agent.
+
+advance_step AUTOMATICALLY:
+- Records agent completion with metrics
+- Auto-generates componentSummary from output (or provide explicit componentSummary param)
+- Stores output for workflow context
+
+Optional params for better tracking:
+- componentSummary: "2-3 sentence summary of what agent did"
+- agentStatus: "completed" (default) or "failed"
+- errorMessage: "error details if agentStatus is failed"`,
         });
 
         nextAction = {
-          tool: 'record_agent_start',
-          parameters: { runId, componentId },
-          hint: 'Start with record_agent_start, then follow the 4-step sequence.',
+          tool: 'Task',
+          parameters: { subagent_type: 'general-purpose', model: componentModel },
+          hint: 'Spawn the agent via Task tool. advance_step handles tracking automatically.',
         };
       }
       break;

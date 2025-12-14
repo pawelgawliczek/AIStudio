@@ -1,12 +1,21 @@
 /**
- * ST-110: Refactored record_component_complete to use /context command
+ * Record Agent Complete
+ *
+ * ST-110: Refactored to use /context command
  * ST-170: Uses unassigned_transcripts table for transcript discovery (auto-detected by laptop TranscriptWatcher)
+ * ST-215: Note - advance_step now handles basic tracking automatically. This tool provides FULL
+ *         tracking with transcript parsing and detailed metrics.
  *
  * Two data sources for metrics:
  * 1. contextOutput - For orchestrator's own /context command output
  * 2. unassigned_transcripts table - For spawned agents (auto-populated by ST-170 TranscriptWatcher on laptop)
  *
  * No manual transcript registration needed - ST-170 handles it automatically via WebSocket.
+ *
+ * When to use this tool:
+ * - For detailed token metrics and transcript parsing (advance_step doesn't do this)
+ * - For orchestrator components that run /context in their own session (contextOutput param)
+ * - When you need to override the automatic tracking from advance_step
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -19,7 +28,7 @@ import { parseContextOutput, ContextMetrics } from './parse-context-output';
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
   name: 'record_agent_complete',
-  description: 'Log agent completion with output. Call after agent finishes. Include componentSummary.',
+  description: 'Log agent completion with FULL metrics. Note: advance_step handles basic tracking automatically. Use this for detailed transcript parsing.',
   inputSchema: {
     type: 'object',
     properties: {

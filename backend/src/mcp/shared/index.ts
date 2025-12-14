@@ -19,6 +19,15 @@ export {
   type ResolvedProject,
 } from './resolve-identifiers';
 
+// Agent tracking (ST-215: Automatic tracking in advance_step)
+export {
+  startAgentTracking,
+  completeAgentTracking,
+  generateComponentSummary,
+  type StartAgentResult,
+  type CompleteAgentResult,
+} from './agent-tracking';
+
 // Session context
 export {
   getContext,

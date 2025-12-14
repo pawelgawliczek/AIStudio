@@ -3,21 +3,29 @@
  * Mark current phase complete and advance to next logical phase
  *
  * ST-187: MCP Tool Optimization & Step Commands
+ * ST-215: Automatic Agent Tracking - auto-calls record_agent_start/complete
  *
  * Phase transitions:
- *   pre  → agent (if component exists)
+ *   pre  → agent (if component exists) - AUTO: calls startAgentTracking
  *   pre  → post  (if no component)
- *   agent → post
+ *   agent → post - AUTO: calls completeAgentTracking
  *   post → next_state.pre (or workflow_complete)
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { resolveRunId } from '../../shared/resolve-identifiers';
+import {
+  startAgentTracking,
+  completeAgentTracking,
+  generateComponentSummary,
+  StartAgentResult,
+  CompleteAgentResult,
+} from '../../shared/agent-tracking';
 
 export const tool: Tool = {
   name: 'advance_step',
-  description: 'Complete current phase, move to next. Call after executing phase instructions.',
+  description: 'Complete current phase, move to next. Agent tracking is AUTOMATIC (calls record_agent_start/complete).',
   inputSchema: {
     type: 'object',
     properties: {
@@ -31,11 +39,25 @@ export const tool: Tool = {
       },
       output: {
         type: 'object',
-        description: 'Output from current phase (stored for context)',
+        description: 'Output from current phase (stored for context). For agent phase, this is the agent output.',
       },
       skipToState: {
         type: 'string',
         description: 'State name or ID to skip to (for error recovery)',
+      },
+      // ST-215: New params for agent tracking
+      componentSummary: {
+        type: 'string',
+        description: 'Summary of agent work. Auto-generated if not provided.',
+      },
+      agentStatus: {
+        type: 'string',
+        enum: ['completed', 'failed'],
+        description: 'Agent status when advancing from agent phase. Default: completed.',
+      },
+      errorMessage: {
+        type: 'string',
+        description: 'Error message if agentStatus is failed.',
       },
     },
   },
@@ -69,11 +91,24 @@ interface RunnerCheckpoint {
   runStartedAt: string;
 }
 
+// ST-215: Agent tracking result for response
+interface AgentTrackingResult {
+  action: 'started' | 'completed' | null;
+  componentRunId?: string;
+  componentName?: string;
+  success: boolean;
+  warning?: string;
+}
+
 export async function handler(prisma: PrismaClient, params: {
   story?: string;
   runId?: string;
   output?: Record<string, unknown>;
   skipToState?: string;
+  // ST-215: New params for agent tracking
+  componentSummary?: string;
+  agentStatus?: 'completed' | 'failed';
+  errorMessage?: string;
 }) {
   // Validate input
   if (!params.story && !params.runId) {
@@ -226,12 +261,44 @@ export async function handler(prisma: PrismaClient, params: {
   let nextStateId = currentStateId;
   let workflowComplete = false;
 
+  // ST-215: Track agent start/complete automatically
+  let agentTrackingResult: AgentTrackingResult | null = null;
+
   const previousState = { name: currentState.name, phase: currentPhase };
 
   switch (currentPhase) {
     case 'pre':
       if (currentState.component) {
         // Has component - go to agent phase
+        // ST-215: AUTO - Call startAgentTracking
+        try {
+          const startResult = await startAgentTracking(prisma, {
+            runId: run.id,
+            componentId: currentState.component.id,
+            input: params.output, // Pre-phase output can be agent input
+          });
+
+          agentTrackingResult = {
+            action: 'started',
+            componentRunId: startResult.componentRunId,
+            componentName: startResult.componentName || currentState.component.name,
+            success: startResult.success,
+            warning: startResult.warning || startResult.error,
+          };
+
+          if (!startResult.success) {
+            console.warn(`[advance_step] Agent tracking start failed: ${startResult.error}`);
+          }
+        } catch (error: any) {
+          agentTrackingResult = {
+            action: 'started',
+            componentName: currentState.component.name,
+            success: false,
+            warning: `Failed to start agent tracking: ${error.message}`,
+          };
+          console.warn(`[advance_step] ${agentTrackingResult.warning}`);
+        }
+
         nextPhase = 'agent';
         checkpoint.resourceUsage = {
           ...(checkpoint.resourceUsage || { tokensUsed: 0, agentSpawns: 0, stateTransitions: 0, durationMs: 0 }),
@@ -245,6 +312,45 @@ export async function handler(prisma: PrismaClient, params: {
 
     case 'agent':
       // Agent done - go to post
+      // ST-215: AUTO - Call completeAgentTracking
+      if (currentState.component) {
+        try {
+          // Generate summary if not provided
+          const summary =
+            params.componentSummary ||
+            generateComponentSummary(params.output, currentState.component.name);
+
+          const completeResult = await completeAgentTracking(prisma, {
+            runId: run.id,
+            componentId: currentState.component.id,
+            output: params.output,
+            status: params.agentStatus || 'completed',
+            componentSummary: summary,
+            errorMessage: params.errorMessage,
+          });
+
+          agentTrackingResult = {
+            action: 'completed',
+            componentRunId: completeResult.componentRunId,
+            componentName: completeResult.componentName || currentState.component.name,
+            success: completeResult.success,
+            warning: completeResult.warning || completeResult.error,
+          };
+
+          if (!completeResult.success) {
+            console.warn(`[advance_step] Agent tracking complete failed: ${completeResult.error}`);
+          }
+        } catch (error: any) {
+          agentTrackingResult = {
+            action: 'completed',
+            componentName: currentState.component.name,
+            success: false,
+            warning: `Failed to complete agent tracking: ${error.message}`,
+          };
+          console.warn(`[advance_step] ${agentTrackingResult.warning}`);
+        }
+      }
+
       nextPhase = 'post';
       break;
 
@@ -288,7 +394,7 @@ export async function handler(prisma: PrismaClient, params: {
   // Get the next state object
   const nextStateObj = run.workflow.states.find(s => s.id === nextStateId);
 
-  return buildAdvanceResponse(run, checkpoint, nextStateObj, previousState, workflowComplete);
+  return buildAdvanceResponse(run, checkpoint, nextStateObj, previousState, workflowComplete, agentTrackingResult);
 }
 
 async function saveCheckpoint(
@@ -321,7 +427,8 @@ function buildAdvanceResponse(
   checkpoint: Partial<RunnerCheckpoint>,
   currentState: any,
   previousState: { name: string; phase: string } | null,
-  workflowComplete = false
+  workflowComplete = false,
+  agentTracking: AgentTrackingResult | null = null,
 ) {
   const totalStates = run.workflow.states.length;
   const completedCount = checkpoint.completedStates?.length || 0;
@@ -432,6 +539,14 @@ function buildAdvanceResponse(
       key: run.story.key,
       title: run.story.title,
     } : undefined,
+
+    // ST-215: Agent tracking result
+    agentTracking: agentTracking || undefined,
+
+    // ST-215: Warnings collection (for non-fatal issues)
+    warnings: agentTracking?.warning
+      ? { agentTracking: agentTracking.warning }
+      : undefined,
 
     message: workflowComplete
       ? 'Workflow completed successfully.'
