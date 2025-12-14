@@ -56,11 +56,7 @@ export const StructuredSummaryDisplay: React.FC<StructuredSummaryDisplayProps> =
   className = '',
 }) => {
   if (!summary) {
-    return (
-      <div className={`text-gray-500 text-sm italic ${className}`}>
-        No summary available
-      </div>
-    );
+    return null;
   }
 
   const statusBadgeColor = getStatusBadgeColor(summary.status);
@@ -68,7 +64,7 @@ export const StructuredSummaryDisplay: React.FC<StructuredSummaryDisplayProps> =
 
   if (variant === 'compact') {
     return (
-      <div data-testid="summary-display-compact" className={`flex items-start gap-2 ${className}`}>
+      <div data-testid="summary-display-compact" className={`flex items-center gap-2 ${className}`}>
         {/* Status badge */}
         <span
           data-testid={`status-badge-${summary.status}`}
@@ -129,16 +125,16 @@ export const StructuredSummaryDisplay: React.FC<StructuredSummaryDisplayProps> =
           <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
             Artifacts Produced
           </h4>
-          <div data-testid="artifacts-produced-list" className="flex flex-wrap gap-2">
+          <ul data-testid="artifacts-produced-list" className="flex flex-wrap gap-2 list-none">
             {summary.artifactsProduced.map((artifact, index) => (
-              <span
+              <li
                 key={index}
                 className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
               >
                 {artifact}
-              </span>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
@@ -162,7 +158,7 @@ export const StructuredSummaryDisplay: React.FC<StructuredSummaryDisplayProps> =
           <h4 className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1.5 uppercase tracking-wide">
             Errors
           </h4>
-          <ul data-testid="errors-list" className="list-disc list-inside space-y-1 text-sm text-red-700 dark:text-red-300">
+          <ul data-testid="errors-list" className="list-disc list-inside space-y-1 text-sm text-red-600 dark:text-red-300">
             {summary.errors.map((error, index) => (
               <li key={index}>{error}</li>
             ))}

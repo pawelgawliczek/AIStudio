@@ -30,8 +30,10 @@ export function serializeComponentSummary(
  * Parse componentSummary JSON string from database
  * Returns null if parsing fails or summary is null/empty
  */
+const VALID_STATUSES: ComponentSummaryStatus[] = ['success', 'partial', 'blocked', 'failed'];
+
 export function parseComponentSummary(
-  summaryJson: string | null,
+  summaryJson: string | null | undefined,
 ): ComponentSummaryStructured | null {
   if (!summaryJson) {
     return null;
@@ -40,12 +42,19 @@ export function parseComponentSummary(
   try {
     const parsed = JSON.parse(summaryJson);
     // Validate it has required fields
-    if (parsed && typeof parsed === 'object' && 'version' in parsed && 'status' in parsed && 'summary' in parsed) {
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      'version' in parsed &&
+      'status' in parsed &&
+      'summary' in parsed &&
+      VALID_STATUSES.includes(parsed.status)
+    ) {
       return parsed as ComponentSummaryStructured;
     }
     return null;
-  } catch (error) {
-    console.warn('[parseComponentSummary] Failed to parse summary:', error);
+  } catch {
+    // Invalid JSON - likely legacy text format
     return null;
   }
 }
@@ -78,9 +87,15 @@ export function generateStructuredSummary(
   if (!output || Object.keys(output).length === 0) {
     summary.summary = `${componentName} completed execution.`;
   } else {
-    // Check for common status patterns
+    // Detect status from output first (before generating summary text)
     const outputStatus = output.status || output.result;
     if (typeof outputStatus === 'string') {
+      // Detect specific status values
+      if (outputStatus === 'partial' || outputStatus.includes('partial')) {
+        summary.status = 'partial';
+      } else if (outputStatus === 'blocked' || outputStatus.includes('blocked')) {
+        summary.status = 'blocked';
+      }
       summary.summary = `${componentName} ${outputStatus}.`;
     } else {
       summary.summary = `${componentName} completed.`;
@@ -123,12 +138,23 @@ export function generateStructuredSummary(
     }
     summary.errors = errors.slice(0, 3); // Max 3 items
 
-    // Extract artifacts produced
-    if (output.artifactsProduced && Array.isArray(output.artifactsProduced)) {
-      summary.artifactsProduced = (output.artifactsProduced as string[]).map(a => String(a));
+    // Detect failure from errors
+    if (errors.length > 0) {
+      summary.status = 'failed';
     }
-    if (output.artifacts && Array.isArray(output.artifacts)) {
+
+    // Extract artifacts produced (check multiple field names)
+    if (output.artifactsCreated && Array.isArray(output.artifactsCreated)) {
+      summary.artifactsProduced = (output.artifactsCreated as string[]).map(a => String(a));
+    } else if (output.artifactsProduced && Array.isArray(output.artifactsProduced)) {
+      summary.artifactsProduced = (output.artifactsProduced as string[]).map(a => String(a));
+    } else if (output.artifacts && Array.isArray(output.artifacts)) {
       summary.artifactsProduced = (output.artifacts as string[]).map(a => String(a));
+    }
+
+    // Extract recommendations as nextAgentHints
+    if (output.recommendations && Array.isArray(output.recommendations)) {
+      summary.nextAgentHints = (output.recommendations as string[]).slice(0, 3).map(r => String(r));
     }
 
     // Detect failure indicators
