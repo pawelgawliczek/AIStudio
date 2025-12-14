@@ -4,6 +4,12 @@
  */
 
 import React, { useCallback } from 'react';
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FolderIcon,
+  DocumentTextIcon,
+} from '@heroicons/react/24/outline';
 import { FolderNode, FileDetail } from '../../types/codeQualityTypes';
 import { getHealthColor } from '../../utils/codeQuality/healthCalculations';
 
@@ -46,12 +52,12 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
               aria-expanded={isExpanded}
               aria-label={`${isExpanded ? 'Collapse' : 'Expand'} folder ${node.name}`}
             >
-              <span className="material-symbols-outlined text-gray-400 text-lg mr-2">
-                {isExpanded ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
-              </span>
-              <span className="material-symbols-outlined text-yellow-500 text-xl mr-2">
-                folder
-              </span>
+              {isExpanded ? (
+                <ChevronDownIcon className="w-4 h-4 text-gray-400 mr-2" />
+              ) : (
+                <ChevronRightIcon className="w-4 h-4 text-gray-400 mr-2" />
+              )}
+              <FolderIcon className="w-5 h-5 text-yellow-500 mr-2" />
               <span className="flex-1 text-gray-900 dark:text-white font-medium">
                 {node.name}
               </span>
@@ -99,9 +105,7 @@ export const FileTreeView: React.FC<FileTreeViewProps> = ({
           aria-label={`Select file ${node.name}`}
           aria-current={isSelected ? 'true' : undefined}
         >
-          <span className="material-symbols-outlined text-gray-400 text-xl mr-2 ml-6">
-            description
-          </span>
+          <DocumentTextIcon className="w-5 h-5 text-gray-400 mr-2 ml-6" />
           <span className="flex-1 text-gray-900 dark:text-white">
             {node.name}
           </span>

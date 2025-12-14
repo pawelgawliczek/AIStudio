@@ -4,7 +4,27 @@
  */
 
 import React from 'react';
+import {
+  BeakerIcon,
+  LinkIcon,
+  GlobeAltIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  PlayIcon,
+} from '@heroicons/react/24/outline';
 import { TestLevelStats } from '../../services/test-execution.service';
+
+// Icon mapping for test levels
+const TestLevelIcons: Record<string, React.FC<{ className?: string }>> = {
+  science: ({ className }) => <BeakerIcon className={className} />,
+  link: ({ className }) => <LinkIcon className={className} />,
+  language: ({ className }) => <GlobeAltIcon className={className} />,
+  check_circle: ({ className }) => <CheckCircleIcon className={className} />,
+  cancel: ({ className }) => <XCircleIcon className={className} />,
+  schedule: ({ className }) => <ClockIcon className={className} />,
+  play_arrow: ({ className }) => <PlayIcon className={className} />,
+};
 
 interface TestLevelBreakdownProps {
   summary: {
@@ -38,6 +58,8 @@ export const TestLevelBreakdown: React.FC<TestLevelBreakdownProps> = ({
         ? Math.round((stats.passing / stats.total) * 100)
         : 0;
 
+    const IconComponent = TestLevelIcons[icon];
+
     return (
       <div
         key={level}
@@ -46,7 +68,7 @@ export const TestLevelBreakdown: React.FC<TestLevelBreakdownProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <span className={`material-symbols-outlined ${color}`}>{icon}</span>
+            {IconComponent && <IconComponent className={`w-5 h-5 ${color}`} />}
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {title}
             </h3>
@@ -62,9 +84,7 @@ export const TestLevelBreakdown: React.FC<TestLevelBreakdownProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                <span className="material-symbols-outlined text-xs text-green-500">
-                  check_circle
-                </span>
+                <CheckCircleIcon className="w-3 h-3 text-green-500" />
                 Passing
               </span>
               <span className="font-medium text-gray-900 dark:text-white">
@@ -73,9 +93,7 @@ export const TestLevelBreakdown: React.FC<TestLevelBreakdownProps> = ({
             </div>
             <div className="flex justify-between text-sm">
               <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                <span className="material-symbols-outlined text-xs text-red-500">
-                  cancel
-                </span>
+                <XCircleIcon className="w-3 h-3 text-red-500" />
                 Failing
               </span>
               <span className="font-medium text-gray-900 dark:text-white">
@@ -117,7 +135,7 @@ export const TestLevelBreakdown: React.FC<TestLevelBreakdownProps> = ({
             <div className="flex justify-between text-sm">
               <span className="text-gray-600 dark:text-gray-400">Avg Duration</span>
               <span className="font-medium text-gray-900 dark:text-white flex items-center gap-1">
-                <span className="material-symbols-outlined text-xs">schedule</span>
+                <ClockIcon className="w-3 h-3" />
                 {formatDuration(stats.avgDuration)}
               </span>
             </div>
@@ -133,7 +151,7 @@ export const TestLevelBreakdown: React.FC<TestLevelBreakdownProps> = ({
                 flex items-center justify-center gap-2"
               onClick={() => onRunTests(level)}
             >
-              <span className="material-symbols-outlined text-sm">play_arrow</span>
+              <PlayIcon className="w-4 h-4" />
               Run {title}
             </button>
           )}

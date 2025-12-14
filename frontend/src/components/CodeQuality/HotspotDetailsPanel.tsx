@@ -5,6 +5,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  XMarkIcon,
+  FireIcon,
+  CubeTransparentIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+} from '@heroicons/react/24/outline';
 import axios from '../../lib/axios';
 import { FileHotspot, FileDetail } from '../../types/codeQualityTypes';
 import { TrendChart } from './TrendChart';
@@ -110,7 +119,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
               onClick={onClose}
               className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white flex-shrink-0"
             >
-              <span className="material-symbols-outlined">close</span>
+              <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
         </header>
@@ -125,9 +134,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
             <div className="space-y-3">
               {hotspot.churnCount > 30 && (
                 <div className="flex items-start gap-3 p-4 bg-white dark:bg-[#282e39] rounded-lg border border-gray-200 dark:border-[#3b4354]">
-                  <span className="material-symbols-outlined text-red-500 mt-1">
-                    whatshot
-                  </span>
+                  <FireIcon className="w-5 h-5 text-red-500 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white">
                       High Churn Rate
@@ -143,9 +150,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
 
               {hotspot.complexity > 20 && (
                 <div className="flex items-start gap-3 p-4 bg-white dark:bg-[#282e39] rounded-lg border border-gray-200 dark:border-[#3b4354]">
-                  <span className="material-symbols-outlined text-red-500 mt-1">
-                    device_hub
-                  </span>
+                  <CubeTransparentIcon className="w-5 h-5 text-red-500 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white">
                       High Complexity
@@ -160,9 +165,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
 
               {fileDetails && fileDetails.maintainabilityIndex < 60 && (
                 <div className="flex items-start gap-3 p-4 bg-white dark:bg-[#282e39] rounded-lg border border-gray-200 dark:border-[#3b4354]">
-                  <span className="material-symbols-outlined text-yellow-500 mt-1">
-                    warning
-                  </span>
+                  <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white">
                       Low Maintainability
@@ -253,9 +256,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
             </h3>
             <div className="space-y-3">
               <div className="flex items-start gap-3 p-4 bg-white dark:bg-[#282e39] rounded-lg border border-gray-200 dark:border-primary/50">
-                <span className="material-symbols-outlined text-primary mt-1">
-                  auto_awesome
-                </span>
+                <SparklesIcon className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Consider breaking down large functions in this file. Extract
                   validation, business logic, and side effects into separate
@@ -265,9 +266,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
               </div>
               {hotspot.churnCount > 30 && (
                 <div className="flex items-start gap-3 p-4 bg-white dark:bg-[#282e39] rounded-lg border border-gray-200 dark:border-primary/50">
-                  <span className="material-symbols-outlined text-primary mt-1">
-                    auto_awesome
-                  </span>
+                  <SparklesIcon className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     High churn rate indicates this file is frequently modified.
                     Consider introducing design patterns (Strategy, Factory) to
@@ -298,9 +297,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
                       className="flex items-center justify-between p-3 bg-white dark:bg-[#282e39] rounded-lg border border-gray-200 dark:border-[#3b4354]"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="material-symbols-outlined text-gray-400 flex-shrink-0">
-                          arrow_forward
-                        </span>
+                        <ArrowRightIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
                         <p className="font-mono text-sm text-gray-700 dark:text-gray-300 truncate" title={dep}>
                           {dep}
                         </p>
@@ -332,9 +329,7 @@ export const HotspotDetailsPanel: React.FC<HotspotDetailsPanelProps> = ({
                       className="flex items-center justify-between p-3 bg-white dark:bg-[#282e39] rounded-lg border border-gray-200 dark:border-[#3b4354]"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="material-symbols-outlined text-gray-400 flex-shrink-0">
-                          arrow_back
-                        </span>
+                        <ArrowLeftIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
                         <p className="font-mono text-sm text-gray-700 dark:text-gray-300 truncate" title={dep}>
                           {dep}
                         </p>

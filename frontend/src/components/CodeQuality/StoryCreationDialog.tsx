@@ -4,6 +4,16 @@
  */
 
 import React from 'react';
+import {
+  DocumentTextIcon,
+  BugAntIcon,
+  FolderIcon,
+  DocumentPlusIcon,
+  XMarkIcon,
+  LightBulbIcon,
+  ArrowPathIcon,
+  CheckIcon,
+} from '@heroicons/react/24/outline';
 import { StoryCreationContext } from '../../types/codeQualityTypes';
 
 interface StoryCreationDialogProps {
@@ -39,7 +49,7 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
         const fileData = context.data as any;
         return (
           <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <span className="material-symbols-outlined text-blue-600 text-sm">description</span>
+            <DocumentTextIcon className="w-4 h-4 text-blue-600" />
             <span className="text-sm text-blue-900 dark:text-blue-200">
               File: {fileData.filePath || fileData.path}
             </span>
@@ -50,7 +60,7 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
         const issueData = context.data as any;
         return (
           <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-            <span className="material-symbols-outlined text-red-600 text-sm">bug_report</span>
+            <BugAntIcon className="w-4 h-4 text-red-600" />
             <span className="text-sm text-red-900 dark:text-red-200">
               Issue: {issueData.type} ({issueData.severity})
             </span>
@@ -61,7 +71,7 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
         const folderData = context.data as any;
         return (
           <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-            <span className="material-symbols-outlined text-yellow-600 text-sm">folder</span>
+            <FolderIcon className="w-4 h-4 text-yellow-600" />
             <span className="text-sm text-yellow-900 dark:text-yellow-200">
               Folder: {folderData.path}
             </span>
@@ -87,9 +97,7 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3b4354]">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary text-2xl">
-              note_add
-            </span>
+            <DocumentPlusIcon className="w-7 h-7 text-primary" />
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               Create Story from Code Quality Analysis
             </h2>
@@ -99,7 +107,7 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
             className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
             aria-label="Close dialog"
           >
-            <span className="material-symbols-outlined text-gray-500">close</span>
+            <XMarkIcon className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
@@ -149,9 +157,7 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
 
           {/* AI Suggestions Hint */}
           <div className="flex items-start gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <span className="material-symbols-outlined text-blue-600 text-lg mt-0.5">
-              lightbulb
-            </span>
+            <LightBulbIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1 text-sm text-blue-900 dark:text-blue-200">
               <p className="font-medium mb-1">AI-Generated Content</p>
               <p className="text-blue-700 dark:text-blue-300">
@@ -178,14 +184,12 @@ export const StoryCreationDialog: React.FC<StoryCreationDialogProps> = ({
           >
             {isCreating ? (
               <>
-                <span className="material-symbols-outlined animate-spin text-xl">
-                  progress_activity
-                </span>
+                <ArrowPathIcon className="w-5 h-5 animate-spin" />
                 <span>Creating...</span>
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-xl">check</span>
+                <CheckIcon className="w-5 h-5" />
                 <span>Create Story</span>
               </>
             )}

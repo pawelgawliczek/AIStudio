@@ -4,6 +4,13 @@
  */
 
 import React from 'react';
+import {
+  DocumentTextIcon,
+  PlusIcon,
+  MinusIcon,
+  WrenchIcon,
+  PaintBrushIcon,
+} from '@heroicons/react/24/outline';
 import { FileDetail } from '../../types/codeQualityTypes';
 import { getHealthColor, getSeverityColor } from '../../utils/codeQuality/healthCalculations';
 
@@ -31,7 +38,7 @@ export const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ file, loadin
     return (
       <div className="lg:sticky lg:top-8 bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-xl p-6">
         <div className="text-center text-gray-500 dark:text-[#9da6b9]">
-          <span className="material-symbols-outlined text-4xl mb-2 block">description</span>
+          <DocumentTextIcon className="w-10 h-10 mx-auto mb-2" />
           <p>Select a file to view details</p>
         </div>
       </div>
@@ -43,7 +50,7 @@ export const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ file, loadin
       {/* File Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <span className="material-symbols-outlined text-gray-400">description</span>
+          <DocumentTextIcon className="w-5 h-5 text-gray-400" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">
             {file.filePath.split('/').pop()}
           </h3>
@@ -110,21 +117,19 @@ export const FileDetailsPanel: React.FC<FileDetailsPanelProps> = ({ file, loadin
           <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Recent Changes</h4>
           <div className="space-y-3">
             {file.recentChanges.slice(0, 3).map((change, idx) => {
-              // Determine icon and color based on change type
-              const getChangeIcon = () => {
-                if (change.linesChanged > 50) return { icon: 'add', color: 'green' };
-                if (change.linesChanged < 0) return { icon: 'remove', color: 'red' };
-                if (Math.abs(change.linesChanged) < 10) return { icon: 'style', color: 'gray' };
-                return { icon: 'build', color: 'blue' };
+              // Determine icon component and color based on change type
+              const getChangeStyle = () => {
+                if (change.linesChanged > 50) return { IconComponent: PlusIcon, color: 'green' };
+                if (change.linesChanged < 0) return { IconComponent: MinusIcon, color: 'red' };
+                if (Math.abs(change.linesChanged) < 10) return { IconComponent: PaintBrushIcon, color: 'gray' };
+                return { IconComponent: WrenchIcon, color: 'blue' };
               };
-              const { icon, color } = getChangeIcon();
+              const { IconComponent, color } = getChangeStyle();
 
               return (
                 <div key={idx} className="flex items-center gap-3">
                   <div className={`bg-${color}-500/10 p-2 rounded-full flex-shrink-0`}>
-                    <span className={`material-symbols-outlined text-${color}-500 text-base`}>
-                      {icon}
-                    </span>
+                    <IconComponent className={`w-4 h-4 text-${color}-500`} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">

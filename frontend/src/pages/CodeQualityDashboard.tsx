@@ -8,6 +8,27 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import axios from '../lib/axios';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  MinusIcon,
+  BeakerIcon,
+  ChevronDownIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  MagnifyingGlassIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  FolderOpenIcon,
+  FolderIcon as HeroFolderIcon,
+  DocumentTextIcon,
+  ChartBarIcon,
+  ClockIcon,
+  ClipboardDocumentCheckIcon,
+  PlusCircleIcon,
+} from '@heroicons/react/24/outline';
 import { useCodeQualityMetrics } from '../hooks/useCodeQualityMetrics';
 import { useAnalysisPolling } from '../hooks/useAnalysisPolling';
 import { useFileTree } from '../hooks/useFileTree';
@@ -84,6 +105,23 @@ const transformTrendDataForIssues = (trendData: any[], currentIssueCount: number
       value: parseFloat(value.toFixed(0)),
     };
   });
+};
+
+// Helper to render status icons based on icon name from getAnalysisStatusConfig
+const StatusIconMap: Record<string, React.FC<{ className?: string }>> = {
+  check_circle: ({ className }) => <CheckCircleIcon className={className} />,
+  cancel: ({ className }) => <XCircleIcon className={className} />,
+  warning: ({ className }) => <ExclamationTriangleIcon className={className} />,
+  pending: ({ className }) => <ClockIcon className={className} />,
+  help_outline: ({ className }) => <ExclamationCircleIcon className={className} />,
+};
+
+const renderStatusIcon = (iconName: string, className: string) => {
+  const IconComponent = StatusIconMap[iconName];
+  if (IconComponent) {
+    return <IconComponent className={className} />;
+  }
+  return <ExclamationCircleIcon className={className} />;
 };
 
 const CodeQualityDashboard: React.FC = () => {
@@ -216,7 +254,7 @@ const CodeQualityDashboard: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <span className="material-symbols-outlined text-6xl text-red-500 mb-4 block">error</span>
+          <ExclamationCircleIcon className="w-16 h-16 mx-auto text-red-500 mb-4" />
           <p className="text-red-600 dark:text-red-400 mb-4">{metrics.error}</p>
           <button
             onClick={metrics.refetch}
@@ -305,9 +343,11 @@ const CodeQualityDashboard: React.FC = () => {
           className="absolute -right-8 top-4 z-50 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-r-lg transition-all duration-300 flex items-center justify-center shadow-lg"
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <span className="material-symbols-outlined text-lg">
-            {sidebarCollapsed ? 'chevron_right' : 'chevron_left'}
-          </span>
+          {sidebarCollapsed ? (
+            <ChevronRightIcon className="w-5 h-5" />
+          ) : (
+            <ChevronLeftIcon className="w-5 h-5" />
+          )}
         </button>
         <nav className="flex-1 overflow-y-auto py-4">
           {[
@@ -408,9 +448,13 @@ const CodeQualityDashboard: React.FC = () => {
                     healthScore >= 60 ? 'text-yellow-500' :
                     'text-red-500'
                   }`}>
-                    <span className="material-symbols-outlined text-base">
-                      {healthScore >= 80 ? 'arrow_upward' : healthScore >= 60 ? 'horizontal_rule' : 'arrow_downward'}
-                    </span>
+                    {healthScore >= 80 ? (
+                      <ArrowUpIcon className="w-4 h-4" />
+                    ) : healthScore >= 60 ? (
+                      <MinusIcon className="w-4 h-4" />
+                    ) : (
+                      <ArrowDownIcon className="w-4 h-4" />
+                    )}
                     <span className="truncate">{healthScore >= 80 ? 'Strong' : healthScore >= 60 ? 'Fair' : 'At Risk'}</span>
                   </div>
                 </div>
@@ -426,7 +470,7 @@ const CodeQualityDashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="h-8 flex items-center gap-1 text-green-500 text-sm">
-                    <span className="material-symbols-outlined text-base">arrow_upward</span>
+                    <ArrowUpIcon className="w-4 h-4" />
                     <span>+1.2k</span>
                   </div>
                 </div>
@@ -442,9 +486,11 @@ const CodeQualityDashboard: React.FC = () => {
                   <div className={`h-8 flex items-center gap-1 text-sm ${
                     (metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
                   }`}>
-                    <span className="material-symbols-outlined text-base">
-                      {(metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? 'arrow_upward' : 'arrow_downward'}
-                    </span>
+                    {(metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? (
+                      <ArrowUpIcon className="w-4 h-4" />
+                    ) : (
+                      <ArrowDownIcon className="w-4 h-4" />
+                    )}
                     <span>{(metrics.projectMetrics?.coverage?.weeklyChange || 2)}%</span>
                   </div>
                 </div>
@@ -460,7 +506,7 @@ const CodeQualityDashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="h-8 flex items-center gap-1 text-red-500 text-sm">
-                    <span className="material-symbols-outlined text-base">arrow_downward</span>
+                    <ArrowDownIcon className="w-4 h-4" />
                     <span>-3d</span>
                   </div>
                 </div>
@@ -489,7 +535,7 @@ const CodeQualityDashboard: React.FC = () => {
                     </p>
                   </div>
                   <div className="h-8 flex items-center gap-1 text-red-500 text-sm">
-                    <span className="material-symbols-outlined text-base">arrow_upward</span>
+                    <ArrowUpIcon className="w-4 h-4" />
                     <span>+1</span>
                   </div>
                 </div>
@@ -508,9 +554,11 @@ const CodeQualityDashboard: React.FC = () => {
                       <div className={`flex items-center gap-1 text-sm mb-6 ${
                         (metrics.projectMetrics?.healthScore.weeklyChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
                       }`}>
-                        <span className="material-symbols-outlined text-base">
-                          {(metrics.projectMetrics?.healthScore.weeklyChange || 0) >= 0 ? 'arrow_upward' : 'arrow_downward'}
-                        </span>
+                        {(metrics.projectMetrics?.healthScore.weeklyChange || 0) >= 0 ? (
+                          <ArrowUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ArrowDownIcon className="w-4 h-4" />
+                        )}
                         <span>+1.5% last 30 days</span>
                       </div>
                       <div className="h-48">
@@ -531,9 +579,11 @@ const CodeQualityDashboard: React.FC = () => {
                       <div className={`flex items-center gap-1 text-sm mb-6 ${
                         (metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
                       }`}>
-                        <span className="material-symbols-outlined text-base">
-                          {(metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? 'arrow_upward' : 'arrow_downward'}
-                        </span>
+                        {(metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? (
+                          <ArrowUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ArrowDownIcon className="w-4 h-4" />
+                        )}
                         <span>{(metrics.projectMetrics?.coverage?.weeklyChange || -0.2).toFixed(1)}% last 30 days</span>
                       </div>
                       <div className="h-48">
@@ -557,11 +607,11 @@ const CodeQualityDashboard: React.FC = () => {
                     <ul className="space-y-3">
                       {metrics.hotspots.slice(0, 10).map((hotspot, idx) => (
                         <li key={hotspot.filePath} className="flex items-start gap-3">
-                          <span className={`material-symbols-outlined mt-0.5 flex-shrink-0 text-base ${
-                            hotspot.riskScore > 70 ? 'text-red-500' : 'text-yellow-500'
-                          }`}>
-                            {hotspot.riskScore > 70 ? 'error' : 'warning'}
-                          </span>
+                          {hotspot.riskScore > 70 ? (
+                            <ExclamationCircleIcon className="w-5 h-5 mt-0.5 flex-shrink-0 text-red-500" />
+                          ) : (
+                            <ExclamationTriangleIcon className="w-5 h-5 mt-0.5 flex-shrink-0 text-yellow-500" />
+                          )}
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-gray-900 dark:text-white">
                               {idx === 0 && 'High Complexity'}
@@ -597,9 +647,7 @@ const CodeQualityDashboard: React.FC = () => {
                       </div>
                     ) : metrics.recentAnalysesError && metrics.recentAnalyses.length === 0 ? (
                       <div className="text-center py-8">
-                        <span className="material-symbols-outlined text-4xl text-red-400 mb-2 block">
-                          error_outline
-                        </span>
+                        <ExclamationCircleIcon className="w-10 h-10 mx-auto text-red-400 mb-2" />
                         <p className="text-sm text-red-600 dark:text-red-400 font-medium">
                           Failed to load recent analyses
                         </p>
@@ -612,9 +660,7 @@ const CodeQualityDashboard: React.FC = () => {
                       </div>
                     ) : metrics.recentAnalyses.length === 0 ? (
                       <div className="text-center py-12">
-                        <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">
-                          analytics
-                        </span>
+                        <ChartBarIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                         <p className="text-gray-500 dark:text-gray-400 font-medium">
                           No analyses yet
                         </p>
@@ -626,7 +672,7 @@ const CodeQualityDashboard: React.FC = () => {
                       <>
                         {metrics.recentAnalysesError && (
                           <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded text-xs text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm">warning</span>
+                            <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
                             Showing cached data. Unable to refresh.
                             <button onClick={metrics.refetchRecentAnalyses} className="ml-auto underline">
                               Retry
@@ -644,13 +690,7 @@ const CodeQualityDashboard: React.FC = () => {
                                 key={analysis.id}
                                 className="flex items-center gap-3 p-2 -mx-2 rounded transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
                               >
-                                <span
-                                  className={`material-symbols-outlined text-xl flex-shrink-0 ${statusConfig.color}`}
-                                  aria-label={statusConfig.label}
-                                  role="img"
-                                >
-                                  {statusConfig.icon}
-                                </span>
+                                {renderStatusIcon(statusConfig.icon, `w-5 h-5 flex-shrink-0 ${statusConfig.color}`)}
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                                     {statusConfig.label}
@@ -804,9 +844,7 @@ const CodeQualityDashboard: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Search */}
                 <div className="flex-1 relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    search
-                  </span>
+                  <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="search"
                     placeholder="Search files or folders..."
@@ -828,9 +866,7 @@ const CodeQualityDashboard: React.FC = () => {
                     <option value="low-coverage">Low Coverage</option>
                     <option value="low-maintainability">Low Maintainability</option>
                   </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                    filter_list
-                  </span>
+                  <ChevronDownIcon className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
               </div>
 
@@ -846,7 +882,7 @@ const CodeQualityDashboard: React.FC = () => {
                     />
                   ) : (
                     <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-xl p-8 text-center">
-                      <span className="material-symbols-outlined text-4xl text-gray-400 mb-2 block">search_off</span>
+                      <MagnifyingGlassIcon className="w-10 h-10 mx-auto text-gray-400 mb-2" />
                       <p className="text-gray-500 dark:text-gray-400">No files match your search or filter criteria</p>
                     </div>
                   )}
@@ -891,15 +927,13 @@ const CodeQualityDashboard: React.FC = () => {
                 <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-lg p-5">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Overall Coverage</p>
-                    <span className={`material-symbols-outlined ${
-                      metrics.analysisComparison?.coverageChange && metrics.analysisComparison.coverageChange > 0 ? 'text-green-500' :
-                      metrics.analysisComparison?.coverageChange && metrics.analysisComparison.coverageChange < 0 ? 'text-red-500' :
-                      'text-yellow-500'
-                    }`}>
-                      {metrics.analysisComparison?.coverageChange && metrics.analysisComparison.coverageChange > 0 ? 'trending_up' :
-                       metrics.analysisComparison?.coverageChange && metrics.analysisComparison.coverageChange < 0 ? 'trending_down' :
-                       'trending_flat'}
-                    </span>
+                    {metrics.analysisComparison?.coverageChange && metrics.analysisComparison.coverageChange > 0 ? (
+                      <ArrowUpIcon className="w-5 h-5 text-green-500" />
+                    ) : metrics.analysisComparison?.coverageChange && metrics.analysisComparison.coverageChange < 0 ? (
+                      <ArrowDownIcon className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <MinusIcon className="w-5 h-5 text-yellow-500" />
+                    )}
                   </div>
                   <p className="text-3xl font-bold text-gray-900 dark:text-white">{coverage.toFixed(1)}%</p>
                   <p className={`text-sm ${
@@ -915,7 +949,7 @@ const CodeQualityDashboard: React.FC = () => {
                 <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-lg p-5">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Files With Coverage</p>
-                    <span className="material-symbols-outlined text-blue-500">description</span>
+                    <DocumentTextIcon className="w-5 h-5 text-blue-500" />
                   </div>
                   <p className="text-3xl font-bold text-gray-900 dark:text-white">
                     {metrics.folderHierarchy ? (
@@ -935,7 +969,7 @@ const CodeQualityDashboard: React.FC = () => {
                 <div className="bg-white dark:bg-[#1A202C] border border-gray-200 dark:border-[#3b4354] rounded-lg p-5">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Avg Complexity</p>
-                    <span className="material-symbols-outlined text-purple-500">insights</span>
+                    <ChartBarIcon className="w-5 h-5 text-purple-500" />
                   </div>
                   <p className="text-3xl font-bold text-gray-900 dark:text-white">{complexity.toFixed(1)}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -952,11 +986,7 @@ const CodeQualityDashboard: React.FC = () => {
                       const totalTests = metrics.testSummary?.totalTests || 0;
                       const passing = metrics.testSummary?.passing || 0;
                       const statusIcon = getTestStatusIcon(passing, totalTests);
-                      return (
-                        <span className={`material-symbols-outlined ${statusIcon.color}`}>
-                          {statusIcon.icon}
-                        </span>
-                      );
+                      return renderStatusIcon(statusIcon.icon, `w-5 h-5 ${statusIcon.color}`);
                     })()}
                   </div>
                   <p className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -975,7 +1005,7 @@ const CodeQualityDashboard: React.FC = () => {
                       className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1"
                       title={new Date(metrics.testSummary.lastExecution).toLocaleString()}
                     >
-                      <span className="material-symbols-outlined text-xs">schedule</span>
+                      <ClockIcon className="w-3 h-3" />
                       Last run: {formatAnalysisTimestamp(metrics.testSummary.lastExecution)}
                     </p>
                   )}
@@ -1341,7 +1371,7 @@ const CodeQualityDashboard: React.FC = () => {
                           if (testFiles.length === 0) {
                             return (
                               <div className="text-center py-12">
-                                <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">science</span>
+                                <BeakerIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                                 <p className="text-gray-500 dark:text-gray-400">No test files found in the project</p>
                               </div>
                             );
@@ -1355,9 +1385,11 @@ const CodeQualityDashboard: React.FC = () => {
                               <div key={testFile.path} className="border border-gray-200 dark:border-[#3b4354] rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className={`material-symbols-outlined ${passingStatus ? 'text-green-500' : 'text-red-500'}`}>
-                                      {passingStatus ? 'check_circle' : 'cancel'}
-                                    </span>
+                                    {passingStatus ? (
+                                      <CheckCircleIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                    ) : (
+                                      <XCircleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+                                    )}
                                     <span className="font-mono text-sm font-medium text-gray-900 dark:text-white truncate" title={testFile.path}>
                                       {testFile.path}
                                     </span>
@@ -1446,7 +1478,7 @@ const CodeQualityDashboard: React.FC = () => {
                           if (topFolders.length === 0) {
                             return (
                               <div className="text-center py-12">
-                                <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">folder_open</span>
+                                <FolderOpenIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                                 <p className="text-gray-500 dark:text-gray-400">No folders with coverage data found</p>
                               </div>
                             );
@@ -1461,7 +1493,7 @@ const CodeQualityDashboard: React.FC = () => {
                               <div key={folder.path} className="border border-gray-200 dark:border-[#3b4354] rounded-lg p-4">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className={`material-symbols-outlined ${iconColor}`}>folder</span>
+                                    <HeroFolderIcon className={`w-5 h-5 ${iconColor}`} />
                                     <span className="font-medium text-gray-900 dark:text-white truncate" title={folder.path}>
                                       {folder.path || folder.name}
                                     </span>
@@ -1509,7 +1541,7 @@ const CodeQualityDashboard: React.FC = () => {
                           </div>
                         ) : useCases.length === 0 ? (
                           <div className="text-center py-12">
-                            <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">task_alt</span>
+                            <ClipboardDocumentCheckIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                             <p className="text-gray-500 dark:text-gray-400">No use cases with test coverage data found</p>
                             <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Create use cases and link test cases to track coverage</p>
                           </div>
@@ -1535,7 +1567,7 @@ const CodeQualityDashboard: React.FC = () => {
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className="material-symbols-outlined text-blue-500 flex-shrink-0">assignment</span>
+                                      <DocumentTextIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
                                       <span className="font-medium text-gray-900 dark:text-white truncate" title={`${useCase.key}: ${useCase.title}`}>
                                         {useCase.key}: {useCase.title}
                                       </span>
@@ -1766,7 +1798,7 @@ const CodeQualityDashboard: React.FC = () => {
                   return true;
                 }).length === 0 && (
                   <div className="text-center py-12">
-                    <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">check_circle</span>
+                    <CheckCircleIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                     <p className="text-gray-500 dark:text-gray-400">No issues found with current filters</p>
                   </div>
                 )}
@@ -1798,7 +1830,7 @@ const CodeQualityDashboard: React.FC = () => {
                       <option value="medium">Medium</option>
                       <option value="low">Low</option>
                     </select>
-                    <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-base">expand_more</span>
+                    <ChevronDownIcon className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
 
                   {/* Sort Dropdown */}
@@ -1812,12 +1844,12 @@ const CodeQualityDashboard: React.FC = () => {
                       <option value="complexity">Sort by: Complexity</option>
                       <option value="churn">Sort by: Churn</option>
                     </select>
-                    <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-base">expand_more</span>
+                    <ChevronDownIcon className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
 
                   {/* Search */}
                   <div className="relative w-full sm:w-64">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                    <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                       className="w-full h-10 pl-10 pr-4 rounded-lg bg-white dark:bg-[#282e39] border border-gray-300 dark:border-[#3b4354] text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-primary focus:border-primary"
                       placeholder="Search file path..."
@@ -1837,7 +1869,7 @@ const CodeQualityDashboard: React.FC = () => {
                     disabled={metrics.hotspots.length === 0}
                     className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] font-display hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span className="material-symbols-outlined text-lg">add_task</span>
+                    <PlusCircleIcon className="w-5 h-5" />
                     <span className="truncate">Create Refactoring Story</span>
                   </button>
                 </div>
@@ -2023,7 +2055,7 @@ const CodeQualityDashboard: React.FC = () => {
                 </div>
                 {metrics.hotspots.length === 0 && (
                   <div className="text-center py-12">
-                    <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 block">check_circle</span>
+                    <CheckCircleIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
                     <p className="text-gray-500 dark:text-gray-400">No hotspots found</p>
                   </div>
                 )}

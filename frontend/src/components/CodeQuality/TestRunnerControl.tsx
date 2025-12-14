@@ -5,6 +5,15 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  BeakerIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PlayIcon,
+  LinkIcon,
+  GlobeAltIcon,
+  ChartBarIcon,
+} from '@heroicons/react/24/outline';
 
 interface TestRunnerControlProps {
   onRunTests?: (level: 'all' | 'unit' | 'integration' | 'e2e') => void;
@@ -41,11 +50,13 @@ export const TestRunnerControl: React.FC<TestRunnerControlProps> = ({
           transition-colors duration-200
           flex items-center gap-2"
       >
-        <span className="material-symbols-outlined text-sm">science</span>
+        <BeakerIcon className="w-4 h-4" />
         Run Tests
-        <span className="material-symbols-outlined text-sm">
-          {isOpen ? 'expand_less' : 'expand_more'}
-        </span>
+        {isOpen ? (
+          <ChevronUpIcon className="w-4 h-4" />
+        ) : (
+          <ChevronDownIcon className="w-4 h-4" />
+        )}
       </button>
 
       {/* Dropdown Menu */}
@@ -66,7 +77,7 @@ export const TestRunnerControl: React.FC<TestRunnerControlProps> = ({
                   hover:bg-gray-100 dark:hover:bg-gray-700
                   flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">play_arrow</span>
+                <PlayIcon className="w-4 h-4" />
                 Run All Tests
               </button>
 
@@ -78,7 +89,7 @@ export const TestRunnerControl: React.FC<TestRunnerControlProps> = ({
                   hover:bg-gray-100 dark:hover:bg-gray-700
                   flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">science</span>
+                <BeakerIcon className="w-4 h-4" />
                 Run Unit Tests
               </button>
 
@@ -88,7 +99,7 @@ export const TestRunnerControl: React.FC<TestRunnerControlProps> = ({
                   hover:bg-gray-100 dark:hover:bg-gray-700
                   flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">link</span>
+                <LinkIcon className="w-4 h-4" />
                 Run Integration Tests
               </button>
 
@@ -98,7 +109,7 @@ export const TestRunnerControl: React.FC<TestRunnerControlProps> = ({
                   hover:bg-gray-100 dark:hover:bg-gray-700
                   flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">language</span>
+                <GlobeAltIcon className="w-4 h-4" />
                 Run E2E Tests
               </button>
 
@@ -113,7 +124,7 @@ export const TestRunnerControl: React.FC<TestRunnerControlProps> = ({
                   hover:bg-gray-100 dark:hover:bg-gray-700
                   flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">bar_chart</span>
+                <ChartBarIcon className="w-4 h-4" />
                 View Test History
               </button>
             </div>

@@ -24,10 +24,11 @@ describe('MetricsSummaryCard', () => {
     expect(screen.getByText('+5.0%')).toBeInTheDocument();
   });
 
-  it('should render icon when provided', () => {
+  it('should render info icon when infoText is provided', () => {
     const { container } = render(
-      <MetricsSummaryCard title="Test" value="100" icon="favorite" />
+      <MetricsSummaryCard title="Test" value="100" infoText="Additional info" />
     );
-    expect(container.querySelector('.material-symbols-outlined')).toBeInTheDocument();
+    // InfoIcon renders an SVG element
+    expect(container.querySelector('svg')).toBeInTheDocument();
   });
 });
