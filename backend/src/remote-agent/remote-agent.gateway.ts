@@ -413,6 +413,24 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       throw new Error('Agent not online');
     }
 
+    // ST-253: Verify socket actually exists before emitting (fixes stale socket issue)
+    const sockets = await this.server.fetchSockets();
+    const socketExists = sockets.some(s => s.id === agent.socketId);
+
+    if (!socketExists) {
+      // Socket is stale - mark agent offline and throw
+      this.logger.warn(`Stale socket detected for agent ${agentId}, marking offline`);
+      await this.prisma.remoteAgent.update({
+        where: { id: agentId },
+        data: {
+          status: 'offline',
+          socketId: null,
+          lastSeenAt: new Date(),
+        },
+      });
+      throw new Error('Agent socket is stale (disconnected without proper cleanup)');
+    }
+
     // Emit job to agent's socket
     this.server.to(agent.socketId).emit('agent:job', job);
     this.logger.log(`Emitted job ${job.id} to agent ${agentId}`);
@@ -452,6 +470,24 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
     if (!agent.claudeCodeAvailable) {
       throw new Error('Agent does not have Claude Code capability');
+    }
+
+    // ST-253: Verify socket actually exists before emitting (fixes stale socket issue)
+    const sockets = await this.server.fetchSockets();
+    const socketExists = sockets.some(s => s.id === agent.socketId);
+
+    if (!socketExists) {
+      // Socket is stale - mark agent offline and throw
+      this.logger.warn(`Stale socket detected for agent ${agentId}, marking offline`);
+      await this.prisma.remoteAgent.update({
+        where: { id: agentId },
+        data: {
+          status: 'offline',
+          socketId: null,
+          lastSeenAt: new Date(),
+        },
+      });
+      throw new Error('Agent socket is stale (disconnected without proper cleanup)');
     }
 
     // Emit Claude Code job to agent's socket
