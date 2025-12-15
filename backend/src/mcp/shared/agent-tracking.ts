@@ -431,20 +431,28 @@ export async function completeAgentTracking(
 
           if (sessionId && projectPath) {
             const runner = new RemoteRunner();
-            const result = await runner.execute<{ stdout: string }>('exec-command', [
-              `--command=cat .claude/running-workflows.json | jq -r '.sessions["${sessionId}"].spawnedAgentTranscripts | if . then .[-1] else empty end'`,
-              `--cwd=${projectPath}`,
+            // Use read-file (approved script) instead of exec-command
+            const runningWorkflowsPath = `${projectPath}/.claude/running-workflows.json`;
+            const result = await runner.execute<{ content: string }>('read-file', [
+              `--path=${runningWorkflowsPath}`,
             ], {
               requestedBy: 'completeAgentTracking',
             });
 
-            if (result.executed && result.success && result.result?.stdout) {
+            if (result.executed && result.success && result.result?.content) {
               try {
-                const agentEntry = JSON.parse(result.result.stdout.trim());
-                if (agentEntry && agentEntry.transcriptPath) {
-                  transcriptPath = agentEntry.transcriptPath;
-                  localAgentId = agentEntry.agentId;
-                  console.log(`[agent-tracking] Found transcript in running-workflows.json for ${params.componentId}: ${transcriptPath} (agent: ${localAgentId})`);
+                const workflowData = JSON.parse(result.result.content);
+                const sessionData = workflowData?.sessions?.[sessionId];
+                const spawnedTranscripts = sessionData?.spawnedAgentTranscripts;
+
+                if (Array.isArray(spawnedTranscripts) && spawnedTranscripts.length > 0) {
+                  // Get the most recent transcript
+                  const agentEntry = spawnedTranscripts[spawnedTranscripts.length - 1];
+                  if (agentEntry && agentEntry.transcriptPath) {
+                    transcriptPath = agentEntry.transcriptPath;
+                    localAgentId = agentEntry.agentId;
+                    console.log(`[agent-tracking] Found transcript in running-workflows.json for ${params.componentId}: ${transcriptPath} (agent: ${localAgentId})`);
+                  }
                 }
               } catch (parseError) {
                 // JSON parse failed - no valid entry
