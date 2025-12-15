@@ -591,12 +591,22 @@ function buildAdvanceResponse(
             content: 'No agent assigned. Proceeding to post-execution.',
           };
         } else {
+          // ST-252: Include full component config (model, tools, instructions) like get_current_step
+          const config = (currentState.component.config as Record<string, unknown>) || {};
+          const componentModel = (config.modelId as string) || 'claude-sonnet-4-20250514';
+          const componentTools = (currentState.component.tools as string[]) || [];
+
           instructions = {
             type: 'agent_spawn',
-            content: `Spawn the ${currentState.component.name} agent.`,
+            content: `Spawn the ${currentState.component.name} agent with model: ${componentModel}`,
             component: {
               id: currentState.component.id,
               name: currentState.component.name,
+              model: componentModel,
+              tools: componentTools,
+              inputInstructions: currentState.component.inputInstructions || undefined,
+              operationInstructions: currentState.component.operationInstructions || undefined,
+              outputInstructions: currentState.component.outputInstructions || undefined,
             },
           };
         }
