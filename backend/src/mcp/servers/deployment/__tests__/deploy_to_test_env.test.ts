@@ -273,11 +273,13 @@ describe('deploy_to_test_env Tool', () => {
       expect(result.actionsExecuted.containerRestart).toBe(true);
       expect(dockerUtil.buildTestContainers).toHaveBeenCalledWith(
         '/opt/stack/AIStudio',
+        '/opt/stack/worktrees/ST-1-test-story',
         true,
         true
       );
       expect(dockerUtil.startTestStack).toHaveBeenCalledWith(
-        '/opt/stack/AIStudio'
+        '/opt/stack/AIStudio',
+        '/opt/stack/worktrees/ST-1-test-story'
       );
     });
 

@@ -2,10 +2,10 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 import { RemoteAgentGateway } from '../remote-agent.gateway';
 import { StreamEventService } from '../stream-event.service';
 import { TranscriptRegistrationService } from '../transcript-registration.service';
-import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 
 describe('RemoteAgentGateway', () => {
   let gateway: RemoteAgentGateway;

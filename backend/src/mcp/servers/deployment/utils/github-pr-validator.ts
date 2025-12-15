@@ -208,7 +208,7 @@ export class GitHubPRValidator {
       // Map gh CLI output to our PRDetails interface
       return {
         number: data.number,
-        state: data.state.toLowerCase(),
+        state: (data.state || 'unknown').toLowerCase(),
         merged: data.merged || false,
         merged_at: data.mergedAt,
         merged_by: data.mergedBy ? { login: data.mergedBy.login } : undefined,

@@ -22,9 +22,9 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { broadcastComponentCompleted, stopTranscriptTailing } from '../../services/websocket-gateway.instance';
 import { ValidationError } from '../../types';
+import { calculateCost } from '../../utils/pricing';
 import { RemoteRunner } from '../../utils/remote-runner';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
-import { calculateCost } from '../../utils/pricing';
 
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {

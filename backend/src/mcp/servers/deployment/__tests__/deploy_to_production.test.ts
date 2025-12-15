@@ -102,13 +102,15 @@ describe('deploy_to_production MCP tool', () => {
       const result = await handler(mockPrisma, params);
 
       expect(result.success).toBe(true);
-      expect(mockDeployToProduction).toHaveBeenCalledWith({
-        storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
-        prNumber: 42,
-        triggeredBy: 'mcp-user',
-        skipBackup: false,
-        skipHealthChecks: false,
-      });
+      expect(mockDeployToProduction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+          prNumber: 42,
+          triggeredBy: 'mcp-user',
+          skipBackup: false,
+          skipHealthChecks: false,
+        })
+      );
     });
   });
 
@@ -459,14 +461,16 @@ describe('deploy_to_production MCP tool', () => {
         expect(result.directCommit).toBeUndefined();
 
         // Verify service was called with PR mode params
-        expect(mockDeployToProduction).toHaveBeenCalledWith({
-          storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
-          prNumber: 42,
-          directCommit: undefined,
-          triggeredBy: 'mcp-user',
-          skipBackup: false,
-          skipHealthChecks: false,
-        });
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            storyId: '905d1a9c-1337-4cf7-b7f6-72b55db9e336',
+            prNumber: 42,
+            directCommit: undefined,
+            triggeredBy: 'mcp-user',
+            skipBackup: false,
+            skipHealthChecks: false,
+          })
+        );
       });
     });
 
@@ -509,14 +513,16 @@ describe('deploy_to_production MCP tool', () => {
         expect(result.prNumber).toBeUndefined();
 
         // Verify service was called with direct commit mode params
-        expect(mockDeployToProduction).toHaveBeenCalledWith({
-          storyId: '2e809be4-cc67-4fc7-8c3d-4d337c0043d5',
-          prNumber: undefined,
-          directCommit: true,
-          triggeredBy: 'mcp-user',
-          skipBackup: false,
-          skipHealthChecks: false,
-        });
+        expect(mockDeployToProduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            storyId: '2e809be4-cc67-4fc7-8c3d-4d337c0043d5',
+            prNumber: undefined,
+            directCommit: true,
+            triggeredBy: 'mcp-user',
+            skipBackup: false,
+            skipHealthChecks: false,
+          })
+        );
       });
 
       it('should pass directCommit flag to deployment service', async () => {

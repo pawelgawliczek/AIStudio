@@ -79,3 +79,9 @@ export async function handlePreviewMigration(
     };
   }
 }
+
+// ============================================================================
+// Export Aliases for Test Compatibility
+// ============================================================================
+export const tool = previewMigrationTool;
+export const handler = handlePreviewMigration;

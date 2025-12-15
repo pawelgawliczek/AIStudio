@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { RunStatus } from '@prisma/client';
 import { WorkflowStateService } from '../execution/workflow-state.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { parseComponentSummary } from '../types/component-summary.types';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import {
   CreateWorkflowRunDto,
@@ -9,7 +10,6 @@ import {
   WorkflowRunResponseDto,
   ComponentRunSummaryDto,
 } from './dto';
-import { parseComponentSummary } from '../types/component-summary.types';
 
 @Injectable()
 export class WorkflowRunsService {

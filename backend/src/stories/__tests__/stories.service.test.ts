@@ -1,6 +1,7 @@
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RunnerService } from '../../runner/runner.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 import { CreateStoryDto, UpdateStoryDto, UpdateStoryStatusDto, FilterStoryDto } from '../dto';
 import { StoriesService } from '../stories.service';
@@ -42,6 +43,10 @@ describe('StoriesService', () => {
     broadcastStoryCreated: jest.fn(),
     broadcastStoryUpdated: jest.fn(),
     broadcastStoryStatusChanged: jest.fn(),
+  };
+
+  const mockRunnerService = {
+    // RunnerService methods - add mocks as needed
   };
 
   const mockProject = {
@@ -97,6 +102,7 @@ describe('StoriesService', () => {
         StoriesService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AppWebSocketGateway, useValue: mockWebSocketGateway },
+        { provide: RunnerService, useValue: mockRunnerService },
       ],
     }).compile();
 

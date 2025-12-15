@@ -35,8 +35,8 @@ describe('record_worktree_created', () => {
     });
 
     it('should have correct description mentioning local creation', () => {
-      expect(tool.description).toContain('local creation');
-      expect(tool.description).toContain('hostType');
+      expect(tool.description).toContain('locally-created');
+      expect(tool.description).toContain('worktree');
     });
 
     it('should have required parameters', () => {

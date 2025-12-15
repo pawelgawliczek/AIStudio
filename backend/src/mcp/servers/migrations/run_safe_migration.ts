@@ -512,3 +512,9 @@ export async function handleRunSafeMigration(
     return response;
   }
 }
+
+// ============================================================================
+// Export Aliases for Test Compatibility
+// ============================================================================
+export const tool = runSafeMigrationTool;
+export const handler = handleRunSafeMigration;

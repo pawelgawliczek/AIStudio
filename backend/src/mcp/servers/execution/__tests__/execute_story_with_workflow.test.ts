@@ -4,7 +4,7 @@
  */
 
 import { handler } from '../execute_story_with_workflow';
-import { prismaMock, fixtures } from './test-setup';
+import { prismaMock, fixtures, requiredTranscriptParams } from './test-setup';
 
 describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
   describe('TC-EXEC-001-U1: Validate story exists before execution', () => {
@@ -103,6 +103,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       const params = {
         storyId: fixtures.story.id,
         workflowId: fixtures.workflow.id,
+        ...requiredTranscriptParams,
       };
 
       prismaMock.story.findUnique.mockResolvedValue({
@@ -113,6 +114,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
+        project: fixtures.project,
+        states: [fixtures.workflowState],
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -127,6 +130,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
         workflow: fixtures.workflow,
       } as any);
 
+      prismaMock.workflowRun.update.mockResolvedValue(fixtures.workflowRun as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
 
       // Act - Should not throw
@@ -162,6 +166,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       const params = {
         storyId: fixtures.story.id,
         workflowId: fixtures.workflow.id,
+        ...requiredTranscriptParams,
       };
 
       prismaMock.story.findUnique.mockResolvedValue({
@@ -173,6 +178,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
+        project: fixtures.project,
+        states: [fixtures.workflowState],
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -187,6 +194,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
         workflow: fixtures.workflow,
       } as any);
 
+      prismaMock.workflowRun.update.mockResolvedValue(fixtures.workflowRun as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
 
       // Act
@@ -239,6 +247,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       const params = {
         storyId: fixtures.story.id,
         workflowId: fixtures.workflow.id,
+        ...requiredTranscriptParams,
       };
 
       prismaMock.story.findUnique.mockResolvedValue({
@@ -249,6 +258,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
+        project: fixtures.project,
+        states: [fixtures.workflowState],
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -263,6 +274,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
         workflow: fixtures.workflow,
       } as any);
 
+      prismaMock.workflowRun.update.mockResolvedValue(fixtures.workflowRun as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
 
       // Act
@@ -278,6 +290,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       const params = {
         storyId: fixtures.story.id,
         workflowId: fixtures.workflow.id,
+        ...requiredTranscriptParams,
       };
 
       prismaMock.story.findUnique.mockResolvedValue({
@@ -288,6 +301,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
+        project: fixtures.project,
+        states: [fixtures.workflowState],
       } as any);
 
       // Previous run is completed (not running/pending/paused)
@@ -303,6 +318,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
         workflow: fixtures.workflow,
       } as any);
 
+      prismaMock.workflowRun.update.mockResolvedValue(fixtures.workflowRun as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
 
       // Act
@@ -321,6 +337,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
         storyId: fixtures.story.id,
         workflowId: fixtures.workflow.id,
         cwd: customCwd,
+        sessionId: requiredTranscriptParams.sessionId,
+        transcriptPath: requiredTranscriptParams.transcriptPath,
       };
 
       prismaMock.story.findUnique.mockResolvedValue({
@@ -331,6 +349,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
+        project: { ...fixtures.project, hostPath: '/opt/stack/AIStudio', localPath: '/app' },
+        states: [fixtures.workflowState],
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -373,6 +393,7 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       const params = {
         storyId: fixtures.story.id,
         workflowId: fixtures.workflow.id,
+        ...requiredTranscriptParams,
       };
 
       prismaMock.story.findUnique.mockResolvedValue({
@@ -383,6 +404,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
+        project: { ...fixtures.project, hostPath: '/opt/stack/AIStudio', localPath: '/app' },
+        states: [fixtures.workflowState],
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -421,10 +444,17 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
     });
 
     it('should fallback to localPath when hostPath is null', async () => {
-      // Arrange
+      // Arrange - don't include cwd to test fallback behavior
+      // Clear PROJECT_HOST_PATH env var to test true fallback to localPath
+      const originalProjectHostPath = process.env.PROJECT_HOST_PATH;
+      delete process.env.PROJECT_HOST_PATH;
+
       const params = {
         storyId: fixtures.story.id,
         workflowId: fixtures.workflow.id,
+        sessionId: requiredTranscriptParams.sessionId,
+        transcriptPath: requiredTranscriptParams.transcriptPath,
+        // Note: deliberately NOT including cwd to test hostPath -> localPath fallback
       };
 
       prismaMock.story.findUnique.mockResolvedValue({
@@ -435,6 +465,8 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
 
       prismaMock.workflow.findUnique.mockResolvedValue({
         ...fixtures.workflow,
+        project: { ...fixtures.project, hostPath: null, localPath: '/app' },
+        states: [fixtures.workflowState],
       } as any);
 
       prismaMock.workflowRun.findFirst.mockResolvedValue(null);
@@ -455,21 +487,28 @@ describe('UC-EXEC-001: Execute Story with Workflow - Unit Tests', () => {
       prismaMock.workflowRun.update.mockResolvedValue({} as any);
       prismaMock.story.update.mockResolvedValue(fixtures.story as any);
 
-      // Act
-      await handler(prismaMock, params);
+      try {
+        // Act
+        await handler(prismaMock, params);
 
-      // Assert - should fallback to localPath
-      expect(prismaMock.workflowRun.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            metadata: expect.objectContaining({
-              _transcriptTracking: expect.objectContaining({
-                projectPath: '/app',
+        // Assert - should fallback to localPath
+        expect(prismaMock.workflowRun.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              metadata: expect.objectContaining({
+                _transcriptTracking: expect.objectContaining({
+                  projectPath: '/app',
+                }),
               }),
             }),
-          }),
-        })
-      );
+          })
+        );
+      } finally {
+        // Restore env var
+        if (originalProjectHostPath !== undefined) {
+          process.env.PROJECT_HOST_PATH = originalProjectHostPath;
+        }
+      }
     });
   });
 });

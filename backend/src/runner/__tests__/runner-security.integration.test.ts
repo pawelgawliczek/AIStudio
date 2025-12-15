@@ -16,8 +16,8 @@
  * 6. Privilege Escalation Prevention
  */
 
-import { PrismaClient } from '@prisma/client';
 import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { PrismaClient } from '@prisma/client';
 
 // Increase timeout for integration tests
 jest.setTimeout(60000);

@@ -589,6 +589,12 @@ describe('Convenience Functions', () => {
 
   describe('validatePRForProduction', () => {
     it('should create validator and validate PR', async () => {
+      // Mock git config calls for constructor (extractOwnerFromGit, extractRepoFromGit)
+      (execSync as jest.Mock)
+        .mockImplementationOnce(() => 'git@github.com:testowner/testrepo.git')
+        .mockImplementationOnce(() => 'git@github.com:testowner/testrepo.git');
+
+      // Mock fetchPRDetails
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return JSON.stringify({
           number: 42,
@@ -603,6 +609,7 @@ describe('Convenience Functions', () => {
         });
       });
 
+      // Mock fetchPRReviews
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return JSON.stringify({
           id: 1,
@@ -612,6 +619,7 @@ describe('Convenience Functions', () => {
         });
       });
 
+      // Mock checkCIStatus
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return 'true';
       });
@@ -625,6 +633,12 @@ describe('Convenience Functions', () => {
 
   describe('isPRReadyForProduction', () => {
     it('should return true if PR is ready', async () => {
+      // Mock git config calls for constructor (extractOwnerFromGit, extractRepoFromGit)
+      (execSync as jest.Mock)
+        .mockImplementationOnce(() => 'git@github.com:testowner/testrepo.git')
+        .mockImplementationOnce(() => 'git@github.com:testowner/testrepo.git');
+
+      // Mock fetchPRDetails
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return JSON.stringify({
           number: 42,
@@ -639,6 +653,7 @@ describe('Convenience Functions', () => {
         });
       });
 
+      // Mock fetchPRReviews
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return JSON.stringify({
           id: 1,
@@ -648,6 +663,7 @@ describe('Convenience Functions', () => {
         });
       });
 
+      // Mock checkCIStatus
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return 'true';
       });
@@ -658,6 +674,12 @@ describe('Convenience Functions', () => {
     });
 
     it('should return false if PR is not ready', async () => {
+      // Mock git config calls for constructor (extractOwnerFromGit, extractRepoFromGit)
+      (execSync as jest.Mock)
+        .mockImplementationOnce(() => 'git@github.com:testowner/testrepo.git')
+        .mockImplementationOnce(() => 'git@github.com:testowner/testrepo.git');
+
+      // Mock fetchPRDetails
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return JSON.stringify({
           number: 42,
@@ -672,6 +694,7 @@ describe('Convenience Functions', () => {
         });
       });
 
+      // Mock fetchPRReviews
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return JSON.stringify({
           id: 1,
@@ -681,6 +704,7 @@ describe('Convenience Functions', () => {
         });
       });
 
+      // Mock checkCIStatus
       (execSync as jest.Mock).mockImplementationOnce(() => {
         return 'true';
       });

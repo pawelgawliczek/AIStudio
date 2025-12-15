@@ -14,14 +14,14 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { ValidationError, NotFoundError } from '../../types';
-import { validateRequired, handlePrismaError } from '../../utils';
 import {
   levenshteinDistance,
   findSimilarAreas,
   normalizeArea,
   SIMILARITY_THRESHOLD,
 } from '../../../use-cases/taxonomy.util';
+import { ValidationError, NotFoundError } from '../../types';
+import { validateRequired, handlePrismaError } from '../../utils';
 
 export const tool: Tool = {
   name: 'manage_project_taxonomy',

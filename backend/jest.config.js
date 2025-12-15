@@ -49,10 +49,8 @@ module.exports = {
       lines: 70,
     },
   },
-  // DISABLED: Conditional setup was causing Jest to hang during test loading
-  // setupFilesAfterEnv: [
-  //   '<rootDir>/src/mcp/servers/execution/__tests__/conditional-setup.ts'
-  // ],
+  // Centralized test setup for consistent cleanup across all tests
+  setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-after-env.ts'],
   moduleNameMapper: {
     // Auto-mock @prisma/client to prevent engine initialization CPU loops
     '^@prisma/client$': '<rootDir>/src/__mocks__/@prisma/client.ts',

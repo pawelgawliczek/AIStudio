@@ -1,18 +1,17 @@
 /**
  * Tests for start_runner MCP tool
+ * ST-195: Updated to test HTTP-based runner start via backend REST endpoint
  */
 
-import { spawn } from 'child_process';
-import { EventEmitter } from 'events';
 import { PrismaClient } from '@prisma/client';
 import { handler } from '../start_runner';
 
-// Mock child_process
-jest.mock('child_process');
+// Mock global fetch
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
 describe('start_runner MCP Tool', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;
-  let mockProcess: EventEmitter & { stdout: EventEmitter; stderr: EventEmitter };
 
   beforeEach(() => {
     // Create mock Prisma client
@@ -24,18 +23,17 @@ describe('start_runner MCP Tool', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      story: {
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+      },
     } as any;
 
-    // Create mock child process
-    mockProcess = Object.assign(new EventEmitter(), {
-      stdout: new EventEmitter(),
-      stderr: new EventEmitter(),
-    });
-
-    (spawn as jest.Mock).mockReturnValue(mockProcess);
-
     // Set default environment
-    process.env.PROJECT_PATH = '/test/project';
+    process.env.BACKEND_URL = 'http://localhost:3000';
+
+    // Reset fetch mock
+    mockFetch.mockReset();
   });
 
   afterEach(() => {
@@ -85,7 +83,7 @@ describe('start_runner MCP Tool', () => {
     });
   });
 
-  describe('Docker Command Building', () => {
+  describe('HTTP API Calls', () => {
     beforeEach(() => {
       // Setup valid workflow and run
       (mockPrisma.workflow.findUnique as jest.Mock).mockResolvedValue({
@@ -96,179 +94,134 @@ describe('start_runner MCP Tool', () => {
       (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue({
         id: 'run-123',
       });
-
-      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue({});
     });
 
-    it('should spawn docker with correct arguments in detached mode', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: true,
+    it('should call backend API with correct parameters', async () => {
+      // Mock story resolution for ST-789
+      (mockPrisma.story.findFirst as jest.Mock).mockResolvedValue({
+        id: 'story-uuid-789',
+        key: 'ST-789',
       });
 
-      // Immediately resolve to simulate detached mode
-      const result: any = await promise;
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          runId: 'run-123',
+          status: 'started',
+          message: 'Runner started successfully',
+          jobId: 'job-abc',
+          agentId: 'agent-xyz',
+        }),
+      });
 
-      expect(spawn).toHaveBeenCalledWith(
-        'docker',
-        [
-          'compose',
-          '-f',
-          'runner/docker-compose.runner.yml',
-          'run',
-          '--rm',
-          '-d',
-          'runner',
-          'start',
-          '--run-id',
-          'run-123',
-          '--workflow-id',
-          'workflow-456',
-          '--triggered-by',
-          'mcp-tool',
-        ],
-        {
-          cwd: '/test/project',
-          stdio: 'pipe',
-          detached: true,
-        }
+      const result = await handler(mockPrisma, {
+        runId: 'run-123',
+        workflowId: 'workflow-456',
+        storyId: 'ST-789', // Use valid story key format
+        triggeredBy: 'test-user',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3000/api/runner/run-123/start',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workflowId: 'workflow-456',
+            storyId: 'story-uuid-789', // Resolved from ST-789
+            triggeredBy: 'test-user',
+          }),
+        })
       );
-
-      expect(result.success).toBe(true);
-      expect(result.status).toBe('started');
-    });
-
-    it('should include story ID when provided', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        storyId: 'story-789',
-        detached: true,
-      });
-
-      await promise;
-
-      const spawnCall = (spawn as jest.Mock).mock.calls[0];
-      const args = spawnCall[1];
-
-      expect(args).toContain('--story-id');
-      expect(args).toContain('story-789');
-    });
-
-    it('should include custom triggeredBy when provided', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        triggeredBy: 'claude-agent',
-        detached: true,
-      });
-
-      await promise;
-
-      const spawnCall = (spawn as jest.Mock).mock.calls[0];
-      const args = spawnCall[1];
-
-      expect(args).toContain('--triggered-by');
-      expect(args).toContain('claude-agent');
-    });
-
-    it('should not include -d flag in attached mode', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: false,
-      });
-
-      // Simulate successful completion
-      setTimeout(() => {
-        mockProcess.emit('exit', 0);
-      }, 10);
-
-      await promise;
-
-      const spawnCall = (spawn as jest.Mock).mock.calls[0];
-      const args = spawnCall[1];
-
-      expect(args).not.toContain('-d');
-    });
-  });
-
-  describe('Run Status Update', () => {
-    beforeEach(() => {
-      (mockPrisma.workflow.findUnique as jest.Mock).mockResolvedValue({
-        id: 'workflow-456',
-        states: [{ id: 'state-1' }],
-      });
-
-      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue({
-        id: 'run-123',
-      });
-
-      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue({});
-    });
-
-    it('should update run status to running', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: true,
-      });
-
-      await promise;
-
-      expect(mockPrisma.workflowRun.update).toHaveBeenCalledWith({
-        where: { id: 'run-123' },
-        data: {
-          status: 'running',
-          startedAt: expect.any(Date),
-        },
-      });
-    });
-  });
-
-  describe('Detached Mode', () => {
-    beforeEach(() => {
-      (mockPrisma.workflow.findUnique as jest.Mock).mockResolvedValue({
-        id: 'workflow-456',
-        states: [{ id: 'state-1' }],
-      });
-
-      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue({
-        id: 'run-123',
-      });
-
-      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue({});
-    });
-
-    it('should return immediately in detached mode', async () => {
-      const result: any = await handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: true,
-      });
 
       expect(result.success).toBe(true);
       expect(result.runId).toBe('run-123');
       expect(result.status).toBe('started');
-      expect(result.message).toContain('Story Runner started');
+      expect(result.jobId).toBe('job-abc');
+      expect(result.agentId).toBe('agent-xyz');
     });
 
-    it('should include command in response', async () => {
-      const result: any = await handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        storyId: 'story-789',
-        detached: true,
+    it('should use default triggeredBy when not provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          runId: 'run-123',
+          status: 'started',
+        }),
       });
 
-      expect(result.command).toContain('docker');
-      expect(result.command).toContain('--run-id run-123');
-      expect(result.command).toContain('--story-id story-789');
+      await handler(mockPrisma, {
+        runId: 'run-123',
+        workflowId: 'workflow-456',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: expect.stringContaining('"triggeredBy":"mcp-tool"'),
+        })
+      );
+    });
+
+    it('should throw error on backend API failure', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => 'Internal server error',
+      });
+
+      await expect(
+        handler(mockPrisma, {
+          runId: 'run-123',
+          workflowId: 'workflow-456',
+        })
+      ).rejects.toThrow('Backend API error (500)');
+    });
+
+    it('should handle connection refused error', async () => {
+      mockFetch.mockRejectedValue(new Error('fetch failed: ECONNREFUSED'));
+
+      await expect(
+        handler(mockPrisma, {
+          runId: 'run-123',
+          workflowId: 'workflow-456',
+        })
+      ).rejects.toThrow(/Cannot connect to backend/);
+    });
+
+    it('should return response from backend API', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          runId: 'run-123',
+          status: 'queued',
+          message: 'Runner queued for execution',
+          jobId: 'job-123',
+        }),
+      });
+
+      const result = await handler(mockPrisma, {
+        runId: 'run-123',
+        workflowId: 'workflow-456',
+      });
+
+      expect(result).toEqual({
+        success: true,
+        runId: 'run-123',
+        workflowId: 'workflow-456',
+        storyId: undefined,
+        status: 'queued',
+        message: 'Runner queued for execution',
+        jobId: 'job-123',
+        agentId: undefined,
+      });
     });
   });
 
-  describe('Attached Mode', () => {
+  describe('Environment Configuration', () => {
     beforeEach(() => {
       (mockPrisma.workflow.findUnique as jest.Mock).mockResolvedValue({
         id: 'workflow-456',
@@ -279,118 +232,38 @@ describe('start_runner MCP Tool', () => {
         id: 'run-123',
       });
 
-      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue({});
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, runId: 'run-123', status: 'started' }),
+      });
     });
 
-    it('should wait for completion in attached mode', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: false,
-      });
+    it('should use BACKEND_URL environment variable', async () => {
+      process.env.BACKEND_URL = 'https://custom-backend.example.com';
 
-      // Simulate process output and completion
-      setTimeout(() => {
-        mockProcess.stdout!.emit('data', 'Runner output\n');
-        mockProcess.emit('exit', 0);
-      }, 10);
-
-      const result: any = await promise;
-
-      expect(result.success).toBe(true);
-      expect(result.status).toBe('completed');
-      expect(result.stdout).toContain('Runner output');
-    });
-
-    it('should reject on non-zero exit code', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: false,
-      });
-
-      // Simulate failure
-      setTimeout(() => {
-        mockProcess.stderr!.emit('data', 'Error occurred\n');
-        mockProcess.emit('exit', 1);
-      }, 10);
-
-      await expect(promise).rejects.toThrow('Story Runner failed with code 1');
-    });
-
-    it('should reject on process error', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: false,
-      });
-
-      // Simulate error
-      setTimeout(() => {
-        mockProcess.emit('error', new Error('Spawn error'));
-      }, 10);
-
-      await expect(promise).rejects.toThrow('Failed to start Story Runner');
-    });
-
-    it('should collect stdout and stderr', async () => {
-      const promise = handler(mockPrisma, {
-        runId: 'run-123',
-        workflowId: 'workflow-456',
-        detached: false,
-      });
-
-      setTimeout(() => {
-        mockProcess.stdout!.emit('data', 'Line 1\n');
-        mockProcess.stdout!.emit('data', 'Line 2\n');
-        mockProcess.stderr!.emit('data', 'Warning\n');
-        mockProcess.emit('exit', 0);
-      }, 10);
-
-      const result: any = await promise;
-
-      expect(result.stdout).toContain('Line 1');
-      expect(result.stdout).toContain('Line 2');
-    });
-  });
-
-  describe('Default Parameters', () => {
-    beforeEach(() => {
-      (mockPrisma.workflow.findUnique as jest.Mock).mockResolvedValue({
-        id: 'workflow-456',
-        states: [{ id: 'state-1' }],
-      });
-
-      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue({
-        id: 'run-123',
-      });
-
-      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue({});
-    });
-
-    it('should default to detached mode', async () => {
       await handler(mockPrisma, {
         runId: 'run-123',
         workflowId: 'workflow-456',
       });
 
-      const spawnCall = (spawn as jest.Mock).mock.calls[0];
-      const args = spawnCall[1];
-
-      expect(args).toContain('-d');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://custom-backend.example.com/api/runner/run-123/start',
+        expect.any(Object)
+      );
     });
 
-    it('should default triggeredBy to mcp-tool', async () => {
+    it('should default to localhost:3000 when BACKEND_URL not set', async () => {
+      delete process.env.BACKEND_URL;
+
       await handler(mockPrisma, {
         runId: 'run-123',
         workflowId: 'workflow-456',
       });
 
-      const spawnCall = (spawn as jest.Mock).mock.calls[0];
-      const args = spawnCall[1];
-
-      expect(args).toContain('--triggered-by');
-      expect(args).toContain('mcp-tool');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3000/api/runner/run-123/start',
+        expect.any(Object)
+      );
     });
   });
 });

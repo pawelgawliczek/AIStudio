@@ -39,12 +39,12 @@
  * 6. Security Tests - Authorization, hash validation, quotas, race conditions
  */
 
+import * as crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
-import { handler as uploadArtifact } from '../upload_artifact';
+import { ValidationError, NotFoundError } from '../../../types';
 import { handler as getArtifact } from '../get_artifact';
 import { handler as listArtifacts } from '../list_artifacts';
-import { ValidationError, NotFoundError } from '../../../types';
-import * as crypto from 'crypto';
+import { handler as uploadArtifact } from '../upload_artifact';
 
 // Mock Prisma
 const mockPrisma = {

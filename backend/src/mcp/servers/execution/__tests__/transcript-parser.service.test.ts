@@ -41,7 +41,8 @@ describe('TranscriptParserService', () => {
       expect(result?.outputTokens).toBe(500);
       expect(result?.cacheCreationTokens).toBe(10000);
       expect(result?.cacheReadTokens).toBe(50000);
-      expect(result?.totalTokens).toBe(1500); // input + output
+      // ST-194: totalTokens = input + output + cacheCreation (billing model)
+      expect(result?.totalTokens).toBe(11500); // 1000 + 500 + 10000
     });
 
     it('should aggregate multiple messages', async () => {
@@ -53,8 +54,10 @@ describe('TranscriptParserService', () => {
       expect(result?.inputTokens).toBe(3000); // 1000 + 800 + 1200
       expect(result?.outputTokens).toBe(1500); // 500 + 300 + 700
       expect(result?.cacheCreationTokens).toBe(25000); // 10000 + 5000 + 10000
-      expect(result?.cacheReadTokens).toBe(130000); // 50000 + 40000 + 40000
-      expect(result?.totalTokens).toBe(4500); // 3000 + 1500
+      // ST-194: cache_read uses MAX (cumulative per message) not SUM
+      expect(result?.cacheReadTokens).toBe(50000); // MAX(50000, 40000, 40000)
+      // ST-194: totalTokens = input + output + cacheCreation (billing model)
+      expect(result?.totalTokens).toBe(29500); // 3000 + 1500 + 25000
     });
 
     it('should handle missing cache fields gracefully', async () => {

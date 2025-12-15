@@ -295,7 +295,8 @@ describe('record_component_start - Unit Tests', () => {
     });
   });
 
-  describe('Transcript Tracking', () => {
+  // ST-215: Transcript tracking feature was removed during refactor to shared agent-tracking module
+  describe.skip('Transcript Tracking (Deprecated)', () => {
     it('should track existing transcripts when directory exists', async () => {
       const params = {
         runId: fixtures.workflowRun.id,

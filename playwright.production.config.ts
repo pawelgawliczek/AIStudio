@@ -20,6 +20,7 @@ export default defineConfig({
     '**/15-transcript-streaming-e2e.spec.ts',
     '**/17-earlier-agent-tracking-st216.spec.ts',
     '**/live-streaming.e2e.spec.ts',
+    '**/19-artifact-save-st237.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

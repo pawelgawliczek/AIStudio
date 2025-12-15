@@ -10,11 +10,11 @@
  * 3. Hook integration: vibestudio-track-agents.sh can read the file
  */
 
-import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { PrismaClient } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
 
 // Import MCP tool handlers
 import { handler as startTeamRun } from '../../mcp/servers/execution/start_workflow_run';
@@ -251,7 +251,7 @@ describe('ST-231: Running Workflows Tracking', () => {
       const workflowRunId = uuidv4();
 
       // Read existing data
-      let data = JSON.parse(fs.readFileSync(runnerWorkflowsFile, 'utf-8'));
+      const data = JSON.parse(fs.readFileSync(runnerWorkflowsFile, 'utf-8'));
       const previousSessions = Object.keys(data.sessions).length;
 
       // Resume adds new session entry

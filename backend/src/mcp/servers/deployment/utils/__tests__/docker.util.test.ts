@@ -470,7 +470,8 @@ describe('Docker Utilities', () => {
 
       const logs = getContainerLogs('/opt/stack/AIStudio', 'backend');
 
-      expect(logs).toContain('Container not found');
+      // Error is wrapped by execDockerCompose
+      expect(logs).toContain('Docker Compose command failed');
     });
   });
 

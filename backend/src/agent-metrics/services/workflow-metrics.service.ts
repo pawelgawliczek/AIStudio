@@ -1,13 +1,13 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ComprehensiveMetricsCalculator } from '../calculators/comprehensive-metrics.calculator';
+import { AggregationLevel } from '../dto/enums';
 import {
   GetWorkflowMetricsDto,
   WorkflowMetricsResponseDto,
   WorkflowComparisonResponseDto,
 } from '../dto/metrics.dto';
-import { AggregationLevel } from '../dto/enums';
 import { calculateWorkflowDateRange, calculatePercentDiff } from '../utils/metrics.utils';
-import { ComprehensiveMetricsCalculator } from '../calculators/comprehensive-metrics.calculator';
 import { MetricsAggregationService } from './metrics-aggregation.service';
 
 @Injectable()

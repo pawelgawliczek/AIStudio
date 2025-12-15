@@ -8,12 +8,29 @@ describe('update_workflow MCP tool', () => {
     workflow: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      create: jest.fn(),
     },
+    workflowVersion: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn().mockImplementation(async (operations: any) => {
+      if (typeof operations === 'function') {
+        return operations(mockPrismaClient);
+      }
+      return Promise.all(operations);
+    }),
   };
 
   beforeEach(() => {
     prisma = mockPrismaClient as any;
     jest.clearAllMocks();
+    // Re-setup $transaction mock after clear
+    mockPrismaClient.$transaction.mockImplementation(async (operations: any) => {
+      if (typeof operations === 'function') {
+        return operations(mockPrismaClient);
+      }
+      return Promise.all(operations);
+    });
   });
 
   describe('tool definition', () => {

@@ -1,8 +1,8 @@
 # Live Streaming Architecture
 
-**Version:** 1.1
+**Version:** 1.2
 **Last Updated:** 2025-12-15
-**Epic:** ST-220, ST-242
+**Epic:** ST-220, ST-242, ST-247
 
 ## Table of Contents
 
@@ -407,6 +407,7 @@ completeAgentTracking(prisma, {
 
 **Actions:**
 - Updates `ComponentRun` with `status`, `output`, `finishedAt`
+- **ST-247:** Syncs `spawnedAgentTranscripts` from laptop's `running-workflows.json` via RemoteRunner
 - Parses transcript for token metrics via RemoteRunner (if transcript available)
 - **ST-242:** Calculates cost using centralized pricing utility
 - Stores `modelId`, `tokensCacheCreation`, `tokensCacheRead`, `cost`
@@ -414,6 +415,17 @@ completeAgentTracking(prisma, {
 - Generates or stores component summary
 - Broadcasts `component:completed` WebSocket event
 - Stops transcript tailing
+
+**ST-247 Metadata Path Fix:**
+The transcript sync reads metadata from the correct nested path:
+```typescript
+// Correct path (ST-247 fix)
+const transcriptTracking = runMetadata?._transcriptTracking as Record<string, unknown>;
+const masterSessionId = transcriptTracking?.sessionId as string;
+const cwd = transcriptTracking?.projectPath as string;
+
+// NOT from top-level metadata.cwd (was broken)
+```
 
 **Called By:**
 - **ONLY** via `advance_step` when exiting agent phase (automatic)
@@ -474,9 +486,11 @@ completeAgentTracking(prisma, {
   componentSummary?: object;  // Structured summary (ST-203)
   tokensInput: number;
   tokensOutput: number;
-  tokensCacheWrite: number;
-  tokensCacheRead: number;
-  estimatedCost: number;
+  totalTokens: number;        // ST-247: Sum of input + output + cache
+  tokensCacheCreation: number; // ST-247: Cache creation tokens (new)
+  tokensCacheRead: number;     // ST-247: Cache read tokens (new)
+  cost: number;               // ST-242: Calculated via pricing utility
+  modelId?: string;           // ST-242: Model used for cost calculation
 }
 ```
 
@@ -493,10 +507,45 @@ completeAgentTracking(prisma, {
 
 3. advance_step (exit agent phase)
    └─ completeAgentTracking()
+      ├─ ST-247: Sync spawnedAgentTranscripts from laptop
+      │   └─ RemoteRunner.readFile('running-workflows.json')
+      │   └─ Extract transcripts for current masterSessionId
+      │   └─ Update WorkflowRun.spawnedAgentTranscripts
       ├─ Parse transcript for metrics
+      ├─ Calculate cost via pricing utility
       ├─ Generate component summary
       └─ Update ComponentRun with results
 ```
+
+### ST-247: Transcript Sync from Laptop
+
+The `advance_step` function syncs spawned agent transcripts from the laptop's `running-workflows.json` file before completing agent tracking. This ensures telemetry data is available for transcript parsing.
+
+**File Location:** `~/.claude/running-workflows.json` (on laptop)
+
+**Data Structure:**
+```typescript
+{
+  "sessions": {
+    "<masterSessionId>": {
+      "projectPath": "/path/to/project",
+      "spawnedAgentTranscripts": [
+        {
+          "agentId": "abc1234",
+          "transcriptPath": "/path/to/agent-abc1234.jsonl",
+          "spawnedAt": "2025-12-15T09:00:00.000Z"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Sync Flow:**
+1. Read `running-workflows.json` via RemoteRunner
+2. Find session by masterSessionId (from `_transcriptTracking.sessionId`)
+3. Merge `spawnedAgentTranscripts` into WorkflowRun metadata
+4. Use transcripts for telemetry parsing in `completeAgentTracking`
 
 **Docker Runner:**
 
@@ -1016,6 +1065,25 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
 - **ST-220**: Unified Live Streaming Documentation (this document)
 - **ST-233**: Live Streaming Architecture Simplification (relay pattern removal)
 - **ST-242**: Telemetry Metrics Fix (centralized pricing, obsolete record_agent_* tools)
+- **ST-247**: Telemetry Sync Fix (metadata path fix, cache token columns, running-workflows.json sync)
+
+---
+
+## Changelog
+
+### Version 1.2 (2025-12-15)
+- **ST-247**: Fixed metadata path in `advance_step.ts` - now reads from `_transcriptTracking.projectPath` instead of `metadata.cwd`
+- **ST-247**: Added cache token columns to schema (`tokens_cache_creation`, `tokens_cache_read`)
+- **ST-247**: Added transcript sync from laptop's `running-workflows.json` via RemoteRunner
+- **ST-247**: Updated ComponentRun fields documentation with new cache token columns
+
+### Version 1.1 (2025-12-15)
+- **ST-242**: Added centralized pricing utility documentation
+- **ST-242**: Marked `record_agent_start`/`record_agent_complete` MCP tools as obsolete
+- **ST-233**: Documented relay pattern removal for live streaming
+
+### Version 1.0 (2025-12-14)
+- Initial document combining ST-220 live streaming architecture
 
 ---
 

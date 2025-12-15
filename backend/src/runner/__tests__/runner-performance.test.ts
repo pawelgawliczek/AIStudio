@@ -16,8 +16,8 @@
  * 6. WebSocket Connection Pooling
  */
 
-import { PrismaClient } from '@prisma/client';
 import { jest, describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { PrismaClient } from '@prisma/client';
 
 // Increase timeout for performance tests
 jest.setTimeout(300000); // 5 minutes

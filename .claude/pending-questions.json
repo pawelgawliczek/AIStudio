@@ -902,3 +902,735 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-14T08:16:18Z",
+  "session_id": "3b98e603-61d1-4b6a-8495-2d40291f769e",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Which tests are hanging - backend unit tests (npm test), backend E2E tests, or frontend tests?",
+      "header": "Test type",
+      "options": [
+        {
+          "label": "Backend unit tests",
+          "description": "npm test or npm run test in backend/"
+        },
+        {
+          "label": "Backend E2E tests",
+          "description": "npm run test:e2e:* commands"
+        },
+        {
+          "label": "Frontend tests",
+          "description": "npm test in frontend/ (uses Vitest)"
+        },
+        {
+          "label": "All of them",
+          "description": "Multiple test types have hanging issues"
+        }
+      ],
+      "multiSelect": true
+    },
+    {
+      "question": "What command are you using to run the tests that hang?",
+      "header": "Command",
+      "options": [
+        {
+          "label": "npm test",
+          "description": "Default test command"
+        },
+        {
+          "label": "jest --testPathPattern",
+          "description": "Running specific test patterns"
+        },
+        {
+          "label": "npm test -- path/to/tests",
+          "description": "Running specific test files/directories"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T09:26:46Z",
+  "session_id": "67212c3f-1f0c-4732-bded-4ac0bfc645d7",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Is there a specific story (ST-XXX) tracking this work, or should I create one?",
+      "header": "Story",
+      "options": [
+        {
+          "label": "Use existing story",
+          "description": "I'll provide the story key"
+        },
+        {
+          "label": "Create new story",
+          "description": "Create a new story in the project for this work"
+        },
+        {
+          "label": "No story needed",
+          "description": "Just implement without story tracking"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Which ACs are most critical for the e2e tests to verify?",
+      "header": "Test Focus",
+      "options": [
+        {
+          "label": "All listed (Recommended)",
+          "description": "Master streaming, agent streaming, active agent tracking, telemetry, transcript upload"
+        },
+        {
+          "label": "Streaming only",
+          "description": "Focus on master and agent session live streaming"
+        },
+        {
+          "label": "Telemetry focus",
+          "description": "Focus on telemetry gathering and transcript upload"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should Playwright tests run against local dev environment or production (vibestudio.example.com)?",
+      "header": "Test Target",
+      "options": [
+        {
+          "label": "Local only (Recommended)",
+          "description": "Tests run against local Docker compose stack"
+        },
+        {
+          "label": "Production",
+          "description": "Tests run against production environment"
+        },
+        {
+          "label": "Both",
+          "description": "Separate test configs for local and production"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T11:00:07Z",
+  "session_id": "f6f025da-3410-410b-8dd3-0dee7c9f807d",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "How frequently does context compaction occur in practice? If rare, we can simplify the multi-session tab handling significantly.",
+      "header": "Compaction",
+      "options": [
+        {
+          "label": "Rare (<5% of runs)",
+          "description": "Simplify: Historical sessions via REST API instead of live WebSocket tabs"
+        },
+        {
+          "label": "Common (>20% of runs)",
+          "description": "Keep multi-session WebSocket support but can still simplify subscribe protocol"
+        },
+        {
+          "label": "Unknown",
+          "description": "Need to check production data before deciding"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Which execution mode is your primary focus - Manual Mode (get_current_step → advance_step) or Docker Runner (autonomous)?",
+      "header": "Exec Mode",
+      "options": [
+        {
+          "label": "Manual Mode (primary)",
+          "description": "Focus simplification on MCP tool path, Runner can call same tools"
+        },
+        {
+          "label": "Docker Runner (primary)",
+          "description": "Focus on API path, Manual mode adapts"
+        },
+        {
+          "label": "Both equally used",
+          "description": "Unify both code paths into single shared implementation"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Do you want to tackle the gateway merger (biggest simplification) or start with quick wins?",
+      "header": "Approach",
+      "options": [
+        {
+          "label": "Quick wins first",
+          "description": "SessionId fix → Subscribe protocol → Gateway merger later"
+        },
+        {
+          "label": "Gateway merger first",
+          "description": "Big architectural simplification upfront, then refinements"
+        },
+        {
+          "label": "Just analyze",
+          "description": "Only provide analysis/recommendations, don't implement yet"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T11:00:58Z",
+  "session_id": "f6f025da-3410-410b-8dd3-0dee7c9f807d",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Now that you understand the simplifications, what would you like to do?",
+      "header": "Next Step",
+      "options": [
+        {
+          "label": "Implement Option C first",
+          "description": "Unify agent tracking - both modes call same MCP tools. Biggest bang for buck."
+        },
+        {
+          "label": "Implement all quick wins",
+          "description": "Do Options B, C, D together - unified tracking + sessionId fix + subscribe simplification"
+        },
+        {
+          "label": "Just keep the analysis",
+          "description": "Use this plan as reference, implement later when needed"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T11:13:36Z",
+  "session_id": "f6f025da-3410-410b-8dd3-0dee7c9f807d",
+  "run_id": "cad850b2-43aa-4c12-9256-d58ff0ed7297",
+  "questions": [
+    {
+      "question": "Which team/workflow should we use for ST-233?",
+      "header": "Team",
+      "options": [
+        {
+          "label": "Standard Dev with Approved Plan (Recommended)",
+          "description": "Skips exploration/planning since THE_PLAN is already uploaded. Goes straight to Security Review → Implementation → Testing"
+        },
+        {
+          "label": "Simplified Dev Workflow",
+          "description": "Quick 3-state workflow, but this is a larger refactor touching 8+ files"
+        },
+        {
+          "label": "Standard Dev Workflow",
+          "description": "Full 9-state workflow including exploration and planning (redundant since we already planned)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T14:29:25Z",
+  "session_id": "aff10cbe-18cb-4b63-af67-a78b03000719",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "How should the taxonomy be managed?",
+      "header": "Management",
+      "options": [
+        {
+          "label": "Static per-project (Recommended)",
+          "description": "Each project has a fixed list of areas. Simple, predictable, opt-in (empty = no validation)"
+        },
+        {
+          "label": "Dynamic with auto-learning",
+          "description": "System learns new areas as used, auto-suggests normalization. More complex."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "When a use case is created with area 'Login' (a synonym), what should happen?",
+      "header": "Normalization",
+      "options": [
+        {
+          "label": "Strict rejection with suggestions (Recommended)",
+          "description": "Error: 'Login' not in taxonomy. Did you mean 'Authentication'? Explicit control."
+        },
+        {
+          "label": "Auto-normalize with warning",
+          "description": "Warning: 'Login' normalized to 'Authentication'. Stores canonical name."
+        },
+        {
+          "label": "Auto-normalize silently",
+          "description": "Just store canonical name, no warning. Simplest but less transparent."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should existing use cases with inconsistent areas be handled?",
+      "header": "Migration",
+      "options": [
+        {
+          "label": "Report-only mode (Recommended)",
+          "description": "Add get_taxonomy_violations tool to identify issues. Safe, non-breaking."
+        },
+        {
+          "label": "Lazy normalization",
+          "description": "Keep existing areas, validate only new/updated. Background job suggests fixes."
+        },
+        {
+          "label": "Migration script",
+          "description": "One-time script to normalize all existing areas. Requires manual review."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What level of detail should the taxonomy include?",
+      "header": "Structure",
+      "options": [
+        {
+          "label": "Flat areas only (Recommended)",
+          "description": "Simple: { areas: [...], synonyms: {...} }. Easy to implement and use."
+        },
+        {
+          "label": "Hierarchical categories",
+          "description": "Nested: { categories: { 'User Mgmt': { areas: [...] } } }. More complex."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T14:31:00Z",
+  "session_id": "aff10cbe-18cb-4b63-af67-a78b03000719",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "When a use case is created with a NEW area 'Mobile App' not in taxonomy, what should happen?",
+      "header": "New Areas",
+      "options": [
+        {
+          "label": "Smart suggestion (Recommended)",
+          "description": "If similar to existing area: reject with suggestion. If genuinely new: auto-add to taxonomy."
+        },
+        {
+          "label": "Always auto-learn",
+          "description": "Auto-add any new area to taxonomy. Simple but may accumulate variations."
+        },
+        {
+          "label": "Always reject",
+          "description": "Reject all unknown areas. User must manually add via manage_project_taxonomy first."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T14:43:58Z",
+  "session_id": "aff10cbe-18cb-4b63-af67-a78b03000719",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "Do you approve this implementation plan for ST-207?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve - Proceed to implementation",
+          "description": "Start TDD testing phase, then implement the plan as specified."
+        },
+        {
+          "label": "Approve with changes",
+          "description": "Approve but request specific modifications before implementation."
+        },
+        {
+          "label": "Reject - Need more analysis",
+          "description": "Return to planning phase for additional research or redesign."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T14:46:14Z",
+  "session_id": "aff10cbe-18cb-4b63-af67-a78b03000719",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "How should we handle the web interface for taxonomy management?",
+      "header": "Web UI Scope",
+      "options": [
+        {
+          "label": "Add to ST-207 (expand scope)",
+          "description": "Include React component in Project Settings page. Adds ~4-6 hours to implementation."
+        },
+        {
+          "label": "Create follow-up story",
+          "description": "Complete MCP backend first (ST-207), then create ST-XXX for web UI. Cleaner separation."
+        },
+        {
+          "label": "Basic UI only in ST-207",
+          "description": "Add simple taxonomy viewer/editor in Project Settings. Full CRUD via MCP, basic display in UI."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T15:07:09Z",
+  "session_id": "aff10cbe-18cb-4b63-af67-a78b03000719",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "The backend is 80% complete. How should we proceed?",
+      "header": "Continue?",
+      "options": [
+        {
+          "label": "Continue - Complete all remaining work",
+          "description": "Resume Developer agent to finish UseCasesService, migration, and frontend (~4-6 more hours)"
+        },
+        {
+          "label": "Backend only - Skip frontend",
+          "description": "Complete UseCasesService integration and migration. Frontend can be a follow-up story."
+        },
+        {
+          "label": "Stop here - Review first",
+          "description": "Pause implementation. Review what's done before continuing."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T15:39:59Z",
+  "session_id": "aff10cbe-18cb-4b63-af67-a78b03000719",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "ST-207 implementation is complete with 137/137 tests passing. The workflow has a Playwright verification step that requires deployment. How do you want to proceed?",
+      "header": "Deployment",
+      "options": [
+        {
+          "label": "Skip verification - Mark complete",
+          "description": "Skip Playwright E2E verification and mark workflow as complete. Implementation is done."
+        },
+        {
+          "label": "Deploy and verify",
+          "description": "Commit, push, deploy to production, and run Playwright E2E tests."
+        },
+        {
+          "label": "Deploy to test only",
+          "description": "Deploy to test environment first, then decide about production."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T16:12:29Z",
+  "session_id": "aff10cbe-18cb-4b63-af67-a78b03000719",
+  "run_id": "4dfbdade-9c04-4100-91c8-d00ff3dee6cd",
+  "questions": [
+    {
+      "question": "Do you approve the plan to add TaxonomyManager to the Project Settings modal as a tabbed interface?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve - Proceed",
+          "description": "Continue with implementation of tabbed Project Settings"
+        },
+        {
+          "label": "Reject - Changes needed",
+          "description": "I have concerns or want modifications to the plan"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T17:41:11Z",
+  "session_id": "4af91a29-74df-402c-b4e6-3a927251b072",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "Where does your MCP server (the backend that handles deploy_to_production) run?",
+      "header": "MCP Location",
+      "options": [
+        {
+          "label": "On hostinger (production server)",
+          "description": "MCP backend runs on the same machine as Docker containers. Fix is simple - just add git pull."
+        },
+        {
+          "label": "On my laptop/different machine",
+          "description": "MCP backend runs remotely from production. Fix requires adding SSH connection to hostinger."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T17:42:07Z",
+  "session_id": "4af91a29-74df-402c-b4e6-3a927251b072",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "Should we add git stash before git pull to handle any local uncommitted changes on production?",
+      "header": "Git stash?",
+      "options": [
+        {
+          "label": "No, production is always clean (Recommended)",
+          "description": "Assume /opt/stack/AIStudio has no uncommitted changes. Simpler implementation."
+        },
+        {
+          "label": "Yes, add git stash for safety",
+          "description": "Run git stash before pull and git stash pop after. Handles edge cases but adds complexity."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T18:30:41Z",
+  "session_id": "febb1a41-6757-4997-b7b1-42007c428ca4",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "Which KPI categories are most important for your immediate needs?",
+      "header": "Priority",
+      "options": [
+        {
+          "label": "Tool Reliability",
+          "description": "Tool success rates, retry patterns, failure analysis - helps debug agent issues"
+        },
+        {
+          "label": "Autonomy Metrics",
+          "description": "Human handoff rate, intervention patterns - measures agent independence"
+        },
+        {
+          "label": "Quality/Safety",
+          "description": "Hallucination detection, PR merge rate - production readiness indicators"
+        },
+        {
+          "label": "Multi-Agent Coordination",
+          "description": "Handoff quality, context preservation - VibeStudio-specific orchestration metrics"
+        }
+      ],
+      "multiSelect": true
+    },
+    {
+      "question": "Do you want real-time alerting when KPIs deviate from baselines?",
+      "header": "Alerting",
+      "options": [
+        {
+          "label": "Yes - Critical",
+          "description": "Build alerting system for cost spikes, quality drops, high retry rates"
+        },
+        {
+          "label": "Later Phase",
+          "description": "Focus on metrics collection first, add alerting in future iteration"
+        },
+        {
+          "label": "Not Needed",
+          "description": "Manual dashboard monitoring is sufficient"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should we create a new dedicated dashboard or extend existing ones?",
+      "header": "UI Approach",
+      "options": [
+        {
+          "label": "New Dashboard (Recommended)",
+          "description": "Dedicated 'Agent Performance Analytics' page with comprehensive view"
+        },
+        {
+          "label": "Extend Existing",
+          "description": "Add new KPIs to PerformanceDashboard and CodeQualityDashboard"
+        },
+        {
+          "label": "Both",
+          "description": "New dashboard + integration into existing pages where relevant"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T19:59:41Z",
+  "session_id": "384b5414-2eb7-4b01-8f0f-b5693e41fdd8",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "What scope of refactoring do you prefer for the agent-metrics service?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "Full refactoring (Recommended)",
+          "description": "Extract DTOs, utilities, calculators, and split into 4 focused services. Most maintainable long-term."
+        },
+        {
+          "label": "Quick wins only",
+          "description": "Extract nested functions, consolidate duplicated logic, add proper types. Lower risk, faster."
+        },
+        {
+          "label": "Phased approach",
+          "description": "Start with DTOs and utilities (Phase 1-2), evaluate before continuing. Balanced risk/value."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Are there existing tests for this service that must continue passing?",
+      "header": "Tests",
+      "options": [
+        {
+          "label": "Yes, preserve tests",
+          "description": "Keep public API stable, update tests incrementally"
+        },
+        {
+          "label": "No tests exist",
+          "description": "Free to restructure, will add tests as part of refactoring"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T20:11:38Z",
+  "session_id": "384b5414-2eb7-4b01-8f0f-b5693e41fdd8",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "Which workflow should I use for ST-239?",
+      "header": "Workflow",
+      "options": [
+        {
+          "label": "Standard Dev with Approved Plan (Recommended)",
+          "description": "Skips exploration/planning since THE_PLAN exists. Goes to security → architecture → approval → TDD → implementation → review."
+        },
+        {
+          "label": "Simplified Dev Workflow",
+          "description": "3-state workflow for simple changes. May be too simple for this 2172-line refactor."
+        },
+        {
+          "label": "Standard Dev Workflow",
+          "description": "Full 9-state workflow including exploration and planning (already done)."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T20:15:53Z",
+  "session_id": "208f260c-9e27-4e47-84bf-46cfe6baa224",
+  "run_id": "dae7030c-ad34-4009-8cfe-d595faa07a7b",
+  "questions": [
+    {
+      "question": "Which approach would you like to pursue to improve the code quality grade?",
+      "header": "Approach",
+      "options": [
+        {
+          "label": "Fix coverage bug (Recommended)",
+          "description": "Investigate why test coverage shows 0% at project level despite folders having 60-89%. Quickest potential impact."
+        },
+        {
+          "label": "Improve maintainability",
+          "description": "Refactor the worst folders (services, middleware, hooks) to improve maintainability index."
+        },
+        {
+          "label": "Fix critical hotspots",
+          "description": "Address the top 10 hotspots flagged in the dashboard (complexity, security, large functions)."
+        },
+        {
+          "label": "Reduce duplication",
+          "description": "Extract shared code from folders with >20% duplication (utils, hooks, components, controllers)."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-14T20:22:51Z",
+  "session_id": "384b5414-2eb7-4b01-8f0f-b5693e41fdd8",
+  "run_id": "f6890668-62bd-4066-a14c-98eeb9af78bd",
+  "questions": [
+    {
+      "question": "Do you approve proceeding with the ST-239 implementation?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve - Proceed",
+          "description": "Start TDD Testing phase, then Implementation. Architect recommendations will be incorporated."
+        },
+        {
+          "label": "Reject - Need Changes",
+          "description": "Stop workflow, revise the plan before proceeding."
+        },
+        {
+          "label": "Skip to Implementation",
+          "description": "Skip TDD phase, go directly to implementation (not recommended for this size refactor)."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-15T05:27:16Z",
+  "session_id": "beeac1c6-9de3-405c-bd58-a8adc1236ac6",
+  "run_id": "f6890668-62bd-4066-a14c-98eeb9af78bd",
+  "questions": [
+    {
+      "question": "Which Claude model pricing should we use for cost calculation?",
+      "header": "Pricing Model",
+      "options": [
+        {
+          "label": "Claude Opus 4.5 (current)",
+          "description": "$15/M input, $75/M output - from LIVE_STREAMING_ARCHITECTURE.md. Most accurate for current usage."
+        },
+        {
+          "label": "Simplified flat rate",
+          "description": "$0.01 per 1K tokens (TOKEN_COST_PER_1K) - simpler but less accurate"
+        },
+        {
+          "label": "Multi-model support",
+          "description": "Support both Claude 4.5 and Claude 3, detect from modelId field in ComponentRun"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should we include the frontend format utility refactor in this story?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "Backend only (Recommended)",
+          "description": "Focus on fixing the core issue - cost calculation and aggregation. Faster to deliver."
+        },
+        {
+          "label": "Include frontend refactor",
+          "description": "Also consolidate duplicate formatDuration/formatCost utilities across 6+ components"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

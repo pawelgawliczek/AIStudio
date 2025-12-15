@@ -48,11 +48,14 @@ export const StoryType = {
 export const StoryStatus = {
   backlog: 'backlog',
   planning: 'planning',
-  ready: 'ready',
-  development: 'development',
+  analysis: 'analysis',
+  architecture: 'architecture',
+  design: 'design',
+  implementation: 'implementation',
   review: 'review',
   qa: 'qa',
   done: 'done',
+  blocked: 'blocked',
 } as const;
 
 export const ComponentOnFailure = {
@@ -124,6 +127,11 @@ function createMockModel(): MockPrismaModel {
   };
 }
 
+// Singleton instance for consistent mock behavior across all PrismaClient instantiations
+// This ensures that when handlers create `new PrismaClient()`, they get the same mock
+// that tests can configure via `prismaMock`
+let _singletonInstance: PrismaClient | null = null;
+
 // Create a mock PrismaClient class
 export class PrismaClient {
   // Core models
@@ -134,6 +142,9 @@ export class PrismaClient {
   testCase = createMockModel();
   testExecution = createMockModel();
   testQueue = createMockModel();
+  subtask = createMockModel();
+  defect = createMockModel();
+  defectNew = createMockModel();
 
   // Component/Workflow models
   component = createMockModel();
@@ -141,20 +152,27 @@ export class PrismaClient {
   workflowRun = createMockModel();
   workflowState = createMockModel();
   componentRun = createMockModel();
+  activeWorkflow = createMockModel();
 
-  // Team models
-  team = createMockModel();
-  teamRun = createMockModel();
-  agentRun = createMockModel();
+  // Agent models
+  agent = createMockModel();
+  agentFramework = createMockModel();
+  agentQuestion = createMockModel();
+  agentStreamEvent = createMockModel();
+
+  // Run models
+  run = createMockModel();
+  runnerBreakpoint = createMockModel();
 
   // Deployment models
   deploymentLog = createMockModel();
-  deploymentApproval = createMockModel();
+  deploymentLock = createMockModel();
   worktree = createMockModel();
+  serviceDeploymentState = createMockModel();
 
   // User/Auth models
   user = createMockModel();
-  session = createMockModel();
+  apiKey = createMockModel();
 
   // Remote agent models
   remoteAgent = createMockModel();
@@ -163,18 +181,47 @@ export class PrismaClient {
   // Versioning models
   componentVersion = createMockModel();
   workflowVersion = createMockModel();
+  useCaseVersion = createMockModel();
 
   // Artifact models
   artifact = createMockModel();
+  artifactDefinition = createMockModel();
+  artifactVersion = createMockModel();
+  artifactAccess = createMockModel();
 
   // Queue/Lock models
-  queueLock = createMockModel();
+  testQueueLock = createMockModel();
 
-  // Analytics models
-  snapshotTrendData = createMockModel();
+  // Analytics/Metrics models
+  codeMetrics = createMockModel();
+  codeMetricsSnapshot = createMockModel();
+  metricsAggregation = createMockModel();
+  otelEvent = createMockModel();
 
-  // File mapping models
-  fileMapping = createMockModel();
+  // Commit/PR models
+  commit = createMockModel();
+  commitFile = createMockModel();
+  pullRequest = createMockModel();
+
+  // Release models
+  release = createMockModel();
+  releaseItem = createMockModel();
+
+  // Link models
+  storyUseCaseLink = createMockModel();
+  fileUseCaseLink = createMockModel();
+
+  // Transcript models
+  transcript = createMockModel();
+  unassignedTranscript = createMockModel();
+
+  // Approval models
+  approvalRequest = createMockModel();
+
+  // Audit/Monitoring models
+  auditLog = createMockModel();
+  diskUsageAlert = createMockModel();
+  diskUsageReport = createMockModel();
 
   // Transaction support
   $transaction = jest.fn().mockImplementation(async (operations: any) => {
@@ -208,11 +255,17 @@ export class PrismaClient {
   $extends = jest.fn().mockReturnThis();
 
   constructor(_options?: any) {
-    // Constructor accepts options but doesn't do anything
+    // Return singleton instance to ensure all `new PrismaClient()` calls
+    // in handlers use the same mock that tests configure
+    if (_singletonInstance) {
+      return _singletonInstance;
+    }
+    _singletonInstance = this;
   }
 }
 
 // Export a pre-created mock instance for tests
+// This will be the same instance returned by all `new PrismaClient()` calls
 export const prismaMock = new PrismaClient();
 
 // Export Prisma namespace for type access
@@ -289,5 +342,135 @@ export const Prisma = {
   },
 };
 
+/**
+ * Reset all mock functions on the prismaMock instance to their default state.
+ * Call this in beforeEach to ensure clean test state.
+ * Note: Does not reset the singleton - all PrismaClient instances still share the same mock.
+ */
+export function resetAllMocks(): void {
+  const models = [
+    // Core models
+    prismaMock.project,
+    prismaMock.epic,
+    prismaMock.story,
+    prismaMock.useCase,
+    prismaMock.testCase,
+    prismaMock.testExecution,
+    prismaMock.testQueue,
+    prismaMock.subtask,
+    prismaMock.defect,
+    prismaMock.defectNew,
+    // Component/Workflow models
+    prismaMock.component,
+    prismaMock.workflow,
+    prismaMock.workflowRun,
+    prismaMock.workflowState,
+    prismaMock.componentRun,
+    prismaMock.activeWorkflow,
+    // Agent models
+    prismaMock.agent,
+    prismaMock.agentFramework,
+    prismaMock.agentQuestion,
+    prismaMock.agentStreamEvent,
+    // Run models
+    prismaMock.run,
+    prismaMock.runnerBreakpoint,
+    // Deployment models
+    prismaMock.deploymentLog,
+    prismaMock.deploymentLock,
+    prismaMock.worktree,
+    prismaMock.serviceDeploymentState,
+    // User/Auth models
+    prismaMock.user,
+    prismaMock.apiKey,
+    // Remote agent models
+    prismaMock.remoteAgent,
+    prismaMock.remoteJob,
+    // Versioning models
+    prismaMock.componentVersion,
+    prismaMock.workflowVersion,
+    prismaMock.useCaseVersion,
+    // Artifact models
+    prismaMock.artifact,
+    prismaMock.artifactDefinition,
+    prismaMock.artifactVersion,
+    prismaMock.artifactAccess,
+    // Queue/Lock models
+    prismaMock.testQueueLock,
+    // Analytics/Metrics models
+    prismaMock.codeMetrics,
+    prismaMock.codeMetricsSnapshot,
+    prismaMock.metricsAggregation,
+    prismaMock.otelEvent,
+    // Commit/PR models
+    prismaMock.commit,
+    prismaMock.commitFile,
+    prismaMock.pullRequest,
+    // Release models
+    prismaMock.release,
+    prismaMock.releaseItem,
+    // Link models
+    prismaMock.storyUseCaseLink,
+    prismaMock.fileUseCaseLink,
+    // Transcript models
+    prismaMock.transcript,
+    prismaMock.unassignedTranscript,
+    // Approval models
+    prismaMock.approvalRequest,
+    // Audit/Monitoring models
+    prismaMock.auditLog,
+    prismaMock.diskUsageAlert,
+    prismaMock.diskUsageReport,
+  ];
+
+  models.forEach((model) => {
+    Object.keys(model).forEach((method) => {
+      const fn = (model as any)[method];
+      if (typeof fn?.mockReset === 'function') {
+        fn.mockReset();
+        // Restore sensible defaults
+        if (method === 'findUnique' || method === 'findFirst') {
+          fn.mockResolvedValue(null);
+        } else if (method === 'findMany') {
+          fn.mockResolvedValue([]);
+        } else if (method === 'count') {
+          fn.mockResolvedValue(0);
+        } else if (['create', 'update', 'upsert', 'delete'].includes(method)) {
+          fn.mockResolvedValue({});
+        } else if (['createMany', 'updateMany', 'deleteMany'].includes(method)) {
+          fn.mockResolvedValue({ count: 0 });
+        } else if (method === 'aggregate' || method === 'groupBy') {
+          fn.mockResolvedValue(method === 'groupBy' ? [] : {});
+        }
+      }
+    });
+  });
+
+  // Reset transaction mock
+  prismaMock.$transaction.mockReset();
+  prismaMock.$transaction.mockImplementation(async (operations: any) => {
+    if (typeof operations === 'function') {
+      return operations(prismaMock);
+    }
+    return Promise.all(operations);
+  });
+
+  // Reset connection mocks
+  prismaMock.$connect.mockReset();
+  prismaMock.$connect.mockResolvedValue(undefined);
+  prismaMock.$disconnect.mockReset();
+  prismaMock.$disconnect.mockResolvedValue(undefined);
+
+  // Reset raw query mocks
+  prismaMock.$queryRaw.mockReset();
+  prismaMock.$queryRaw.mockResolvedValue([]);
+  prismaMock.$executeRaw.mockReset();
+  prismaMock.$executeRaw.mockResolvedValue(0);
+  prismaMock.$queryRawUnsafe.mockReset();
+  prismaMock.$queryRawUnsafe.mockResolvedValue([]);
+  prismaMock.$executeRawUnsafe.mockReset();
+  prismaMock.$executeRawUnsafe.mockResolvedValue(0);
+}
+
 // Default export for CommonJS compatibility
-export default { PrismaClient, Prisma, prismaMock };
+export default { PrismaClient, Prisma, prismaMock, resetAllMocks };

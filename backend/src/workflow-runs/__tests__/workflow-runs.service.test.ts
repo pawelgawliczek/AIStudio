@@ -2,12 +2,12 @@
  * ST-237: Tests for WorkflowRunsService.updateArtifactContent
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { WorkflowRunsService } from '../workflow-runs.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { WorkflowStateService } from '../../execution/workflow-state.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
+import { WorkflowRunsService } from '../workflow-runs.service';
 
 describe('WorkflowRunsService', () => {
   let service: WorkflowRunsService;

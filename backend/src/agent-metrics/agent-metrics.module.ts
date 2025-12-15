@@ -3,11 +3,11 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AgentMetricsController } from './agent-metrics.controller';
 import { AgentMetricsService } from './agent-metrics.service';
 import { ComprehensiveMetricsCalculator } from './calculators/comprehensive-metrics.calculator';
-import { MetricsAggregationService } from './services/metrics-aggregation.service';
-import { FrameworkMetricsService } from './services/framework-metrics.service';
-import { WorkflowMetricsService } from './services/workflow-metrics.service';
 import { DashboardMetricsService } from './services/dashboard-metrics.service';
+import { FrameworkMetricsService } from './services/framework-metrics.service';
+import { MetricsAggregationService } from './services/metrics-aggregation.service';
 import { StoryMetricsService } from './services/story-metrics.service';
+import { WorkflowMetricsService } from './services/workflow-metrics.service';
 
 @Module({
   imports: [PrismaModule],

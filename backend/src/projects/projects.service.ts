@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateProjectDto, UpdateProjectDto } from './dto';
 import {
   normalizeArea,
   findSimilarAreas,
   SIMILARITY_THRESHOLD,
 } from '../use-cases/taxonomy.util';
+import { CreateProjectDto, UpdateProjectDto } from './dto';
 
 @Injectable()
 export class ProjectsService {

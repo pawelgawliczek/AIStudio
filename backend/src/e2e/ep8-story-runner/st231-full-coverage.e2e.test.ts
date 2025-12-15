@@ -8,23 +8,23 @@
  * 4. Telemetry - Verify tokens, duration, cost stored correctly
  */
 
-import { PrismaClient } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 import { io, Socket } from 'socket.io-client';
+import { v4 as uuidv4 } from 'uuid';
 
 // Import MCP tool handlers
-import { handler as uploadTranscript } from '../../mcp/servers/execution/upload_transcript';
-import { handler as recordAgentStart } from '../../mcp/servers/execution/record_component_start';
-import { handler as recordAgentComplete } from '../../mcp/servers/execution/record_component_complete';
-import { handler as startTeamRun } from '../../mcp/servers/execution/start_workflow_run';
-import { handler as advanceStep } from '../../mcp/servers/runner/advance_step';
-import { handler as createProject } from '../../mcp/servers/projects/create_project';
-import { handler as createStory } from '../../mcp/servers/stories/create_story';
-import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
-import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
+import { handler as recordAgentComplete } from '../../mcp/servers/execution/record_component_complete';
+import { handler as recordAgentStart } from '../../mcp/servers/execution/record_component_start';
+import { handler as startTeamRun } from '../../mcp/servers/execution/start_workflow_run';
+import { handler as uploadTranscript } from '../../mcp/servers/execution/upload_transcript';
+import { handler as createProject } from '../../mcp/servers/projects/create_project';
+import { handler as advanceStep } from '../../mcp/servers/runner/advance_step';
+import { handler as createStory } from '../../mcp/servers/stories/create_story';
+import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
+import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
 
 jest.setTimeout(120000);
 

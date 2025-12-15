@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ComprehensiveMetricsCalculator } from '../calculators/comprehensive-metrics.calculator';
 import {
   WorkflowMetricsSummaryDto,
   StoryMetricsSummaryDto,
@@ -6,7 +7,6 @@ import {
   AgentMetricsSummaryDto,
   TrendAnalysisDto,
 } from '../dto/metrics.dto';
-import { ComprehensiveMetricsCalculator } from '../calculators/comprehensive-metrics.calculator';
 import { determineTrend } from '../utils/metrics.utils';
 
 @Injectable()

@@ -451,18 +451,26 @@ AU conflict2.ts`;
     });
 
     describe('error handling', () => {
-      it('should throw when remote service not configured and targeting laptop', async () => {
-        // Clear the remote service
+      it('should fall back to HTTP and return error when remote service not configured', async () => {
+        // Clear the remote service - triggers HTTP fallback (ST-158)
         setRemoteExecutionService(null);
 
-        await expect(
-          execGitLocationAware('git status', '/Users/dev/projects/test', {
-            target: 'laptop',
-            prisma: mockPrisma,
-          })
-        ).rejects.toThrow('REMOTE_NOT_CONFIGURED');
+        // Mock global.fetch to simulate HTTP failure
+        const originalFetch = global.fetch;
+        global.fetch = jest.fn().mockRejectedValue(new Error('Connection refused'));
 
-        // Restore for other tests
+        const result = await execGitLocationAware('git status', '/Users/dev/projects/test', {
+          target: 'laptop',
+          prisma: mockPrisma,
+        });
+
+        // Should return error result from HTTP fallback, not throw
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Failed to execute git via HTTP');
+        expect(result.executedOn).toBe('laptop');
+
+        // Restore
+        global.fetch = originalFetch;
         setRemoteExecutionService(mockRemoteExecutionService);
       });
     });

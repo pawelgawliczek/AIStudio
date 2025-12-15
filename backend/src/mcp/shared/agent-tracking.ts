@@ -406,7 +406,9 @@ export async function completeAgentTracking(
             telemetryMetrics = {
               tokensInput: metrics.tokensInput || 0,
               tokensOutput: metrics.tokensOutput || 0,
-              totalTokens: (metrics.tokensInput || 0) + (metrics.tokensOutput || 0) + (metrics.tokensCacheCreation || 0) + (metrics.tokensCacheRead || 0),
+              // ST-255: Fix double-counting - totalTokens = input + output + cache_creation (NOT cache_read)
+              // cache_read is already included in input_tokens (it's a subset of context that was cached)
+              totalTokens: (metrics.tokensInput || 0) + (metrics.tokensOutput || 0) + (metrics.tokensCacheCreation || 0),
               tokensCacheCreation: metrics.tokensCacheCreation || 0,
               tokensCacheRead: metrics.tokensCacheRead || 0,
               modelId: metrics.model || null,
@@ -488,7 +490,9 @@ export async function completeAgentTracking(
           telemetryMetrics = {
             tokensInput: metrics.inputTokens,
             tokensOutput: metrics.outputTokens,
-            totalTokens: metrics.inputTokens + metrics.outputTokens + (metrics.cacheCreationTokens || 0) + (metrics.cacheReadTokens || 0),
+            // ST-255: Use totalTokens from parser (already correctly calculated as input + output + cache_creation)
+            // Do NOT add cacheReadTokens - it's already included in inputTokens (cached context subset)
+            totalTokens: metrics.totalTokens || (metrics.inputTokens + metrics.outputTokens + (metrics.cacheCreationTokens || 0)),
             tokensCacheCreation: metrics.cacheCreationTokens,
             tokensCacheRead: metrics.cacheReadTokens,
             modelId: metrics.model || null,

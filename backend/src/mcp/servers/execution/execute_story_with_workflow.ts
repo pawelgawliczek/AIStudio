@@ -33,6 +33,14 @@ export const tool: Tool = {
         type: 'string',
         description: 'Current working directory for transcript tracking (defaults to project localPath if not provided)',
       },
+      sessionId: {
+        type: 'string',
+        description: 'ST-170: Claude Code session ID from SessionStart hook. Required for transcript tracking.',
+      },
+      transcriptPath: {
+        type: 'string',
+        description: 'ST-170: Exact transcript path from SessionStart hook. Required for transcript tracking.',
+      },
     },
     required: ['storyId', 'teamId'],
   },
@@ -142,6 +150,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     triggeredBy: params.triggeredBy || 'mcp-user',
     context: executionContext,
     cwd: hostPath, // Pass the HOST path for transcript tracking
+    sessionId: params.sessionId,
+    transcriptPath: params.transcriptPath,
   });
 
   // Update WorkflowRun to link it to the story

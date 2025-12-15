@@ -9,12 +9,15 @@ import { handler, tool } from '../preview_migration';
 // Mock SafeMigrationService
 jest.mock('../../../../services/safe-migration.service');
 
+const MockSafeMigrationService = SafeMigrationService as jest.MockedClass<typeof SafeMigrationService>;
+
 describe('preview_migration', () => {
-  let mockSafeMigrationService: jest.Mocked<SafeMigrationService>;
+  let mockCheckPendingMigrations: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSafeMigrationService = new SafeMigrationService() as jest.Mocked<SafeMigrationService>;
+    mockCheckPendingMigrations = jest.fn();
+    MockSafeMigrationService.prototype.checkPendingMigrations = mockCheckPendingMigrations;
   });
 
   describe('Tool Definition', () => {
@@ -34,7 +37,7 @@ describe('preview_migration', () => {
 
   describe('Handler Function', () => {
     it('should return pending migrations', async () => {
-      mockSafeMigrationService.checkPendingMigrations = jest.fn().mockResolvedValue([
+      mockCheckPendingMigrations.mockResolvedValue([
         '20251123_add_user_roles',
         '20251123_update_story_status',
       ]);
@@ -51,7 +54,7 @@ describe('preview_migration', () => {
     });
 
     it('should handle no pending migrations', async () => {
-      mockSafeMigrationService.checkPendingMigrations = jest.fn().mockResolvedValue([]);
+      mockCheckPendingMigrations.mockResolvedValue([]);
 
       const result = await handler({});
 
@@ -62,7 +65,7 @@ describe('preview_migration', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      mockSafeMigrationService.checkPendingMigrations = jest.fn().mockRejectedValue(
+      mockCheckPendingMigrations.mockRejectedValue(
         new Error('Database connection failed')
       );
 
@@ -75,7 +78,7 @@ describe('preview_migration', () => {
     });
 
     it('should list migration names in message', async () => {
-      mockSafeMigrationService.checkPendingMigrations = jest.fn().mockResolvedValue([
+      mockCheckPendingMigrations.mockResolvedValue([
         '20251123_add_user_roles',
       ]);
 

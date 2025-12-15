@@ -3,9 +3,9 @@
  * Creates or updates story-scoped artifacts with version history (ST-214)
  */
 
+import * as crypto from 'crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import * as crypto from 'crypto';
 import {
   UploadArtifactParams,
   ArtifactResponse,
@@ -125,7 +125,7 @@ export async function handler(
     let storyId: string;
     let workflowId: string | null = null;
     let projectId: string;
-    let workflowRunId: string | undefined = params.workflowRunId;
+    const workflowRunId: string | undefined = params.workflowRunId;
 
     if (params.storyId) {
       // Direct story-scoped upload (ST-214)

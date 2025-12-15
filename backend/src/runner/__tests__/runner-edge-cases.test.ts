@@ -16,8 +16,8 @@
  * 6. Data Corruption Edge Cases
  */
 
-import { PrismaClient } from '@prisma/client';
 import { jest, describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { PrismaClient } from '@prisma/client';
 
 jest.setTimeout(120000); // 2 minutes
 

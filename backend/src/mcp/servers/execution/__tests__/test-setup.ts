@@ -5,8 +5,7 @@
 
 // Import the pre-mocked PrismaClient from our global mock
 // This avoids importing from the real @prisma/client which can trigger engine initialization
-import { PrismaClient, prismaMock as globalPrismaMock } from '@prisma/client';
-import { mockReset } from 'jest-mock-extended';
+import { PrismaClient, prismaMock as globalPrismaMock, resetAllMocks } from '@prisma/client';
 
 // Re-export the mock type for test files that need it
 export type MockPrisma = typeof globalPrismaMock;
@@ -15,9 +14,17 @@ export type MockPrisma = typeof globalPrismaMock;
 export const prismaMock = globalPrismaMock;
 
 // Export a reset function that can be called in beforeEach hooks
+// Uses the custom resetAllMocks from the @prisma/client mock instead of jest-mock-extended's mockReset
 export function resetPrismaMock() {
-  mockReset(prismaMock);
+  resetAllMocks();
 }
+
+// ST-170: Required params for transcript tracking
+export const requiredTranscriptParams = {
+  sessionId: 'test-session-id-001',
+  transcriptPath: '/tmp/test-transcript.jsonl',
+  cwd: '/opt/stack/AIStudio',
+};
 
 // Test Fixtures
 export const fixtures = {
@@ -77,6 +84,19 @@ export const fixtures = {
   },
 
   // ST-164: Coordinator entity removed - workflows use WorkflowState for execution order
+
+  workflowState: {
+    id: 'state-test-001',
+    workflowId: 'workflow-test-001',
+    name: 'Initial State',
+    order: 0,
+    componentId: 'comp-1',
+    preExecution: null,
+    postExecution: null,
+    requiresApproval: false,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+  },
 
   workflow: {
     id: 'workflow-test-001',
