@@ -1,8 +1,8 @@
 # Live Streaming Architecture
 
-**Version:** 1.0
-**Last Updated:** 2025-12-14
-**Epic:** ST-220
+**Version:** 1.1
+**Last Updated:** 2025-12-15
+**Epic:** ST-220, ST-242
 
 ## Table of Contents
 
@@ -366,7 +366,9 @@ resolveTranscriptBySessionId(sessionId: string): Promise<WorkflowRun | null>
 
 ### Agent Tracking Functions
 
-**Location:** `backend/src/mcp/servers/workflows/agent-tracking.ts`
+**Location:** `backend/src/mcp/shared/agent-tracking.ts`
+
+> **ST-242 IMPORTANT:** The `record_agent_start` and `record_agent_complete` MCP tools are **OBSOLETE** and have been removed from the core MCP profile. All agent tracking is now handled **automatically** by `advance_step`. Do NOT call these tools directly.
 
 #### `startAgentTracking(prisma, params)`
 Creates a ComponentRun record when a component agent starts execution.
@@ -375,20 +377,19 @@ Creates a ComponentRun record when a component agent starts execution.
 startAgentTracking(prisma, {
   runId: string;          // WorkflowRun UUID
   componentId: string;    // Component UUID from workflow state
-  transcriptPath?: string; // Optional: transcript path if known
-  sessionId?: string;     // Optional: Claude Code sessionId
+  input?: object;         // Optional: input data for context
 })
 ```
 
 **Actions:**
 - Creates `ComponentRun` with `status='running'`
-- Stores transcript metadata in `spawnedAgentTranscripts` array
 - Broadcasts `component:started` WebSocket event
+- Starts transcript tailing if available
 - Records `startedAt` timestamp
 
 **Called By:**
-- Manual Mode: `advance_step` when entering agent phase
-- Docker Runner: `backendClient.recordAgentStart()` API
+- **ONLY** via `advance_step` when entering agent phase (automatic)
+- Docker Runner: `backendClient.recordAgentStart()` API (internal)
 
 #### `completeAgentTracking(prisma, params)`
 Updates a ComponentRun record when a component agent completes.
@@ -406,14 +407,17 @@ completeAgentTracking(prisma, {
 
 **Actions:**
 - Updates `ComponentRun` with `status`, `output`, `finishedAt`
-- Parses transcript for token metrics (if transcript available)
+- Parses transcript for token metrics via RemoteRunner (if transcript available)
+- **ST-242:** Calculates cost using centralized pricing utility
+- Stores `modelId`, `tokensCacheCreation`, `tokensCacheRead`, `cost`
+- Aggregates metrics to WorkflowRun (totalTokens, totalCost, LOC)
 - Generates or stores component summary
 - Broadcasts `component:completed` WebSocket event
-- Calculates execution duration
+- Stops transcript tailing
 
 **Called By:**
-- Manual Mode: `advance_step` when exiting agent phase
-- Docker Runner: `backendClient.recordAgentComplete()` API
+- **ONLY** via `advance_step` when exiting agent phase (automatic)
+- Docker Runner: `backendClient.recordAgentComplete()` API (internal)
 
 ### Data Structures
 
@@ -709,23 +713,39 @@ WorkflowRun {
 - **ComponentRun**: `durationSeconds = (finishedAt - startedAt) / 1000`
 - **WorkflowRun**: `executionTimeSeconds = sum(componentRun.durationSeconds)`
 
-### Cost Estimation
+### Cost Estimation (ST-242)
 
-**Formula:**
+**Location:** `backend/src/mcp/utils/pricing.ts`
+
+Cost estimation uses a centralized multi-model pricing utility that supports all Claude models.
+
+**Supported Models:**
 ```typescript
-const CLAUDE_OPUS_4_5_PRICING = {
-  input: 0.015 / 1000,        // $0.015 per 1K input tokens
-  output: 0.075 / 1000,       // $0.075 per 1K output tokens
-  cacheWrite: 0.01875 / 1000, // Cache write: 1.25x input
-  cacheRead: 0.0015 / 1000,   // Cache read: 0.10x input
+const CLAUDE_PRICING = {
+  'claude-opus-4-5':   { input: 5.0,  output: 25.0, cacheWrite: 6.25,  cacheRead: 0.5  },
+  'claude-sonnet-4':   { input: 3.0,  output: 15.0, cacheWrite: 3.75,  cacheRead: 0.3  },
+  'claude-haiku-3-5':  { input: 0.8,  output: 4.0,  cacheWrite: 1.0,   cacheRead: 0.08 },
+  'default':           { input: 3.0,  output: 15.0, cacheWrite: 3.75,  cacheRead: 0.3  }, // Claude Sonnet 4
 };
-
-estimatedCost =
-  (tokensInput * CLAUDE_OPUS_4_5_PRICING.input) +
-  (tokensOutput * CLAUDE_OPUS_4_5_PRICING.output) +
-  (tokensCacheWrite * CLAUDE_OPUS_4_5_PRICING.cacheWrite) +
-  (tokensCacheRead * CLAUDE_OPUS_4_5_PRICING.cacheRead);
 ```
+
+**Formula (per million tokens):**
+```typescript
+import { calculateCost } from '../mcp/utils/pricing';
+
+const componentCost = calculateCost({
+  tokensInput: metrics.inputTokens,
+  tokensOutput: metrics.outputTokens,
+  tokensCacheCreation: metrics.cacheCreationTokens,
+  tokensCacheRead: metrics.cacheReadTokens,
+  modelId: metrics.model,  // Auto-detects model family
+});
+```
+
+**Automatic Aggregation:**
+- `completeAgentTracking` calculates cost for each ComponentRun
+- WorkflowRun.estimatedCost = sum of all ComponentRun.cost values
+- Updated automatically after each component completion
 
 ---
 
@@ -918,10 +938,11 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
    ```
 
 **Solutions:**
-- **Manual mode:** Ensure `advance_step` is called (not manual `record_agent_start`)
+- **Manual mode:** Ensure `advance_step` is called correctly (agent tracking is automatic)
 - **Docker runner:** Ensure runner is using latest version with API tracking
 - **Missing componentId:** Verify workflow state has componentId assigned
 - **Database error:** Check Prisma logs for constraint violations
+- **ST-242:** Do NOT call `record_agent_start`/`record_agent_complete` directly - these are obsolete
 
 ### Problem: Missing transcript paths
 
@@ -976,10 +997,11 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
    ```
 
 **Solutions:**
-- **Transcript not parsed:** Ensure `record_agent_complete` is called with transcript parsing
+- **Transcript not parsed:** Ensure `advance_step` properly exits agent phase (triggers transcript parsing)
 - **No usage data in transcript:** Verify Claude Code version supports usage reporting
-- **Parsing error:** Check logs for transcript parsing errors
-- **Manual mode:** Ensure `advance_step` completes agent phase (triggers parsing)
+- **Parsing error:** Check logs for transcript parsing errors (`grep "agent-tracking" backend.log`)
+- **RemoteRunner offline:** Verify laptop agent is running and connected for transcript parsing
+- **ST-242:** Cost is calculated via centralized pricing utility - check `calculateCost()` in `mcp/utils/pricing.ts`
 
 ---
 
@@ -993,6 +1015,7 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
 - **ST-215**: Automatic Agent Tracking in advance_step
 - **ST-220**: Unified Live Streaming Documentation (this document)
 - **ST-233**: Live Streaming Architecture Simplification (relay pattern removal)
+- **ST-242**: Telemetry Metrics Fix (centralized pricing, obsolete record_agent_* tools)
 
 ---
 
