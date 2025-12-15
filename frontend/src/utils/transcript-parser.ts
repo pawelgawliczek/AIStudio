@@ -25,6 +25,8 @@ export interface ParsedTranscript {
   metrics: {
     inputTokens: number;
     outputTokens: number;
+    cacheCreationTokens: number;
+    cacheReadTokens: number;
     totalTokens: number;
   };
 }
@@ -54,6 +56,7 @@ interface RawRecord {
   timestamp?: string;
   sessionId?: string;
   message?: {
+    id?: string;
     role?: string;
     content?: string | ContentBlock[];
     model?: string;
@@ -405,23 +408,69 @@ export class TranscriptParser {
 
   /**
    * Calculate token metrics from all records (Claude Code format)
+   *
+   * ST-251: Implements proper deduplication and cache token handling:
+   * - Deduplicate by message.id (streaming sends multiple updates)
+   * - Keep LAST occurrence (has final token counts after streaming)
+   * - Use MAX for cache_read (cumulative per session)
+   * - Use SUM for input, output, cache_creation
+   * - totalTokens = input + output + cache_creation (billing model)
    */
   private calculateMetrics(records: RawRecord[]): ParsedTranscript['metrics'] {
-    let inputTokens = 0;
-    let outputTokens = 0;
+    // Build message usage map with deduplication by message ID
+    const messageUsageMap = new Map<string, {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_input_tokens: number;
+      cache_read_input_tokens: number;
+    }>();
 
     for (const record of records) {
-      // Claude Code format: usage is in message.usage
       if (record.message?.usage) {
-        inputTokens += record.message.usage.input_tokens || 0;
-        outputTokens += record.message.usage.output_tokens || 0;
+        const usage = record.message.usage;
+        const messageId = record.message?.id;
+
+        if (messageId) {
+          // Overwrite with latest occurrence (streaming updates)
+          messageUsageMap.set(messageId, {
+            input_tokens: usage.input_tokens ?? 0,
+            output_tokens: usage.output_tokens ?? 0,
+            cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+            cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+          });
+        } else {
+          // No message ID - treat as unique
+          messageUsageMap.set(`no-id-${messageUsageMap.size}`, {
+            input_tokens: usage.input_tokens ?? 0,
+            output_tokens: usage.output_tokens ?? 0,
+            cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+            cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+          });
+        }
       }
     }
 
+    // Aggregate from deduplicated messages
+    let totalInput = 0;
+    let totalOutput = 0;
+    let totalCacheCreation = 0;
+    let maxCacheRead = 0;
+
+    for (const usage of messageUsageMap.values()) {
+      totalInput += usage.input_tokens;
+      totalOutput += usage.output_tokens;
+      totalCacheCreation += usage.cache_creation_input_tokens;
+      // ST-194: cache_read is cumulative - take MAX
+      maxCacheRead = Math.max(maxCacheRead, usage.cache_read_input_tokens);
+    }
+
     return {
-      inputTokens,
-      outputTokens,
-      totalTokens: inputTokens + outputTokens,
+      inputTokens: totalInput,
+      outputTokens: totalOutput,
+      cacheCreationTokens: totalCacheCreation,
+      cacheReadTokens: maxCacheRead,
+      // ST-194: totalTokens = input + output + cacheCreation (billing model)
+      totalTokens: totalInput + totalOutput + totalCacheCreation,
     };
   }
 
@@ -439,6 +488,8 @@ export class TranscriptParser {
       metrics: {
         inputTokens: 0,
         outputTokens: 0,
+        cacheCreationTokens: 0,
+        cacheReadTokens: 0,
         totalTokens: 0,
       },
     };
