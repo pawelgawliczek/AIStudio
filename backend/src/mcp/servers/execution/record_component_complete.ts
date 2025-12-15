@@ -142,15 +142,39 @@ export async function handler(prisma: PrismaClient, params: any) {
     (completedAt.getTime() - componentRun.startedAt.getTime()) / 1000,
   );
 
-  // ST-172: Simplified metric discovery - two sources only
+  // ST-172: Simplified metric discovery - three sources
   let contextMetrics: ContextMetrics | null = null;
-  let dataSource: 'context' | 'transcript' | 'none' = 'none';
+  let dataSource: 'context' | 'transcript' | 'direct' | 'none' = 'none';
   let discoveredAgentId: string | undefined;
   let discoveredTranscriptPath: string | undefined;
   let turnMetrics: { totalTurns: number; manualPrompts: number; autoContinues: number } | null = null;
 
+  // Source 0: ST-242 - Direct transcriptMetrics parameter (for testing or direct metric submission)
+  if (params.transcriptMetrics && typeof params.transcriptMetrics === 'object') {
+    contextMetrics = {
+      tokensInput: params.transcriptMetrics.inputTokens || 0,
+      tokensOutput: params.transcriptMetrics.outputTokens || 0,
+      tokensCacheCreation: params.transcriptMetrics.cacheCreationTokens || 0,
+      tokensCacheRead: params.transcriptMetrics.cacheReadTokens || 0,
+      sessionId: undefined,
+      tokensSystemPrompt: 0,
+      tokensSystemTools: 0,
+      tokensMcpTools: 0,
+      tokensMemoryFiles: 0,
+      tokensMessages: 0,
+    };
+    dataSource = 'direct';
+    console.log(`[ST-242] Using direct transcriptMetrics for component ${params.componentId}:`, {
+      tokensInput: contextMetrics.tokensInput,
+      tokensOutput: contextMetrics.tokensOutput,
+      tokensCacheCreation: contextMetrics.tokensCacheCreation,
+      tokensCacheRead: contextMetrics.tokensCacheRead,
+      model: params.transcriptMetrics.model,
+    });
+  }
+
   // Source 1: contextOutput (for orchestrator's own /context output)
-  if (params.contextOutput && typeof params.contextOutput === 'string') {
+  if (!contextMetrics && params.contextOutput && typeof params.contextOutput === 'string') {
     contextMetrics = parseContextOutput(params.contextOutput);
     dataSource = 'context';
     console.log(`[ST-172] Parsed /context output for component ${params.componentId}:`, {
@@ -411,6 +435,7 @@ export async function handler(prisma: PrismaClient, params: any) {
         tokensOutput: contextMetrics.tokensOutput,
         tokensCacheCreation: contextMetrics.tokensCacheCreation,
         tokensCacheRead: contextMetrics.tokensCacheRead,
+        modelId: params.transcriptMetrics?.model || null,
       })
     : null;
 
@@ -421,9 +446,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       status,
       outputData: params.output || {},
       // ST-110/ST-112/ST-194: Token breakdown from /context command or transcript
-      // ST-194: totalTokens = input + output + cache_creation (billing model)
+      // ST-242: totalTokens = input + output + cache_creation + cache_read
       totalTokens: contextMetrics
-        ? (contextMetrics.tokensInput || 0) + (contextMetrics.tokensOutput || 0) + (contextMetrics.tokensCacheCreation || 0)
+        ? (contextMetrics.tokensInput || 0) + (contextMetrics.tokensOutput || 0) + (contextMetrics.tokensCacheCreation || 0) + (contextMetrics.tokensCacheRead || 0)
         : null,
       tokensInput: contextMetrics?.tokensInput || null,
       tokensOutput: contextMetrics?.tokensOutput || null,
@@ -434,6 +459,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       tokensMessages: contextMetrics?.tokensMessages || null,
       // ST-242: Cost from pricing utility
       cost: componentCost,
+      // ST-242: Model ID used for this component run
+      modelId: params.transcriptMetrics?.model || null,
       // ST-112: Session ID from transcript
       sessionId: contextMetrics?.sessionId || componentRun.sessionId || null,
       // ST-147: Turn metrics
@@ -487,6 +514,9 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
 
   const aggregatedMetrics = {
+    // ST-242: Aggregate individual token types for better visibility
+    totalTokensInput: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0), 0),
+    totalTokensOutput: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensOutput || 0), 0),
     totalTokens: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0),
     totalCost: allComponentRuns.reduce((sum, cr) => sum + (Number(cr.cost) || 0), 0),
     durationSeconds: allComponentRuns.reduce((sum, cr) => sum + (cr.durationSeconds || 0), 0),
@@ -512,15 +542,12 @@ export async function handler(prisma: PrismaClient, params: any) {
   // - Task hook fires (adds spawned agent to spawnedAgentTranscripts)
   // No need to update them here - they're already in the DB
 
-  // Get existing costBreakdown to merge with cache data
-  const existingRun = await prisma.workflowRun.findUnique({
-    where: { id: params.runId },
-  });
-  const existingCostBreakdown = ((existingRun as any)?.costBreakdown as Record<string, any>) || {};
-
   await prisma.workflowRun.update({
     where: { id: params.runId },
     data: {
+      // ST-242: Aggregate token metrics by type
+      totalTokensInput: aggregatedMetrics.totalTokensInput || null,
+      totalTokensOutput: aggregatedMetrics.totalTokensOutput || null,
       totalTokens: aggregatedMetrics.totalTokens || null,
       estimatedCost: aggregatedMetrics.totalCost || null,
       durationSeconds: aggregatedMetrics.durationSeconds || null,
@@ -537,13 +564,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       totalInterventions: aggregatedMetrics.totalInterventions || null,
       // ST-234: Aggregated code impact metrics
       totalLocGenerated: (aggregatedMetrics.totalLinesAdded - aggregatedMetrics.totalLinesDeleted) || null,
-      // ST-234: Store cache metrics in costBreakdown JSON field
-      costBreakdown: {
-        ...existingCostBreakdown,
-        cacheCreation: aggregatedMetrics.totalCacheCreation,
-        cacheRead: aggregatedMetrics.totalCacheRead,
-      },
-    } as any,
+    },
   });
 
   // ST-129: Broadcast component completed event via HTTP to backend
