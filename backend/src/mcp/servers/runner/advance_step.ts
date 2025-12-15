@@ -319,8 +319,9 @@ export async function handler(prisma: PrismaClient, params: {
       if (currentState.component) {
         try {
           const runMetadata = run.metadata as Record<string, unknown> | null;
-          const masterSessionId = (runMetadata?.masterSessionId as string) || (runMetadata?.sessionId as string);
-          const cwd = runMetadata?.cwd as string;
+          const transcriptTracking = runMetadata?._transcriptTracking as Record<string, unknown> | null;
+          const masterSessionId = transcriptTracking?.sessionId as string || (runMetadata?.masterSessionId as string) || (runMetadata?.sessionId as string);
+          const cwd = transcriptTracking?.projectPath as string || runMetadata?.cwd as string;
 
           if (masterSessionId && cwd) {
             const runningWorkflowsPath = `${cwd}/.claude/running-workflows.json`;
