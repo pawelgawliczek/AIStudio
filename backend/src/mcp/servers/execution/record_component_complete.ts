@@ -24,6 +24,7 @@ import { broadcastComponentCompleted, stopTranscriptTailing } from '../../servic
 import { ValidationError } from '../../types';
 import { RemoteRunner } from '../../utils/remote-runner';
 import { parseContextOutput, ContextMetrics } from './parse-context-output';
+import { calculateCost } from '../../utils/pricing';
 
 // ALIASING: Component → Agent (ST-109)
 export const tool: Tool = {
@@ -403,6 +404,16 @@ export async function handler(prisma: PrismaClient, params: any) {
     console.warn(`[ST-234] Failed to get code impact metrics: ${gitError.message}`);
   }
 
+  // ST-242: Calculate cost from token metrics
+  const componentCost = contextMetrics
+    ? calculateCost({
+        tokensInput: contextMetrics.tokensInput,
+        tokensOutput: contextMetrics.tokensOutput,
+        tokensCacheCreation: contextMetrics.tokensCacheCreation,
+        tokensCacheRead: contextMetrics.tokensCacheRead,
+      })
+    : null;
+
   // Update ComponentRun record with /context or transcript metrics
   const updatedComponentRun = await prisma.componentRun.update({
     where: { id: componentRun.id },
@@ -421,6 +432,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       tokensMcpTools: contextMetrics?.tokensMcpTools || null,
       tokensMemoryFiles: contextMetrics?.tokensMemoryFiles || null,
       tokensMessages: contextMetrics?.tokensMessages || null,
+      // ST-242: Cost from pricing utility
+      cost: componentCost,
       // ST-112: Session ID from transcript
       sessionId: contextMetrics?.sessionId || componentRun.sessionId || null,
       // ST-147: Turn metrics
@@ -475,6 +488,7 @@ export async function handler(prisma: PrismaClient, params: any) {
 
   const aggregatedMetrics = {
     totalTokens: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0),
+    totalCost: allComponentRuns.reduce((sum, cr) => sum + (Number(cr.cost) || 0), 0),
     durationSeconds: allComponentRuns.reduce((sum, cr) => sum + (cr.durationSeconds || 0), 0),
     // ST-147: Aggregate turn metrics
     totalTurns: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTurns || 0), 0),
@@ -508,6 +522,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     where: { id: params.runId },
     data: {
       totalTokens: aggregatedMetrics.totalTokens || null,
+      estimatedCost: aggregatedMetrics.totalCost || null,
       durationSeconds: aggregatedMetrics.durationSeconds || null,
       // ST-147: Aggregated turn metrics
       totalTurns: aggregatedMetrics.totalTurns || null,

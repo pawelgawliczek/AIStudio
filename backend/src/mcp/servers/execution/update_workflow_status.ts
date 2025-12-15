@@ -5,6 +5,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types';
 import { unregisterWorkflowOnLaptop } from './workflow-tracker-utils';
+import { calculateCost } from '../../utils/pricing';
 
 export const tool: Tool = {
   name: 'update_team_status',
@@ -238,7 +239,11 @@ export async function handler(prisma: PrismaClient, params: any) {
         orchestratorToolCalls = parsedMetrics.toolCalls;
         orchestratorUserPrompts = parsedMetrics.userPrompts;
         orchestratorIterations = parsedMetrics.systemIterations;
-        orchestratorCostUsd = (orchestratorTokensInput * 3 / 1000000) + (orchestratorTokensOutput * 15 / 1000000) + (parsedMetrics.tokensCacheRead * 0.3 / 1000000);
+        orchestratorCostUsd = calculateCost({
+          tokensInput: orchestratorTokensInput,
+          tokensOutput: orchestratorTokensOutput,
+          tokensCacheRead: parsedMetrics.tokensCacheRead,
+        });
         transcriptParsed = true;
       }
     }
