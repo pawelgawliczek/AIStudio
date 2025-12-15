@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { TranscriptRegistrationService } from '../../../remote-agent/transcript-registration.service';
+import { startAgentTracking } from '../../shared/agent-tracking';
 import { buildMasterSessionInstructions } from './master-session-instructions';
 import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
 
@@ -98,6 +99,15 @@ export async function handler(prisma: PrismaClient, params: any) {
       states: {
         orderBy: { order: 'asc' },
         take: 1, // Only need first state for checkpoint initialization
+        include: {
+          // ST-242: Include component for first state agent tracking
+          component: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       },
     },
   });
@@ -238,6 +248,32 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
   }
 
+  // ST-242: Start agent tracking for first state if it has a component
+  // This ensures the first agent is tracked from workflow start
+  // (advance_step skips this because checkpoint.currentStateId is already set)
+  let firstAgentTracking: { componentRunId: string; componentName: string; success: boolean } | null = null;
+  if (firstState?.component) {
+    try {
+      const startResult = await startAgentTracking(prisma, {
+        runId: workflowRun.id,
+        componentId: firstState.component.id,
+      });
+
+      if (startResult.success) {
+        firstAgentTracking = {
+          componentRunId: startResult.componentRunId || '',
+          componentName: startResult.componentName || firstState.component.name,
+          success: true,
+        };
+        console.log(`[ST-242] Started agent tracking for first state: ${firstState.component.name}`);
+      } else {
+        console.warn(`[ST-242] Failed to start agent tracking for first state: ${startResult.error}`);
+      }
+    } catch (error: any) {
+      console.warn(`[ST-242] Failed to start agent tracking for first state: ${error.message}`);
+    }
+  }
+
   // ST-170: Match any unassigned transcripts to this workflow run
   // If transcripts were detected before the workflow started, associate them now
   if (params.sessionId || claudeSessionId) {
@@ -358,6 +394,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       initialized: false,
       message: 'No states defined in workflow. Cannot initialize checkpoint.',
     },
+    // ST-242: First agent tracking info
+    firstAgentTracking: firstAgentTracking || undefined,
     // ST-172: Transcript tracking info
     transcriptTracking: {
       masterTranscriptPaths: initialTranscriptPaths,
