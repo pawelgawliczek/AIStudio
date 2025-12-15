@@ -9,18 +9,18 @@
 
 import { PrismaClient, Prisma } from '@prisma/client';
 import {
+  generateStructuredSummary,
+  serializeComponentSummary,
+  ComponentSummaryStructured,
+} from '../../types/component-summary.types';
+import {
   broadcastComponentStarted,
   broadcastComponentCompleted,
   startTranscriptTailing,
   stopTranscriptTailing,
 } from '../services/websocket-gateway.instance';
-import {
-  generateStructuredSummary,
-  serializeComponentSummary,
-  ComponentSummaryStructured,
-} from '../../types/component-summary.types';
-import { RemoteRunner } from '../utils/remote-runner';
 import { calculateCost } from '../utils/pricing';
+import { RemoteRunner } from '../utils/remote-runner';
 
 // Metrics from transcript parsing
 interface TranscriptMetrics {
@@ -337,7 +337,11 @@ export async function completeAgentTracking(
     } | null = null;
 
     try {
-      // Look for transcript in metadata.spawnedAgentTranscripts
+      let transcriptPath: string | null = null;
+      let localAgentId: string | null = null;
+
+      // ST-242: Look for transcript in multiple sources (same as record_component_complete)
+      // Source 1: spawnedAgentTranscripts in workflow metadata (filtered by componentId)
       const workflowRunForTranscripts = await prisma.workflowRun.findUnique({
         where: { id: params.runId },
         select: { metadata: true },
@@ -352,8 +356,69 @@ export async function completeAgentTracking(
         .sort((a: any, b: any) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
 
       if (matchingTranscripts.length > 0) {
-        const transcriptPath = matchingTranscripts[0].transcriptPath;
-        console.log(`[agent-tracking] Found transcript for ${params.componentId}: ${transcriptPath}`);
+        transcriptPath = matchingTranscripts[0].transcriptPath;
+        localAgentId = matchingTranscripts[0].agentId;
+        console.log(`[agent-tracking] Found transcript in spawnedAgentTranscripts for ${params.componentId}: ${transcriptPath}`);
+      }
+
+      // ST-242: Source 2 - Fallback to unassigned_transcripts table (ST-170)
+      // TranscriptWatcher on laptop auto-detects transcripts and stores them there
+      if (!transcriptPath) {
+        const unassignedTranscript = await prisma.unassignedTranscript.findFirst({
+          where: {
+            workflowRunId: params.runId,
+            agentId: { not: null }, // Only agent transcripts (not master sessions)
+          },
+          orderBy: { detectedAt: 'desc' }, // Most recent first
+        });
+
+        if (unassignedTranscript) {
+          transcriptPath = unassignedTranscript.transcriptPath;
+          localAgentId = unassignedTranscript.agentId;
+          console.log(`[agent-tracking] Found transcript in unassigned_transcripts for ${params.componentId}: ${transcriptPath} (agent: ${localAgentId})`);
+        }
+      }
+
+      // ST-242: Source 3 - Fallback to Transcript table (ST-168)
+      // Transcripts may have been uploaded by record_component_complete already
+      if (!transcriptPath) {
+        const dbTranscript = await prisma.transcript.findFirst({
+          where: {
+            workflowRunId: params.runId,
+            componentRunId: componentRun.id,
+            type: 'AGENT',
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (dbTranscript && dbTranscript.metrics) {
+          // Transcript already in DB with metrics - extract them directly
+          const metrics = dbTranscript.metrics as any;
+          if (metrics.tokensInput !== undefined) {
+            console.log(`[agent-tracking] Found parsed transcript in DB for ${params.componentId}`);
+            const componentCost = calculateCost({
+              tokensInput: metrics.tokensInput || 0,
+              tokensOutput: metrics.tokensOutput || 0,
+              tokensCacheCreation: metrics.tokensCacheCreation || 0,
+              tokensCacheRead: metrics.tokensCacheRead || 0,
+              modelId: metrics.model || null,
+            });
+            telemetryMetrics = {
+              tokensInput: metrics.tokensInput || 0,
+              tokensOutput: metrics.tokensOutput || 0,
+              totalTokens: (metrics.tokensInput || 0) + (metrics.tokensOutput || 0) + (metrics.tokensCacheCreation || 0) + (metrics.tokensCacheRead || 0),
+              tokensCacheCreation: metrics.tokensCacheCreation || 0,
+              tokensCacheRead: metrics.tokensCacheRead || 0,
+              modelId: metrics.model || null,
+              cost: componentCost,
+            };
+          }
+        }
+      }
+
+      // ST-242: Only parse via RemoteRunner if we don't already have metrics from Transcript table
+      if (transcriptPath && !telemetryMetrics) {
+        console.log(`[agent-tracking] Parsing transcript for ${params.componentId}: ${transcriptPath}`);
 
         // Parse transcript on laptop via RemoteRunner
         const runner = new RemoteRunner();
@@ -390,7 +455,7 @@ export async function completeAgentTracking(
         } else {
           console.warn(`[agent-tracking] Failed to parse transcript: ${result.error || 'unknown error'}`);
         }
-      } else {
+      } else if (!telemetryMetrics) {
         console.log(`[agent-tracking] No transcript found for component ${params.componentId}`);
       }
     } catch (telemetryError: any) {

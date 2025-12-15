@@ -22,9 +22,10 @@ case "$1" in
         WORKFLOW_ID="$3"
         STORY_ID="${4:-null}"
         SESSION_ID_ARG="$5"
+        STORY_KEY="${6:-}"
 
         if [ -z "$RUN_ID" ] || [ -z "$WORKFLOW_ID" ]; then
-            echo "Usage: workflow-tracker.sh register <runId> <workflowId> [storyId] [sessionId]"
+            echo "Usage: workflow-tracker.sh register <runId> <workflowId> [storyId] [sessionId] [storyKey]"
             exit 1
         fi
 
@@ -81,18 +82,24 @@ case "$1" in
             SESSION_ID="$SESSION_ID_ARG"
         fi
 
-        # Update JSON file
+        # Update JSON file - MERGE with existing session data to preserve masterTranscripts
         jq --arg runId "$RUN_ID" \
            --arg workflowId "$WORKFLOW_ID" \
            --arg storyId "$STORY_ID" \
            --arg sessionId "$SESSION_ID" \
+           --arg storyKey "$STORY_KEY" \
            --arg startedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-           '.currentRunId = $runId | .sessions[$sessionId] = {
+           '.currentRunId = $runId |
+            .sessions[$sessionId] = ((.sessions[$sessionId] // {}) + {
                runId: $runId,
                workflowId: $workflowId,
-               storyId: (if $storyId == "null" then null else $storyId end),
-               startedAt: $startedAt
-           }' "$WORKFLOWS_FILE" > "$WORKFLOWS_FILE.tmp" && mv "$WORKFLOWS_FILE.tmp" "$WORKFLOWS_FILE"
+               storyId: (if $storyId == "null" then null else $storyId end)
+            } + (if $storyKey != "" then {storyKey: $storyKey} else {} end)) |
+            .sessions[$sessionId].startedAt = (.sessions[$sessionId].startedAt // $startedAt)' \
+           "$WORKFLOWS_FILE" > "$WORKFLOWS_FILE.tmp" && mv "$WORKFLOWS_FILE.tmp" "$WORKFLOWS_FILE"
+
+        # Also update .session-workflow for compaction recovery
+        echo "$SESSION_ID:$RUN_ID:$STORY_KEY" > "$PROJECT_DIR/.claude/.session-workflow" 2>/dev/null || true
 
         echo "Registered workflow run: $RUN_ID"
         ;;

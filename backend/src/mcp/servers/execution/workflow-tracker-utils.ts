@@ -87,16 +87,21 @@ async function executeWorkflowTracker(
  * @param workflowId - Workflow/Team ID
  * @param storyId - Optional Story ID
  * @param sessionId - Optional session ID (auto-generated if not provided)
+ * @param storyKey - Optional Story Key (e.g., ST-123) for compaction recovery
  */
 export async function registerWorkflowOnLaptop(
   runId: string,
   workflowId: string,
   storyId?: string,
-  sessionId?: string
+  sessionId?: string,
+  storyKey?: string
 ): Promise<WorkflowTrackerResult> {
   const args = [runId, workflowId];
   if (storyId) args.push(storyId);
+  else args.push('null'); // Placeholder to maintain arg positions
   if (sessionId) args.push(sessionId);
+  else args.push(''); // Placeholder for auto-detection
+  if (storyKey) args.push(storyKey);
 
   return executeWorkflowTracker('register', args);
 }

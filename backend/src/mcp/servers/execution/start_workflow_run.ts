@@ -326,13 +326,15 @@ export async function handler(prisma: PrismaClient, params: any) {
   // This is a best-effort operation - don't fail the workflow if laptop agent is offline
   // Note: storyId already extracted above at line 130 for Story table linking
   // Note: claudeSessionId extracted earlier (before WorkflowRun creation) for ST-170
+  const storyKey = params.context?.storyKey as string | undefined;
   let workflowTrackerResult: { success: boolean; agentOffline?: boolean; error?: string } | null = null;
   try {
     workflowTrackerResult = await registerWorkflowOnLaptop(
       workflowRun.id,
       workflowId,
       storyId || undefined,
-      claudeSessionId // Pass Claude session ID for session-aware tracking
+      claudeSessionId, // Pass Claude session ID for session-aware tracking
+      storyKey // Pass story key for compaction recovery UX
     );
   } catch (error: any) {
     // Non-fatal - log but don't fail
