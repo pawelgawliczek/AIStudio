@@ -20,6 +20,7 @@ import {
   ComponentSummaryStructured,
 } from '../../types/component-summary.types';
 import { RemoteRunner } from '../utils/remote-runner';
+import { calculateCost } from '../utils/pricing';
 
 // Metrics from transcript parsing
 interface TranscriptMetrics {
@@ -58,6 +59,7 @@ export interface CompleteAgentResult {
     tokensInput?: number | null;
     tokensOutput?: number | null;
     totalTokens?: number | null;
+    cost?: number | null;
   };
   warning?: string;
   error?: string;
@@ -330,6 +332,8 @@ export async function completeAgentTracking(
       totalTokens: number | null;
       tokensCacheCreation: number | null;
       tokensCacheRead: number | null;
+      modelId: string | null;
+      cost: number | null;
     } | null = null;
 
     try {
@@ -359,17 +363,29 @@ export async function completeAgentTracking(
 
         if (result.executed && result.success && result.result) {
           const metrics = result.result;
+          // ST-242: Calculate cost using centralized pricing utility
+          const componentCost = calculateCost({
+            tokensInput: metrics.inputTokens,
+            tokensOutput: metrics.outputTokens,
+            tokensCacheCreation: metrics.cacheCreationTokens,
+            tokensCacheRead: metrics.cacheReadTokens,
+            modelId: metrics.model,
+          });
           telemetryMetrics = {
             tokensInput: metrics.inputTokens,
             tokensOutput: metrics.outputTokens,
-            totalTokens: metrics.inputTokens + metrics.outputTokens + (metrics.cacheCreationTokens || 0),
+            totalTokens: metrics.inputTokens + metrics.outputTokens + (metrics.cacheCreationTokens || 0) + (metrics.cacheReadTokens || 0),
             tokensCacheCreation: metrics.cacheCreationTokens,
             tokensCacheRead: metrics.cacheReadTokens,
+            modelId: metrics.model || null,
+            cost: componentCost,
           };
           console.log(`[agent-tracking] Parsed telemetry for ${params.componentId}:`, {
             tokensInput: telemetryMetrics.tokensInput,
             tokensOutput: telemetryMetrics.tokensOutput,
             totalTokens: telemetryMetrics.totalTokens,
+            cost: telemetryMetrics.cost,
+            modelId: telemetryMetrics.modelId,
           });
         } else {
           console.warn(`[agent-tracking] Failed to parse transcript: ${result.error || 'unknown error'}`);
@@ -447,11 +463,15 @@ export async function completeAgentTracking(
         errorMessage: params.errorMessage || null,
         durationSeconds,
         finishedAt: completedAt,
-        // Add telemetry if available
+        // ST-242: Add telemetry including cost and modelId
         ...(telemetryMetrics && {
           tokensInput: telemetryMetrics.tokensInput,
           tokensOutput: telemetryMetrics.tokensOutput,
           totalTokens: telemetryMetrics.totalTokens,
+          tokensCacheCreation: telemetryMetrics.tokensCacheCreation,
+          tokensCacheRead: telemetryMetrics.tokensCacheRead,
+          modelId: telemetryMetrics.modelId,
+          cost: telemetryMetrics.cost,
         }),
         // ST-234: Add code impact metrics if available
         ...(codeImpactMetrics && {
@@ -500,6 +520,52 @@ export async function completeAgentTracking(
       );
     }
 
+    // ST-242: Aggregate metrics to WorkflowRun
+    try {
+      const allComponentRuns = await prisma.componentRun.findMany({
+        where: { workflowRunId: params.runId },
+        select: {
+          totalTokens: true,
+          tokensInput: true,
+          tokensOutput: true,
+          cost: true,
+          durationSeconds: true,
+          linesAdded: true,
+          linesDeleted: true,
+        },
+      });
+
+      const aggregatedMetrics = {
+        totalTokensInput: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0), 0),
+        totalTokensOutput: allComponentRuns.reduce((sum, cr) => sum + (cr.tokensOutput || 0), 0),
+        totalTokens: allComponentRuns.reduce((sum, cr) => sum + (cr.totalTokens || 0), 0),
+        totalCost: allComponentRuns.reduce((sum, cr) => sum + (Number(cr.cost) || 0), 0),
+        durationSeconds: allComponentRuns.reduce((sum, cr) => sum + (cr.durationSeconds || 0), 0),
+        totalLinesAdded: allComponentRuns.reduce((sum, cr) => sum + (cr.linesAdded || 0), 0),
+        totalLinesDeleted: allComponentRuns.reduce((sum, cr) => sum + (cr.linesDeleted || 0), 0),
+      };
+
+      await prisma.workflowRun.update({
+        where: { id: params.runId },
+        data: {
+          totalTokensInput: aggregatedMetrics.totalTokensInput || null,
+          totalTokensOutput: aggregatedMetrics.totalTokensOutput || null,
+          totalTokens: aggregatedMetrics.totalTokens || null,
+          estimatedCost: aggregatedMetrics.totalCost || null,
+          durationSeconds: aggregatedMetrics.durationSeconds || null,
+          totalLocGenerated: (aggregatedMetrics.totalLinesAdded - aggregatedMetrics.totalLinesDeleted) || null,
+        },
+      });
+
+      console.log(`[agent-tracking] Aggregated workflow metrics:`, {
+        totalTokens: aggregatedMetrics.totalTokens,
+        totalCost: aggregatedMetrics.totalCost,
+        totalLinesAdded: aggregatedMetrics.totalLinesAdded,
+      });
+    } catch (aggError: any) {
+      console.warn(`[agent-tracking] Failed to aggregate workflow metrics: ${aggError.message}`);
+    }
+
     return {
       success: true,
       componentRunId: updatedComponentRun.id,
@@ -510,6 +576,7 @@ export async function completeAgentTracking(
         tokensInput: telemetryMetrics?.tokensInput,
         tokensOutput: telemetryMetrics?.tokensOutput,
         totalTokens: telemetryMetrics?.totalTokens,
+        cost: telemetryMetrics?.cost,
       },
     };
   } catch (error: any) {

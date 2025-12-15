@@ -46,8 +46,7 @@ export const CORE_PROFILE_TOOLS: string[] = [
   // === Workflow Execution ===
   'get_component_context', // 663 calls - Agent context loading
   'start_team_run', // 555 calls - Start workflow runs
-  'record_agent_start', // 519 calls - Track agent execution
-  'record_agent_complete', // 539 calls - Track completion
+  // ST-242: record_agent_start/complete REMOVED - advance_step handles tracking automatically
   'get_team_context', // 343 calls - Team orchestration
   'update_team_status', // 298 calls - Status updates
   'list_teams', // 341 calls - Team discovery
