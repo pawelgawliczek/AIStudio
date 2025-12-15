@@ -4,8 +4,9 @@ import * as readline from 'readline';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../types';
-import { unregisterWorkflowOnLaptop } from './workflow-tracker-utils';
 import { calculateCost } from '../../utils/pricing';
+import { unregisterWorkflowOnLaptop } from './workflow-tracker-utils';
+import { TranscriptsService } from '../../../workflow-runs/transcripts.service';
 
 export const tool: Tool = {
   name: 'update_team_status',
@@ -397,6 +398,28 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
   }
 
+  // ST-248: Upload master transcripts when workflow completes
+  // This uploads the orchestrator session transcript(s) as artifacts for viewing in web GUI
+  let masterTranscriptResult: { uploaded: number; artifactIds?: string[] } | null = null;
+  if (['completed', 'failed', 'cancelled'].includes(params.status)) {
+    try {
+      // Cast prisma to any since MCP handlers receive PrismaClient but service expects PrismaService
+      const transcriptsService = new TranscriptsService(prisma as any);
+      const uploadedArtifactIds = await transcriptsService.uploadMasterTranscripts(params.runId);
+      masterTranscriptResult = {
+        uploaded: uploadedArtifactIds.length,
+        artifactIds: uploadedArtifactIds.length > 0 ? uploadedArtifactIds : undefined,
+      };
+      if (uploadedArtifactIds.length > 0) {
+        console.log(`[ST-248] Uploaded ${uploadedArtifactIds.length} master transcript(s)`);
+      }
+    } catch (uploadError: any) {
+      // Non-fatal - log but don't fail workflow completion
+      console.warn(`[ST-248] Failed to upload master transcripts: ${uploadError.message}`);
+      masterTranscriptResult = { uploaded: 0 };
+    }
+  }
+
   // ST-164: Unregister workflow on laptop when reaching terminal state
   // This is a best-effort operation - don't fail the status update if laptop agent is offline
   let workflowTrackerResult: { success: boolean; agentOffline?: boolean; error?: string } | null = null;
@@ -426,6 +449,8 @@ export async function handler(prisma: PrismaClient, params: any) {
       agentOffline: workflowTrackerResult.agentOffline || false,
       error: workflowTrackerResult.error,
     } : null,
+    // ST-248: Include master transcript upload status
+    masterTranscripts: masterTranscriptResult,
     summary: params.summary || null,
     message: `Workflow status updated to "${params.status}". ${orchestratorMetrics ? `Parsed orchestrator transcript: ${orchestratorMetrics.totalTokens} tokens, $${orchestratorMetrics.costUsd.toFixed(4)} cost.` : ''} ${params.summary || ''}`,
   };

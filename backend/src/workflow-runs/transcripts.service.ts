@@ -218,6 +218,21 @@ export class TranscriptsService {
       // 3. Upload each transcript
       for (const transcriptPath of transcriptPaths) {
         try {
+          // ST-248: Idempotency check - skip if already uploaded
+          const existingArtifact = await this.prisma.artifact.findFirst({
+            where: {
+              workflowRunId,
+              definitionId: transcriptDef.id,
+              createdByComponentId: null, // Master transcripts have null componentId
+            },
+          });
+
+          if (existingArtifact) {
+            this.logger.log(`Master transcript already uploaded: ${existingArtifact.id}`);
+            uploadedArtifactIds.push(existingArtifact.id);
+            continue;
+          }
+
           // Check quotas
           await validateArtifactQuota(this.prisma, workflowRunId, workflowRun.projectId, 0);
 

@@ -180,10 +180,20 @@ export class TranscriptRegistrationService {
       return;
     }
 
-    // Add to spawnedAgentTranscripts array
+    // Add to spawnedAgentTranscripts array (with deduplication)
     const metadata = run.metadata as any || {};
     const spawnedAgentTranscripts = metadata.spawnedAgentTranscripts || [];
-    
+
+    // ST-249: Deduplicate by agentId AND transcriptPath to prevent multiple registrations
+    const alreadyRegistered = spawnedAgentTranscripts.some(
+      (t: any) => t.agentId === payload.agentId && t.transcriptPath === payload.transcriptPath
+    );
+
+    if (alreadyRegistered) {
+      this.logger.log(`Transcript already registered, skipping: ${payload.agentId}`);
+      return;
+    }
+
     spawnedAgentTranscripts.push({
       componentId,
       agentId: payload.agentId,

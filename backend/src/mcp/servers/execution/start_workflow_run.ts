@@ -149,13 +149,31 @@ export async function handler(prisma: PrismaClient, params: any) {
   // Claude Code stores transcripts in ~/.claude/projects/<escaped-path>/
   // Path escaping: /opt/stack/AIStudio → -opt-stack-AIStudio
   const escapedPath = projectPath.replace(/^\//, '-').replace(/\//g, '-');
-  const transcriptDirectory = path.join(os.homedir(), '.claude', 'projects', escapedPath);
 
-  // Record the orchestrator's specific transcript (most recently modified = current session)
+  // ST-249: Use transcript directory from provided path (preferred) or fallback to local path
+  // When running in Docker, os.homedir() returns Docker's home, not laptop's home
+  // The laptop path should be derived from params.transcriptPath if available
+  let transcriptDirectory: string;
+  if (params.transcriptPath) {
+    // Extract directory from provided transcript path (laptop path)
+    transcriptDirectory = path.dirname(params.transcriptPath);
+  } else {
+    // Fallback: local filesystem (only works when not in Docker)
+    transcriptDirectory = path.join(os.homedir(), '.claude', 'projects', escapedPath);
+  }
+
+  // Record the orchestrator's specific transcript
+  // ST-249: Prefer params.transcriptPath (from hook) over filesystem discovery
+  // Filesystem discovery fails when backend runs in Docker (can't see laptop files)
   const fs = await import('fs');
   let orchestratorTranscript: string | null = null;
 
-  if (fs.existsSync(transcriptDirectory)) {
+  if (params.transcriptPath) {
+    // Extract filename from provided path (e.g., ".../d3f7b498-....jsonl" → "d3f7b498-....jsonl")
+    orchestratorTranscript = path.basename(params.transcriptPath);
+    console.log(`[ST-249] Using orchestrator transcript from hook: ${orchestratorTranscript}`);
+  } else if (fs.existsSync(transcriptDirectory)) {
+    // Fallback: filesystem discovery (only works when backend has local access)
     const transcriptFiles = fs.readdirSync(transcriptDirectory)
       .filter((f: string) => f.endsWith('.jsonl'))
       .map((f: string) => ({

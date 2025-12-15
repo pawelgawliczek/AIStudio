@@ -8,21 +8,24 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import { PrismaClient } from '@prisma/client';
-import { mockDeep, mockReset, DeepMockProxy } from 'jest-mock-extended';
 import { ValidationError, NotFoundError } from '../../../types';
 import { handler } from '../update_workflow_status';
-import { fixtures, prismaMock } from './test-setup';
+import { fixtures, prismaMock, resetPrismaMock } from './test-setup';
+import { TranscriptsService } from '../../../../workflow-runs/transcripts.service';
 
 // Mock fs module
 jest.mock('fs');
 jest.mock('readline');
+
+// Mock TranscriptsService for ST-248 tests
+jest.mock('../../../../workflow-runs/transcripts.service');
 
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockReadline = readline as jest.Mocked<typeof readline>;
 
 describe('update_workflow_status', () => {
   beforeEach(() => {
-    mockReset(prismaMock);
+    resetPrismaMock();
     jest.clearAllMocks();
 
     // Default mock behavior for fs operations
@@ -533,6 +536,157 @@ describe('update_workflow_status', () => {
       expect(result.orchestratorMetrics.tokensInput).toBe(1000);
       expect(result.orchestratorMetrics.tokensOutput).toBe(500);
       expect(result.orchestratorMetrics.userPrompts).toBe(1);
+    });
+  });
+
+  // ========== ST-248: Master Transcript Upload Tests ==========
+
+  describe('ST-248: Master Transcript Upload', () => {
+    const FIXED_START_TIME = new Date('2025-01-01T10:00:00.000Z');
+
+    const mockWorkflowRun = {
+      ...fixtures.workflowRun,
+      id: 'run-001',
+      status: 'running' as const,
+      startedAt: FIXED_START_TIME,
+      finishedAt: null,
+      workflow: fixtures.workflow,
+      metadata: {},
+      masterTranscriptPaths: ['/tmp/master.jsonl'],
+    };
+
+    let mockUploadMasterTranscripts: jest.Mock;
+
+    beforeEach(() => {
+      // Reset TranscriptsService mock
+      mockUploadMasterTranscripts = jest.fn().mockResolvedValue(['artifact-001']);
+      (TranscriptsService as jest.Mock).mockImplementation(() => ({
+        uploadMasterTranscripts: mockUploadMasterTranscripts,
+      }));
+    });
+
+    it('TC-ST248-01: should upload master transcripts on workflow completion', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        status: 'completed',
+      };
+
+      prismaMock.workflowRun.findUnique.mockResolvedValue(mockWorkflowRun as any);
+      prismaMock.workflowRun.update
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'completed', finishedAt: new Date() } as any)
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'completed', finishedAt: new Date() } as any);
+      prismaMock.componentRun.findFirst.mockResolvedValue(null);
+      prismaMock.componentRun.findMany.mockResolvedValue([]);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(true);
+      expect(mockUploadMasterTranscripts).toHaveBeenCalledWith('run-001');
+      expect(result.masterTranscripts).toBeDefined();
+      expect(result.masterTranscripts.uploaded).toBe(1);
+      expect(result.masterTranscripts.artifactIds).toEqual(['artifact-001']);
+    });
+
+    it('TC-ST248-02: should upload master transcripts on workflow failure', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        status: 'failed',
+        errorMessage: 'Component failed',
+      };
+
+      prismaMock.workflowRun.findUnique.mockResolvedValue(mockWorkflowRun as any);
+      prismaMock.workflowRun.update
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'failed', finishedAt: new Date() } as any)
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'failed', finishedAt: new Date() } as any);
+      prismaMock.componentRun.findFirst.mockResolvedValue(null);
+      prismaMock.componentRun.findMany.mockResolvedValue([]);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(true);
+      expect(mockUploadMasterTranscripts).toHaveBeenCalledWith('run-001');
+      expect(result.masterTranscripts).toBeDefined();
+    });
+
+    it('TC-ST248-03: should not upload master transcripts for non-terminal states', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        status: 'paused',
+      };
+
+      prismaMock.workflowRun.findUnique.mockResolvedValue(mockWorkflowRun as any);
+      prismaMock.workflowRun.update.mockResolvedValue({ ...mockWorkflowRun, status: 'paused' } as any);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(true);
+      expect(mockUploadMasterTranscripts).not.toHaveBeenCalled();
+      expect(result.masterTranscripts).toBeNull();
+    });
+
+    it('TC-ST248-04: should handle transcript upload failure gracefully', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        status: 'completed',
+      };
+
+      // Mock upload failure
+      mockUploadMasterTranscripts.mockRejectedValue(new Error('Upload failed'));
+
+      prismaMock.workflowRun.findUnique.mockResolvedValue(mockWorkflowRun as any);
+      prismaMock.workflowRun.update
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'completed', finishedAt: new Date() } as any)
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'completed', finishedAt: new Date() } as any);
+      prismaMock.componentRun.findFirst.mockResolvedValue(null);
+      prismaMock.componentRun.findMany.mockResolvedValue([]);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      // Workflow should still complete successfully
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      // masterTranscripts should indicate failure
+      expect(result.masterTranscripts).toBeDefined();
+      expect(result.masterTranscripts.uploaded).toBe(0);
+    });
+
+    it('TC-ST248-05: should handle no transcripts to upload', async () => {
+      // ========== ARRANGE ==========
+      const params = {
+        runId: 'run-001',
+        status: 'completed',
+      };
+
+      // Mock no transcripts returned
+      mockUploadMasterTranscripts.mockResolvedValue([]);
+
+      prismaMock.workflowRun.findUnique.mockResolvedValue(mockWorkflowRun as any);
+      prismaMock.workflowRun.update
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'completed', finishedAt: new Date() } as any)
+        .mockResolvedValueOnce({ ...mockWorkflowRun, status: 'completed', finishedAt: new Date() } as any);
+      prismaMock.componentRun.findFirst.mockResolvedValue(null);
+      prismaMock.componentRun.findMany.mockResolvedValue([]);
+
+      // ========== ACT ==========
+      const result = await handler(prismaMock as any, params);
+
+      // ========== ASSERT ==========
+      expect(result.success).toBe(true);
+      expect(result.masterTranscripts).toBeDefined();
+      expect(result.masterTranscripts.uploaded).toBe(0);
+      expect(result.masterTranscripts.artifactIds).toBeUndefined();
     });
   });
 });
