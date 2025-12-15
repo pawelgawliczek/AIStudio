@@ -15,8 +15,8 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaClient } from '@prisma/client';
-import { resolveRunId } from '../../shared/resolve-identifiers';
+import { PrismaClient, Prisma } from '@prisma/client';
+import { ComponentSummaryStructured } from '../../../types/component-summary.types';
 import {
   startAgentTracking,
   completeAgentTracking,
@@ -25,7 +25,8 @@ import {
   StartAgentResult,
   CompleteAgentResult,
 } from '../../shared/agent-tracking';
-import { ComponentSummaryStructured } from '../../../types/component-summary.types';
+import { resolveRunId } from '../../shared/resolve-identifiers';
+import { RemoteRunner } from '../../utils/remote-runner';
 
 export const tool: Tool = {
   name: 'advance_step',
@@ -313,6 +314,82 @@ export async function handler(prisma: PrismaClient, params: {
 
     case 'agent':
       // Agent done - go to post
+      // ST-242: Sync spawnedAgentTranscripts from laptop before completing agent tracking
+      // This ensures transcript data is available for telemetry calculation
+      if (currentState.component) {
+        try {
+          const runMetadata = run.metadata as Record<string, unknown> | null;
+          const masterSessionId = (runMetadata?.masterSessionId as string) || (runMetadata?.sessionId as string);
+          const cwd = runMetadata?.cwd as string;
+
+          if (masterSessionId && cwd) {
+            const runningWorkflowsPath = `${cwd}/.claude/running-workflows.json`;
+            const remoteRunner = new RemoteRunner();
+
+            try {
+              const readResult = await remoteRunner.execute('read-file', [
+                `--path=${runningWorkflowsPath}`,
+              ]);
+
+              if (readResult.success && readResult.result) {
+                const resultData = readResult.result as any;
+                // read-file returns { content, size, path }
+                const outputStr = typeof resultData.content === 'string'
+                  ? resultData.content
+                  : (typeof resultData === 'string' ? resultData : JSON.stringify(resultData));
+
+                // Parse the running-workflows.json content
+                let workflowsData: any;
+                try {
+                  workflowsData = JSON.parse(outputStr);
+                } catch {
+                  console.warn('[advance_step] Failed to parse running-workflows.json content');
+                  workflowsData = null;
+                }
+
+                // Extract spawned agent transcripts for this session
+                if (workflowsData) {
+                  const sessionData = workflowsData?.sessions?.[masterSessionId];
+                  const localTranscripts = sessionData?.spawnedAgentTranscripts || [];
+
+                  if (localTranscripts.length > 0) {
+                    // Merge with existing spawnedAgentTranscripts in DB
+                    const existingTranscripts = (runMetadata?.spawnedAgentTranscripts as any[]) || [];
+                    const existingPaths = new Set(existingTranscripts.map((t: any) => t.transcriptPath));
+
+                    const newTranscripts = localTranscripts.filter(
+                      (t: any) => !existingPaths.has(t.transcriptPath)
+                    );
+
+                    if (newTranscripts.length > 0) {
+                      const mergedTranscripts = [...existingTranscripts, ...newTranscripts];
+
+                      // Update workflow run metadata with synced transcripts
+                      await prisma.workflowRun.update({
+                        where: { id: run.id },
+                        data: {
+                          metadata: {
+                            ...(runMetadata || {}),
+                            spawnedAgentTranscripts: mergedTranscripts,
+                          },
+                        },
+                      });
+
+                      console.log(`[advance_step] Synced ${newTranscripts.length} spawned agent transcripts from laptop`);
+                    }
+                  }
+                }
+              }
+            } catch (syncError: any) {
+              // Non-fatal - just log and continue
+              console.warn(`[advance_step] Failed to sync transcripts from laptop: ${syncError.message}`);
+            }
+          }
+        } catch (syncSetupError: any) {
+          console.warn(`[advance_step] Transcript sync setup failed: ${syncSetupError.message}`);
+        }
+      }
+
       // ST-215: AUTO - Call completeAgentTracking
       if (currentState.component) {
         try {

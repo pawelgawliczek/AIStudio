@@ -33,6 +33,12 @@ const ALLOWED_BASE_DIR = path.resolve(os.homedir(), '.claude', 'projects');
 const DEFAULT_MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB (reduced from 5MB per security review)
 const DEFAULT_ENCODING = 'utf-8';
 
+// ST-242: Additional allowed file patterns (for telemetry sync)
+// Only specific files in project directories are allowed, not arbitrary reads
+const ALLOWED_PROJECT_FILES = [
+  '.claude/running-workflows.json', // Track spawned agent transcripts
+];
+
 /**
  * Security error class - strips sensitive info from messages
  */
@@ -98,11 +104,21 @@ function validatePath(inputPath: string): string {
 
   // 5. Validate prefix AFTER normalization and symlink resolution
   // This prevents all path traversal attacks
-  if (!realPath.startsWith(ALLOWED_BASE_DIR)) {
-    throw new SecurityError('Path outside allowed directory');
+  if (realPath.startsWith(ALLOWED_BASE_DIR)) {
+    return realPath;
   }
 
-  return realPath;
+  // ST-242: Check if this is an allowed project file (specific whitelist)
+  for (const allowedFile of ALLOWED_PROJECT_FILES) {
+    if (realPath.endsWith(allowedFile)) {
+      // Verify it's actually in a .claude directory (extra safety)
+      if (realPath.includes('/.claude/')) {
+        return realPath;
+      }
+    }
+  }
+
+  throw new SecurityError('Path outside allowed directory');
 }
 
 /**
