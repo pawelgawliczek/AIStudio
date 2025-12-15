@@ -14,6 +14,7 @@ export class HealthController {
   @Get()
   @ApiOperation({ summary: 'Health check endpoint' })
   check() {
+    console.log('[HealthController] Health check endpoint called at:', new Date().toISOString());
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
