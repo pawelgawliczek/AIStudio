@@ -341,7 +341,7 @@ export async function completeAgentTracking(
       let localAgentId: string | null = null;
 
       // ST-242: Look for transcript in multiple sources (same as record_component_complete)
-      // Source 1: spawnedAgentTranscripts in workflow metadata
+      // Source 1: spawnedAgentTranscripts in workflow metadata (filtered by componentId)
       const workflowRunForTranscripts = await prisma.workflowRun.findUnique({
         where: { id: params.runId },
         select: { metadata: true },
@@ -350,27 +350,15 @@ export async function completeAgentTracking(
       const spawnedAgentTranscripts =
         ((workflowRunForTranscripts?.metadata as any)?.spawnedAgentTranscripts as any[] | null) || [];
 
-      // First try to find by componentId (if explicitly assigned)
-      let matchingTranscripts = spawnedAgentTranscripts
+      // Find transcript for this component, most recent first
+      const matchingTranscripts = spawnedAgentTranscripts
         .filter((t: any) => t.componentId === params.componentId)
         .sort((a: any, b: any) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
-
-      // If no componentId match, find transcripts spawned after ComponentRun started
-      if (matchingTranscripts.length === 0 && componentRun.startedAt) {
-        const componentStartTime = componentRun.startedAt.getTime();
-        matchingTranscripts = spawnedAgentTranscripts
-          .filter((t: any) => new Date(t.spawnedAt).getTime() > componentStartTime)
-          .sort((a: any, b: any) => new Date(a.spawnedAt).getTime() - new Date(b.spawnedAt).getTime()); // Oldest first (spawned right after component started)
-
-        if (matchingTranscripts.length > 0) {
-          console.log(`[agent-tracking] Using timestamp-based matching: found ${matchingTranscripts.length} transcripts after component started`);
-        }
-      }
 
       if (matchingTranscripts.length > 0) {
         transcriptPath = matchingTranscripts[0].transcriptPath;
         localAgentId = matchingTranscripts[0].agentId;
-        console.log(`[agent-tracking] Found transcript in spawnedAgentTranscripts for ${params.componentId}: ${transcriptPath} (agent: ${localAgentId})`);
+        console.log(`[agent-tracking] Found transcript in spawnedAgentTranscripts for ${params.componentId}: ${transcriptPath}`);
       }
 
       // ST-242: Source 2 - Fallback to unassigned_transcripts table (ST-170)

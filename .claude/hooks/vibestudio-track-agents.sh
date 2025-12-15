@@ -1,9 +1,13 @@
 #!/bin/bash
 # VibeStudio Track Agents Hook
-# Track spawned agent transcript paths and sync to backend
+# Track spawned agent transcript paths locally for debugging
 #
 # Triggers: PostToolUse (Task)
-# Purpose: Track spawned agent transcript paths and sync to workflow run metadata
+# Purpose: Track spawned agent transcript paths in running-workflows.json (for debugging)
+#
+# NOTE: ST-170 TranscriptWatcher on laptop automatically detects new transcript files
+# and registers them in the unassigned_transcripts table via WebSocket.
+# record_agent_complete reads from that table - no MCP call needed here.
 
 set -e
 
@@ -46,13 +50,12 @@ if [ -n "$AGENT_ID" ]; then
   # Build agent transcript path using Claude Code's naming convention
   ESCAPED_PATH=$(echo "$CLAUDE_PROJECT_DIR" | sed 's|^/|-|' | tr '/' '-')
   AGENT_TRANSCRIPT="$HOME/.claude/projects/$ESCAPED_PATH/agent-${AGENT_ID}.jsonl"
-  SPAWNED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-  # Track locally
+  # Track locally for debugging (ST-170 handles the actual registration)
   jq --arg sid "$SESSION_ID" \
      --arg aid "$AGENT_ID" \
      --arg atp "$AGENT_TRANSCRIPT" \
-     --arg ts "$SPAWNED_AT" \
+     --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
      'if .sessions[$sid] then
         .sessions[$sid].spawnedAgentTranscripts = ((.sessions[$sid].spawnedAgentTranscripts // []) + [{
           agentId: $aid,
@@ -61,33 +64,6 @@ if [ -n "$AGENT_ID" ]; then
         }])
       else . end' \
      "$WORKFLOWS_FILE" > "$WORKFLOWS_FILE.tmp" && mv "$WORKFLOWS_FILE.tmp" "$WORKFLOWS_FILE"
-
-  # ST-242: Sync to backend workflow run metadata via MCP API
-  # Get workflow run ID from the session
-  RUN_ID=$(jq -r --arg sid "$SESSION_ID" '.sessions[$sid].runId // empty' "$WORKFLOWS_FILE" 2>/dev/null)
-
-  if [ -n "$RUN_ID" ]; then
-    # Call add_transcript MCP tool via API to sync to backend
-    # This adds the agent transcript to the workflow run's spawnedAgentTranscripts metadata
-    API_URL="${VIBESTUDIO_API_URL:-https://vibestudio.example.com/api}"
-    API_KEY="${VIBESTUDIO_API_KEY:-}"
-
-    if [ -n "$API_KEY" ]; then
-      # Call the add_transcript tool
-      curl -s -X POST "$API_URL/mcp/v1/call-tool" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $API_KEY" \
-        -d "{
-          \"tool\": \"add_transcript\",
-          \"params\": {
-            \"runId\": \"$RUN_ID\",
-            \"agentId\": \"$AGENT_ID\",
-            \"transcriptPath\": \"$AGENT_TRANSCRIPT\",
-            \"spawnedAt\": \"$SPAWNED_AT\"
-          }
-        }" > /dev/null 2>&1 || true
-    fi
-  fi
 fi
 
 exit 0
