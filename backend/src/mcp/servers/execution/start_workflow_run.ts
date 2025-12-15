@@ -6,6 +6,7 @@ import { TranscriptRegistrationService } from '../../../remote-agent/transcript-
 import { startAgentTracking } from '../../shared/agent-tracking';
 import { buildMasterSessionInstructions } from './master-session-instructions';
 import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
+import { RemoteRunner } from '../../utils/remote-runner';
 
 export const tool: Tool = {
   name: 'start_team_run',
@@ -89,6 +90,21 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
   if (!params.transcriptPath) {
     throw new Error('transcriptPath is required - must be provided from SessionStart hook (stdin.transcript_path). This enables live transcript streaming. Get it from the SessionStart hook output.');
+  }
+
+  // ST-242: Verify laptop agent is online before starting workflow
+  // This ensures transcript sync and telemetry collection will work
+  const remoteRunner = new RemoteRunner();
+  const isAgentOnline = await remoteRunner.isAgentOnline();
+  if (!isAgentOnline) {
+    throw new Error(
+      'Laptop agent is not connected. Telemetry and transcript tracking require the laptop agent to be online.\n\n' +
+      'To restart the laptop agent via launchctl:\n' +
+      '  launchctl kickstart -k gui/$(id -u)/com.vibestudio.laptop-agent\n\n' +
+      'Or check status:\n' +
+      '  launchctl list | grep vibestudio\n\n' +
+      'Once connected, retry start_team_run.'
+    );
   }
 
   // Verify workflow exists and get states for checkpoint initialization
