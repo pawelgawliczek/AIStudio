@@ -416,6 +416,47 @@ export async function completeAgentTracking(
         }
       }
 
+      // ST-242: Source 4 - Fallback to running-workflows.json on laptop via RemoteRunner
+      // The track-agents hook writes spawned agent transcripts to this local file
+      if (!transcriptPath && !telemetryMetrics) {
+        try {
+          // Get session ID and project path from workflow run metadata
+          const workflowRunForSession = await prisma.workflowRun.findUnique({
+            where: { id: params.runId },
+            select: { metadata: true },
+          });
+          const transcriptTracking = (workflowRunForSession?.metadata as any)?._transcriptTracking;
+          const sessionId = transcriptTracking?.sessionId;
+          const projectPath = transcriptTracking?.projectPath;
+
+          if (sessionId && projectPath) {
+            const runner = new RemoteRunner();
+            const result = await runner.execute<{ stdout: string }>('exec-command', [
+              `--command=cat .claude/running-workflows.json | jq -r '.sessions["${sessionId}"].spawnedAgentTranscripts | if . then .[-1] else empty end'`,
+              `--cwd=${projectPath}`,
+            ], {
+              requestedBy: 'completeAgentTracking',
+            });
+
+            if (result.executed && result.success && result.result?.stdout) {
+              try {
+                const agentEntry = JSON.parse(result.result.stdout.trim());
+                if (agentEntry && agentEntry.transcriptPath) {
+                  transcriptPath = agentEntry.transcriptPath;
+                  localAgentId = agentEntry.agentId;
+                  console.log(`[agent-tracking] Found transcript in running-workflows.json for ${params.componentId}: ${transcriptPath} (agent: ${localAgentId})`);
+                }
+              } catch (parseError) {
+                // JSON parse failed - no valid entry
+                console.log(`[agent-tracking] No valid transcript entry in running-workflows.json for session ${sessionId}`);
+              }
+            }
+          }
+        } catch (rwError: any) {
+          console.warn(`[agent-tracking] Failed to read running-workflows.json: ${rwError.message}`);
+        }
+      }
+
       // ST-242: Only parse via RemoteRunner if we don't already have metrics from Transcript table
       if (transcriptPath && !telemetryMetrics) {
         console.log(`[agent-tracking] Parsing transcript for ${params.componentId}: ${transcriptPath}`);
