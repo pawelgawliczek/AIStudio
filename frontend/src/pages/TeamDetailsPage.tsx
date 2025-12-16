@@ -642,8 +642,18 @@ export function WorkflowDetailsPage() {
                 </div>
               )}
 
+              {/* Empty State */}
+              {!isLoadingTrendData && trendData.length === 0 && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <p className="text-gray-500 dark:text-gray-400">No data available for the selected time period.</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Try adjusting the complexity filters or selecting a different workflow.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Complexity Filters */}
-              {!isLoadingTrendData && (
+              {!isLoadingTrendData && trendData.length > 0 && (
               <>
                 <div className="flex flex-wrap items-end gap-4">
                   <div className="flex flex-col min-w-40 flex-1">
