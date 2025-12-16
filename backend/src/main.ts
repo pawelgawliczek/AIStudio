@@ -1,3 +1,10 @@
+// ST-268: Polyfill globalThis.crypto for @nestjs/schedule in Node 18
+// The crypto.randomUUID() is used by SchedulerOrchestrator
+import * as nodeCrypto from 'crypto';
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = nodeCrypto;
+}
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -5,8 +12,8 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { WinstonLoggerService, AllExceptionsFilter, LoggingInterceptor } from './common';
 import { setSharedWebSocketGateway } from './mcp/services/websocket-gateway.instance';
-import { AppWebSocketGateway } from './websocket/websocket.gateway';
 import { initializeTelemetry, registerTelemetryShutdownHandlers } from './telemetry/telemetry.init';
+import { AppWebSocketGateway } from './websocket/websocket.gateway';
 
 // ST-257: Initialize OpenTelemetry BEFORE any other imports/code
 // This ensures all HTTP/Express instrumentations are registered before NestJS starts
