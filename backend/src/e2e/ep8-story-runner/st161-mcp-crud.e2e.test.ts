@@ -244,10 +244,10 @@ describe('ST-161: MCP CRUD Operations E2E Tests', () => {
       console.log(`    ✓ Story found in list of ${result.result?.data.length} stories`);
     });
 
-    it('should search stories by title', async () => {
-      // search_stories returns an array directly, not { data: [...] }
-      const result = await runner.execute<Array<{ id: string; title: string }>>(
-        'search_stories',
+    it('should search stories by title using query param', async () => {
+      // list_stories with query param performs text search (merged from search_stories)
+      const result = await runner.execute<{ data: Array<{ id: string; title: string }> }>(
+        'list_stories',
         {
           query: testPrefix,
           projectId: ctx.projectId,
@@ -255,13 +255,12 @@ describe('ST-161: MCP CRUD Operations E2E Tests', () => {
       );
 
       expect(result.success).toBe(true);
-      const stories = Array.isArray(result.result) ? result.result : [];
-      expect(stories.length).toBeGreaterThan(0);
+      expect(result.result?.data.length).toBeGreaterThan(0);
 
-      const found = stories.find((s) => s.id === ctx.storyId);
+      const found = result.result?.data.find((s) => s.id === ctx.storyId);
       expect(found).toBeDefined();
 
-      console.log(`    ✓ Story found via search: ${found?.title}`);
+      console.log(`    ✓ Story found via query search: ${found?.title}`);
     });
 
     it('should get story with subtasks and use cases', async () => {

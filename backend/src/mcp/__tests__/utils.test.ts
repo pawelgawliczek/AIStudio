@@ -53,8 +53,8 @@ describe('formatError', () => {
       const error = new NotFoundError('Story', 'story-123');
       const formatted = formatError(error);
 
-      // Check if any suggestion contains 'search_stories'
-      const hasSuggestion = formatted.suggestions?.some(s => s.includes('search_stories'));
+      // Check if any suggestion contains 'list_stories'
+      const hasSuggestion = formatted.suggestions?.some(s => s.includes('list_stories'));
       expect(hasSuggestion).toBe(true);
       expect(formatted.nextSteps).toBeDefined();
     });
@@ -193,7 +193,7 @@ describe('Enhanced error classes', () => {
   describe('ResourceNotFoundError', () => {
     it('should suggest how to find or create the resource', () => {
       const error = new NotFoundError('Story', 'ST-123', {
-        searchTool: 'search_stories',
+        searchTool: 'list_stories',
         createTool: 'create_story'
       });
 

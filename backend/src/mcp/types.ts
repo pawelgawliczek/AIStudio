@@ -103,8 +103,10 @@ export interface ListStoriesParams extends PaginationParams {
   epicId?: string;
   status?: 'planning' | 'analysis' | 'architecture' | 'design' | 'impl' | 'review' | 'qa' | 'done';
   type?: 'feature' | 'bug' | 'defect' | 'chore' | 'spike';
-  assignedToMe?: boolean; // future: filter by current user
-  excludeDescription?: boolean; // Exclude description for token efficiency (use summary instead)
+  query?: string; // Text search across title, key, description (case-insensitive)
+  includeSubtasks?: boolean; // Include subtasks in response
+  includeUseCases?: boolean; // Include linked use cases in response
+  includeCommits?: boolean; // Include linked commits in response (max 10 per story)
   fields?: string[]; // Specific fields to return for token efficiency
 }
 

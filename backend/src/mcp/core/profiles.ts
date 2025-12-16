@@ -5,7 +5,7 @@
  * This reduces context window usage by only exposing frequently-used tools.
  *
  * Part of MCP Context Optimization (ST-197):
- * - Core profile: ~28 tools (~25k tokens) - Default
+ * - Core profile: ~25 tools (~22k tokens) - Default
  * - Full profile: All ~153 tools (~126k tokens)
  *
  * Industry research shows:
@@ -31,12 +31,11 @@ export const CORE_PROFILE_TOOLS: string[] = [
   'search_tools', // Discover tools by query/category
   'invoke_tool', // Call any tool by name
 
-  // === Story Management (Top 5 by usage) ===
+  // === Story Management (Top 4 by usage) ===
   'get_story', // 1366 calls - Most used tool
   'update_story', // 1005 calls
   'create_story', // 830 calls
-  'search_stories', // 474 calls
-  'list_stories', // 352 calls
+  'list_stories', // Now includes text search (merged with search_stories)
 
   // === Artifacts (High usage for analysis docs) ===
   'upload_artifact', // 817 calls
@@ -56,10 +55,6 @@ export const CORE_PROFILE_TOOLS: string[] = [
   'advance_step', // Move through workflow
   'get_runner_status', // 262 calls - Monitor execution
   'repeat_step', // Retry with feedback
-
-  // === Git/Worktree ===
-  'git_create_worktree', // 330 calls - Development workflow
-  'git_get_worktree_status', // Check worktree state
 
   // === Project Management ===
   'list_projects', // 584 calls - Project discovery
@@ -84,7 +79,7 @@ export interface ToolProfile {
 export const TOOL_PROFILES: Record<ProfileName, ToolProfile> = {
   core: {
     name: 'core',
-    description: 'Frequently-used tools only (~28 tools). Use invoke_tool for others.',
+    description: 'Frequently-used tools only (~25 tools). Use invoke_tool for others.',
     tools: CORE_PROFILE_TOOLS,
   },
   full: {

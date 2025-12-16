@@ -322,7 +322,7 @@ function generateSuggestions(error: any): string[] {
 
   // Story-related errors
   if (message.includes('story') && message.includes('not found')) {
-    suggestions.push('Use search_stories to find the story');
+    suggestions.push('Use list_stories with query param to search for the story');
     suggestions.push('Use list_stories to see all stories in the project');
     suggestions.push('Use create_story to create a new story');
   }

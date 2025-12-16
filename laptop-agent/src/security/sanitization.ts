@@ -83,7 +83,6 @@ const MCP_TOOL_ALLOWLIST = new Set<string>([
   // === Read-Only Story/Epic Tools (SAFE) ===
   'mcp__vibestudio__get_story',
   'mcp__vibestudio__list_stories',
-  'mcp__vibestudio__search_stories',
   'mcp__vibestudio__get_epic',
   'mcp__vibestudio__list_epics',
 

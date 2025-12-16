@@ -401,7 +401,7 @@ async function validateAndFetchStory(
     throw new NotFoundError(
       'Story',
       storyId,
-      { searchTool: 'mcp__vibestudio__search_stories' }
+      { searchTool: 'mcp__vibestudio__list_stories' }
     );
   }
 

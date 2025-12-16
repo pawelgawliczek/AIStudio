@@ -99,7 +99,7 @@ export async function handler(
 
     if (!story) {
       throw new NotFoundError('Story', params.storyId, {
-        searchTool: 'mcp__vibestudio__search_stories',
+        searchTool: 'mcp__vibestudio__list_stories',
         createTool: 'mcp__vibestudio__create_story',
       });
     }

@@ -70,14 +70,13 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
 
   // Build response
-  // ST-197: MCP Tool Profile System - Core 28 tools are directly available
+  // ST-197: MCP Tool Profile System - Core 25 tools are directly available
   const coreVibeStudioTools = [
-    'get_story', 'update_story', 'create_story', 'search_stories', 'list_stories',
+    'get_story', 'update_story', 'create_story', 'list_stories',
     'upload_artifact', 'get_artifact', 'list_artifacts',
-    'get_component_context', 'start_team_run', 'record_agent_start', 'record_agent_complete',
+    'get_component_context', 'start_team_run',
     'get_team_context', 'update_team_status', 'list_teams',
     'get_current_step', 'advance_step', 'get_runner_status', 'repeat_step',
-    'git_create_worktree', 'git_get_worktree_status',
     'list_projects', 'get_project', 'get_context', 'set_context',
     'search_tools', 'invoke_tool',
   ];

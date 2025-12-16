@@ -234,9 +234,10 @@ More content to make the description longer.`;
       console.log(`    ✓ Fetch command provided: ${story?._fieldSelection?.fetchCommand.slice(0, 50)}...`);
     });
 
-    it('should return only requested fields in search_stories', async () => {
-      const result = await runner.execute<
-        Array<{
+    it('should return only requested fields in list_stories with query', async () => {
+      // list_stories with query param performs text search (merged from search_stories)
+      const result = await runner.execute<{
+        data: Array<{
           id: string;
           key?: string;
           description?: string;
@@ -244,21 +245,21 @@ More content to make the description longer.`;
             requested: string[];
             omitted: string[];
           };
-        }>
-      >('search_stories', {
+        }>;
+      }>('list_stories', {
         query: testPrefix,
         projectId: ctx.projectId,
         fields: ['id', 'key', 'summary'],
       });
 
       expect(result.success).toBe(true);
-      expect(result.result?.length).toBeGreaterThan(0);
+      expect(result.result?.data?.length).toBeGreaterThan(0);
 
-      const story = result.result?.[0];
+      const story = result.result?.data?.[0];
       expect(story?.id).toBeDefined();
       expect(story?.description).toBeUndefined();
 
-      console.log(`    ✓ search_stories with fields parameter works`);
+      console.log(`    ✓ list_stories with query + fields parameter works`);
     });
 
     it('should return only requested fields in list_epics', async () => {

@@ -18,7 +18,7 @@ import {
 
 export const tool: Tool = {
   name: 'list_stories',
-  description: 'List stories with filters (projectId, status, type, epicId). For text search use search_stories.',
+  description: 'List and search stories with structured filters and optional text search. Combines filtering (projectId, status, type, epicId) with text search (query).',
   inputSchema: {
     type: 'object',
     properties: {
@@ -40,6 +40,10 @@ export const tool: Tool = {
         enum: ['feature', 'bug', 'defect', 'chore', 'spike'],
         description: 'Filter by story type',
       },
+      query: {
+        type: 'string',
+        description: 'Text search across title, key, and description (case-insensitive). Combined with filters using AND logic.',
+      },
       page: {
         type: 'number',
         description: 'Page number (default: 1)',
@@ -51,10 +55,17 @@ export const tool: Tool = {
         minimum: 1,
         maximum: 100,
       },
-      excludeDescription: {
+      includeSubtasks: {
         type: 'boolean',
-        description:
-          'Exclude description field to reduce token usage (default: false). Use summary field for lightweight queries.',
+        description: 'Include subtasks in response (default: false)',
+      },
+      includeUseCases: {
+        type: 'boolean',
+        description: 'Include linked use cases in response (default: false)',
+      },
+      includeCommits: {
+        type: 'boolean',
+        description: 'Include linked commits in response (default: false, max 10 per story)',
       },
       fields: {
         type: 'array',
@@ -103,12 +114,58 @@ export async function handler(
       whereClause.type = params.type;
     }
 
+    // Add text search if query provided (searches title, key, description)
+    if (params.query) {
+      whereClause.OR = [
+        { key: { contains: params.query, mode: 'insensitive' } },
+        { title: { contains: params.query, mode: 'insensitive' } },
+        { description: { contains: params.query, mode: 'insensitive' } },
+      ];
+    }
+
+    // Build include clause for related data
+    const includeClause: any = {};
+
+    if (params.includeSubtasks) {
+      includeClause.subtasks = {
+        orderBy: { createdAt: 'asc' },
+      };
+    }
+
+    if (params.includeUseCases) {
+      includeClause.useCaseLinks = {
+        include: {
+          useCase: {
+            include: {
+              versions: {
+                orderBy: { version: 'desc' },
+                take: 1,
+              },
+            },
+          },
+        },
+      };
+    }
+
+    if (params.includeCommits) {
+      includeClause.commits = {
+        include: {
+          files: true,
+        },
+        orderBy: { timestamp: 'desc' },
+        take: 10,
+      };
+    }
+
+    const hasIncludes = Object.keys(includeClause).length > 0;
+
     // Get total count
     const total = await prisma.story.count({ where: whereClause });
 
     // Get paginated data
     const stories = await prisma.story.findMany({
       where: whereClause,
+      include: hasIncludes ? includeClause : undefined,
       skip,
       take: pageSize,
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
@@ -121,12 +178,12 @@ export async function handler(
       'id', 'key', 'title', 'status', 'type', 'summary', 'description',
       'projectId', 'epicId', 'businessImpact', 'businessComplexity',
       'technicalComplexity', 'estimatedTokenCost', 'assignedFrameworkId',
-      'createdAt', 'updatedAt',
+      'createdAt', 'updatedAt', 'subtasks', 'useCases', 'commits',
     ]);
 
     // Format stories with optional field filtering for token efficiency
     const formattedStories = stories.map((s: any) => {
-      const formatted = formatStory(s);
+      const formatted = formatStory(s, hasIncludes);
 
       // Apply field filtering if specified
       if (params.fields && params.fields.length > 0) {
@@ -154,20 +211,6 @@ export async function handler(
         }
 
         return filteredStory as StoryResponse;
-      }
-
-      // Legacy excludeDescription support (deprecated in favor of fields parameter)
-      if (params.excludeDescription) {
-        // Exclude description but keep summary for lightweight queries
-        const descLength = formatted.description?.length || 0;
-        formatted.description = undefined;
-        (formatted as any)._truncated = {
-          field: 'description',
-          originalLength: descLength,
-          truncatedTo: 0,
-          reason: 'Excluded via excludeDescription parameter for token efficiency',
-          fetchCommand: storyFetchCommand(formatted.id, 'includeDescription'),
-        };
       }
 
       return formatted;

@@ -21,7 +21,7 @@ import {
 
 export const tool: Tool = {
   name: 'get_story',
-  description: 'Get story details by ID or key (ST-123). For text search use search_stories; for filtered lists use list_stories.',
+  description: 'Get story details by ID or key (ST-123). For text search or filtered lists use list_stories.',
   inputSchema: {
     type: 'object',
     properties: {

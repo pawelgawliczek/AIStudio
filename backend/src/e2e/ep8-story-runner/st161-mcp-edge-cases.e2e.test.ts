@@ -640,14 +640,13 @@ function example() {
       const storyKey = createResult.result!.key;
       ctx.storyIds.push(createResult.result!.id);
 
-      // Search by key
-      const searchResult = await runner.execute<{ data: Array<{ key: string }> }>('search_stories', {
-        storyKey,
+      // Get story by key (use get_story for exact key lookup)
+      const getResult = await runner.execute<{ key: string }>('get_story', {
+        story: storyKey,
       });
 
-      expect(searchResult.success).toBe(true);
-      const found = searchResult.result?.data?.find((s) => s.key === storyKey);
-      expect(found).toBeDefined();
+      expect(getResult.success).toBe(true);
+      expect(getResult.result?.key).toBe(storyKey);
 
       console.log(`    ✓ Found story by key: ${storyKey}`);
     });
@@ -665,9 +664,9 @@ function example() {
 
       ctx.storyIds.push(createResult.result!.id);
 
-      // Search by query
+      // Search by query using list_stories (merged from search_stories)
       const searchResult = await runner.execute<{ data: Array<{ title: string }> }>(
-        'search_stories',
+        'list_stories',
         {
           query: uniquePhrase,
           projectId: ctx.projectId,
@@ -682,7 +681,7 @@ function example() {
     });
 
     it('should return empty for non-matching search', async () => {
-      const result = await runner.execute<{ data: unknown[] }>('search_stories', {
+      const result = await runner.execute<{ data: unknown[] }>('list_stories', {
         query: 'ThisQueryShouldNeverMatch_XYZ123',
         projectId: ctx.projectId,
       });
@@ -691,6 +690,46 @@ function example() {
       expect(result.result?.data?.length).toBe(0);
 
       console.log(`    ✓ Empty result for non-matching search`);
+    });
+
+    it('should combine text search with structured filters', async () => {
+      const uniquePhrase = `CombinedSearch_${Date.now()}`;
+
+      // Create a feature story
+      const featureResult = await runner.execute<{ id: string }>('create_story', {
+        projectId: ctx.projectId,
+        epicId: ctx.epicId,
+        title: `${testPrefix}_${uniquePhrase}_Feature`,
+        description: 'Feature story for combined search',
+        type: 'feature',
+      });
+      ctx.storyIds.push(featureResult.result!.id);
+
+      // Create a bug story with same phrase
+      const bugResult = await runner.execute<{ id: string }>('create_story', {
+        projectId: ctx.projectId,
+        epicId: ctx.epicId,
+        title: `${testPrefix}_${uniquePhrase}_Bug`,
+        description: 'Bug story for combined search',
+        type: 'bug',
+      });
+      ctx.storyIds.push(bugResult.result!.id);
+
+      // Search with query + type filter (should only find features)
+      const result = await runner.execute<{ data: Array<{ id: string; type: string }> }>(
+        'list_stories',
+        {
+          query: uniquePhrase,
+          projectId: ctx.projectId,
+          type: 'feature',
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.result?.data?.length).toBe(1);
+      expect(result.result?.data?.[0].type).toBe('feature');
+
+      console.log(`    ✓ Combined text search with type filter works`);
     });
   });
 });
