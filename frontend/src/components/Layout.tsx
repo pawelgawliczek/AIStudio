@@ -84,7 +84,7 @@ export function Layout() {
               </div>
 
               {/* Desktop navigation */}
-              <div className="hidden md:flex gap-4 lg:gap-6 flex-1 min-w-0">
+              <div className="hidden md:flex gap-4 lg:gap-6 flex-1 min-w-0 overflow-hidden">
                 <Link
                   to="/dashboard"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
