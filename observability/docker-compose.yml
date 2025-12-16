@@ -87,7 +87,7 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_INSTALL_PLUGINS=
+      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource
       - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
       - AGENT_SECRET=${AGENT_SECRET}
     volumes:
