@@ -21,6 +21,7 @@ import { Request } from 'express';
 import { Redis } from 'ioredis';
 import { ToolRegistry } from '../mcp/core/registry';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelemetryService } from '../telemetry/telemetry.service';
 import {
   McpSession,
   CreateSessionData,
@@ -40,8 +41,10 @@ export class McpSessionService {
     private readonly prisma: PrismaService,
   ) {
     // Initialize ToolRegistry with path to MCP servers
+    // ST-259: Pass TelemetryService for MCP tool tracing
     const serversPath = path.join(__dirname, '..', 'mcp', 'servers');
-    this.toolRegistry = new ToolRegistry(serversPath, prisma);
+    const telemetry = new TelemetryService();
+    this.toolRegistry = new ToolRegistry(serversPath, prisma, telemetry);
     this.logger.log(`ToolRegistry initialized with serversPath: ${serversPath}`);
   }
 
