@@ -27,7 +27,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Total number of error spans in the selected time range",
+      "description": "Count of traces with error status in the selected time range",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -50,7 +50,8 @@
                 "value": 10
               }
             ]
-          }
+          },
+          "unit": "none"
         },
         "overrides": []
       },
@@ -94,7 +95,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Number of failed MCP tool calls (mcp.* spans with error status)",
+      "description": "Count of MCP tool calls with error status",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -117,7 +118,8 @@
                 "value": 5
               }
             ]
-          }
+          },
+          "unit": "none"
         },
         "overrides": []
       },
@@ -161,7 +163,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Number of HTTP request errors",
+      "description": "Count of HTTP request errors",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -184,7 +186,8 @@
                 "value": 10
               }
             ]
-          }
+          },
+          "unit": "none"
         },
         "overrides": []
       },
