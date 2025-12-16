@@ -197,7 +197,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket\\\\.broadcast\\\\.workflow\\\\..*\" }",
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\.workflow_.*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -286,7 +286,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket\\\\.broadcast\\\\.component\\\\..*\" }",
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\.component_.*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -561,7 +561,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket\\\\.broadcast\\\\.component\\\\..*\" }",
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\.component_.*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
