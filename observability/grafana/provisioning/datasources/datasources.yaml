@@ -45,4 +45,4 @@ datasources:
       httpMethod: GET
       httpHeaderName1: X-Agent-Secret
     secureJsonData:
-      httpHeaderValue1: $AGENT_SECRET
+      httpHeaderValue1: ${AGENT_SECRET}
