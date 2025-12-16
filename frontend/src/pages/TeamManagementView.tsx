@@ -11,7 +11,6 @@ import { FilterBar } from '../components/FilterBar';
 import { EmptyState } from '../components/EmptyState';
 import { TeamCard } from '../components/TeamCard';
 import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
-import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
 import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
 import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
 import { terminology } from '../utils/terminology';
@@ -163,12 +162,6 @@ export function TeamManagementView() {
           ))}
         </div>
       )}
-
-      {/* All Team Runs Table */}
-      <WorkflowRunsTable
-        projectId={projectId}
-        workflows={workflows.map((w) => ({ id: w.id, name: w.name }))}
-      />
 
       {/* Modals */}
       {isDetailModalOpen && selectedWorkflow && (

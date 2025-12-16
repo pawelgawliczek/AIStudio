@@ -91,16 +91,19 @@ export function StoryRunsTable({ runs, isLoading }: StoryRunsTableProps) {
                 Story
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                Total Runs
+                Runs
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                Completed
+                Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                Failed
+                Duration
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                Latest Status
+                Tokens
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                Cost
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Latest Run

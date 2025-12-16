@@ -36,6 +36,11 @@ export function StoryRunRow({ storyKey, storyTitle, runs }: StoryRunRowProps) {
   const failedRuns = runs.filter(r => r.status === 'FAILED').length;
   const latestRun = runs[0]; // Assuming runs are sorted by date
 
+  // Calculate aggregate metrics
+  const totalDuration = runs.reduce((sum, r) => sum + (r.durationSeconds || 0), 0);
+  const totalTokens = runs.reduce((sum, r) => sum + (r.totalTokens || 0), 0);
+  const totalCost = runs.reduce((sum, r) => sum + (r.estimatedCost || 0), 0);
+
   return (
     <>
       {/* Story Header Row */}
@@ -58,16 +63,20 @@ export function StoryRunRow({ storyKey, storyTitle, runs }: StoryRunRowProps) {
           </div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
-          {totalRuns}
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
-          {completedRuns}
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
-          {failedRuns}
+          <span className="font-medium">{totalRuns}</span>
+          <span className="text-xs ml-1">({completedRuns}✓ {failedRuns}✗)</span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <RunStatusBadge status={latestRun.status} />
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+          {formatDuration(totalDuration)}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+          {totalTokens.toLocaleString()}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+          {formatCost(totalCost)}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
           {formatDate(latestRun.startedAt)}
@@ -83,16 +92,14 @@ export function StoryRunRow({ storyKey, storyTitle, runs }: StoryRunRowProps) {
         >
           <td className="px-6 py-3"></td>
           <td className="px-6 py-3 text-sm text-muted pl-12">
-            Run #{totalRuns - index}
+            <span className="font-medium">Run #{totalRuns - index}</span>
+            <span className="text-xs ml-2 text-muted">{run.workflow?.name || ''}</span>
+          </td>
+          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
+            {/* Empty - runs count column */}
           </td>
           <td className="px-6 py-3 whitespace-nowrap">
             <RunStatusBadge status={run.status} />
-          </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
-            {run.workflow?.name || '-'}
-          </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
-            {formatDate(run.startedAt)}
           </td>
           <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
             {formatDuration(run.durationSeconds)}
@@ -102,6 +109,9 @@ export function StoryRunRow({ storyKey, storyTitle, runs }: StoryRunRowProps) {
           </td>
           <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
             {formatCost(run.estimatedCost)}
+          </td>
+          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
+            {formatDate(run.startedAt)}
           </td>
         </tr>
       ))}
