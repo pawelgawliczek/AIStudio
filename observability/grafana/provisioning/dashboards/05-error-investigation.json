@@ -233,13 +233,56 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ status=error } | by(name)",
+          "limit": 50,
+          "query": "{ status=error }",
           "queryType": "traceql",
-          "refId": "A"
+          "refId": "A",
+          "tableType": "spans"
         }
       ],
-      "title": "Errors by Type",
+      "title": "Errors by Operation",
+      "transformations": [
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "name": {
+                "aggregations": ["count"],
+                "operation": "groupby"
+              }
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "name (count)"
+              }
+            ]
+          }
+        },
+        {
+          "id": "limit",
+          "options": {
+            "limitField": 10
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "name": "Operation",
+              "name (count)": "Error Count"
+            }
+          }
+        }
+      ],
       "type": "barchart"
     },
     {
@@ -247,6 +290,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
+      "description": "Errors over time - helps identify when issues started",
       "fieldConfig": {
         "defaults": {
           "color": {
