@@ -198,4 +198,37 @@ export const analyticsService = {
     );
     return response.data;
   },
+
+  /**
+   * ST-265: Get KPI history for trend charts
+   */
+  async getKpiHistory(params: {
+    workflowId: string;
+    kpiName: string;
+    days?: number;
+    businessComplexity?: [number, number];
+    technicalComplexity?: [number, number];
+  }): Promise<{ dates: string[]; workflowValues: number[]; systemAverages: number[] }> {
+    const queryParams: any = {
+      workflowId: params.workflowId,
+      kpiName: params.kpiName,
+      days: params.days,
+    };
+
+    if (params.businessComplexity) {
+      queryParams.businessComplexityMin = params.businessComplexity[0];
+      queryParams.businessComplexityMax = params.businessComplexity[1];
+    }
+
+    if (params.technicalComplexity) {
+      queryParams.technicalComplexityMin = params.technicalComplexity[0];
+      queryParams.technicalComplexityMax = params.technicalComplexity[1];
+    }
+
+    const response = await apiClient.get<{ dates: string[]; workflowValues: number[]; systemAverages: number[] }>(
+      '/agent-metrics/kpi-history',
+      { params: queryParams }
+    );
+    return response.data;
+  },
 };

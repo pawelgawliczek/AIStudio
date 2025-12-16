@@ -1,8 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useProject } from '../context/ProjectContext';
-import { apiClient } from '../services/api.client';
 import {
   LineChart,
   Line,
@@ -13,6 +11,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { useProject } from '../context/ProjectContext';
+import { analyticsService } from '../services/analytics.service';
+import { apiClient } from '../services/api.client';
 
 interface WorkflowMetrics {
   id: string;
@@ -500,6 +501,49 @@ export function WorkflowDetailsPage() {
     const [modalBusinessComplexity, setModalBusinessComplexity] = useState<ComplexityLevel>(businessComplexity);
     const [modalTechnicalComplexity, setModalTechnicalComplexity] = useState<ComplexityLevel>(technicalComplexity);
 
+    // Helper to convert complexity level to range
+    const getComplexityRange = (level: ComplexityLevel): [number, number] | undefined => {
+      switch (level) {
+        case 'low': return [1, 3];
+        case 'medium': return [4, 6];
+        case 'high': return [7, 10];
+        case 'all':
+        default: return undefined;
+      }
+    };
+
+    // Fetch KPI history for workflow A
+    const { data: trendDataA, isLoading: loadingA } = useQuery({
+      queryKey: ['kpi-history', workflowAId, selectedMetric, modalBusinessComplexity, modalTechnicalComplexity],
+      queryFn: async () => {
+        if (!selectedMetric) return null;
+        return analyticsService.getKpiHistory({
+          workflowId: workflowAId,
+          kpiName: selectedMetric,
+          days: 30,
+          businessComplexity: getComplexityRange(modalBusinessComplexity),
+          technicalComplexity: getComplexityRange(modalTechnicalComplexity),
+        });
+      },
+      enabled: !!selectedMetric && !!workflowAId && showModal,
+    });
+
+    // Fetch KPI history for workflow B (if selected)
+    const { data: trendDataB, isLoading: loadingB } = useQuery({
+      queryKey: ['kpi-history', workflowBId, selectedMetric, modalBusinessComplexity, modalTechnicalComplexity],
+      queryFn: async () => {
+        if (!selectedMetric || !workflowBId) return null;
+        return analyticsService.getKpiHistory({
+          workflowId: workflowBId,
+          kpiName: selectedMetric,
+          days: 30,
+          businessComplexity: getComplexityRange(modalBusinessComplexity),
+          technicalComplexity: getComplexityRange(modalTechnicalComplexity),
+        });
+      },
+      enabled: !!selectedMetric && !!workflowBId && showModal,
+    });
+
     if (!showModal || !selectedMetric) return null;
 
     const metricLabels: Record<string, string> = {
@@ -556,22 +600,21 @@ export function WorkflowDetailsPage() {
       return (wf as any)[metric] || 0;
     };
 
-    const workflowAValue = getWorkflowMetricValue(workflowA, selectedMetric);
-    const workflowBValue = workflowB ? getWorkflowMetricValue(workflowB, selectedMetric) : 0;
+    // ST-265: Use real API data instead of fake generated data
+    const isLoadingTrendData = loadingA || (workflowBId && loadingB);
 
-    // Generate trend data with realistic variation around actual values
-    const trendData: TrendData[] = Array.from({ length: 30 }, (_, i) => {
-      // Add some realistic variation (±10% of the value)
-      const variationA = workflowAValue * 0.1;
-      const variationB = workflowBValue * 0.1;
-
-      return {
-        date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        workflowA: workflowAValue + (Math.random() - 0.5) * 2 * variationA,
-        workflowB: workflowBId ? workflowBValue + (Math.random() - 0.5) * 2 * variationB : undefined,
-        systemAverage: systemAvgValue,
-      };
-    });
+    // Transform API data into chart format
+    const trendData: TrendData[] = [];
+    if (trendDataA) {
+      for (let i = 0; i < trendDataA.dates.length; i++) {
+        trendData.push({
+          date: trendDataA.dates[i],
+          workflowA: trendDataA.workflowValues[i],
+          workflowB: trendDataB ? trendDataB.workflowValues[i] : undefined,
+          systemAverage: trendDataA.systemAverages[i],
+        });
+      }
+    }
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -589,44 +632,56 @@ export function WorkflowDetailsPage() {
           </header>
           <main className="flex-1 p-6 overflow-y-auto">
             <div className="flex flex-col gap-6">
-              {/* Complexity Filters */}
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="flex flex-col min-w-40 flex-1">
-                  <label className="text-gray-900 dark:text-white text-xs font-medium pb-2">
-                    Architecture Complexity
-                  </label>
-                  <select
-                    value={modalTechnicalComplexity}
-                    onChange={(e) => setModalTechnicalComplexity(e.target.value as ComplexityLevel)}
-                    className="h-10 px-3 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  >
-                    <option value="all">All Levels</option>
-                    <option value="low">Low (1-3)</option>
-                    <option value="medium">Medium (4-6)</option>
-                    <option value="high">High (7-10)</option>
-                  </select>
+              {/* Loading State */}
+              {isLoadingTrendData && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-500 dark:text-gray-400">Loading trend data...</p>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-40 flex-1">
-                  <label className="text-gray-900 dark:text-white text-xs font-medium pb-2">
-                    Business Complexity
-                  </label>
-                  <select
-                    value={modalBusinessComplexity}
-                    onChange={(e) => setModalBusinessComplexity(e.target.value as ComplexityLevel)}
-                    className="h-10 px-3 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  >
-                    <option value="all">All Levels</option>
-                    <option value="low">Low (1-3)</option>
-                    <option value="medium">Medium (4-6)</option>
-                    <option value="high">High (7-10)</option>
-                  </select>
-                </div>
-                <div className="flex-1 hidden md:block"></div>
-                <div className="flex-1 hidden md:block"></div>
-              </div>
+              )}
 
-              {/* Charts - Center single chart if no workflow B */}
-              <div className={`grid gap-6 ${workflowB ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
+              {/* Complexity Filters */}
+              {!isLoadingTrendData && (
+              <>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="flex flex-col min-w-40 flex-1">
+                    <label className="text-gray-900 dark:text-white text-xs font-medium pb-2">
+                      Architecture Complexity
+                    </label>
+                    <select
+                      value={modalTechnicalComplexity}
+                      onChange={(e) => setModalTechnicalComplexity(e.target.value as ComplexityLevel)}
+                      className="h-10 px-3 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value="all">All Levels</option>
+                      <option value="low">Low (1-3)</option>
+                      <option value="medium">Medium (4-6)</option>
+                      <option value="high">High (7-10)</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col min-w-40 flex-1">
+                    <label className="text-gray-900 dark:text-white text-xs font-medium pb-2">
+                      Business Complexity
+                    </label>
+                    <select
+                      value={modalBusinessComplexity}
+                      onChange={(e) => setModalBusinessComplexity(e.target.value as ComplexityLevel)}
+                      className="h-10 px-3 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value="all">All Levels</option>
+                      <option value="low">Low (1-3)</option>
+                      <option value="medium">Medium (4-6)</option>
+                      <option value="high">High (7-10)</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 hidden md:block"></div>
+                  <div className="flex-1 hidden md:block"></div>
+                </div>
+
+                {/* Charts - Center single chart if no workflow B */}
+                <div className={`grid gap-6 ${workflowB ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
                 {/* Workflow A Chart */}
                 <div className="flex flex-col gap-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">{workflowA.name}</h3>
@@ -708,7 +763,9 @@ export function WorkflowDetailsPage() {
                     </div>
                   </div>
                 )}
-              </div>
+                </div>
+              </>
+              )}
             </div>
           </main>
         </div>

@@ -18,6 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { AgentMetricsService } from './agent-metrics.service';
+import { KpiHistoryService } from './services/kpi-history.service';
 
 @ApiTags('Agent Metrics')
 @ApiBearerAuth()
@@ -26,7 +27,10 @@ import { AgentMetricsService } from './agent-metrics.service';
 export class AgentMetricsController {
   private readonly logger = new Logger(AgentMetricsController.name);
 
-  constructor(private readonly agentMetricsService: AgentMetricsService) {}
+  constructor(
+    private readonly agentMetricsService: AgentMetricsService,
+    private readonly kpiHistoryService: KpiHistoryService,
+  ) {}
 
   @Get('performance-dashboard')
   @Roles('admin', 'pm', 'architect', 'viewer')
@@ -150,5 +154,52 @@ export class AgentMetricsController {
       businessComplexity: businessComplexity || 'all',
       technicalComplexity: technicalComplexity || 'all',
     });
+  }
+
+  @Get('kpi-history')
+  @Roles('admin', 'pm', 'architect', 'viewer')
+  @ApiOperation({
+    summary: 'Get KPI history for trend charts',
+    description:
+      'Returns daily trend data for a specific KPI metric over the specified time range. Used for the trend charts in workflow details modal.',
+  })
+  @ApiQuery({ name: 'workflowId', required: true, type: String })
+  @ApiQuery({ name: 'kpiName', required: true, type: String })
+  @ApiQuery({ name: 'days', required: false, type: Number, description: 'Number of days to fetch (default: 30)' })
+  @ApiQuery({ name: 'businessComplexityMin', required: false, type: Number })
+  @ApiQuery({ name: 'businessComplexityMax', required: false, type: Number })
+  @ApiQuery({ name: 'technicalComplexityMin', required: false, type: Number })
+  @ApiQuery({ name: 'technicalComplexityMax', required: false, type: Number })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'KPI history returned successfully',
+  })
+  @HttpCode(HttpStatus.OK)
+  async getKpiHistory(
+    @Query('workflowId') workflowId: string,
+    @Query('kpiName') kpiName: string,
+    @Query('days') days?: number,
+    @Query('businessComplexityMin') businessComplexityMin?: number,
+    @Query('businessComplexityMax') businessComplexityMax?: number,
+    @Query('technicalComplexityMin') technicalComplexityMin?: number,
+    @Query('technicalComplexityMax') technicalComplexityMax?: number,
+  ) {
+    this.logger.log(`GET /agent-metrics/kpi-history for workflow ${workflowId}, metric: ${kpiName}`);
+
+    const params: any = {
+      workflowId,
+      kpiName,
+      days: days ? Number(days) : undefined,
+    };
+
+    if (businessComplexityMin !== undefined && businessComplexityMax !== undefined) {
+      params.businessComplexity = [Number(businessComplexityMin), Number(businessComplexityMax)];
+    }
+
+    if (technicalComplexityMin !== undefined && technicalComplexityMax !== undefined) {
+      params.technicalComplexity = [Number(technicalComplexityMin), Number(technicalComplexityMax)];
+    }
+
+    return this.kpiHistoryService.getKpiHistory(params);
   }
 }

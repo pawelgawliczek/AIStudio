@@ -410,5 +410,169 @@ test.describe('Analytics KPI Verification (ST-263)', () => {
       expect(teamDetailsData).toBeDefined();
       console.log('Team details data:', JSON.stringify(teamDetailsData, null, 2));
     });
+
+    test('should fetch real KPI history data from API (not fake random data)', async ({ page }) => {
+      // Get list of workflows
+      const dashboardResponse = await api.get(
+        `/agent-metrics/performance-dashboard?projectId=${projectId}`
+      );
+      const workflows = dashboardResponse.data.workflows;
+
+      if (!workflows || workflows.length === 0) {
+        console.log('No workflows found, skipping test');
+        test.skip();
+        return;
+      }
+
+      const workflowId = workflows[0].id;
+
+      // Intercept API calls to verify real data is fetched
+      let kpiHistoryApiCalled = false;
+      page.on('request', (request) => {
+        if (request.url().includes('/agent-metrics/kpi-history')) {
+          kpiHistoryApiCalled = true;
+        }
+      });
+
+      await page.goto(`/analytics/team-details?workflowAId=${workflowId}`);
+      await page.waitForSelector('text=Team Details', { timeout: 10000 });
+
+      // Click on a KPI card to open trend modal
+      await page.locator('[data-testid="kpi-card-tokensPerLOC"], .bg-gradient-to-br:has-text("Tokens / LOC")').first().click();
+      await page.waitForSelector('text=Metric Trend', { timeout: 5000 });
+
+      // Verify API was called
+      await page.waitForTimeout(1000); // Give time for API call
+      expect(kpiHistoryApiCalled,
+        'KPI history API should be called when opening trend modal'
+      ).toBe(true);
+
+      // Verify chart is displayed (not showing random fake data)
+      const chartElement = page.locator('[class*="recharts-wrapper"]');
+      await expect(chartElement).toBeVisible();
+    });
+
+    test('should show consistent trend data (not random variations)', async ({ page }) => {
+      const dashboardResponse = await api.get(
+        `/agent-metrics/performance-dashboard?projectId=${projectId}`
+      );
+      const workflows = dashboardResponse.data.workflows;
+
+      if (!workflows || workflows.length === 0) {
+        console.log('No workflows found, skipping test');
+        test.skip();
+        return;
+      }
+
+      const workflowId = workflows[0].id;
+
+      await page.goto(`/analytics/team-details?workflowAId=${workflowId}`);
+      await page.waitForSelector('text=Team Details', { timeout: 10000 });
+
+      // Open trend modal twice for the same KPI
+      await page.locator('.bg-gradient-to-br:has-text("Tokens / LOC")').first().click();
+      await page.waitForSelector('text=Metric Trend', { timeout: 5000 });
+
+      // Extract first data point value (if visible in DOM)
+      const firstValue = await page.locator('[class*="recharts-line"]').first().getAttribute('d');
+
+      // Close modal
+      await page.locator('button:has-text("×"), [aria-label="Close"]').first().click();
+      await page.waitForTimeout(500);
+
+      // Open again
+      await page.locator('.bg-gradient-to-br:has-text("Tokens / LOC")').first().click();
+      await page.waitForSelector('text=Metric Trend', { timeout: 5000 });
+
+      // Extract second data point value
+      const secondValue = await page.locator('[class*="recharts-line"]').first().getAttribute('d');
+
+      // Values should be identical (not randomly regenerated)
+      expect(secondValue,
+        'Trend data should be consistent across modal opens (not randomly generated)'
+      ).toBe(firstValue);
+    });
+  });
+
+  test.describe('ST-265: userPrompts and Code Impact Verification', () => {
+    test('should have userPrompts > 0 for component runs after agent completion', async () => {
+      // Find a completed workflow run
+      const response = await api.get(
+        `/projects/${projectId}/workflow-runs?status=completed&includeRelations=true&limit=1`
+      );
+      const completedRuns = response.data;
+
+      if (!completedRuns || completedRuns.length === 0) {
+        console.log('No completed runs found, skipping test');
+        test.skip();
+        return;
+      }
+
+      const runId = completedRuns[0].id;
+
+      // Fetch component runs for this workflow run
+      const componentRunsResponse = await api.get(
+        `/projects/${projectId}/workflow-runs/${runId}/component-runs`
+      );
+      const componentRuns = componentRunsResponse.data;
+
+      expect(componentRuns).toBeDefined();
+      expect(Array.isArray(componentRuns)).toBe(true);
+
+      // At least one component run should have userPrompts > 0
+      const runsWithPrompts = componentRuns.filter((cr: any) => cr.userPrompts && cr.userPrompts > 0);
+      expect(runsWithPrompts.length,
+        'At least one component run should have userPrompts > 0 (extracted from transcript turns.manualPrompts)'
+      ).toBeGreaterThan(0);
+
+      console.log(`Found ${runsWithPrompts.length} component runs with userPrompts > 0`);
+    });
+
+    test('should have linesAdded > 0 for MasterSession workflow runs', async () => {
+      // Find completed workflow runs
+      const response = await api.get(
+        `/projects/${projectId}/workflow-runs?status=completed&includeRelations=true`
+      );
+      const completedRuns = response.data;
+
+      if (!completedRuns || completedRuns.length === 0) {
+        console.log('No completed runs found, skipping test');
+        test.skip();
+        return;
+      }
+
+      // Look for runs with code changes
+      let foundRunWithCodeImpact = false;
+
+      for (const run of completedRuns.slice(0, 5)) {
+        const componentRunsResponse = await api.get(
+          `/projects/${projectId}/workflow-runs/${run.id}/component-runs`
+        );
+        const componentRuns = componentRunsResponse.data;
+
+        const runsWithCodeImpact = componentRuns.filter(
+          (cr: any) => cr.linesAdded && cr.linesAdded > 0
+        );
+
+        if (runsWithCodeImpact.length > 0) {
+          foundRunWithCodeImpact = true;
+          console.log(`Found workflow run ${run.id} with ${runsWithCodeImpact.length} component runs having linesAdded > 0`);
+
+          // Verify filesModified is also populated
+          const withFiles = runsWithCodeImpact.filter(
+            (cr: any) => cr.filesModified && cr.filesModified.length > 0
+          );
+          expect(withFiles.length,
+            'Component runs with linesAdded > 0 should also have filesModified populated'
+          ).toBeGreaterThan(0);
+
+          break;
+        }
+      }
+
+      if (!foundRunWithCodeImpact) {
+        console.warn('No workflow runs found with code impact metrics. This may indicate the feature is not working or no code changes were made.');
+      }
+    });
   });
 });

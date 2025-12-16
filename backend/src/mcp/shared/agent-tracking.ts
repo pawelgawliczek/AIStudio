@@ -334,6 +334,7 @@ export async function completeAgentTracking(
       tokensCacheRead: number | null;
       modelId: string | null;
       cost: number | null;
+      userPrompts: number | null;
     } | null = null;
 
     try {
@@ -403,6 +404,13 @@ export async function completeAgentTracking(
               tokensCacheRead: metrics.tokensCacheRead || 0,
               modelId: metrics.model || null,
             });
+
+            // ST-265: Extract userPrompts from DB transcript metrics
+            let userPromptsCount = 0;
+            if (metrics.turns && typeof metrics.turns.manualPrompts === 'number') {
+              userPromptsCount = metrics.turns.manualPrompts;
+            }
+
             telemetryMetrics = {
               tokensInput: metrics.tokensInput || 0,
               tokensOutput: metrics.tokensOutput || 0,
@@ -413,6 +421,7 @@ export async function completeAgentTracking(
               tokensCacheRead: metrics.tokensCacheRead || 0,
               modelId: metrics.model || null,
               cost: componentCost,
+              userPrompts: userPromptsCount,
             };
           }
         }
@@ -487,6 +496,13 @@ export async function completeAgentTracking(
             tokensCacheRead: metrics.cacheReadTokens,
             modelId: metrics.model,
           });
+
+          // ST-265: Extract userPrompts from transcript turns data
+          let userPromptsCount = 0;
+          if (metrics.turns && typeof metrics.turns.manualPrompts === 'number') {
+            userPromptsCount = metrics.turns.manualPrompts;
+          }
+
           telemetryMetrics = {
             tokensInput: metrics.inputTokens,
             tokensOutput: metrics.outputTokens,
@@ -497,6 +513,7 @@ export async function completeAgentTracking(
             tokensCacheRead: metrics.cacheReadTokens,
             modelId: metrics.model || null,
             cost: componentCost,
+            userPrompts: userPromptsCount,
           };
           console.log(`[agent-tracking] Parsed telemetry for ${params.componentId}:`, {
             tokensInput: telemetryMetrics.tokensInput,
@@ -504,6 +521,7 @@ export async function completeAgentTracking(
             totalTokens: telemetryMetrics.totalTokens,
             cost: telemetryMetrics.cost,
             modelId: telemetryMetrics.modelId,
+            userPrompts: userPromptsCount,
           });
         } else {
           console.warn(`[agent-tracking] Failed to parse transcript: ${result.error || 'unknown error'}`);
@@ -516,14 +534,18 @@ export async function completeAgentTracking(
     }
 
     // ST-234: Get code impact metrics from git diff
+    // ST-265: Add fallback to projectPath for MasterSession
     let codeImpactMetrics: { linesAdded: number; linesDeleted: number; filesModified: string[] } | null = null;
     try {
       // Get workflow run to find story's worktree
       const workflowRunForWorktree = await prisma.workflowRun.findUnique({
         where: { id: params.runId },
-        select: { storyId: true },
+        select: { storyId: true, metadata: true },
       });
 
+      let projectPath: string | null = null;
+
+      // Try 1: Get from worktree (Docker runner mode)
       if (workflowRunForWorktree?.storyId) {
         const worktree = await prisma.worktree.findFirst({
           where: { storyId: workflowRunForWorktree.storyId, status: 'active' },
@@ -531,39 +553,49 @@ export async function completeAgentTracking(
         });
 
         if (worktree?.worktreePath) {
-          // Use RemoteRunner to get git diff from laptop
-          const runner = new RemoteRunner();
-          const gitResult = await runner.execute<{ stdout: string; stderr: string }>('exec-command', [
-            '--command=git diff main...HEAD --numstat',
-            `--cwd=${worktree.worktreePath}`,
-          ], {
-            requestedBy: 'completeAgentTracking',
-          });
+          projectPath = worktree.worktreePath;
+        }
+      }
 
-          if (gitResult.executed && gitResult.success && gitResult.result?.stdout) {
-            let linesAdded = 0;
-            let linesDeleted = 0;
-            const filesModified: string[] = [];
+      // Try 2: Get from workflow run metadata (for MasterSession on laptop)
+      if (!projectPath) {
+        const transcriptTracking = (workflowRunForWorktree?.metadata as any)?._transcriptTracking;
+        projectPath = transcriptTracking?.projectPath;
+      }
 
-            for (const line of gitResult.result.stdout.split('\n').filter((l: string) => l.trim())) {
-              const parts = line.split('\t');
-              if (parts.length >= 3) {
-                const added = parseInt(parts[0] || '0', 10) || 0;
-                const deleted = parseInt(parts[1] || '0', 10) || 0;
-                const file = parts[2];
-                linesAdded += added;
-                linesDeleted += deleted;
-                if (file) filesModified.push(file);
-              }
+      if (projectPath) {
+        // Use RemoteRunner to get git diff from laptop
+        const runner = new RemoteRunner();
+        const gitResult = await runner.execute<{ stdout: string; stderr: string }>('exec-command', [
+          '--command=git diff main...HEAD --numstat',
+          `--cwd=${projectPath}`,
+        ], {
+          requestedBy: 'completeAgentTracking',
+        });
+
+        if (gitResult.executed && gitResult.success && gitResult.result?.stdout) {
+          let linesAdded = 0;
+          let linesDeleted = 0;
+          const filesModified: string[] = [];
+
+          for (const line of gitResult.result.stdout.split('\n').filter((l: string) => l.trim())) {
+            const parts = line.split('\t');
+            if (parts.length >= 3) {
+              const added = parseInt(parts[0] || '0', 10) || 0;
+              const deleted = parseInt(parts[1] || '0', 10) || 0;
+              const file = parts[2];
+              linesAdded += added;
+              linesDeleted += deleted;
+              if (file) filesModified.push(file);
             }
-
-            codeImpactMetrics = { linesAdded, linesDeleted, filesModified };
-            console.log(`[agent-tracking] Code impact for ${params.componentId}:`, {
-              linesAdded,
-              linesDeleted,
-              filesModified: filesModified.length,
-            });
           }
+
+          codeImpactMetrics = { linesAdded, linesDeleted, filesModified };
+          console.log(`[agent-tracking] Code impact for ${params.componentId}:`, {
+            linesAdded,
+            linesDeleted,
+            filesModified: filesModified.length,
+          });
         }
       }
     } catch (gitError: any) {
@@ -582,6 +614,7 @@ export async function completeAgentTracking(
         durationSeconds,
         finishedAt: completedAt,
         // ST-242: Add telemetry including cost and modelId
+        // ST-265: Add userPrompts from transcript
         ...(telemetryMetrics && {
           tokensInput: telemetryMetrics.tokensInput,
           tokensOutput: telemetryMetrics.tokensOutput,
@@ -590,6 +623,7 @@ export async function completeAgentTracking(
           tokensCacheRead: telemetryMetrics.tokensCacheRead,
           modelId: telemetryMetrics.modelId,
           cost: telemetryMetrics.cost,
+          userPrompts: telemetryMetrics.userPrompts || 0,
         }),
         // ST-234: Add code impact metrics if available
         ...(codeImpactMetrics && {

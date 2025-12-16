@@ -5,6 +5,7 @@ import { AgentMetricsService } from './agent-metrics.service';
 import { ComprehensiveMetricsCalculator } from './calculators/comprehensive-metrics.calculator';
 import { DashboardMetricsService } from './services/dashboard-metrics.service';
 import { FrameworkMetricsService } from './services/framework-metrics.service';
+import { KpiHistoryService } from './services/kpi-history.service';
 import { MetricsAggregationService } from './services/metrics-aggregation.service';
 import { StoryMetricsService } from './services/story-metrics.service';
 import { WorkflowMetricsService } from './services/workflow-metrics.service';
@@ -20,6 +21,7 @@ import { WorkflowMetricsService } from './services/workflow-metrics.service';
     WorkflowMetricsService,
     DashboardMetricsService,
     StoryMetricsService,
+    KpiHistoryService,
   ],
   exports: [AgentMetricsService],
 })
