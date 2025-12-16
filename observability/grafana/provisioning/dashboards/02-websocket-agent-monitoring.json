@@ -59,7 +59,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -71,7 +71,7 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
+          "limit": 1000,
           "query": "{ name=\"remote_agent.connect\" }",
           "queryType": "traceql",
           "refId": "A"
@@ -117,7 +117,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -129,7 +129,7 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
+          "limit": 1000,
           "query": "{ name=\"remote_agent.heartbeat\" }",
           "queryType": "traceql",
           "refId": "A"
@@ -175,7 +175,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -187,7 +187,7 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
+          "limit": 1000,
           "query": "{ name=\"remote_agent.disconnect\" }",
           "queryType": "traceql",
           "refId": "A"
@@ -275,8 +275,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"remote_agent.*\" }",
+          "limit": 500,
+          "query": "{ name=~\"remote_agent\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -339,7 +339,7 @@
             "uid": "tempo"
           },
           "limit": 100,
-          "query": "{ name=~\"websocket.broadcast.*\" }",
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A",
           "tableType": "spans"
@@ -350,12 +350,20 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
-            "indexByName": {},
+            "excludeByName": {
+              "Trace Service": true,
+              "status": true
+            },
+            "indexByName": {
+              "Start time": 0,
+              "Trace Name": 1,
+              "Span ID": 2,
+              "Duration": 3
+            },
             "renameByName": {
-              "name": "Event",
-              "event.type": "Type",
-              "workflow.run.id": "Run ID"
+              "Trace Name": "Event",
+              "Start time": "Time",
+              "Span ID": "Trace (click)"
             }
           }
         }
@@ -413,8 +421,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"websocket.broadcast.*\" } | by(event.type)",
+          "limit": 500,
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
