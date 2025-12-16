@@ -82,30 +82,30 @@ export function StoryRunsTable({ runs, isLoading }: StoryRunsTableProps) {
   return (
     <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-border">
+        <table className="w-full table-fixed divide-y divide-border">
           <thead className="bg-bg-secondary">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider w-12">
+              <th className="w-10 px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+              <th className="w-[30%] px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Story
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+              <th className="w-16 px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Runs
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+              <th className="w-24 px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+              <th className="hidden md:table-cell w-20 px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Duration
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+              <th className="hidden lg:table-cell w-20 px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Tokens
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+              <th className="hidden sm:table-cell w-20 px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Cost
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+              <th className="hidden xl:table-cell w-40 px-2 sm:px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                 Latest Run
               </th>
             </tr>

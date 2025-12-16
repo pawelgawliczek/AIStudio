@@ -48,7 +48,7 @@ export function StoryRunRow({ storyKey, storyTitle, runs }: StoryRunRowProps) {
         onClick={() => setIsExpanded(!isExpanded)}
         className="hover:bg-bg-secondary cursor-pointer transition-colors border-b border-border"
       >
-        <td className="px-6 py-4 whitespace-nowrap">
+        <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
           <button
             className="text-muted hover:text-fg transition-colors"
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
@@ -56,29 +56,29 @@ export function StoryRunRow({ storyKey, storyTitle, runs }: StoryRunRowProps) {
             {isExpanded ? '▼' : '▶'}
           </button>
         </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-fg">{storyKey}</span>
-            <span className="text-xs text-muted">{storyTitle}</span>
+        <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium text-fg truncate">{storyKey}</span>
+            <span className="text-xs text-muted truncate">{storyTitle}</span>
           </div>
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+        <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-sm text-muted">
           <span className="font-medium">{totalRuns}</span>
-          <span className="text-xs ml-1">({completedRuns}✓ {failedRuns}✗)</span>
+          <span className="text-xs ml-1 hidden sm:inline">({completedRuns}✓ {failedRuns}✗)</span>
         </td>
-        <td className="px-6 py-4 whitespace-nowrap">
+        <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
           <RunStatusBadge status={latestRun.status} />
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+        <td className="hidden md:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-sm text-muted">
           {formatDuration(totalDuration)}
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+        <td className="hidden lg:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-sm text-muted">
           {totalTokens.toLocaleString()}
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+        <td className="hidden sm:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-sm text-muted">
           {formatCost(totalCost)}
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
+        <td className="hidden xl:table-cell px-2 sm:px-4 py-3 whitespace-nowrap text-sm text-muted">
           {formatDate(latestRun.startedAt)}
         </td>
       </tr>
@@ -90,27 +90,29 @@ export function StoryRunRow({ storyKey, storyTitle, runs }: StoryRunRowProps) {
           onClick={() => navigate(`/team-runs/${run.id}/monitor`)}
           className="hover:bg-bg-secondary cursor-pointer transition-colors bg-bg/50"
         >
-          <td className="px-6 py-3"></td>
-          <td className="px-6 py-3 text-sm text-muted pl-12">
-            <span className="font-medium">Run #{totalRuns - index}</span>
-            <span className="text-xs ml-2 text-muted">{run.workflow?.name || ''}</span>
+          <td className="px-2 sm:px-4 py-2"></td>
+          <td className="px-2 sm:px-4 py-2 text-sm text-muted pl-6 sm:pl-10">
+            <div className="min-w-0">
+              <span className="font-medium">Run #{totalRuns - index}</span>
+              <span className="text-xs ml-2 text-muted hidden sm:inline">{run.workflow?.name || ''}</span>
+            </div>
           </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
+          <td className="px-2 sm:px-4 py-2 whitespace-nowrap text-sm text-muted">
             {/* Empty - runs count column */}
           </td>
-          <td className="px-6 py-3 whitespace-nowrap">
+          <td className="px-2 sm:px-4 py-2 whitespace-nowrap">
             <RunStatusBadge status={run.status} />
           </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
+          <td className="hidden md:table-cell px-2 sm:px-4 py-2 whitespace-nowrap text-sm text-muted">
             {formatDuration(run.durationSeconds)}
           </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
+          <td className="hidden lg:table-cell px-2 sm:px-4 py-2 whitespace-nowrap text-sm text-muted">
             {run.totalTokens?.toLocaleString() || '-'}
           </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
+          <td className="hidden sm:table-cell px-2 sm:px-4 py-2 whitespace-nowrap text-sm text-muted">
             {formatCost(run.estimatedCost)}
           </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-muted">
+          <td className="hidden xl:table-cell px-2 sm:px-4 py-2 whitespace-nowrap text-sm text-muted">
             {formatDate(run.startedAt)}
           </td>
         </tr>
