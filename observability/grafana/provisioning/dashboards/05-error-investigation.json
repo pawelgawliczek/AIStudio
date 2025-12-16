@@ -458,8 +458,28 @@
           "tableType": "spans"
         }
       ],
-      "title": "Recent Errors (click Trace ID to investigate)",
-      "transformations": [],
+      "title": "Recent Errors (click Span ID to investigate)",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Trace Service": true,
+              "status": true
+            },
+            "indexByName": {
+              "Start time": 0,
+              "Trace Name": 1,
+              "Span ID": 2,
+              "Duration": 3
+            },
+            "renameByName": {
+              "Trace Name": "Operation",
+              "Span ID": "Trace (click to investigate)"
+            }
+          }
+        }
+      ],
       "type": "table"
     },
     {
@@ -580,8 +600,29 @@
           "tableType": "spans"
         }
       ],
-      "title": "Failed MCP Tool Calls (mcp.* spans)",
-      "transformations": [],
+      "title": "Failed MCP Tool Calls",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Trace Service": true,
+              "Trace Name": true,
+              "status": true,
+              "Duration": true
+            },
+            "indexByName": {
+              "Start time": 0,
+              "MCP Tool Name": 1,
+              "Span ID": 2
+            },
+            "renameByName": {
+              "MCP Tool Name": "MCP Tool",
+              "Span ID": "Trace (click)"
+            }
+          }
+        }
+      ],
       "type": "table"
     }
   ],
