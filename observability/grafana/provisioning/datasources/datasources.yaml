@@ -34,3 +34,12 @@ datasources:
           matcherRegex: "trace_id=(\\w+)"
           name: TraceID
           url: '$${__value.raw}'
+
+  - name: Infinity
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    uid: infinity
+    isDefault: false
+    editable: true
+    jsonData:
+      httpMethod: GET
