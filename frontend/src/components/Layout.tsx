@@ -85,6 +85,7 @@ export function Layout() {
                       icon="🤖"
                       items={[
                         { label: terminology.workflows, icon: '⚡', path: '/workflows' },
+                        { label: 'Team Runs', icon: '🏃', path: '/team-runs' },
                         { label: terminology.components, icon: '🧩', path: '/components' },
                         { label: 'Performance', icon: '📊', path: '/analytics/performance' },
                       ]}

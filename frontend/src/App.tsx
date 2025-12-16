@@ -15,6 +15,7 @@ import { AgentDetailPage } from './pages/AgentDetailPage';
 import { TeamManagementView } from './pages/TeamManagementView';
 import { TeamDetailPage } from './pages/TeamDetailPage';
 import { TeamComparisonPage } from './pages/TeamComparisonPage';
+import { TeamRunsListView } from './pages/TeamRunsListView';
 import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { PerformanceDashboard } from './pages/PerformanceDashboard';
@@ -67,6 +68,7 @@ function AppContent() {
               <Route path="teams" element={<TeamManagementView />} />
               <Route path="teams/:id" element={<TeamDetailPage />} />
               <Route path="teams/:id/compare" element={<TeamComparisonPage />} />
+              <Route path="team-runs" element={<TeamRunsListView />} />
               <Route path="team-runs/:runId/results" element={<WorkflowResultsView />} />
               <Route path="team-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />
