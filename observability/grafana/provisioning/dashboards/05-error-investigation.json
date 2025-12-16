@@ -469,15 +469,20 @@
               "nestedSetRight": true,
               "nestedSetParent": true,
               "status": true,
-              "statusMessage": true
+              "statusMessage": true,
+              "traceService": true
             },
             "indexByName": {
               "startTime": 0,
               "traceID": 1,
-              "name": 2,
-              "duration": 3
+              "traceName": 2,
+              "name": 3,
+              "duration": 4
             },
-            "renameByName": {}
+            "renameByName": {
+              "traceName": "Operation",
+              "traceID": "Trace ID"
+            }
           }
         }
       ],
@@ -612,15 +617,21 @@
               "nestedSetRight": true,
               "nestedSetParent": true,
               "status": true,
-              "statusMessage": true,
-              "duration": true
+              "duration": true,
+              "traceService": true,
+              "traceName": true
             },
             "indexByName": {
               "startTime": 0,
               "name": 1,
-              "traceID": 2
+              "statusMessage": 2,
+              "traceID": 3
             },
-            "renameByName": {}
+            "renameByName": {
+              "name": "MCP Tool",
+              "statusMessage": "Error Details",
+              "traceID": "Trace ID"
+            }
           }
         }
       ],
