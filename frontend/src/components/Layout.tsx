@@ -69,11 +69,11 @@ export function Layout() {
       <nav className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center gap-4 sm:gap-8">
+            <div className="flex items-center gap-4 sm:gap-8 flex-1 min-w-0">
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-fg hover:text-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring transition-colors"
+                className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-fg hover:text-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring transition-colors flex-shrink-0"
                 aria-label="Open menu"
               >
                 <Bars3Icon className="h-6 w-6" />
@@ -84,7 +84,7 @@ export function Layout() {
               </div>
 
               {/* Desktop navigation */}
-              <div className="hidden md:flex gap-6">
+              <div className="hidden md:flex gap-4 lg:gap-6 flex-1 min-w-0">
                 <Link
                   to="/dashboard"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
@@ -139,8 +139,11 @@ export function Layout() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <ProjectSelector />
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              {/* ProjectSelector hidden on mobile - shown in hamburger menu */}
+              <div className="hidden md:block">
+                <ProjectSelector />
+              </div>
               <ConnectionStatus />
               <ThemeToggle />
               <button
@@ -197,6 +200,12 @@ export function Layout() {
                         >
                           <XMarkIcon className="h-6 w-6" />
                         </button>
+                      </div>
+
+                      {/* Project Selector for Mobile */}
+                      <div className="px-4 py-4 border-b border-border">
+                        <div className="text-sm font-medium text-muted mb-2">Project</div>
+                        <ProjectSelector />
                       </div>
 
                       {/* Navigation Items */}
