@@ -104,6 +104,7 @@ services:
     networks:
       - aistudio-network
       - stack_appnet
+      - observability  # For sending traces to Tempo
     logging:
       driver: "json-file"
       options:
@@ -155,3 +156,6 @@ networks:
     driver: bridge
   stack_appnet:
     external: true
+  observability:
+    external: true
+    name: observability_observability  # Created by observability/docker-compose.yml

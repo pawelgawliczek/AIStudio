@@ -6,6 +6,12 @@ import { AppModule } from './app.module';
 import { WinstonLoggerService, AllExceptionsFilter, LoggingInterceptor } from './common';
 import { setSharedWebSocketGateway } from './mcp/services/websocket-gateway.instance';
 import { AppWebSocketGateway } from './websocket/websocket.gateway';
+import { initializeTelemetry, registerTelemetryShutdownHandlers } from './telemetry/telemetry.init';
+
+// ST-257: Initialize OpenTelemetry BEFORE any other imports/code
+// This ensures all HTTP/Express instrumentations are registered before NestJS starts
+initializeTelemetry();
+registerTelemetryShutdownHandlers();
 
 async function bootstrap() {
   // Fix BigInt serialization issue

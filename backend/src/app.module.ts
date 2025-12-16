@@ -24,6 +24,7 @@ import { RunsModule } from './runs/runs.module';
 import { VersioningModule } from './services/versioning.module';
 import { StoriesModule } from './stories/stories.module';
 import { SubtasksModule } from './subtasks/subtasks.module';
+import { TelemetryModule } from './telemetry/telemetry.module';
 import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionModule } from './test-execution/test-execution.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
@@ -45,6 +46,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
       envFilePath: '.env',
     }),
     PrismaModule,
+    TelemetryModule, // ST-257: Distributed tracing infrastructure
     AuthModule,
     ProjectsModule,
     UsersModule,
