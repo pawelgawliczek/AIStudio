@@ -69,7 +69,7 @@ export function Layout() {
       <nav className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center gap-4 sm:gap-8 flex-1 min-w-0">
+            <div className="flex items-center gap-4 sm:gap-8">
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
