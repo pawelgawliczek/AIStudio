@@ -59,7 +59,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -71,8 +71,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"mcp\\..*\" }",
+          "limit": 1000,
+          "query": "{ name=~\"mcp\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -138,8 +138,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"mcp\\..*\" } | avg(duration)",
+          "limit": 1000,
+          "query": "{ name=~\"mcp\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -175,7 +175,7 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "none"
         },
         "overrides": []
       },
@@ -193,7 +193,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -205,13 +205,13 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"mcp\\..*\" status=error } / { name=~\"mcp\\..*\" } * 100",
+          "limit": 1000,
+          "query": "{ name=~\"mcp\\\\..*\" && status=error }",
           "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "Error Rate",
+      "title": "Failed MCP Calls",
       "type": "stat"
     },
     {
@@ -294,8 +294,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"mcp\\..*\" } | by(name)",
+          "limit": 500,
+          "query": "{ name=~\"mcp\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -354,8 +354,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"mcp\\..*\" } | by(name)",
+          "limit": 500,
+          "query": "{ name=~\"mcp\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -462,8 +462,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"mcp\\..*\" }",
+          "limit": 50,
+          "query": "{ name=~\"mcp\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A",
           "tableType": "spans"
@@ -565,8 +565,8 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ name=~\"mcp\\..*\" } | by(.tool.category)",
+          "limit": 500,
+          "query": "{ name=~\"mcp\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
