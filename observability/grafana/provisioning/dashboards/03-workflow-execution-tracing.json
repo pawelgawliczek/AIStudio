@@ -417,7 +417,12 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Duration" },
+            "properties": [{ "id": "unit", "value": "none" }]
+          }
+        ]
       },
       "gridPos": {
         "h": 6,
@@ -476,7 +481,12 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Duration" },
+            "properties": [{ "id": "unit", "value": "none" }]
+          }
+        ]
       },
       "gridPos": {
         "h": 6,
@@ -535,7 +545,12 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Duration" },
+            "properties": [{ "id": "unit", "value": "none" }]
+          }
+        ]
       },
       "gridPos": {
         "h": 6,
