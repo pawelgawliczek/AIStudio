@@ -91,7 +91,6 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro  # ST-258: Mount dashboards
       - grafana_data:/var/lib/grafana
     ports:
       - "127.0.0.1:3030:3000"   # Grafana UI (using 3030 to avoid conflict with backend)
