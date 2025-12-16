@@ -432,7 +432,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -490,7 +490,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -548,7 +548,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
