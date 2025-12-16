@@ -578,13 +578,7 @@
           "url": "https://vibestudio.example.com/api/remote-agent/active",
           "url_options": {
             "data": "",
-            "method": "GET",
-            "headers": [
-              {
-                "key": "X-Agent-Secret",
-                "value": "${AGENT_SECRET}"
-              }
-            ]
+            "method": "GET"
           }
         }
       ],
