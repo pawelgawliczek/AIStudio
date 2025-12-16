@@ -1563,7 +1563,20 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   }
 
   /**
+   * ST-267: Rate limiting for transcript detection
+   * Prevents connection pool exhaustion from bulk transcript syncs
+   */
+  private transcriptQueue: Array<{
+    client: Socket;
+    data: { agentId: string | null; transcriptPath: string; projectPath: string; metadata?: any };
+  }> = [];
+  private isProcessingTranscriptQueue = false;
+  private readonly TRANSCRIPT_BATCH_SIZE = 5;  // Process 5 at a time
+  private readonly TRANSCRIPT_BATCH_DELAY_MS = 200;  // 200ms between batches
+
+  /**
    * ST-170: Handle transcript detected event from laptop agent
+   * ST-267: Added rate limiting via queue to prevent connection pool exhaustion
    */
   @SubscribeMessage('agent:transcript_detected')
   async handleTranscriptDetected(
@@ -1572,22 +1585,58 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   ) {
     this.logger.log(`[ST-170] Transcript detected from agent: ${data.agentId}, sessionId: ${data.metadata?.sessionId}`);
 
+    // ST-267: Queue the request instead of processing immediately
+    this.transcriptQueue.push({ client, data });
+    this.processTranscriptQueue();
+  }
+
+  /**
+   * ST-267: Process transcript queue with rate limiting
+   */
+  private async processTranscriptQueue(): Promise<void> {
+    if (this.isProcessingTranscriptQueue || this.transcriptQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessingTranscriptQueue = true;
+
     try {
-      await this.transcriptRegistrationService.handleTranscriptDetected(data);
+      while (this.transcriptQueue.length > 0) {
+        // Take a batch
+        const batch = this.transcriptQueue.splice(0, this.TRANSCRIPT_BATCH_SIZE);
 
-      // Acknowledge receipt
-      client.emit('agent:transcript_detected_ack', {
-        agentId: data.agentId,
-        success: true,
-      });
-    } catch (error) {
-      this.logger.error(`[ST-170] Failed to handle transcript detection: ${error.message}`, error.stack);
+        if (batch.length > 1) {
+          this.logger.log(`[ST-267] Processing transcript batch: ${batch.length} items, ${this.transcriptQueue.length} remaining`);
+        }
 
-      client.emit('agent:transcript_detected_ack', {
-        agentId: data.agentId,
-        success: false,
-        error: error.message,
-      });
+        // Process batch concurrently but with limited concurrency
+        await Promise.all(batch.map(async ({ client, data }) => {
+          try {
+            await this.transcriptRegistrationService.handleTranscriptDetected(data);
+
+            // Acknowledge receipt
+            client.emit('agent:transcript_detected_ack', {
+              agentId: data.agentId,
+              success: true,
+            });
+          } catch (error) {
+            this.logger.error(`[ST-170] Failed to handle transcript detection: ${error.message}`, error.stack);
+
+            client.emit('agent:transcript_detected_ack', {
+              agentId: data.agentId,
+              success: false,
+              error: error.message,
+            });
+          }
+        }));
+
+        // Delay before next batch if there are more
+        if (this.transcriptQueue.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, this.TRANSCRIPT_BATCH_DELAY_MS));
+        }
+      }
+    } finally {
+      this.isProcessingTranscriptQueue = false;
     }
   }
 

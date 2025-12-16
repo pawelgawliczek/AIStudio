@@ -68,7 +68,8 @@ services:
       - .env
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/vibestudio?schema=public
+      # ST-267: Increased pool from 20 to 50 for bulk operation resilience
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/vibestudio?schema=public&connection_limit=50
       REDIS_URL: redis://redis:6379
       PORT: 3000
       # HOST path for transcript tracking (where Claude Code runs, not Docker path)
