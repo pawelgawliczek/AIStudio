@@ -1634,3 +1634,200 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-16T07:57:40Z",
+  "session_id": "ac815806-8709-4b30-a8f1-5d6294b4ffee",
+  "run_id": "ebb4b5a1-b643-490d-b823-3e8fcd7ebe03",
+  "questions": [
+    {
+      "question": "What level of observability are you looking for?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "Full distributed tracing",
+          "description": "End-to-end request tracing across all services with spans, timing, and correlation"
+        },
+        {
+          "label": "Log correlation only",
+          "description": "Add trace IDs to logs and ship to central system - simpler but less visual"
+        },
+        {
+          "label": "Not sure yet",
+          "description": "Help me understand the tradeoffs better"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How do you want to host the observability stack?",
+      "header": "Hosting",
+      "options": [
+        {
+          "label": "Self-hosted (Docker)",
+          "description": "Add Grafana/Tempo/Loki to your docker-compose - free but you maintain it"
+        },
+        {
+          "label": "Grafana Cloud (free tier)",
+          "description": "10k traces/month free, managed service, no maintenance"
+        },
+        {
+          "label": "Other managed service",
+          "description": "Datadog, New Relic, AWS X-Ray, etc."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T08:04:19Z",
+  "session_id": "ac815806-8709-4b30-a8f1-5d6294b4ffee",
+  "run_id": "ebb4b5a1-b643-490d-b823-3e8fcd7ebe03",
+  "questions": [
+    {
+      "question": "Which communication flow is most important to trace first?",
+      "header": "Priority",
+      "options": [
+        {
+          "label": "Workflow execution",
+          "description": "Story workflows: HTTP → WebSocket → Agent spawn → MCP tools → DB"
+        },
+        {
+          "label": "MCP tool calls",
+          "description": "Claude Code sessions: JSON-RPC → Handler → Database → Response"
+        },
+        {
+          "label": "All equally",
+          "description": "Implement full stack tracing from the start"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T08:40:56Z",
+  "session_id": "ac815806-8709-4b30-a8f1-5d6294b4ffee",
+  "run_id": "ebb4b5a1-b643-490d-b823-3e8fcd7ebe03",
+  "questions": [
+    {
+      "question": "Which workflow should we use for ST-257?",
+      "header": "Workflow",
+      "options": [
+        {
+          "label": "With Approved Plan (Recommended)",
+          "description": "Skips exploration/planning since we have THE_PLAN. Starts at security review."
+        },
+        {
+          "label": "Simplified Dev",
+          "description": "Quick 3-state workflow for simple changes"
+        },
+        {
+          "label": "Standard Dev (Full)",
+          "description": "Full 9-state workflow including exploration and planning phases"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T08:54:19Z",
+  "session_id": "ac815806-8709-4b30-a8f1-5d6294b4ffee",
+  "run_id": "195515ed-20c8-4161-b135-e7dbe01911ff",
+  "questions": [
+    {
+      "question": "Ready to proceed with implementation? (TDD will be skipped as requested)",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Yes, proceed to implementation",
+          "description": "Skip TDD, go straight to implementation phase"
+        },
+        {
+          "label": "Review THE_PLAN first",
+          "description": "I want to review the plan artifact before approving"
+        },
+        {
+          "label": "Stop workflow",
+          "description": "Cancel the workflow for now"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T10:43:31Z",
+  "session_id": "1286bd4b-c83f-488b-8c3a-f6cf8e32f687",
+  "run_id": "0823fc10-07bf-4042-bfa6-b3d40d9691a5",
+  "questions": [
+    {
+      "question": "Which instrumentation approach should we use for the 170+ MCP tools?",
+      "header": "Approach",
+      "options": [
+        {
+          "label": "Registry-level (Recommended)",
+          "description": "Instrument at ToolRegistry.executeTool() - modify only 2 files, automatic for all tools"
+        },
+        {
+          "label": "Individual tool files",
+          "description": "Modify each of the 170 tool files individually for more granular control"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How many Grafana dashboards should we create?",
+      "header": "Dashboards",
+      "options": [
+        {
+          "label": "Full scope - 3 dashboards (Recommended)",
+          "description": "MCP Tool Performance + Error Investigation + Enhanced Agent Dashboard"
+        },
+        {
+          "label": "MVP - 1 combined dashboard",
+          "description": "Single dashboard combining MCP Performance and Errors"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should we implement the Active Agents Table panel (requires new backend endpoint)?",
+      "header": "Agents Table",
+      "options": [
+        {
+          "label": "Skip for now (Recommended)",
+          "description": "Focus on tracing instrumentation, add Active Agents in follow-up story"
+        },
+        {
+          "label": "Include it",
+          "description": "Implement full Active Agents tracking with new endpoint"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T10:56:11Z",
+  "session_id": "1286bd4b-c83f-488b-8c3a-f6cf8e32f687",
+  "run_id": "0823fc10-07bf-4042-bfa6-b3d40d9691a5",
+  "questions": [
+    {
+      "question": "Do you approve this implementation plan for ST-259?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve & Continue",
+          "description": "Proceed with TDD testing phase, then implementation"
+        },
+        {
+          "label": "Request Changes",
+          "description": "I have concerns or changes to request before proceeding"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

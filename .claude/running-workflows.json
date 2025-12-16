@@ -457,7 +457,15 @@
       "masterTranscripts": [
         "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/1636613c-6b75-4dd2-a3f5-e93d410b6860.jsonl"
       ],
-      "startedAt": "2025-12-15T11:07:55Z"
+      "startedAt": "2025-12-15T11:07:55Z",
+      "endedAt": "2025-12-16T07:51:13Z",
+      "endReason": "clear"
+    },
+    "b301f3c0-75cb-4913-a180-dd2acbc9e1a0": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/b301f3c0-75cb-4913-a180-dd2acbc9e1a0.jsonl"
+      ],
+      "startedAt": "2025-12-16T07:51:13Z"
     }
   }
 }

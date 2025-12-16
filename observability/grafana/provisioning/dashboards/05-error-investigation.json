@@ -69,9 +69,9 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["count"],
-          "fields": "/traceID/"
+          "fields": ""
         },
-        "textMode": "value"
+        "textMode": "auto"
       },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -83,11 +83,10 @@
           "limit": 1000,
           "query": "{ status=error }",
           "queryType": "traceql",
-          "refId": "A",
-          "tableType": "spans"
+          "refId": "A"
         }
       ],
-      "title": "Total Error Spans",
+      "title": "Total Error Traces",
       "type": "stat"
     },
     {
@@ -137,9 +136,9 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["count"],
-          "fields": "/traceID/"
+          "fields": ""
         },
-        "textMode": "value"
+        "textMode": "auto"
       },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -151,8 +150,7 @@
           "limit": 1000,
           "query": "{ name=~\"mcp\\\\..*\" && status=error }",
           "queryType": "traceql",
-          "refId": "A",
-          "tableType": "spans"
+          "refId": "A"
         }
       ],
       "title": "Failed MCP Tools",
@@ -205,9 +203,9 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["count"],
-          "fields": "/traceID/"
+          "fields": ""
         },
-        "textMode": "value"
+        "textMode": "auto"
       },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -219,8 +217,7 @@
           "limit": 1000,
           "query": "{ name=~\"(GET|POST|PUT|DELETE|PATCH) .*\" && status=error }",
           "queryType": "traceql",
-          "refId": "A",
-          "tableType": "spans"
+          "refId": "A"
         }
       ],
       "title": "HTTP Errors",
@@ -231,7 +228,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Errors over time grouped by operation name - helps identify when issues started",
+      "description": "Error occurrences over time - each bar shows when errors happened and their duration",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -240,7 +237,7 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "Error Count",
+            "axisLabel": "Duration",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "bars",
@@ -261,7 +258,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -277,7 +274,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -290,7 +287,7 @@
       "id": 4,
       "options": {
         "legend": {
-          "calcs": ["sum"],
+          "calcs": ["count"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -313,7 +310,7 @@
           "refId": "A"
         }
       ],
-      "title": "Error Timeline by Operation",
+      "title": "Error Occurrences Over Time",
       "type": "timeseries"
     },
     {
