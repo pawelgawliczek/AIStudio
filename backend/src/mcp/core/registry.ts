@@ -93,6 +93,10 @@ export class ToolRegistry {
           // Meta tools need registry access
           let result: any;
           if (name === 'search_tools' || name === 'invoke_tool') {
+            // ST-259: Add invoked tool name for better error investigation
+            if (name === 'invoke_tool' && params?.toolName) {
+              span.setAttribute('mcp.invoked_tool', params.toolName);
+            }
             result = await toolModule.handler(this, params);
           } else {
             result = await toolModule.handler(this.prisma, params);
