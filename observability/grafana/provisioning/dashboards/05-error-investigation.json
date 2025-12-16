@@ -27,6 +27,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
+      "description": "Total number of error spans in the selected time range",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -49,13 +50,14 @@
                 "value": 10
               }
             ]
-          }
+          },
+          "unit": "none"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 6,
-        "w": 12,
+        "w": 8,
         "x": 0,
         "y": 0
       },
@@ -67,7 +69,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -79,13 +81,14 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
+          "limit": 1000,
           "query": "{ status=error }",
           "queryType": "traceql",
-          "refId": "A"
+          "refId": "A",
+          "tableType": "spans"
         }
       ],
-      "title": "Total Errors",
+      "title": "Total Error Spans",
       "type": "stat"
     },
     {
@@ -93,6 +96,76 @@
         "type": "tempo",
         "uid": "tempo"
       },
+      "description": "Number of failed MCP tool calls",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["count"],
+          "fields": ""
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "limit": 1000,
+          "query": "{ name=~\"mcp\\\\..*\" && status=error }",
+          "queryType": "traceql",
+          "refId": "A",
+          "tableType": "spans"
+        }
+      ],
+      "title": "Failed MCP Tools",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "description": "Number of HTTP request errors",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -116,17 +189,17 @@
               }
             ]
           },
-          "unit": "percent"
+          "unit": "none"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 6,
-        "w": 12,
-        "x": 12,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
-      "id": 2,
+      "id": 3,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -134,7 +207,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["count"],
           "fields": ""
         },
         "textMode": "auto"
@@ -146,144 +219,15 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ status=error } / { } * 100",
-          "queryType": "traceql",
-          "refId": "A"
-        }
-      ],
-      "title": "Error Rate %",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 6
-      },
-      "id": 3,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "horizontal",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "limit": 50,
-          "query": "{ status=error }",
+          "limit": 1000,
+          "query": "{ name=~\"(GET|POST|PUT|DELETE|PATCH) .*\" && status=error }",
           "queryType": "traceql",
           "refId": "A",
           "tableType": "spans"
         }
       ],
-      "title": "Errors by Operation",
-      "transformations": [
-        {
-          "id": "groupBy",
-          "options": {
-            "fields": {
-              "name": {
-                "aggregations": ["count"],
-                "operation": "groupby"
-              }
-            }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "desc": true,
-                "field": "name (count)"
-              }
-            ]
-          }
-        },
-        {
-          "id": "limit",
-          "options": {
-            "limitField": 10
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "name": "Operation",
-              "name (count)": "Error Count"
-            }
-          }
-        }
-      ],
-      "type": "barchart"
+      "title": "HTTP Errors",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -302,8 +246,8 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
             "gradientMode": "none",
             "hideFrom": {
               "tooltip": false,
@@ -316,7 +260,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "never",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -331,12 +275,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
-              },
-              {
                 "color": "red",
-                "value": 80
+                "value": null
               }
             ]
           }
@@ -345,21 +285,21 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
+        "w": 24,
+        "x": 0,
         "y": 6
       },
       "id": 4,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
+          "calcs": ["count"],
+          "displayMode": "table",
+          "placement": "right",
           "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "pluginVersion": "10.0.0",
@@ -369,13 +309,13 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 20,
-          "query": "{ status=error }",
+          "limit": 500,
+          "query": "{ status=error } | by(name)",
           "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "Error Timeline",
+      "title": "Error Timeline by Operation",
       "type": "timeseries"
     },
     {
@@ -383,6 +323,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
+      "description": "Recent errors with full context. Click Trace ID to view full trace.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -410,56 +351,56 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Trace ID"
+              "options": "traceID"
             },
             "properties": [
               {
                 "id": "links",
                 "value": [
                   {
-                    "title": "View Trace",
-                    "url": "/explore?left=%5B%22now-1h%22,%22now%22,%22tempo%22,%7B%22query%22:%22${__data.fields[\\\"Trace ID\\\"]}\"%7D%5D"
+                    "title": "View Trace in Tempo",
+                    "url": "/explore?left=%5B%22now-1h%22,%22now%22,%22tempo%22,%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D"
                   }
                 ]
+              },
+              {
+                "id": "custom.width",
+                "value": 280
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Status"
+              "options": "name"
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
+                "id": "custom.width",
+                "value": 350
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ns"
               },
               {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    }
-                  ]
-                }
+                "id": "custom.width",
+                "value": 100
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 10,
+        "h": 12,
         "w": 24,
         "x": 0,
         "y": 14
@@ -477,7 +418,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Time"
+            "displayName": "startTime"
           }
         ]
       },
@@ -495,21 +436,28 @@
           "tableType": "spans"
         }
       ],
-      "title": "Error Table (with trace links)",
+      "title": "Recent Errors (click Trace ID to investigate)",
       "transformations": [
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
-            "indexByName": {},
+            "excludeByName": {
+              "spanID": true,
+              "nestedSetLeft": true,
+              "nestedSetRight": true,
+              "nestedSetParent": true
+            },
+            "indexByName": {
+              "startTime": 0,
+              "traceID": 1,
+              "name": 2,
+              "duration": 3
+            },
             "renameByName": {
               "name": "Operation",
-              "status": "Status",
               "traceID": "Trace ID",
-              "spanID": "Span ID",
               "duration": "Duration",
-              "error.type": "Error Type",
-              "error.message": "Error Message"
+              "startTime": "Time"
             }
           }
         }
@@ -521,6 +469,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
+      "description": "MCP tool errors with tool name. These are errors that occurred during MCP tool execution.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -538,7 +487,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               }
             ]
@@ -548,40 +497,29 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Error Count"
+              "options": "traceID"
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
-              },
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View Trace",
+                    "url": "/explore?left=%5B%22now-1h%22,%22now%22,%22tempo%22,%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "name"
+            },
+            "properties": [
               {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "yellow",
-                      "value": 3
-                    },
-                    {
-                      "color": "red",
-                      "value": 5
-                    }
-                  ]
-                }
+                "id": "custom.width",
+                "value": 200
               }
             ]
           }
@@ -591,7 +529,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 26
       },
       "id": 6,
       "options": {
@@ -606,7 +544,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Error Count"
+            "displayName": "startTime"
           }
         ]
       },
@@ -618,60 +556,32 @@
             "uid": "tempo"
           },
           "limit": 50,
-          "query": "{ name=~\"mcp\\..*\" status=error }",
+          "query": "{ name=~\"mcp\\\\..*\" && status=error }",
           "queryType": "traceql",
           "refId": "A",
           "tableType": "spans"
         }
       ],
-      "title": "Failed MCP Tools",
+      "title": "Failed MCP Tool Calls",
       "transformations": [
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
-            "indexByName": {},
+            "excludeByName": {
+              "spanID": true,
+              "nestedSetLeft": true,
+              "nestedSetRight": true,
+              "nestedSetParent": true
+            },
+            "indexByName": {
+              "startTime": 0,
+              "name": 1,
+              "traceID": 2
+            },
             "renameByName": {
-              "name": "Tool",
-              "status": "Status",
-              "tool.name": "Tool Name",
-              "error.message": "Error Message",
-              "error.type": "Error Type"
-            }
-          }
-        },
-        {
-          "id": "groupBy",
-          "options": {
-            "fields": {
-              "Tool": {
-                "aggregations": [],
-                "operation": "groupby"
-              },
-              "Error Message": {
-                "aggregations": ["last"],
-                "operation": "aggregate"
-              },
-              "Error Type": {
-                "aggregations": ["last"],
-                "operation": "aggregate"
-              },
-              "Status": {
-                "aggregations": ["count"],
-                "operation": "aggregate"
-              }
-            }
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "Status (count)": "Error Count",
-              "Error Message (last)": "Last Error Message",
-              "Error Type (last)": "Error Type"
+              "name": "MCP Tool",
+              "traceID": "Trace ID",
+              "startTime": "Time"
             }
           }
         }
