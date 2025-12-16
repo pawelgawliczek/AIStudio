@@ -394,6 +394,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "none",
           "color": {
             "mode": "thresholds"
           },
@@ -460,6 +461,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "none",
           "color": {
             "mode": "thresholds"
           },
@@ -518,6 +520,7 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "none",
           "color": {
             "mode": "thresholds"
           },
