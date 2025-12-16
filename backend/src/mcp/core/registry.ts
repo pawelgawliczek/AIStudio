@@ -13,6 +13,7 @@ import { PrismaClient } from '@prisma/client';
 import { ToolLoader, ToolModule } from './loader.js';
 import { getActiveProfile, isToolInProfile, ProfileName } from './profiles.js';
 import { TelemetryService } from '../../telemetry/telemetry.service.js';
+import { resolveStory, isUUID } from '../shared/resolve-identifiers.js';
 
 export class ToolRegistry {
   private loader: ToolLoader;
@@ -77,11 +78,15 @@ export class ToolRegistry {
       async (span) => {
         const startTime = Date.now();
 
+        // ST-262: Extract story context for trace propagation
+        const storyContext = await this.extractStoryContext(params);
+
         // Add span attributes
         span.setAttributes({
           'tool.name': name,
           'tool.category': await this.getToolCategory(name),
           'operation.type': 'mcp_tool',
+          ...storyContext,  // Add story.id and story.key if available
         });
 
         try {
@@ -127,6 +132,82 @@ export class ToolRegistry {
       return toolModule?.metadata?.category || 'unknown';
     } catch {
       return 'unknown';
+    }
+  }
+
+  /**
+   * Extract story context from MCP tool parameters for tracing
+   * ST-262: Enables story-level trace propagation
+   */
+  private async extractStoryContext(
+    params: Record<string, any>
+  ): Promise<{ 'story.id'?: string; 'story.key'?: string }> {
+    if (!params || typeof params !== 'object') {
+      return {};
+    }
+
+    try {
+      // Pattern 1 (Highest Priority): runId or workflowRunId -> resolve to story
+      const runIdParam = params.runId || params.workflowRunId;
+      if (runIdParam) {
+        if (!isUUID(runIdParam)) {
+          console.warn(`[extractStoryContext] Invalid runId format: ${runIdParam}`);
+          return {};
+        }
+        const run = await this.prisma.workflowRun.findUnique({
+          where: { id: runIdParam },
+          select: {
+            storyId: true,
+            story: { select: { id: true, key: true } },
+          },
+        });
+        if (!run) {
+          console.warn(`[extractStoryContext] WorkflowRun not found: ${runIdParam}`);
+          return {};
+        }
+        if (!run.story) {
+          console.warn(
+            `[extractStoryContext] WorkflowRun has no associated story: ${runIdParam}`
+          );
+          return {};
+        }
+        return { 'story.id': run.story.id, 'story.key': run.story.key };
+      }
+
+      // Pattern 2: Direct storyId UUID
+      if ('storyId' in params && params.storyId != null) {
+        if (!isUUID(params.storyId)) {
+          console.warn(`[extractStoryContext] Invalid storyId format: ${params.storyId}`);
+          return {};
+        }
+        const story = await this.prisma.story.findUnique({
+          where: { id: params.storyId },
+          select: { id: true, key: true },
+        });
+        if (!story) {
+          console.warn(`[extractStoryContext] Story not found: ${params.storyId}`);
+          return {};
+        }
+        return { 'story.id': story.id, 'story.key': story.key };
+      }
+
+      // Pattern 3 (Lowest Priority): story parameter (ST-XXX key or UUID)
+      if (params.story) {
+        const story = await resolveStory(this.prisma, params.story);
+        if (!story) {
+          console.warn(`[extractStoryContext] Story not found: ${params.story}`);
+          return {};
+        }
+        return { 'story.id': story.id, 'story.key': story.key };
+      }
+
+      return {};
+    } catch (error) {
+      console.warn(
+        `[extractStoryContext] Error extracting story context`,
+        error
+      );
+      return {};
     }
   }
 
