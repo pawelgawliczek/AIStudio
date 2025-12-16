@@ -41,15 +41,23 @@ export class KpiHistoryService {
       throw new NotFoundException(`Workflow ${params.workflowId} not found`);
     }
 
-    // Build complexity filter
+    // Build complexity filter - ensure valid array with values
     const complexityFilter: any = {};
-    if (params.businessComplexity) {
+    if (params.businessComplexity &&
+        Array.isArray(params.businessComplexity) &&
+        params.businessComplexity.length === 2 &&
+        params.businessComplexity[0] != null &&
+        params.businessComplexity[1] != null) {
       complexityFilter.businessComplexity = {
         gte: params.businessComplexity[0],
         lte: params.businessComplexity[1],
       };
     }
-    if (params.technicalComplexity) {
+    if (params.technicalComplexity &&
+        Array.isArray(params.technicalComplexity) &&
+        params.technicalComplexity.length === 2 &&
+        params.technicalComplexity[0] != null &&
+        params.technicalComplexity[1] != null) {
       complexityFilter.technicalComplexity = {
         gte: params.technicalComplexity[0],
         lte: params.technicalComplexity[1],
