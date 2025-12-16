@@ -1468,6 +1468,12 @@ model DeploymentLog {
   // ST-84: Approval method tracking (PR vs manual)
   approvalMethod String?          @map("approval_method") // 'PR' | 'MANUAL'
 
+  // ST-268: Async deployment tracking
+  currentPhase       String?   @map("current_phase")
+  progress           Json?
+  childProcessPid    Int?      @map("child_process_pid")
+  lastHeartbeat      DateTime? @map("last_heartbeat")
+
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
@@ -1486,6 +1492,7 @@ model DeploymentLog {
 enum DeploymentStatus {
   pending // Awaiting approval or validation
   approved // PR approved, awaiting deployment execution
+  queued // ST-268: Queued for async execution
   deploying // Deployment in progress
   deployed // Successfully deployed
   failed // Deployment failed (before or during execution)

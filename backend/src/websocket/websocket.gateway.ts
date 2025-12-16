@@ -13,8 +13,8 @@ import {
 import { validate } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
-import { TelemetryService } from '../telemetry/telemetry.service';
 import { RemoteAgentGateway } from '../remote-agent/remote-agent.gateway';
+import { TelemetryService } from '../telemetry/telemetry.service';
 import { TranscriptSubscriptionDto } from './dto/transcript-subscription.dto';
 
 /**
@@ -410,6 +410,19 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   broadcastReviewReady(storyId: string, projectId: string, data: any) {
     this.server.emit('review:ready', { ...data, storyId, projectId });
     this.logger.log(`Broadcasted review ready globally`);
+  }
+
+  /**
+   * Broadcast deployment progress (ST-268)
+   */
+  broadcastDeploymentProgress(
+    deploymentLogId: string,
+    storyId: string,
+    projectId: string,
+    data: any
+  ) {
+    this.server.emit('deployment:progress', { ...data, deploymentLogId, storyId, projectId });
+    this.logger.debug(`Broadcasted deployment progress for ${deploymentLogId}`);
   }
 
   // ============================================================================

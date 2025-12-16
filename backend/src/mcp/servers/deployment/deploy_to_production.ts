@@ -35,6 +35,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { DeploymentService, DeploymentParams } from '../../../services/deployment.service.js';
+import { DeploymentLockService } from '../../../services/deployment-lock.service.js';
 import { getWebSocketGateway } from '../../services/websocket-gateway.instance.js';
 import { ValidationError, NotFoundError } from '../../types.js';
 import { validateRequired } from '../../utils.js';
@@ -173,12 +174,10 @@ export async function handler(
   prisma: PrismaClient,
   params: DeployToProductionParams
 ): Promise<DeployToProductionResponse> {
-  // Note: prisma parameter is provided by registry but not used here
-  // DeploymentService creates its own PrismaClient internally
   const startTime = Date.now();
 
   console.log('='.repeat(80));
-  console.log('🚀 PRODUCTION DEPLOYMENT INITIATED');
+  console.log('🚀 PRODUCTION DEPLOYMENT INITIATED (ASYNC)');
   console.log('='.repeat(80));
   console.log(`Story ID: ${params.storyId}`);
   console.log(`Deployment Mode: ${params.directCommit ? 'Direct Commit' : 'PR-based'}`);
@@ -186,7 +185,6 @@ export async function handler(
     console.log(`PR Number: #${params.prNumber}`);
   }
   console.log(`Triggered By: ${params.triggeredBy || 'mcp-user'}`);
-  console.log(`Emergency Mode: Backup=${params.skipBackup || false}, HealthChecks=${params.skipHealthChecks || false}`);
   console.log('='.repeat(80));
 
   try {
@@ -197,7 +195,7 @@ export async function handler(
     // Validate required parameters
     validateRequired(params, ['storyId', 'confirmDeploy']);
 
-    // AC9: Enforce confirmation (prevents accidental deployments)
+    // Enforce confirmation (prevents accidental deployments)
     if (params.confirmDeploy !== true) {
       throw new ValidationError(
         'Production deployment requires explicit confirmation. ' +
@@ -206,7 +204,7 @@ export async function handler(
       );
     }
 
-    // AC8: ST-84 Mutual exclusivity check
+    // ST-84 Mutual exclusivity check
     if (params.prNumber && params.directCommit) {
       throw new ValidationError(
         'Cannot use both prNumber and directCommit simultaneously. ' +
@@ -214,7 +212,7 @@ export async function handler(
       );
     }
 
-    // AC8: ST-84 Require one of the two modes
+    // ST-84 Require one of the two modes
     if (!params.prNumber && !params.directCommit) {
       throw new ValidationError(
         'Must provide either prNumber (for PR mode) or directCommit=true (for direct commit mode). ' +
@@ -237,97 +235,134 @@ export async function handler(
       );
     }
 
-    // Warn if using emergency options
-    if (params.skipBackup) {
-      console.warn('⚠️  WARNING: Pre-deployment backup SKIPPED. Emergency mode active.');
+    // Get story for key
+    const story = await prisma.story.findUnique({
+      where: { id: params.storyId },
+      select: { key: true, projectId: true },
+    });
+
+    if (!story) {
+      throw new NotFoundError('Story', params.storyId);
     }
 
-    if (params.skipHealthChecks) {
-      console.warn('⚠️  WARNING: Health checks SKIPPED. Emergency mode active.');
-    }
+    // ========================================================================
+    // CHECK DEPLOYMENT LOCK & CREATE DEPLOYMENT LOG (ATOMIC)
+    // ========================================================================
+    // CRITICAL-3: Use transaction to atomically check lock and create deployment log
+
+    const lockService = new DeploymentLockService(prisma);
+
+    const deploymentLog = await prisma.$transaction(async (tx) => {
+      // Check if there's already an active lock inside transaction
+      const existingLocks = await tx.deploymentLock.findMany({
+        where: {
+          active: true,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingLocks.length > 0) {
+        const activeLock = existingLocks[0];
+        throw new ValidationError(
+          `Deployment already in progress (locked by ${activeLock.lockedBy}). ` +
+          `Wait for current deployment to complete or release the lock.`
+        );
+      }
+
+      // Create deployment log inside same transaction
+      return await tx.deploymentLog.create({
+        data: {
+          storyId: params.storyId,
+          prNumber: params.prNumber,
+          status: 'queued',
+          environment: 'production',
+          deployedBy: params.triggeredBy || 'mcp-user',
+          approvalMethod: params.directCommit ? 'MANUAL' : 'PR',
+          currentPhase: 'queued',
+          progress: {
+            phaseIndex: 0,
+            totalPhases: 8,
+            percentComplete: 0,
+            currentPhase: 'queued',
+            message: 'Deployment queued for execution',
+          },
+        },
+      });
+    });
+
+    console.log(`✅ Deployment queued: ${deploymentLog.id}`);
 
     // ========================================================================
-    // EXECUTE DEPLOYMENT
+    // SPAWN DEPLOYMENT WORKER (DETACHED)
     // ========================================================================
 
-    // ST-129: Pass WebSocket gateway for real-time deployment notifications
-    const websocketGateway = getWebSocketGateway();
-    const deploymentService = new DeploymentService(
-      undefined, // prisma
-      undefined, // lockService
-      undefined, // backupService
-      undefined, // restoreService
-      undefined, // buildDecisionService
-      websocketGateway // ST-129: WebSocket gateway for notifications
-    );
+    const { fork } = await import('child_process');
+    const path = await import('path');
 
-    const deploymentParams: DeploymentParams = {
-      storyId: params.storyId,
-      prNumber: params.prNumber,
-      directCommit: params.directCommit,
-      triggeredBy: params.triggeredBy || 'mcp-user',
-      skipBackup: params.skipBackup || false,
-      skipHealthChecks: params.skipHealthChecks || false,
-      skipBackendBuild: params.skipBackendBuild || false,
-      skipFrontendBuild: params.skipFrontendBuild || false,
-      useCache: params.useCache || false, // ST-115: Default to false for deterministic prod builds
-      autoDetectBuilds: params.autoDetectBuilds || false, // ST-115: Default to false for explicit control
-      confirmDeploy: params.confirmDeploy,
-    };
+    const workerPath = path.resolve(__dirname, '../../../workers/deployment-worker.js');
+    const workerProcess = fork(workerPath, [deploymentLog.id], {
+      detached: true,
+      stdio: 'ignore',
+    });
 
-    const result = await deploymentService.deployToProduction(deploymentParams);
+    // CRITICAL-2: Add error handler for worker spawn failures
+    workerProcess.on('error', async (error) => {
+      console.error(`Failed to spawn deployment worker: ${error.message}`);
+      await prisma.deploymentLog.update({
+        where: { id: deploymentLog.id },
+        data: {
+          status: 'failed',
+          errorMessage: `Worker spawn failed: ${error.message}`,
+          completedAt: new Date(),
+        },
+      });
+    });
+
+    // Unref so parent can exit
+    workerProcess.unref();
+
+    console.log(`✅ Deployment worker spawned: PID ${workerProcess.pid}`);
 
     // ========================================================================
-    // RETURN RESULT
+    // RETURN IMMEDIATELY WITH POLL INFO
     // ========================================================================
+
+    const pollUrl = `/api/deployment/status/${deploymentLog.id}`;
+    const pollIntervalMs = 5000; // Poll every 5 seconds
 
     console.log('='.repeat(80));
-    if (result.success) {
-      console.log('✅ PRODUCTION DEPLOYMENT SUCCESSFUL');
-    } else {
-      console.log('❌ PRODUCTION DEPLOYMENT FAILED');
-    }
+    console.log('✅ DEPLOYMENT QUEUED SUCCESSFULLY');
     console.log('='.repeat(80));
-    console.log(`Duration: ${Math.round(result.duration / 1000)}s`);
-    console.log(`Deployment Log ID: ${result.deploymentLogId}`);
-    if (result.backupFile) {
-      console.log(`Backup File: ${result.backupFile}`);
-    }
+    console.log(`Deployment Log ID: ${deploymentLog.id}`);
+    console.log(`Poll URL: ${pollUrl}`);
+    console.log(`Poll Interval: ${pollIntervalMs}ms`);
     console.log('='.repeat(80));
-
-    // Log warnings
-    if (result.warnings.length > 0) {
-      console.log('⚠️  WARNINGS:');
-      result.warnings.forEach(warning => console.log(`  - ${warning}`));
-      console.log('='.repeat(80));
-    }
-
-    // Log errors
-    if (result.errors.length > 0) {
-      console.log('❌ ERRORS:');
-      result.errors.forEach(error => console.log(`  - ${error}`));
-      console.log('='.repeat(80));
-    }
 
     return {
-      success: result.success,
-      deploymentLogId: result.deploymentLogId,
-      storyKey: result.storyKey,
-      prNumber: result.prNumber,
-      directCommit: result.directCommit,
-      commitHash: result.commitHash,
-      duration: result.duration,
-      lockId: result.lockId,
-      backupFile: result.backupFile,
-      healthCheckResults: result.healthCheckResults,
-      phases: result.phases,
-      warnings: result.warnings,
-      errors: result.errors,
-      message: result.message,
+      success: true,
+      deploymentLogId: deploymentLog.id,
+      storyKey: story.key,
+      prNumber: params.prNumber,
+      directCommit: params.directCommit,
+      duration: Date.now() - startTime,
+      phases: {
+        validation: { success: true, duration: Date.now() - startTime },
+        lockAcquisition: { success: false, duration: 0 },
+        backup: { success: false, duration: 0 },
+        buildBackend: { success: false, duration: 0 },
+        buildFrontend: { success: false, duration: 0 },
+        restartBackend: { success: false, duration: 0 },
+        restartFrontend: { success: false, duration: 0 },
+        healthChecks: { success: false, duration: 0 },
+        lockRelease: { success: false, duration: 0 },
+      },
+      warnings: [],
+      errors: [],
+      message: `Deployment queued. Poll ${pollUrl} every ${pollIntervalMs}ms for status updates. Use get_deployment_status tool.`,
     };
 
   } catch (error: any) {
-    console.error('❌ PRODUCTION DEPLOYMENT FAILED:', error.message);
+    console.error('❌ DEPLOYMENT QUEUEING FAILED:', error.message);
     console.log('='.repeat(80));
 
     // Determine error type
@@ -338,7 +373,7 @@ export async function handler(
       errorType = 'NotFoundError';
     }
 
-    // Return structured error response (AC10)
+    // Return structured error response
     return {
       success: false,
       deploymentLogId: '',
