@@ -400,7 +400,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "ms"
+                "value": "ns"
               },
               {
                 "id": "custom.cellOptions",
@@ -419,11 +419,11 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 500
+                      "value": 500000000
                     },
                     {
                       "color": "red",
-                      "value": 1000
+                      "value": 1000000000
                     }
                   ]
                 }
@@ -474,13 +474,19 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
-            "indexByName": {},
+            "excludeByName": {
+              "Trace Service": true,
+              "status": true,
+              "Span ID": true
+            },
+            "indexByName": {
+              "Start time": 0,
+              "Trace Name": 1,
+              "Duration": 2
+            },
             "renameByName": {
-              "name": "Tool",
-              "duration": "Duration",
-              "tool.name": "Tool Name",
-              "tool.params": "Parameters"
+              "Trace Name": "MCP Tool",
+              "Start time": "Time"
             }
           }
         }
@@ -492,30 +498,18 @@
         "type": "tempo",
         "uid": "tempo"
       },
+      "description": "Recent MCP tool calls with trace links for investigation",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
           "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
             },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "inspect": false
           },
           "mappings": [],
           "thresholds": {
@@ -528,7 +522,52 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ns"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 250
+              },
+              {
+                "id": "displayName",
+                "value": "MCP Tool"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Start time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Time"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -538,25 +577,20 @@
       },
       "id": 7,
       "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
         },
-        "orientation": "horizontal",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Time"
+          }
+        ]
       },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -565,14 +599,36 @@
             "type": "tempo",
             "uid": "tempo"
           },
-          "limit": 500,
+          "limit": 100,
           "query": "{ name=~\"mcp\\\\..*\" }",
           "queryType": "traceql",
-          "refId": "A"
+          "refId": "A",
+          "tableType": "spans"
         }
       ],
-      "title": "Tool Category Breakdown",
-      "type": "barchart"
+      "title": "Recent MCP Tool Calls",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Trace Service": true,
+              "status": true
+            },
+            "indexByName": {
+              "Start time": 0,
+              "Trace Name": 1,
+              "Span ID": 2,
+              "Duration": 3
+            },
+            "renameByName": {
+              "Trace Name": "MCP Tool",
+              "Span ID": "Trace (click)"
+            }
+          }
+        }
+      ],
+      "type": "table"
     }
   ],
   "refresh": "5s",
