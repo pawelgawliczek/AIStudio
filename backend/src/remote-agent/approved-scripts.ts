@@ -68,6 +68,13 @@ export const APPROVED_SCRIPTS: Record<string, ApprovedScript> = {
     allowedParams: ['--path', '--encoding', '--max-size'],
     timeout: 30000, // 30 seconds
   },
+  // ST-269: Execute whitelisted commands for code impact metrics
+  'exec-command': {
+    script: 'scripts/exec-command.ts',
+    description: 'Execute whitelisted git commands for code metrics (git diff, git status only)',
+    allowedParams: ['--command', '--cwd'],
+    timeout: 60000, // 60 seconds
+  },
 };
 
 /**

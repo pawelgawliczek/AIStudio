@@ -111,6 +111,14 @@ export class RemoteExecutionService {
   ): Promise<any> {
     // Validate script is approved
     if (!isScriptApproved(scriptName)) {
+      // ST-269: Log forbidden script attempt for security audit
+      this.logger.warn('Forbidden script rejected', {
+        script: scriptName,
+        params: this.redactSensitiveParams(params),
+        requestedBy,
+        reason: 'Script not approved for remote execution',
+        timestamp: new Date().toISOString(),
+      });
       throw new Error(`Script '${scriptName}' is not approved for remote execution`);
     }
 
@@ -239,6 +247,22 @@ export class RemoteExecutionService {
   private buildFallbackCommand(scriptName: string, params: string[]): string {
     const paramsStr = params.join(' ');
     return `ts-node scripts/${scriptName}.ts ${paramsStr}`;
+  }
+
+  /**
+   * ST-269: Redact sensitive information from parameters for security logging
+   */
+  private redactSensitiveParams(params: string[] | Record<string, unknown>): string {
+    // Convert params to string representation
+    const paramsStr = Array.isArray(params) ? params.join(' ') : JSON.stringify(params);
+
+    // Redact potential secrets (passwords, tokens, keys)
+    return paramsStr
+      .replace(/password[=:]\S+/gi, 'password=<REDACTED>')
+      .replace(/token[=:]\S+/gi, 'token=<REDACTED>')
+      .replace(/key[=:]\S+/gi, 'key=<REDACTED>')
+      .replace(/secret[=:]\S+/gi, 'secret=<REDACTED>')
+      .replace(/bearer\s+\S+/gi, 'bearer <REDACTED>');
   }
 
   /**
