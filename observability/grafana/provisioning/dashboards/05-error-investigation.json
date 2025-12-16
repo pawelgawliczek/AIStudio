@@ -50,8 +50,7 @@
                 "value": 10
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -70,7 +69,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["count"],
-          "fields": ""
+          "fields": "/.*/"
         },
         "textMode": "auto"
       },
@@ -89,6 +88,14 @@
         }
       ],
       "title": "Total Error Spans",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": ["count"]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -96,7 +103,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Number of failed MCP tool calls",
+      "description": "Number of failed MCP tool calls (mcp.* spans with error status)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -119,8 +126,7 @@
                 "value": 5
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -139,7 +145,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["count"],
-          "fields": ""
+          "fields": "/.*/"
         },
         "textMode": "auto"
       },
@@ -158,6 +164,14 @@
         }
       ],
       "title": "Failed MCP Tools",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": ["count"]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -188,8 +202,7 @@
                 "value": 10
               }
             ]
-          },
-          "unit": "none"
+          }
         },
         "overrides": []
       },
@@ -208,7 +221,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["count"],
-          "fields": ""
+          "fields": "/.*/"
         },
         "textMode": "auto"
       },
@@ -227,6 +240,14 @@
         }
       ],
       "title": "HTTP Errors",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": ["count"]
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -234,7 +255,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Errors over time - helps identify when issues started",
+      "description": "Errors over time grouped by operation name - helps identify when issues started",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -243,7 +264,7 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "Error Count",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "bars",
@@ -264,7 +285,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "normal"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -279,7 +300,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -292,7 +314,7 @@
       "id": 4,
       "options": {
         "legend": {
-          "calcs": ["count"],
+          "calcs": ["sum"],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
@@ -323,7 +345,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Recent errors with full context. Click Trace ID to view full trace.",
+      "description": "Recent errors with full context. Click Trace ID to view full trace in Tempo Explorer.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -366,6 +388,10 @@
               {
                 "id": "custom.width",
                 "value": 280
+              },
+              {
+                "id": "displayName",
+                "value": "Trace ID (click to investigate)"
               }
             ]
           },
@@ -378,6 +404,10 @@
               {
                 "id": "custom.width",
                 "value": 350
+              },
+              {
+                "id": "displayName",
+                "value": "Operation"
               }
             ]
           },
@@ -394,6 +424,22 @@
               {
                 "id": "custom.width",
                 "value": 100
+              },
+              {
+                "id": "displayName",
+                "value": "Duration"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "startTime"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Time"
               }
             ]
           }
@@ -418,7 +464,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "startTime"
+            "displayName": "Time"
           }
         ]
       },
@@ -445,7 +491,9 @@
               "spanID": true,
               "nestedSetLeft": true,
               "nestedSetRight": true,
-              "nestedSetParent": true
+              "nestedSetParent": true,
+              "status": true,
+              "statusMessage": true
             },
             "indexByName": {
               "startTime": 0,
@@ -453,12 +501,7 @@
               "name": 2,
               "duration": 3
             },
-            "renameByName": {
-              "name": "Operation",
-              "traceID": "Trace ID",
-              "duration": "Duration",
-              "startTime": "Time"
-            }
+            "renameByName": {}
           }
         }
       ],
@@ -469,7 +512,7 @@
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "MCP tool errors with tool name. These are errors that occurred during MCP tool execution.",
+      "description": "MCP tool errors showing specific tool name (mcp.get_story, mcp.advance_step, etc.)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -508,6 +551,10 @@
                     "url": "/explore?left=%5B%22now-1h%22,%22now%22,%22tempo%22,%7B%22query%22:%22${__value.raw}%22,%22queryType%22:%22traceql%22%7D%5D"
                   }
                 ]
+              },
+              {
+                "id": "displayName",
+                "value": "Trace ID"
               }
             ]
           },
@@ -519,7 +566,23 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 200
+                "value": 250
+              },
+              {
+                "id": "displayName",
+                "value": "MCP Tool Name"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "startTime"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Time"
               }
             ]
           }
@@ -544,7 +607,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "startTime"
+            "displayName": "Time"
           }
         ]
       },
@@ -562,7 +625,7 @@
           "tableType": "spans"
         }
       ],
-      "title": "Failed MCP Tool Calls",
+      "title": "Failed MCP Tool Calls (mcp.* spans)",
       "transformations": [
         {
           "id": "organize",
@@ -571,18 +634,17 @@
               "spanID": true,
               "nestedSetLeft": true,
               "nestedSetRight": true,
-              "nestedSetParent": true
+              "nestedSetParent": true,
+              "status": true,
+              "statusMessage": true,
+              "duration": true
             },
             "indexByName": {
               "startTime": 0,
               "name": 1,
               "traceID": 2
             },
-            "renameByName": {
-              "name": "MCP Tool",
-              "traceID": "Trace ID",
-              "startTime": "Time"
-            }
+            "renameByName": {}
           }
         }
       ],
