@@ -73,7 +73,7 @@ export function Layout() {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-fg hover:text-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring transition-colors flex-shrink-0"
+                className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-fg hover:text-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring transition-colors flex-shrink-0"
                 aria-label="Open menu"
               >
                 <Bars3Icon className="h-6 w-6" />
@@ -84,7 +84,7 @@ export function Layout() {
               </div>
 
               {/* Desktop navigation */}
-              <div className="hidden md:flex gap-4 lg:gap-6">
+              <div className="hidden lg:flex gap-4 xl:gap-6">
                 <Link
                   to="/dashboard"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-fg hover:text-accent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring rounded"
@@ -140,8 +140,8 @@ export function Layout() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              {/* ProjectSelector hidden on mobile - shown in hamburger menu */}
-              <div className="hidden md:block">
+              {/* ProjectSelector hidden on mobile/tablet - shown in hamburger menu */}
+              <div className="hidden lg:block">
                 <ProjectSelector />
               </div>
               <ConnectionStatus />
@@ -160,7 +160,7 @@ export function Layout() {
 
       {/* Mobile Menu */}
       <Transition.Root show={isMobileMenuOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50 md:hidden" onClose={setIsMobileMenuOpen}>
+        <Dialog as="div" className="relative z-50 lg:hidden" onClose={setIsMobileMenuOpen}>
           <Transition.Child
             as={Fragment}
             enter="ease-in-out duration-300"
