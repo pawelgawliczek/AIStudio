@@ -44,5 +44,7 @@ datasources:
     jsonData:
       httpMethod: GET
       httpHeaderName1: X-Agent-Secret
+      allowedHosts:
+        - vibestudio.example.com
     secureJsonData:
       httpHeaderValue1: ${AGENT_SECRET}
