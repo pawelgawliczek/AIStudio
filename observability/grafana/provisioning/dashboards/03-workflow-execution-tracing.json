@@ -197,7 +197,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket.broadcast.workflow.*\" }",
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\.workflow\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -286,7 +286,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket.broadcast.component.*\" }",
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\.component\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -445,7 +445,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ workflow.run.id=~\".*\" status=error }",
+          "query": "{ .workflow.run.id=~\".*\" && status=error }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -503,7 +503,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket.broadcast.workflow_started\" }",
+          "query": "{ name=\"websocket.broadcast.workflow_started\" }",
           "queryType": "traceql",
           "refId": "A"
         }
@@ -561,7 +561,7 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket.broadcast.component.*\" }",
+          "query": "{ name=~\"websocket\\\\.broadcast\\\\.component\\\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
