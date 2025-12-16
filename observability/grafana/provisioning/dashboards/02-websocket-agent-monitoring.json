@@ -575,7 +575,7 @@
           "root_selector": "",
           "source": "url",
           "type": "json",
-          "url": "http://backend:3000/api/remote-agent/active",
+          "url": "https://vibestudio.example.com/api/remote-agent/active",
           "url_options": {
             "data": "",
             "method": "GET",

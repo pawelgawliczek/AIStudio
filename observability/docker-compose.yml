@@ -89,6 +89,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_INSTALL_PLUGINS=
       - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+      - AGENT_SECRET=${AGENT_SECRET}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
