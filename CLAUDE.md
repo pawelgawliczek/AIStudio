@@ -1,3 +1,9 @@
+## Project Context
+
+**Project ID:** `345a29ee-d6ab-477d-8079-c5dda0844d77` (AI Studio)
+
+---
+
 ## Environment Detection
 
 | Indicator | Mode | Permissions |

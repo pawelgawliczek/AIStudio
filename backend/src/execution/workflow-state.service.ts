@@ -146,6 +146,7 @@ export class WorkflowStateService {
 
     // Calculate aggregated ST-27 metrics across all component runs
     // ST-110: Removed cache metrics - now using /context command for token tracking
+    // ST-263: Added aggregation for execution metrics, tests, and cache metrics
     const aggregatedMetrics = workflowRun.componentRuns.reduce(
       (acc, cr) => {
         acc.totalInputTokens += cr.tokensInput || 0;
@@ -154,6 +155,19 @@ export class WorkflowStateService {
         acc.totalLinesDeleted += cr.linesDeleted || 0;
         acc.totalLinesModified += cr.linesModified || 0;
         acc.totalCost += cr.cost ? Number(cr.cost) : 0;
+        // ST-263: Aggregate execution metrics
+        acc.totalUserPrompts += cr.userPrompts || 0;
+        acc.totalIterations += cr.systemIterations || 0;
+        acc.totalInterventions += cr.humanInterventions || 0;
+        // ST-263: Aggregate code impact metrics
+        acc.totalLocGenerated += cr.locGenerated || 0;
+        acc.totalTestsAdded += cr.testsAdded || 0;
+        // ST-263: Aggregate cache metrics from costBreakdown
+        const costBreakdown = cr.costBreakdown as any;
+        if (costBreakdown) {
+          acc.totalCacheCreation += costBreakdown.cacheCreation || 0;
+          acc.totalCacheRead += costBreakdown.cacheRead || 0;
+        }
         return acc;
       },
       {
@@ -163,6 +177,13 @@ export class WorkflowStateService {
         totalLinesDeleted: 0,
         totalLinesModified: 0,
         totalCost: 0,
+        totalUserPrompts: 0,
+        totalIterations: 0,
+        totalInterventions: 0,
+        totalLocGenerated: 0,
+        totalTestsAdded: 0,
+        totalCacheCreation: 0,
+        totalCacheRead: 0,
       }
     );
 
@@ -195,25 +216,25 @@ export class WorkflowStateService {
         // ST-27 Token Breakdown
         totalInputTokens: aggregatedMetrics.totalInputTokens,
         totalOutputTokens: aggregatedMetrics.totalOutputTokens,
-        // ST-234: Cache metrics from costBreakdown
-        totalCacheCreation: ((workflowRun as any).costBreakdown as any)?.cacheCreation || 0,
-        totalCacheRead: ((workflowRun as any).costBreakdown as any)?.cacheRead || 0,
+        // ST-234: Cache metrics from costBreakdown - ST-263: Aggregate from componentRuns
+        totalCacheCreation: aggregatedMetrics.totalCacheCreation || ((workflowRun as any).costBreakdown as any)?.cacheCreation || 0,
+        totalCacheRead: aggregatedMetrics.totalCacheRead || ((workflowRun as any).costBreakdown as any)?.cacheRead || 0,
         // Cost Metrics
         totalCost: aggregatedMetrics.totalCost || (workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null),
         costPerLOC,
-        // Code Impact
+        // Code Impact - ST-263: Use aggregated values from componentRuns
         totalLinesAdded: aggregatedMetrics.totalLinesAdded,
         totalLinesDeleted: aggregatedMetrics.totalLinesDeleted,
         totalLinesModified: aggregatedMetrics.totalLinesModified,
-        totalLocGenerated: workflowRun.totalLocGenerated,
-        totalTestsAdded: workflowRun.totalTestsAdded,
+        totalLocGenerated: aggregatedMetrics.totalLocGenerated || workflowRun.totalLocGenerated,
+        totalTestsAdded: aggregatedMetrics.totalTestsAdded || workflowRun.totalTestsAdded,
         // Efficiency Ratios
         tokensPerLOC,
-        // Execution Metrics
+        // Execution Metrics - ST-263: Use aggregated values from componentRuns
         totalDuration: workflowRun.durationSeconds,
-        totalUserPrompts: workflowRun.totalUserPrompts,
-        totalIterations: workflowRun.totalIterations,
-        totalInterventions: workflowRun.totalInterventions,
+        totalUserPrompts: aggregatedMetrics.totalUserPrompts || workflowRun.totalUserPrompts,
+        totalIterations: aggregatedMetrics.totalIterations || workflowRun.totalIterations,
+        totalInterventions: aggregatedMetrics.totalInterventions || workflowRun.totalInterventions,
         componentsCompleted,
         componentsTotal,
         percentComplete,

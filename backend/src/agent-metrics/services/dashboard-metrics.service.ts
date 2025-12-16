@@ -282,15 +282,27 @@ export class DashboardMetricsService {
     );
 
     // Calculate per-workflow metrics
-    const workflowsWithMetrics = allWorkflows.map(wf => {
-      const workflowRuns = allWorkflowRuns.filter(wr => wr.workflowId === wf.id);
+    // ST-263: Query workflow runs WITHOUT restrictive filters to get accurate story counts
+    const workflowsWithMetrics = await Promise.all(allWorkflows.map(async wf => {
+      // Get ALL completed workflow runs for this workflow (no date/complexity filters)
+      const allWorkflowRunsForWorkflow = await this.prisma.workflowRun.findMany({
+        where: {
+          workflowId: wf.id,
+          status: 'completed',
+        },
+        include: {
+          story: true,
+          componentRuns: true,
+        },
+      });
+
       const uniqueStories = new Set(
-        workflowRuns.filter(r => r.story?.type === 'feature').map(r => r.storyId).filter(Boolean)
+        allWorkflowRunsForWorkflow.filter(r => r.story?.type === 'feature').map(r => r.storyId).filter(Boolean)
       ).size;
       const uniqueBugs = new Set(
-        workflowRuns.filter(r => r.story?.type === 'bug' || r.story?.type === 'defect').map(r => r.storyId).filter(Boolean)
+        allWorkflowRunsForWorkflow.filter(r => r.story?.type === 'bug' || r.story?.type === 'defect').map(r => r.storyId).filter(Boolean)
       ).size;
-      const allComponentRuns = workflowRuns.flatMap(r => r.componentRuns);
+      const allComponentRuns = allWorkflowRunsForWorkflow.flatMap(r => r.componentRuns);
 
       const totalTokens = allComponentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0) + (cr.tokensOutput || 0), 0);
       const linesAdded = allComponentRuns.reduce((sum, cr) => sum + (cr.linesAdded || 0), 0);
@@ -307,7 +319,7 @@ export class DashboardMetricsService {
         avgPromptsPerStory: totalWorkItems > 0 ? parseFloat((totalPrompts / totalWorkItems).toFixed(1)) : 0,
         avgTokensPerLOC: totalLOC > 0 ? parseFloat((totalTokens / totalLOC).toFixed(1)) : 0,
       };
-    });
+    }));
 
     return {
       kpis: {
