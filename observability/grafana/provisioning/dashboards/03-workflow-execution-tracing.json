@@ -363,13 +363,13 @@
             "uid": "tempo"
           },
           "limit": 100,
-          "query": "{ .story.id=\"$story_id\" }",
+          "query": "{ .story.key=\"$story_id\" }",
           "queryType": "traceql",
           "refId": "A",
           "tableType": "spans"
         }
       ],
-      "title": "Story-Level Tracing (Filter by story.id)",
+      "title": "Story-Level Tracing (Filter by story key e.g. ST-260)",
       "transformations": [
         {
           "id": "organize",
@@ -379,7 +379,7 @@
             "renameByName": {
               "name": "Operation",
               "duration": "Duration",
-              "story.id": "Story ID",
+              "story.key": "Story Key",
               "workflow.run.id": "Run ID"
             }
           }
@@ -620,6 +620,7 @@
           "value": ""
         },
         "hide": 0,
+        "label": "Story Key (e.g. ST-260)",
         "name": "story_id",
         "options": [
           {

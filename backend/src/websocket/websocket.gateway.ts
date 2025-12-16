@@ -238,6 +238,12 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
       span.setAttribute('workflow.run.id', runId);
       span.setAttribute('project.id', projectId);
       span.setAttribute('event.type', 'workflow:started');
+      if (data.storyId) {
+        span.setAttribute('story.id', data.storyId);
+      }
+      if (data.storyKey) {
+        span.setAttribute('story.key', data.storyKey);
+      }
 
       this.server.emit('workflow:started', { ...data, runId, projectId });
       this.logger.log(`Broadcasted workflow started globally`);
@@ -256,6 +262,12 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
       if (data.status) {
         span.setAttribute('workflow.status', data.status);
       }
+      if (data.storyId) {
+        span.setAttribute('story.id', data.storyId);
+      }
+      if (data.storyKey) {
+        span.setAttribute('story.key', data.storyKey);
+      }
 
       this.server.emit('workflow:status', { ...data, runId, projectId });
       this.logger.log(`Broadcasted workflow status globally`);
@@ -273,6 +285,12 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
       span.setAttribute('event.type', 'component:started');
       if (data.componentId) {
         span.setAttribute('component.id', data.componentId);
+      }
+      if (data.storyId) {
+        span.setAttribute('story.id', data.storyId);
+      }
+      if (data.storyKey) {
+        span.setAttribute('story.key', data.storyKey);
       }
 
       this.server.emit('component:started', { ...data, runId, projectId });
@@ -302,6 +320,12 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
       }
       if (data.status) {
         span.setAttribute('component.status', data.status);
+      }
+      if (data.storyId) {
+        span.setAttribute('story.id', data.storyId);
+      }
+      if (data.storyKey) {
+        span.setAttribute('story.key', data.storyKey);
       }
 
       this.server.emit('component:completed', { ...data, runId, projectId });
