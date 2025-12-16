@@ -197,4 +197,17 @@ export class RemoteAgentController {
     this.validateSecret(secret);
     return this.remoteAgentGateway.getSessionStatus(body.workflowRunId);
   }
+
+  /**
+   * ST-259: Get active agents for Grafana dashboard
+   * GET /api/remote-agent/active
+   * Requires X-Agent-Secret header
+   *
+   * Returns list of active agents with execution state
+   */
+  @Get('active')
+  async getActiveAgents(@Headers('x-agent-secret') secret: string) {
+    this.validateSecret(secret);
+    return this.remoteAgentGateway.getActiveAgents();
+  }
 }

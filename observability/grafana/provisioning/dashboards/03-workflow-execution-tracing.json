@@ -91,7 +91,7 @@
             "uid": "tempo"
           },
           "limit": 200,
-          "query": "{ workflow.run.id=\"$workflow_run_id\" }",
+          "query": "{ .workflow.run.id=\"$workflow_run_id\" }",
           "queryType": "traceql",
           "refId": "A",
           "tableType": "spans"
@@ -363,7 +363,7 @@
             "uid": "tempo"
           },
           "limit": 100,
-          "query": "{ story.id=\"$story_id\" }",
+          "query": "{ .story.id=\"$story_id\" }",
           "queryType": "traceql",
           "refId": "A",
           "tableType": "spans"

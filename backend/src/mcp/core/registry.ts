@@ -12,12 +12,17 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { ToolLoader, ToolModule } from './loader.js';
 import { getActiveProfile, isToolInProfile, ProfileName } from './profiles.js';
+import { TelemetryService } from '../../telemetry/telemetry.service.js';
 
 export class ToolRegistry {
   private loader: ToolLoader;
   private prisma: PrismaClient;
 
-  constructor(serversPath: string, prisma: PrismaClient) {
+  constructor(
+    serversPath: string,
+    prisma: PrismaClient,
+    private readonly telemetry: TelemetryService
+  ) {
     this.loader = new ToolLoader(serversPath);
     this.prisma = prisma;
   }
@@ -64,21 +69,61 @@ export class ToolRegistry {
    *
    * ST-197: Meta tools (search_tools, invoke_tool) receive ToolRegistry
    * instead of PrismaClient for special handling
+   * ST-259: Wrapped with telemetry.withSpan() for distributed tracing
    */
   async executeTool(name: string, params: any): Promise<any> {
-    const toolModule = await this.loader.getToolByName(name);
+    return this.telemetry.withSpan(
+      `mcp.${name}`,
+      async (span) => {
+        const startTime = Date.now();
 
-    if (!toolModule) {
-      throw new Error(`Tool not found: ${name}`);
+        // Add span attributes
+        span.setAttributes({
+          'tool.name': name,
+          'tool.category': await this.getToolCategory(name),
+          'operation.type': 'mcp_tool',
+        });
+
+        try {
+          const toolModule = await this.loader.getToolByName(name);
+          if (!toolModule) {
+            throw new Error(`Tool not found: ${name}`);
+          }
+
+          // Meta tools need registry access
+          let result: any;
+          if (name === 'search_tools' || name === 'invoke_tool') {
+            result = await toolModule.handler(this, params);
+          } else {
+            result = await toolModule.handler(this.prisma, params);
+          }
+
+          const durationMs = Date.now() - startTime;
+          span.setAttribute('duration_ms', durationMs);
+
+          return result;
+        } catch (error) {
+          const durationMs = Date.now() - startTime;
+          span.setAttribute('duration_ms', durationMs);
+          span.setAttribute('error', true);
+          throw error;
+        }
+      },
+      { 'tool.name': name, 'operation.type': 'mcp_tool' }
+    );
+  }
+
+  /**
+   * Get tool category for a given tool name
+   * Used for telemetry attributes
+   */
+  private async getToolCategory(name: string): Promise<string> {
+    try {
+      const toolModule = await this.loader.getToolByName(name);
+      return toolModule?.metadata?.category || 'unknown';
+    } catch {
+      return 'unknown';
     }
-
-    // Meta tools need registry access instead of prisma
-    if (name === 'search_tools' || name === 'invoke_tool') {
-      return toolModule.handler(this, params);
-    }
-
-    // Execute handler with prisma client
-    return toolModule.handler(this.prisma, params);
   }
 
   /**

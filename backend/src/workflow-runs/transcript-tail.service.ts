@@ -20,6 +20,8 @@ import * as chokidar from 'chokidar';
 import { redactSensitiveData } from '../mcp/utils/content-security';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { TranscriptsService } from './transcripts.service';
+import { TelemetryService } from '../telemetry/telemetry.service';
+import { Traced } from '../telemetry/traced.decorator';
 
 /**
  * Allowed base directories for transcript files (whitelist)
@@ -51,6 +53,7 @@ export class TranscriptTailService implements OnModuleDestroy {
   constructor(
     private readonly webSocketGateway: AppWebSocketGateway,
     private readonly transcriptsService: TranscriptsService,
+    private readonly telemetry: TelemetryService,
   ) {}
 
   /**
@@ -59,6 +62,7 @@ export class TranscriptTailService implements OnModuleDestroy {
    * @param componentRunId - Component run identifier
    * @param transcriptPath - Absolute path to transcript file
    */
+  @Traced('transcript_tail.start')
   async startTailing(
     componentRunId: string,
     transcriptPath: string,
@@ -119,6 +123,7 @@ export class TranscriptTailService implements OnModuleDestroy {
    *
    * @param componentRunId - Component run identifier
    */
+  @Traced('transcript_tail.stop')
   async stopTailing(componentRunId: string): Promise<void> {
     const watcher = this.watchers.get(componentRunId);
 
@@ -186,6 +191,7 @@ export class TranscriptTailService implements OnModuleDestroy {
   /**
    * Handle file change event - read new lines and emit to WebSocket
    */
+  @Traced('transcript_tail.file_change')
   private async handleFileChange(
     componentRunId: string,
     transcriptPath: string,
@@ -230,6 +236,7 @@ export class TranscriptTailService implements OnModuleDestroy {
   /**
    * Read new lines from file starting at position
    */
+  @Traced('transcript_tail.read_lines', { 'operation.type': 'file_io' })
   private async readNewLines(
     filePath: string,
     startPosition: number,
@@ -255,7 +262,14 @@ export class TranscriptTailService implements OnModuleDestroy {
         }
       });
 
-      rl.on('close', () => resolve(lines));
+      rl.on('close', () => {
+        // Add span attributes for file I/O metrics
+        this.telemetry.addSpanAttributes({
+          'bytes_read': endPosition - startPosition,
+          'line_count': lines.length,
+        });
+        resolve(lines);
+      });
       rl.on('error', reject);
     });
   }

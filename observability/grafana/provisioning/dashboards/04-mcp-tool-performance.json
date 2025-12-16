@@ -72,12 +72,12 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=\"remote_agent.connect\" }",
+          "query": "{ name=~\"mcp\\..*\" }",
           "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "Remote Agent Connections",
+      "title": "Total MCP Calls",
       "type": "stat"
     },
     {
@@ -97,9 +97,18 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 500
+              },
+              {
+                "color": "red",
+                "value": 1000
               }
             ]
-          }
+          },
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -117,7 +126,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["mean"],
           "fields": ""
         },
         "textMode": "auto"
@@ -130,12 +139,12 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=\"remote_agent.heartbeat\" }",
+          "query": "{ name=~\"mcp\\..*\" } | avg(duration)",
           "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "Agent Heartbeats",
+      "title": "Avg Tool Duration",
       "type": "stat"
     },
     {
@@ -153,11 +162,20 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "yellow",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -188,12 +206,12 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=\"remote_agent.disconnect\" }",
+          "query": "{ name=~\"mcp\\..*\" status=error } / { name=~\"mcp\\..*\" } * 100",
           "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "Agent Disconnections",
+      "title": "Error Rate",
       "type": "stat"
     },
     {
@@ -245,7 +263,8 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -258,8 +277,8 @@
       "id": 4,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -276,91 +295,13 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"remote_agent.*\" }",
+          "query": "{ name=~\"mcp\\..*\" } | by(name)",
           "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "Remote Agent Activity Timeline",
+      "title": "Tool Performance Timeline",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "tempo",
-        "uid": "tempo"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 14
-      },
-      "id": 5,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": ["sum"],
-          "show": false
-        },
-        "showHeader": true
-      },
-      "pluginVersion": "10.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "tempo",
-            "uid": "tempo"
-          },
-          "limit": 100,
-          "query": "{ name=~\"websocket.broadcast.*\" }",
-          "queryType": "traceql",
-          "refId": "A",
-          "tableType": "spans"
-        }
-      ],
-      "title": "Recent WebSocket Broadcasts",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "name": "Event",
-              "event.type": "Type",
-              "workflow.run.id": "Run ID"
-            }
-          }
-        }
-      ],
-      "type": "table"
     },
     {
       "datasource": {
@@ -386,10 +327,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
+        "x": 0,
         "y": 14
       },
-      "id": 6,
+      "id": 5,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -414,18 +355,18 @@
             "uid": "tempo"
           },
           "limit": 20,
-          "query": "{ name=~\"websocket.broadcast.*\" } | by(event.type)",
+          "query": "{ name=~\"mcp\\..*\" } | by(name)",
           "queryType": "traceql",
           "refId": "A"
         }
       ],
-      "title": "WebSocket Event Types Distribution",
+      "title": "Tool Call Distribution",
       "type": "piechart"
     },
     {
       "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "infinity"
+        "type": "tempo",
+        "uid": "tempo"
       },
       "fieldConfig": {
         "defaults": {
@@ -454,55 +395,13 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Status"
+              "options": "Duration"
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
+                "id": "unit",
+                "value": "ms"
               },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "online": {
-                        "color": "green",
-                        "index": 0
-                      }
-                    },
-                    "type": "value"
-                  },
-                  {
-                    "options": {
-                      "offline": {
-                        "color": "red",
-                        "index": 1
-                      }
-                    },
-                    "type": "value"
-                  },
-                  {
-                    "options": {
-                      "busy": {
-                        "color": "yellow",
-                        "index": 2
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Jobs In Flight"
-            },
-            "properties": [
               {
                 "id": "custom.cellOptions",
                 "value": {
@@ -520,15 +419,11 @@
                     },
                     {
                       "color": "yellow",
-                      "value": 1
-                    },
-                    {
-                      "color": "orange",
-                      "value": 3
+                      "value": 500
                     },
                     {
                       "color": "red",
-                      "value": 5
+                      "value": 1000
                     }
                   ]
                 }
@@ -538,12 +433,12 @@
         ]
       },
       "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 22
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
       },
-      "id": 7,
+      "id": 6,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -552,64 +447,138 @@
           "reducer": ["sum"],
           "show": false
         },
-        "showHeader": true
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Duration"
+          }
+        ]
       },
       "pluginVersion": "10.0.0",
       "targets": [
         {
           "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "infinity"
+            "type": "tempo",
+            "uid": "tempo"
           },
-          "format": "table",
-          "global_query_id": "",
+          "limit": 20,
+          "query": "{ name=~\"mcp\\..*\" }",
+          "queryType": "traceql",
           "refId": "A",
-          "root_selector": "",
-          "source": "url",
-          "type": "json",
-          "url": "http://backend:3000/api/remote-agent/active",
-          "url_options": {
-            "data": "",
-            "method": "GET",
-            "headers": [
-              {
-                "key": "X-Agent-Secret",
-                "value": "${AGENT_SECRET}"
-              }
-            ]
-          }
+          "tableType": "spans"
         }
       ],
-      "title": "Active Remote Agents",
+      "title": "Slowest Tools",
       "transformations": [
         {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "id": true
-            },
+            "excludeByName": {},
             "indexByName": {},
             "renameByName": {
-              "hostname": "Hostname",
-              "status": "Status",
-              "capabilities": "Capabilities",
-              "connectedAt": "Connected At",
-              "lastSeenAt": "Last Seen",
-              "currentJobId": "Current Job",
-              "currentJobType": "Job Type",
-              "currentWorkflowRunId": "Workflow Run",
-              "jobsInFlight": "Jobs In Flight"
+              "name": "Tool",
+              "duration": "Duration",
+              "tool.name": "Tool Name",
+              "tool.params": "Parameters"
             }
           }
         }
       ],
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 7,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "limit": 20,
+          "query": "{ name=~\"mcp\\..*\" } | by(.tool.category)",
+          "queryType": "traceql",
+          "refId": "A"
+        }
+      ],
+      "title": "Tool Category Breakdown",
+      "type": "barchart"
     }
   ],
   "refresh": "5s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["aistudio", "websocket", "remote-agent"],
+  "tags": ["aistudio", "mcp", "tools", "performance"],
   "templating": {
     "list": []
   },
@@ -619,8 +588,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "AIStudio - WebSocket & Agent Monitoring",
-  "uid": "aistudio-websocket-agent",
+  "title": "AIStudio - MCP Tool Performance",
+  "uid": "aistudio-mcp-tools",
   "version": 1,
   "weekStart": ""
 }

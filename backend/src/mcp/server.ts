@@ -25,6 +25,7 @@ import {
 import { PrismaClient } from '@prisma/client';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
+import { TelemetryService } from '../telemetry/telemetry.service.js';
 
 // ============================================================================
 // LOGGING UTILITY
@@ -87,9 +88,12 @@ const prisma = new PrismaClient({
   },
 });
 
+// Initialize TelemetryService for tracing (ST-259)
+const telemetry = new TelemetryService();
+
 // Initialize Tool Registry
 const serversPath = path.join(currentDir, 'servers');
-const registry = new ToolRegistry(serversPath, prisma);
+const registry = new ToolRegistry(serversPath, prisma, telemetry);
 
 // Initialize MCP server
 const server = new Server(

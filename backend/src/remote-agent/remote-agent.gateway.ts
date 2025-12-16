@@ -481,6 +481,80 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     });
   }
 
+  /**
+   * ST-259: Get active agents with execution state
+   * Returns agents that are currently online or executing jobs
+   */
+  async getActiveAgents(): Promise<Array<{
+    id: string;
+    hostname: string;
+    status: string;
+    capabilities: string[];
+    connectedAt: Date;
+    lastSeenAt: Date;
+    currentJobId?: string;
+    currentJobType?: string;
+    currentWorkflowRunId?: string;
+    jobsInFlight: number;
+  }>> {
+    // Get all online agents
+    const agents = await this.prisma.remoteAgent.findMany({
+      where: {
+        OR: [
+          { status: 'online' },
+          { currentExecutionId: { not: null } },
+        ],
+      },
+      orderBy: { lastSeenAt: 'desc' },
+    });
+
+    // Enrich with job information
+    const enrichedAgents = await Promise.all(
+      agents.map(async (agent) => {
+        // Count jobs in flight
+        const jobsInFlight = await this.prisma.remoteJob.count({
+          where: {
+            agentId: agent.id,
+            status: { in: ['pending', 'running', 'paused'] },
+          },
+        });
+
+        // Get current job details
+        let currentJobId: string | undefined;
+        let currentJobType: string | undefined;
+        let currentWorkflowRunId: string | undefined;
+
+        if (agent.currentExecutionId) {
+          const currentJob = await this.prisma.remoteJob.findUnique({
+            where: { id: agent.currentExecutionId },
+            select: { id: true, jobType: true, workflowRunId: true },
+          });
+
+          if (currentJob) {
+            currentJobId = currentJob.id;
+            currentJobType = currentJob.jobType;
+            currentWorkflowRunId = currentJob.workflowRunId || undefined;
+          }
+        }
+
+        return {
+          id: agent.id,
+          hostname: agent.hostname,
+          status: agent.status,
+          capabilities: agent.capabilities,
+          connectedAt: agent.createdAt,
+          lastSeenAt: agent.lastSeenAt,
+          currentJobId,
+          currentJobType,
+          currentWorkflowRunId,
+          jobsInFlight,
+        };
+      })
+    );
+
+    return enrichedAgents;
+  }
+
   // ===========================================================================
   // ST-150: Claude Code Agent Execution WebSocket Events
   // ===========================================================================
