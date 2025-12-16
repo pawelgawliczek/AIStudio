@@ -41,23 +41,24 @@ export class KpiHistoryService {
       throw new NotFoundException(`Workflow ${params.workflowId} not found`);
     }
 
-    // Build complexity filter - ensure valid array with values
+    // Build complexity filter - ensure valid array with numeric, non-NaN values
     const complexityFilter: any = {};
-    if (params.businessComplexity &&
-        Array.isArray(params.businessComplexity) &&
-        params.businessComplexity.length === 2 &&
-        params.businessComplexity[0] != null &&
-        params.businessComplexity[1] != null) {
+    const isValidRange = (arr: unknown): arr is [number, number] => {
+      return Array.isArray(arr) &&
+        arr.length === 2 &&
+        typeof arr[0] === 'number' &&
+        typeof arr[1] === 'number' &&
+        !isNaN(arr[0]) &&
+        !isNaN(arr[1]);
+    };
+
+    if (isValidRange(params.businessComplexity)) {
       complexityFilter.businessComplexity = {
         gte: params.businessComplexity[0],
         lte: params.businessComplexity[1],
       };
     }
-    if (params.technicalComplexity &&
-        Array.isArray(params.technicalComplexity) &&
-        params.technicalComplexity.length === 2 &&
-        params.technicalComplexity[0] != null &&
-        params.technicalComplexity[1] != null) {
+    if (isValidRange(params.technicalComplexity)) {
       complexityFilter.technicalComplexity = {
         gte: params.technicalComplexity[0],
         lte: params.technicalComplexity[1],

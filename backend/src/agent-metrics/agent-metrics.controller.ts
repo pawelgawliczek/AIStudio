@@ -192,12 +192,21 @@ export class AgentMetricsController {
       days: days ? Number(days) : undefined,
     };
 
+    // Only set complexity if both min and max are valid numbers (not NaN)
     if (businessComplexityMin !== undefined && businessComplexityMax !== undefined) {
-      params.businessComplexity = [Number(businessComplexityMin), Number(businessComplexityMax)];
+      const min = Number(businessComplexityMin);
+      const max = Number(businessComplexityMax);
+      if (!isNaN(min) && !isNaN(max)) {
+        params.businessComplexity = [min, max];
+      }
     }
 
     if (technicalComplexityMin !== undefined && technicalComplexityMax !== undefined) {
-      params.technicalComplexity = [Number(technicalComplexityMin), Number(technicalComplexityMax)];
+      const min = Number(technicalComplexityMin);
+      const max = Number(technicalComplexityMax);
+      if (!isNaN(min) && !isNaN(max)) {
+        params.technicalComplexity = [min, max];
+      }
     }
 
     return this.kpiHistoryService.getKpiHistory(params);
