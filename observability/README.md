@@ -319,16 +319,16 @@ docker system df -v | grep observability
 # Settings > Dashboards > Export > Save as JSON
 ```
 
-## Phase 1 & 2 Implementation Status
+## Implementation Status
 
-✅ **Phase 1: Shared Observability Infrastructure**
+✅ **Phase 1: Shared Observability Infrastructure (ST-257)**
 - Docker Compose configuration
 - Tempo configuration (7-day retention)
 - Loki configuration (7-day retention)
 - Promtail configuration (Docker log collection)
 - Grafana provisioning (auto-configured data sources)
 
-✅ **Phase 2: Backend Telemetry Module**
+✅ **Phase 2: Backend Telemetry Module (ST-257)**
 - TelemetryModule (Global NestJS module)
 - TelemetryService (OpenTelemetry SDK wrapper)
   - `startSpan()`, `getCurrentTraceId()`, `withSpan()`, `withStoryContext()`
@@ -338,7 +338,54 @@ docker system df -v | grep observability
 - @TracedMCP decorator (MCP tool tracing)
 - OpenTelemetry initialization in main.ts
 
-**Next Steps (Future Stories):**
-- Phase 3: MCP tool instrumentation
-- Phase 4: WebSocket message tracing
-- Phase 5: Grafana dashboards
+✅ **Phase 3: Logger & MCP Instrumentation (ST-258)**
+- TraceId/SpanId injection in WinstonLoggerService
+- Log correlation with traces via `trace_id` field
+
+✅ **Phase 4: WebSocket & Agent Tracing (ST-258)**
+- RemoteAgentGateway instrumentation:
+  - `remote_agent.connect` - Agent connection events
+  - `remote_agent.disconnect` - Agent disconnection with affected jobs/workflows
+  - `remote_agent.heartbeat` - Agent heartbeat monitoring
+- WebSocket broadcast instrumentation:
+  - `websocket.broadcast.workflow_started` - Workflow initiation
+  - `websocket.broadcast.workflow_status` - Workflow status changes
+  - `websocket.broadcast.component_started` - Component execution start
+  - `websocket.broadcast.component_completed` - Component execution end
+
+✅ **Phase 5: Grafana Dashboards (ST-258)**
+- **HTTP & API Overview** - Request duration, status codes, error rates
+- **WebSocket & Agent Monitoring** - Agent connections, heartbeats, broadcast events
+- **Workflow Execution Tracing** - End-to-end workflow spans with story/run filtering
+
+## Dashboards
+
+Access Grafana at http://localhost:3030 (after SSH tunnel: `ssh -L 3030:localhost:3030 hostinger`)
+
+### 1. HTTP & API Overview (`01-http-api-overview.json`)
+- HTTP request duration timeseries
+- Total request count
+- Recent requests table (method, route, status, duration)
+- Status code distribution (pie chart)
+- Error count
+
+### 2. WebSocket & Agent Monitoring (`02-websocket-agent-monitoring.json`)
+- Remote agent connections counter
+- Agent heartbeats counter
+- Agent disconnections counter
+- Agent activity timeline
+- Recent WebSocket broadcasts table
+- Event type distribution (pie chart)
+
+### 3. Workflow Execution Tracing (`03-workflow-execution-tracing.json`)
+- Workflow execution spans table (filter by `workflow.run.id`)
+- Workflow broadcast duration timeseries
+- Component broadcast duration timeseries
+- Story-level tracing table (filter by `story.id`)
+- Workflow errors counter
+- Total workflow runs counter
+- Total component executions counter
+
+**Variables:**
+- `$workflow_run_id` - Filter by specific workflow run
+- `$story_id` - Filter by specific story

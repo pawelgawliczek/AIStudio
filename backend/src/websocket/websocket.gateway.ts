@@ -13,6 +13,7 @@ import {
 import { validate } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelemetryService } from '../telemetry/telemetry.service';
 import { RemoteAgentGateway } from '../remote-agent/remote-agent.gateway';
 import { TranscriptSubscriptionDto } from './dto/transcript-subscription.dto';
 
@@ -52,6 +53,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   constructor(
     private jwtService: JwtService,
     @Inject(PrismaService) private prisma: PrismaService,
+    private telemetry: TelemetryService,
     @Inject(forwardRef(() => RemoteAgentGateway)) private remoteAgentGateway: RemoteAgentGateway,
   ) {}
 
@@ -229,26 +231,53 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
   /**
    * Broadcast workflow run started
+   * ST-258 Phase 4: Add telemetry
    */
   broadcastWorkflowStarted(runId: string, projectId: string, data: any) {
-    this.server.emit('workflow:started', { ...data, runId, projectId });
-    this.logger.log(`Broadcasted workflow started globally`);
+    this.telemetry.withSpan('websocket.broadcast.workflow_started', async (span) => {
+      span.setAttribute('workflow.run.id', runId);
+      span.setAttribute('project.id', projectId);
+      span.setAttribute('event.type', 'workflow:started');
+
+      this.server.emit('workflow:started', { ...data, runId, projectId });
+      this.logger.log(`Broadcasted workflow started globally`);
+    });
   }
 
   /**
    * Broadcast workflow status updated
+   * ST-258 Phase 4: Add telemetry
    */
   broadcastWorkflowStatusUpdated(runId: string, projectId: string, data: any) {
-    this.server.emit('workflow:status', { ...data, runId, projectId });
-    this.logger.log(`Broadcasted workflow status globally`);
+    this.telemetry.withSpan('websocket.broadcast.workflow_status', async (span) => {
+      span.setAttribute('workflow.run.id', runId);
+      span.setAttribute('project.id', projectId);
+      span.setAttribute('event.type', 'workflow:status');
+      if (data.status) {
+        span.setAttribute('workflow.status', data.status);
+      }
+
+      this.server.emit('workflow:status', { ...data, runId, projectId });
+      this.logger.log(`Broadcasted workflow status globally`);
+    });
   }
 
   /**
    * Broadcast component execution started
+   * ST-258 Phase 4: Add telemetry
    */
   broadcastComponentStarted(runId: string, projectId: string, data: any) {
-    this.server.emit('component:started', { ...data, runId, projectId });
-    this.logger.log(`Broadcasted component started globally`);
+    this.telemetry.withSpan('websocket.broadcast.component_started', async (span) => {
+      span.setAttribute('workflow.run.id', runId);
+      span.setAttribute('project.id', projectId);
+      span.setAttribute('event.type', 'component:started');
+      if (data.componentId) {
+        span.setAttribute('component.id', data.componentId);
+      }
+
+      this.server.emit('component:started', { ...data, runId, projectId });
+      this.logger.log(`Broadcasted component started globally`);
+    });
   }
 
   /**
@@ -261,10 +290,23 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
   /**
    * Broadcast component execution completed
+   * ST-258 Phase 4: Add telemetry
    */
   broadcastComponentCompleted(runId: string, projectId: string, data: any) {
-    this.server.emit('component:completed', { ...data, runId, projectId });
-    this.logger.log(`Broadcasted component completed globally`);
+    this.telemetry.withSpan('websocket.broadcast.component_completed', async (span) => {
+      span.setAttribute('workflow.run.id', runId);
+      span.setAttribute('project.id', projectId);
+      span.setAttribute('event.type', 'component:completed');
+      if (data.componentId) {
+        span.setAttribute('component.id', data.componentId);
+      }
+      if (data.status) {
+        span.setAttribute('component.status', data.status);
+      }
+
+      this.server.emit('component:completed', { ...data, runId, projectId });
+      this.logger.log(`Broadcasted component completed globally`);
+    });
   }
 
   /**

@@ -12,6 +12,7 @@ import {
 import * as jwt from 'jsonwebtoken';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
+import { TelemetryService } from '../telemetry/telemetry.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { StreamEventService } from './stream-event.service';
 import { TranscriptRegistrationService } from './transcript-registration.service';
@@ -145,6 +146,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     private readonly jwtService: JwtService,
     private readonly streamEventService: StreamEventService,
     private readonly transcriptRegistrationService: TranscriptRegistrationService,
+    private readonly telemetry: TelemetryService,
     @Inject(forwardRef(() => AppWebSocketGateway))
     private readonly appWebSocketGateway: AppWebSocketGateway,
   ) {}
@@ -163,12 +165,18 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   /**
    * Handle agent connection
    * Agents must register before they can receive jobs
+   * ST-258 Phase 4: Add telemetry
    */
   async handleConnection(client: Socket) {
-    this.logger.log(`Agent connecting: ${client.id}`);
+    await this.telemetry.withSpan('remote_agent.connect', async (span) => {
+      span.setAttribute('socket.id', client.id);
+      span.setAttribute('remote.address', client.handshake.address);
 
-    // Don't authenticate here - wait for registration event with pre-shared secret
-    // This allows agents to establish connection before proving identity
+      this.logger.log(`Agent connecting: ${client.id}`);
+
+      // Don't authenticate here - wait for registration event with pre-shared secret
+      // This allows agents to establish connection before proving identity
+    });
   }
 
   /**
@@ -176,42 +184,56 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
    * Mark agent as offline in database
    * ST-150: Also handle running Claude Code jobs (grace period)
    * ST-150: Emit workflow:paused event for frontend notification
+   * ST-258 Phase 4: Add telemetry
    */
   async handleDisconnect(client: Socket) {
-    this.logger.log(`Agent disconnected: ${client.id}`);
-    const { agentId } = client.data;
+    await this.telemetry.withSpan('remote_agent.disconnect', async (span) => {
+      span.setAttribute('socket.id', client.id);
+      const { agentId } = client.data;
 
-    // Find agent by socket ID and mark offline
-    try {
-      await this.prisma.remoteAgent.updateMany({
-        where: { socketId: client.id },
-        data: {
-          status: 'offline',
-          socketId: null,
-          lastSeenAt: new Date(),
-          currentExecutionId: null,
-        },
-      });
+      if (agentId) {
+        span.setAttribute('agent.id', agentId);
+      }
 
-      // ST-150: Handle running Claude Code jobs if agent was executing
-      if (agentId && this.disconnectHandler) {
-        const result = await this.disconnectHandler(agentId);
+      this.logger.log(`Agent disconnected: ${client.id}`);
 
-        // ST-150: Emit workflow:paused event for each affected workflow
-        if (result && result.workflowRunIds) {
-          for (const workflowRunId of result.workflowRunIds) {
-            this.server.emit(`workflow:${workflowRunId}:paused`, {
-              reason: 'offline',
-              agentId,
-              timestamp: new Date().toISOString(),
-            });
-            this.logger.log(`Emitted workflow:${workflowRunId}:paused (agent offline)`);
+      // Find agent by socket ID and mark offline
+      try {
+        await this.prisma.remoteAgent.updateMany({
+          where: { socketId: client.id },
+          data: {
+            status: 'offline',
+            socketId: null,
+            lastSeenAt: new Date(),
+            currentExecutionId: null,
+          },
+        });
+
+        // ST-150: Handle running Claude Code jobs if agent was executing
+        if (agentId && this.disconnectHandler) {
+          const result = await this.disconnectHandler(agentId);
+
+          span.setAttribute('affected.job_count', result.jobIds?.length || 0);
+          span.setAttribute('affected.workflow_count', result.workflowRunIds?.length || 0);
+
+          // ST-150: Emit workflow:paused event for each affected workflow
+          if (result && result.workflowRunIds) {
+            for (const workflowRunId of result.workflowRunIds) {
+              this.server.emit(`workflow:${workflowRunId}:paused`, {
+                reason: 'offline',
+                agentId,
+                timestamp: new Date().toISOString(),
+              });
+              this.logger.log(`Emitted workflow:${workflowRunId}:paused (agent offline)`);
+            }
           }
         }
+      } catch (error) {
+        this.logger.error(`Failed to mark agent offline: ${error.message}`);
+        span.recordException(error as Error);
+        throw error;
       }
-    } catch (error) {
-      this.logger.error(`Failed to mark agent offline: ${error.message}`);
-    }
+    });
   }
 
   /**
@@ -331,26 +353,35 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
   /**
    * Agent heartbeat to maintain online status
+   * ST-258 Phase 4: Add telemetry
    *
    * @event agent:heartbeat
    */
   @SubscribeMessage('agent:heartbeat')
   async handleAgentHeartbeat(@ConnectedSocket() client: Socket) {
-    const { agentId } = client.data;
+    await this.telemetry.withSpan('remote_agent.heartbeat', async (span) => {
+      const { agentId } = client.data;
 
-    if (!agentId) {
-      client.emit('agent:error', { error: 'Not registered' });
-      return;
-    }
+      if (!agentId) {
+        span.setAttribute('error', 'not_registered');
+        client.emit('agent:error', { error: 'Not registered' });
+        return;
+      }
 
-    try {
-      await this.prisma.remoteAgent.update({
-        where: { id: agentId },
-        data: { lastSeenAt: new Date() },
-      });
-    } catch (error) {
-      this.logger.error(`Heartbeat update failed: ${error.message}`);
-    }
+      span.setAttribute('agent.id', agentId);
+      span.setAttribute('socket.id', client.id);
+
+      try {
+        await this.prisma.remoteAgent.update({
+          where: { id: agentId },
+          data: { lastSeenAt: new Date() },
+        });
+      } catch (error) {
+        this.logger.error(`Heartbeat update failed: ${error.message}`);
+        span.recordException(error as Error);
+        throw error;
+      }
+    });
   }
 
   /**

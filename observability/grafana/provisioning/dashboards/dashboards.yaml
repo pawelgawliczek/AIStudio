@@ -1,0 +1,15 @@
+# ST-258 Phase 5: Grafana Dashboard Provisioning
+# Automatically loads dashboards from the dashboards directory
+
+apiVersion: 1
+
+providers:
+  - name: 'AIStudio Dashboards'
+    orgId: 1
+    folder: 'AIStudio'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

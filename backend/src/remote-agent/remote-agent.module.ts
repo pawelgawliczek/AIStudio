@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { setRemoteExecutionService } from '../mcp/servers/git/git_utils';
 import { PrismaModule } from '../prisma/prisma.module';
+import { TelemetryModule } from '../telemetry/telemetry.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { OrphanDetectorService } from './orphan-detector.service';
 import { RemoteAgentController } from './remote-agent.controller';
@@ -14,6 +15,7 @@ import { TranscriptRegistrationService } from './transcript-registration.service
 /**
  * ST-133: Remote Agent Module
  * ST-150: Claude Code Agent Execution
+ * ST-258: Distributed Tracing Phase 4
  *
  * Provides remote script and Claude Code agent execution via WebSocket-connected agents.
  * Used for executing transcript parsing scripts and dispatching Claude Code agents
@@ -25,10 +27,12 @@ import { TranscriptRegistrationService } from './transcript-registration.service
  * - Claude Code agent execution service
  * - Stream event storage for observability
  * - Orphan job detection (stale jobs, expired grace periods)
+ * - Distributed tracing for agent lifecycle events
  */
 @Module({
   imports: [
     PrismaModule,
+    TelemetryModule, // ST-258: Add telemetry support
     ScheduleModule.forRoot(), // Required for @Cron decorators
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'development-secret-change-in-production',

@@ -1,5 +1,6 @@
 import { Injectable, LoggerService } from '@nestjs/common';
 import * as winston from 'winston';
+import * as api from '@opentelemetry/api';
 
 @Injectable()
 export class WinstonLoggerService implements LoggerService {
@@ -13,14 +14,25 @@ export class WinstonLoggerService implements LoggerService {
         winston.format.errors({ stack: true }),
         winston.format.splat(),
         winston.format.json(),
+        // ST-258 Phase 3: Add traceId to all log entries
+        winston.format((info) => {
+          const span = api.trace.getActiveSpan();
+          if (span) {
+            const spanContext = span.spanContext();
+            info.trace_id = spanContext.traceId;
+            info.span_id = spanContext.spanId;
+          }
+          return info;
+        })(),
       ),
       defaultMeta: { service: 'aistudio-backend' },
       transports: [
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.printf(({ timestamp, level, message, context, trace }) => {
-              return `${timestamp} [${context || 'Application'}] ${level}: ${message}${
+            winston.format.printf(({ timestamp, level, message, context, trace, trace_id }) => {
+              const traceInfo = trace_id ? ` [trace_id=${trace_id}]` : '';
+              return `${timestamp} [${context || 'Application'}] ${level}: ${message}${traceInfo}${
                 trace ? `\n${trace}` : ''
               }`;
             }),
