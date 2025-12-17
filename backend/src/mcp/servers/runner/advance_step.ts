@@ -596,6 +596,13 @@ function buildAdvanceResponse(
           const componentModel = (config.modelId as string) || 'claude-sonnet-4-20250514';
           const componentTools = (currentState.component.tools as string[]) || [];
 
+          // ST-273: Derive allowed subagent types from component name
+          // "Explorer" → ["Explore"], others → ["general-purpose"]
+          const componentName = currentState.component.name;
+          const allowedSubagentTypes = componentName.toLowerCase().includes('explorer')
+            ? ['Explore']
+            : ['general-purpose'];
+
           instructions = {
             type: 'agent_spawn',
             content: `Spawn the ${currentState.component.name} agent with model: ${componentModel}`,
@@ -607,6 +614,11 @@ function buildAdvanceResponse(
               inputInstructions: currentState.component.inputInstructions || undefined,
               operationInstructions: currentState.component.operationInstructions || undefined,
               outputInstructions: currentState.component.outputInstructions || undefined,
+            },
+            // ST-273: Enforcement data for hooks
+            enforcement: {
+              allowedSubagentTypes,
+              requiredComponentName: componentName,
             },
           };
         }
@@ -677,6 +689,22 @@ function buildAdvanceResponse(
     warnings: agentTracking?.warning
       ? { agentTracking: agentTracking.warning }
       : undefined,
+
+    // ST-273: Enforcement data for hooks
+    enforcement: workflowComplete ? {
+      workflowActive: false,
+      workflowComplete: true,
+    } : {
+      workflowActive: true,
+      runId: run.id,
+      currentState: currentState ? {
+        id: currentState.id,
+        name: currentState.name,
+        phase: checkpoint.currentPhase,
+        componentName: currentState.component?.name || null,
+        allowedSubagentTypes: (instructions as any)?.enforcement?.allowedSubagentTypes || null,
+      } : null,
+    },
 
     message: workflowComplete
       ? 'Workflow completed successfully.'

@@ -40,10 +40,11 @@ if [ -z "$SESSION_ID" ]; then
 fi
 
 # Extract workflow run details from tool response
-RUN_ID=$(echo "$INPUT" | jq -r '.tool_response.runId // empty')
-WORKFLOW_ID=$(echo "$INPUT" | jq -r '.tool_response.workflowId // empty')
-STORY_ID=$(echo "$INPUT" | jq -r '.tool_response.context.storyId // empty')
-STORY_KEY=$(echo "$INPUT" | jq -r '.tool_response.context.storyKey // .tool_response.story.key // empty')
+# Note: tool_response is an ARRAY, so we need [0]
+RUN_ID=$(echo "$INPUT" | jq -r '.tool_response[0].runId // empty')
+WORKFLOW_ID=$(echo "$INPUT" | jq -r '.tool_response[0].workflowId // empty')
+STORY_ID=$(echo "$INPUT" | jq -r '.tool_response[0].context.storyId // empty')
+STORY_KEY=$(echo "$INPUT" | jq -r '.tool_response[0].context.storyKey // .tool_response[0].story.key // empty')
 
 echo "RUN_ID: $RUN_ID" >> "$DEBUG_LOG"
 echo "WORKFLOW_ID: $WORKFLOW_ID" >> "$DEBUG_LOG"

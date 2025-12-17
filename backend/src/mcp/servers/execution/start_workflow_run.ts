@@ -438,6 +438,21 @@ export async function handler(prisma: PrismaClient, params: any) {
       sessionId: params.sessionId || null,
       transcriptDirectory,
     },
+    // ST-273: Enforcement data for hooks - workflow is now active
+    enforcement: {
+      workflowActive: true,
+      runId: workflowRun.id,
+      sessionId: params.sessionId || null,
+      // First state enforcement data
+      currentState: firstState ? {
+        id: firstState.id,
+        name: firstState.name,
+        componentName: firstState.component?.name || null,
+        allowedSubagentTypes: firstState.component?.name?.toLowerCase().includes('explorer')
+          ? ['Explore']
+          : firstState.component ? ['general-purpose'] : null,
+      } : null,
+    },
     message: `Workflow "${workflow.name}" started. Run ID: ${workflowRun.id}. Use componentMap to resolve names to UUIDs.`,
   };
 }

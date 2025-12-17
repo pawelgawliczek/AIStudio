@@ -402,6 +402,12 @@ export async function handler(prisma: PrismaClient, params: {
           currentState.component.outputInstructions ? `## Output\n${currentState.component.outputInstructions}` : '',
         ].filter(Boolean).join('\n\n');
 
+        // ST-273: Derive allowed subagent types from component name
+        // "Explorer" → ["Explore"], others → ["general-purpose"]
+        const allowedSubagentTypes = componentName.toLowerCase().includes('explorer')
+          ? ['Explore']
+          : ['general-purpose'];
+
         instructions = {
           type: 'agent_spawn',
           content: `Spawn the ${componentName} agent with the following instructions.`,
@@ -413,6 +419,11 @@ export async function handler(prisma: PrismaClient, params: {
             inputInstructions: currentState.component.inputInstructions || undefined,
             operationInstructions: currentState.component.operationInstructions || undefined,
             outputInstructions: currentState.component.outputInstructions || undefined,
+          },
+          // ST-273: Enforcement data for hooks
+          enforcement: {
+            allowedSubagentTypes,
+            requiredComponentName: componentName,
           },
         };
 
