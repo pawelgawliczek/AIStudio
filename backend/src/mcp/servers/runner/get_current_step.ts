@@ -109,6 +109,11 @@ interface StepInstructions {
     operationInstructions?: string;
     outputInstructions?: string;
   };
+  // ST-273: Enforcement data for hooks
+  enforcement?: {
+    allowedSubagentTypes: string[];
+    requiredComponentName: string;
+  };
 }
 
 interface NextAction {
