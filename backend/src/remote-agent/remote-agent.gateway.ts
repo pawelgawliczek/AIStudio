@@ -352,6 +352,15 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   }
 
   /**
+   * ST-281: Health check ping from agent
+   * Used to verify connection is actually working after hibernation wake
+   */
+  @SubscribeMessage('agent:ping')
+  handleAgentPing(@ConnectedSocket() client: Socket): { pong: boolean; timestamp: number } {
+    return { pong: true, timestamp: Date.now() };
+  }
+
+  /**
    * Agent heartbeat to maintain online status
    * ST-258 Phase 4: Add telemetry
    *
