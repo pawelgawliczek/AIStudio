@@ -1,8 +1,8 @@
 # Live Streaming Architecture
 
-**Version:** 1.2
-**Last Updated:** 2025-12-15
-**Epic:** ST-220, ST-242, ST-247
+**Version:** 1.3
+**Last Updated:** 2025-12-17
+**Epic:** ST-220, ST-242, ST-247, ST-279
 
 ## Table of Contents
 
@@ -11,11 +11,12 @@
 3. [Execution Modes Comparison](#execution-modes-comparison)
 4. [WebSocket Events Reference](#websocket-events-reference)
 5. [Transcript Tracking Lifecycle](#transcript-tracking-lifecycle)
-6. [Agent Tracking Patterns](#agent-tracking-patterns)
-7. [Telemetry Collection](#telemetry-collection)
-8. [Frontend Components](#frontend-components)
-9. [Security](#security)
-10. [Troubleshooting Guide](#troubleshooting-guide)
+6. [TranscriptWatcher (Laptop Daemon)](#transcriptwatcher-laptop-daemon)
+7. [Agent Tracking Patterns](#agent-tracking-patterns)
+8. [Telemetry Collection](#telemetry-collection)
+9. [Frontend Components](#frontend-components)
+10. [Security](#security)
+11. [Troubleshooting Guide](#troubleshooting-guide)
 
 ---
 
@@ -650,6 +651,146 @@ The `advance_step` function syncs spawned agent transcripts from the laptop's `r
 
 ---
 
+## TranscriptWatcher (Laptop Daemon)
+
+The TranscriptWatcher is a file-watching daemon running on the developer's laptop that automatically detects new transcript files and notifies the backend via WebSocket.
+
+**Location:** `laptop-agent/src/transcript-watcher.ts`
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Laptop (Developer Machine)                                       │
+│                                                                   │
+│  ~/.claude/projects/                                              │
+│   └─ -Users-pawelgawliczek-projects-AIStudio/                    │
+│       ├─ 37717a7b-fc99-...jsonl  ← Master session (UUID)         │
+│       ├─ agent-a1b2c3d.jsonl     ← Agent transcript (hex ID)     │
+│       └─ agent-e4f5g6h.jsonl     ← Another agent                 │
+│                                                                   │
+│  TranscriptWatcher (chokidar)                                    │
+│   │                                                               │
+│   ├─ Watches: ~/.claude/projects/**/*.jsonl                      │
+│   ├─ Depth: 2 levels                                             │
+│   └─ Pattern matching:                                           │
+│       • agent-{6-16 hex}.jsonl → Agent transcript                │
+│       • {uuid}.jsonl → Master session                            │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ WebSocket: agent:transcript_detected
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Backend (KVM Server)                                             │
+│                                                                   │
+│  RemoteAgentGateway                                              │
+│   │                                                               │
+│   ├─ Receives: { agentId, transcriptPath, projectPath, metadata }│
+│   ├─ Matches to WorkflowRun via sessionId                        │
+│   └─ Enables live streaming                                      │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### File Pattern Matching
+
+TranscriptWatcher distinguishes between two types of transcripts:
+
+| Pattern | Regex | Type | Example |
+|---------|-------|------|---------|
+| Agent transcript | `/^agent-([a-f0-9]{6,16})\.jsonl$/` | Spawned agent | `agent-a1b2c3d.jsonl` |
+| Master session | `/^([a-f0-9-]{36})\.jsonl$/` | Orchestrator | `37717a7b-fc99-4347-aa5e-eacebe34db70.jsonl` |
+
+**Key Insight (ST-276):** Claude Code hooks cannot distinguish between orchestrator and spawned agents because they share the same `session_id`. However, TranscriptWatcher CAN distinguish them by filename pattern - agent transcripts use short hex IDs while master sessions use full UUIDs.
+
+### Caching & Throttling (ST-267)
+
+To prevent flooding the backend on startup (when hundreds of transcript files exist):
+
+```typescript
+// Configuration
+const BATCH_SIZE = 5;           // Max transcripts per batch
+const BATCH_DELAY_MS = 500;     // Delay between batches
+const CACHE_FILE = '~/.vibestudio/synced-transcripts.json';
+
+// Persistent cache structure
+{
+  "syncedPaths": ["/path/to/transcript1.jsonl", ...],
+  "lastUpdated": "2025-12-17T10:00:00Z"
+}
+```
+
+**Startup Flow:**
+1. Load persistent cache from `~/.vibestudio/synced-transcripts.json`
+2. Start chokidar with `ignoreInitial: true`
+3. Perform throttled initial scan (batch of 5, 500ms delay)
+4. Skip already-synced files from cache
+5. Queue new files for processing
+
+### WebSocket Events
+
+**Emitted to Backend:**
+
+```typescript
+// Agent transcript detected
+socket.emit('agent:transcript_detected', {
+  agentId: 'a1b2c3d',           // Hex ID from filename (null for master)
+  transcriptPath: '/Users/.../agent-a1b2c3d.jsonl',
+  projectPath: '/Users/pawelgawliczek/projects/AIStudio',
+  metadata: { /* first line of JSONL parsed */ }
+});
+
+// Master session detected
+socket.emit('agent:transcript_detected', {
+  agentId: null,                // Null indicates master session
+  transcriptPath: '/Users/.../37717a7b-fc99-4347-aa5e-eacebe34db70.jsonl',
+  projectPath: '/Users/pawelgawliczek/projects/AIStudio',
+  metadata: { /* first line of JSONL parsed */ }
+});
+```
+
+### Integration with Workflow Enforcement
+
+TranscriptWatcher is separate from the Claude Code hooks but complements them:
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **TranscriptWatcher** | Laptop daemon | Detects new transcripts, enables live streaming |
+| **Enforcement hooks** | `.claude/hooks/` | Block orchestrator edits, validate agent spawning |
+| **running-workflows.json** | `.claude/` | Track active workflows and spawned agents |
+
+**Flow:**
+1. Workflow starts → `running-workflows.json` updated
+2. Agent spawns → `enforce-agent-spawn.sh` sets `.agent-active.json` flag
+3. Agent writes transcript → TranscriptWatcher detects `agent-*.jsonl`
+4. TranscriptWatcher notifies backend → Live streaming enabled
+5. Agent completes → `track-agents.sh` clears flag
+
+### Troubleshooting
+
+**Transcript not detected:**
+```bash
+# Check TranscriptWatcher logs
+tail -f ~/.vibestudio/agent.log | grep -i transcript
+
+# Verify file pattern
+ls ~/.claude/projects/*/*.jsonl | head -5
+
+# Check cache
+cat ~/.vibestudio/synced-transcripts.json | jq '.syncedPaths | length'
+```
+
+**Clear cache to force re-sync:**
+```bash
+rm ~/.vibestudio/synced-transcripts.json
+# Restart laptop agent
+launchctl unload ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist
+launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plist
+```
+
+---
+
 ## Agent Tracking Patterns
 
 ### ComponentRun Lifecycle
@@ -1070,6 +1211,15 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
 ---
 
 ## Changelog
+
+### Version 1.3 (2025-12-17)
+- **ST-279**: Living Documentation System - integrated this architecture doc into core docs
+- Added detailed TranscriptWatcher (Laptop Daemon) section with:
+  - File pattern matching (agent-{hex} vs UUID)
+  - Caching & throttling (ST-267)
+  - WebSocket events
+  - Integration with workflow enforcement hooks
+- Updated Table of Contents with new section
 
 ### Version 1.2 (2025-12-15)
 - **ST-247**: Fixed metadata path in `advance_step.ts` - now reads from `_transcriptTracking.projectPath` instead of `metadata.cwd`
