@@ -90,9 +90,10 @@ export class ToolRegistry {
         });
 
         try {
-          console.error(`[DEBUG] executeTool looking up: ${name}`);
+          const fs = require('fs');
+          fs.appendFileSync('/tmp/mcp-debug.log', `[DEBUG] executeTool looking up: ${name}\n`);
           const toolModule = await this.loader.getToolByName(name);
-          console.error(`[DEBUG] executeTool found: ${toolModule ? toolModule.tool.name : 'null'}`);
+          fs.appendFileSync('/tmp/mcp-debug.log', `[DEBUG] executeTool found: ${toolModule ? toolModule.tool.name : 'null'}\n`);
           if (!toolModule) {
             throw new Error(`Tool not found: ${name}`);
           }
