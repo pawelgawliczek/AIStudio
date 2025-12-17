@@ -91,6 +91,9 @@ const prisma = new PrismaClient({
 // Initialize TelemetryService for tracing (ST-259)
 const telemetry = new TelemetryService();
 
+// DEBUG: Write startup marker to verify code version
+require('fs').writeFileSync('/tmp/mcp-startup-marker.txt', `MCP Server started at ${new Date().toISOString()} with code version: DEBUG-2\n`, { flag: 'a' });
+
 // Initialize Tool Registry
 const serversPath = path.join(currentDir, 'servers');
 const registry = new ToolRegistry(serversPath, prisma, telemetry);
