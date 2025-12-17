@@ -5,10 +5,9 @@
  * 1. Poll TestQueue for pending items (priority DESC, createdAt ASC)
  * 2. Check queue lock status (skip if locked during migrations)
  * 3. Acquire distributed lock (ensures single worker instance)
- * 4. Deploy story to test environment
- * 5. Execute automated tests
- * 6. Update queue entry status and results
- * 7. Unlock queue if breaking migration was applied
+ * 4. Execute automated tests
+ * 5. Update queue entry status and results
+ * 6. Unlock queue if breaking migration was applied
  *
  * Features:
  * - Distributed locking via Redis (prevents concurrent processing)
@@ -261,31 +260,20 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       // Update status to 'running'
       await this.updateQueueStatus(item.id, 'running', {});
 
-      this.logger.log(`[${item.story.key}] Deploying to test environment...`);
-
-      // Call deploy_to_test_env
-      const deployResponse = await this.mcpClient.deployToTestEnv(item.storyId);
-
-      if (!deployResponse.success) {
-        throw new Error(`Deployment failed: ${deployResponse.message}`);
-      }
-
-      this.logger.log(`[${item.story.key}] Deployment successful, running tests...`);
+      this.logger.log(`[${item.story.key}] Running tests...`);
 
       // Call run_tests
       const testResponse = await this.mcpClient.runTests(item.storyId, 'all');
 
       // Check if breaking migration was applied
-      const hasBreakingMigration =
-        deployResponse.migrationDetails?.isBreaking ||
-        testResponse.testResults.migrationInfo?.isBreaking;
+      const hasBreakingMigration = testResponse.testResults.migrationInfo?.isBreaking;
 
       // If breaking migration, unlock queue
-      if (hasBreakingMigration && deployResponse.migrationDetails?.lockId) {
+      if (hasBreakingMigration) {
         this.logger.log(
-          `[${item.story.key}] Breaking migration detected - unlocking queue (lockId: ${deployResponse.migrationDetails.lockId})`
+          `[${item.story.key}] Breaking migration detected - unlocking queue`
         );
-        await this.mcpClient.unlockTestQueue(deployResponse.migrationDetails.lockId);
+        await this.mcpClient.unlockTestQueue();
       }
 
       // Update queue entry with final status

@@ -21,7 +21,7 @@ export const tool: Tool = {
     properties: {
       toolName: {
         type: 'string',
-        description: 'Name of the tool to invoke (e.g., "deploy_to_production", "run_backup")',
+        description: 'Name of the tool to invoke (e.g., "run_backup")',
       },
       params: {
         type: 'object',

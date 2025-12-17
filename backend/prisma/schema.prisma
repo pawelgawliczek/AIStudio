@@ -195,8 +195,6 @@ model Story {
   worktrees         Worktree[]
   testQueueEntries  TestQueue[]
   pullRequests      PullRequest[]
-  deploymentLocks   DeploymentLock[]
-  deploymentLogs    DeploymentLog[]
   artifacts         Artifact[] // ST-214: Story-scoped artifacts
 
   @@unique([projectId, key])
@@ -1423,82 +1421,6 @@ enum StoryPhase {
 // PRODUCTION DEPLOYMENT SAFETY (Epic EP-7 - ST-84)
 // ============================================================================
 
-// DeploymentLock - Production deployment locking (only 1 deploy at a time)
-model DeploymentLock {
-  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  storyId    String?   @map("story_id") @db.Uuid
-  prNumber   Int?      @map("pr_number")
-  reason     String
-  lockedBy   String    @map("locked_by") // user/agent identifier
-  lockedAt   DateTime  @default(now()) @map("locked_at")
-  expiresAt  DateTime  @map("expires_at")
-  releasedAt DateTime? @map("released_at")
-  active     Boolean   @default(true)
-  metadata   Json?     // deployment context (commitHash, branch, etc.)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  story Story? @relation(fields: [storyId], references: [id], onDelete: SetNull)
-
-  @@index([active, expiresAt])
-  @@index([storyId])
-  @@map("deployment_locks")
-}
-
-// DeploymentLog - Production deployment audit log
-model DeploymentLog {
-  id             String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  storyId        String?          @map("story_id") @db.Uuid
-  prNumber       Int?             @map("pr_number")
-  deploymentId   String?          @map("deployment_id") @db.Uuid // FK to DeploymentLock
-  status         DeploymentStatus @default(pending)
-  environment    String           // 'production', 'staging'
-  branch         String?
-  commitHash     String?          @map("commit_hash")
-  approvedBy     String?          @map("approved_by") // GitHub username or manual approver
-  approvedAt     DateTime?        @map("approved_at")
-  deployedBy     String?          @map("deployed_by") // Agent/user identifier
-  deployedAt     DateTime?        @map("deployed_at")
-  completedAt    DateTime?        @map("completed_at")
-  errorMessage   String?          @map("error_message") @db.Text
-  logs           String?          @db.Text // Full Docker build/deploy logs
-  metadata       Json?            // Deployment details
-
-  // ST-84: Approval method tracking (PR vs manual)
-  approvalMethod String?          @map("approval_method") // 'PR' | 'MANUAL'
-
-  // ST-268: Async deployment tracking
-  currentPhase       String?   @map("current_phase")
-  progress           Json?
-  childProcessPid    Int?      @map("child_process_pid")
-  lastHeartbeat      DateTime? @map("last_heartbeat")
-
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-
-  // Relations
-  story Story? @relation(fields: [storyId], references: [id], onDelete: SetNull)
-
-  // Indexes for audit queries
-  @@index([status, createdAt])
-  @@index([storyId, status])
-  @@index([prNumber])
-  @@index([environment, status])
-  @@index([createdAt]) // Time-series queries
-  @@map("deployment_logs")
-}
-
-enum DeploymentStatus {
-  pending // Awaiting approval or validation
-  approved // PR approved, awaiting deployment execution
-  queued // ST-268: Queued for async execution
-  deploying // Deployment in progress
-  deployed // Successfully deployed
-  failed // Deployment failed (before or during execution)
-  rolled_back // Deployment rolled back after failure
-}
-
 enum BreakpointPosition {
   before // Pause before state execution
   after // Pause after state execution
@@ -1526,23 +1448,6 @@ enum ReExecutionMode {
   artifact_edit      // Continue after manual artifact edits
   both               // Both feedback injection and artifact edits
   none               // Just continue (approved without changes)
-}
-
-// ServiceDeploymentState - Track last deployed commit per service (ST-115 Build Optimization)
-// Used for intelligent change detection to skip rebuilds when service hasn't changed
-model ServiceDeploymentState {
-  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  service            String   @unique // 'backend' | 'frontend'
-  lastDeployedCommit String   @map("last_deployed_commit") // Git commit hash (40 char SHA)
-  lastDeployedAt     DateTime @map("last_deployed_at")
-  filesChanged       String[] @map("files_changed") // List of files in last deployment
-  metadata           Json?    // Additional deployment info (build duration, etc.)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  @@index([service])
-  @@index([lastDeployedAt])
-  @@map("service_deployment_states")
 }
 
 // ============================================================================

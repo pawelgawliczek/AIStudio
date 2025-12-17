@@ -11,7 +11,6 @@ import {
   CodeBracketIcon,
   CogIcon,
 } from '@heroicons/react/24/outline';
-import { DashboardDeploymentsWidget } from '../components/DashboardDeploymentsWidget';
 import { DashboardBackupsWidget } from '../components/DashboardBackupsWidget';
 
 interface DashboardStats {
@@ -354,10 +353,7 @@ export function DashboardPage() {
           </div>
 
           {/* Widgets Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Recent Deployments Widget */}
-            <DashboardDeploymentsWidget />
-
+          <div className="grid grid-cols-1 gap-6 mb-6">
             {/* Backups Widget */}
             <DashboardBackupsWidget />
           </div>

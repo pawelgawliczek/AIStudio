@@ -8,7 +8,6 @@ import { CodeMetricsModule } from './code-metrics/code-metrics.module';
 import { CommitsModule } from './commits/commits.module';
 import { ComponentsModule } from './components/components.module'; // New Generic Component pattern
 import { CoordinatorsModule } from './coordinators/coordinators.module';
-import { DeploymentsModule } from './deployments/deployments.module';
 import { DocsModule } from './docs/docs.module';
 import { EpicsModule } from './epics/epics.module';
 import { HealthController } from './health.controller';
@@ -65,7 +64,6 @@ import { WorkflowsModule } from './workflows/workflows.module';
     WorkersModule,
     QueueProcessorModule, // Queue processor background worker
     DiskMonitorModule, // Disk space monitoring and alerting (ST-54)
-    DeploymentsModule, // Deployment history API (ST-127)
     BackupsModule, // Backup management API (ST-130)
     InternalModule, // Internal API for MCP handlers (ST-129)
     // LayersModule, // Removed - layers deprecated

@@ -129,7 +129,6 @@ export function Layout() {
                       label="DevOps"
                       icon="⚙️"
                       items={[
-                        { label: 'Deployments', icon: '🚀', path: '/deployments' },
                         { label: 'Test Executions', icon: '🧪', path: '/test-executions' },
                         { label: 'Backups', icon: '💾', path: '/backups' },
                       ]}
@@ -265,7 +264,6 @@ export function Layout() {
                                 label="DevOps"
                                 icon="⚙️"
                                 items={[
-                                  { label: 'Deployments', icon: '🚀', path: '/deployments' },
                                   { label: 'Test Executions', icon: '🧪', path: '/test-executions' },
                                   { label: 'Backups', icon: '💾', path: '/backups' },
                                 ]}

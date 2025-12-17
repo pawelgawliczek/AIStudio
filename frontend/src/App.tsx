@@ -20,7 +20,6 @@ import { WorkflowResultsView } from './pages/WorkflowResultsView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { PerformanceDashboard } from './pages/PerformanceDashboard';
 import CodeQualityDashboard from './pages/CodeQualityDashboard';
-import { DeploymentHistoryPage } from './pages/DeploymentHistoryPage';
 import { BackupsPage } from './pages/BackupsPage';
 import { TestExecutionHistoryPage } from './pages/TestExecutionHistoryPage';
 import { TestExecutionDetailPage } from './pages/TestExecutionDetailPage';
@@ -73,7 +72,6 @@ function AppContent() {
               <Route path="team-runs/:runId/monitor" element={<WorkflowExecutionMonitor />} />
               <Route path="analytics/performance" element={<PerformanceDashboard />} />
               <Route path="analytics/team-details" element={<TeamDetailsPage />} />
-              <Route path="deployments" element={<DeploymentHistoryPage />} />
               <Route path="test-executions" element={<TestExecutionHistoryPage />} />
               <Route path="test-executions/:id" element={<TestExecutionDetailPage />} />
               <Route path="backups" element={<BackupsPage />} />

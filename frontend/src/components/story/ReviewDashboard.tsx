@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ImplementationSummaryCard } from './ImplementationSummaryCard';
 import { QAStatusSection, QAStatus } from './QAStatusSection';
-import { DeployToTestControl, DeploymentStatus } from './DeployToTestControl';
 import { ConcernsGapsPanel } from './ConcernsGapsPanel';
 import { ScreenshotGallery, ScreenshotCategory } from './ScreenshotGallery';
 import { useWebSocket } from '../../services/websocket.service';
@@ -24,48 +23,18 @@ interface Commit {
 interface ReviewDashboardProps {
   story: Story;
   commits?: Commit[];
-  onDeployToTest?: () => Promise<void>;
   onQAStatusChange?: (status: QAStatus) => Promise<void>;
-}
-
-interface DeploymentProgress {
-  currentStep: number;
-  steps: Array<{
-    name: string;
-    status: 'pending' | 'running' | 'completed' | 'failed';
-    duration?: number;
-  }>;
-}
-
-interface QueuePosition {
-  position: number;
-  total: number;
-  estimatedWaitMinutes?: number;
 }
 
 export function ReviewDashboard({
   story,
   commits = [],
-  onDeployToTest,
   onQAStatusChange,
 }: ReviewDashboardProps) {
-  // Deployment state
-  const [deploymentStatus, setDeploymentStatus] = useState<DeploymentStatus>('idle');
-  const [queuePosition, setQueuePosition] = useState<QueuePosition | undefined>();
-  const [deploymentProgress, setDeploymentProgress] = useState<DeploymentProgress | undefined>();
-  const [deploymentResult, setDeploymentResult] = useState<{
-    testUrl?: string;
-    duration: number;
-    testsPassed?: number;
-    testsFailed?: number;
-    errorMessage?: string;
-  } | undefined>();
-
   // QA state from story metadata
   const storyMetadata = (story as any).metadata;
   const qaMetadata = storyMetadata?.qaStatus;
   const concernsAnalysis = storyMetadata?.concernsAnalysis;
-  const deploymentMetadata = storyMetadata?.deployment;
 
   // Screenshots from artifacts (mock data for now)
   const [screenshots, setScreenshots] = useState<Array<{
@@ -76,115 +45,6 @@ export function ReviewDashboard({
     uploadedBy?: string;
     uploadedAt: string;
   }>>([]);
-
-  // WebSocket listeners for real-time updates
-  const { socket } = useWebSocket();
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleQueuePositionUpdate = (event: any) => {
-      if (event.storyId === story.id) {
-        setQueuePosition({
-          position: event.position,
-          total: event.queueLength,
-          estimatedWaitMinutes: event.estimatedWaitMinutes,
-        });
-      }
-    };
-
-    const handleDeploymentProgress = (event: any) => {
-      if (event.storyId === story.id) {
-        setDeploymentStatus('deploying');
-        setDeploymentProgress({
-          currentStep: event.stepIndex,
-          steps: event.steps || [
-            { name: 'Schema Detection', status: event.stepIndex > 0 ? 'completed' : event.stepIndex === 0 ? 'running' : 'pending' },
-            { name: 'Dependencies', status: event.stepIndex > 1 ? 'completed' : event.stepIndex === 1 ? 'running' : 'pending' },
-            { name: 'Docker Build', status: event.stepIndex > 2 ? 'completed' : event.stepIndex === 2 ? 'running' : 'pending' },
-            { name: 'Migration', status: event.stepIndex > 3 ? 'completed' : event.stepIndex === 3 ? 'running' : 'pending' },
-            { name: 'Health Check', status: event.stepIndex > 4 ? 'completed' : event.stepIndex === 4 ? 'running' : 'pending' },
-            { name: 'Test Init', status: event.stepIndex > 5 ? 'completed' : event.stepIndex === 5 ? 'running' : 'pending' },
-          ],
-        });
-      }
-    };
-
-    const handleDeploymentCompleted = (event: any) => {
-      if (event.storyId === story.id) {
-        setDeploymentStatus(event.success ? 'success' : 'failed');
-        setDeploymentResult({
-          testUrl: event.testUrl,
-          duration: event.duration,
-          testsPassed: event.testResults?.passed,
-          testsFailed: event.testResults?.failed,
-          errorMessage: event.errorMessage,
-        });
-        setQueuePosition(undefined);
-        setDeploymentProgress(undefined);
-      }
-    };
-
-    socket.on('story:queue:position-updated', handleQueuePositionUpdate);
-    socket.on('story:deployment:progress', handleDeploymentProgress);
-    socket.on('story:deployment:completed', handleDeploymentCompleted);
-
-    return () => {
-      socket.off('story:queue:position-updated', handleQueuePositionUpdate);
-      socket.off('story:deployment:progress', handleDeploymentProgress);
-      socket.off('story:deployment:completed', handleDeploymentCompleted);
-    };
-  }, [socket, story.id]);
-
-  // Initialize from story metadata
-  useEffect(() => {
-    if (deploymentMetadata?.lastDeployment) {
-      const last = deploymentMetadata.lastDeployment;
-      if (last.status === 'success' || last.status === 'failed') {
-        setDeploymentStatus(last.status);
-        setDeploymentResult({
-          testUrl: last.testUrl,
-          duration: last.duration,
-          testsPassed: last.testsPassed,
-          testsFailed: last.testsFailed,
-          errorMessage: last.errorMessage,
-        });
-      }
-    }
-  }, [deploymentMetadata]);
-
-  const handleDeploy = useCallback(async () => {
-    setDeploymentStatus('queued');
-    setQueuePosition({ position: 1, total: 1, estimatedWaitMinutes: 5 });
-    try {
-      await onDeployToTest?.();
-    } catch (error) {
-      setDeploymentStatus('failed');
-      setDeploymentResult({
-        duration: 0,
-        errorMessage: error instanceof Error ? error.message : 'Deployment failed',
-      });
-    }
-  }, [onDeployToTest]);
-
-  const handleCancel = useCallback(() => {
-    setDeploymentStatus('idle');
-    setQueuePosition(undefined);
-    setDeploymentProgress(undefined);
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    setDeploymentStatus('idle');
-    setDeploymentResult(undefined);
-    handleDeploy();
-  }, [handleDeploy]);
-
-  // Determine disabled reason for deploy button
-  const getDisabledReason = (): string | undefined => {
-    if (commits.length === 0) return 'No commits yet - push changes first';
-    // Add more checks as needed
-    return undefined;
-  };
 
   return (
     <div className="space-y-6">
@@ -229,21 +89,8 @@ export function ReviewDashboard({
           />
         </div>
 
-        {/* Right Column - Deploy & Concerns */}
+        {/* Right Column - Concerns */}
         <div className="space-y-6">
-          <DeployToTestControl
-            storyId={story.id}
-            status={deploymentStatus}
-            queuePosition={queuePosition}
-            deploymentProgress={deploymentProgress}
-            deploymentResult={deploymentResult}
-            deploymentHistory={deploymentMetadata?.deploymentHistory || []}
-            disabledReason={getDisabledReason()}
-            onDeploy={handleDeploy}
-            onCancel={handleCancel}
-            onRetry={handleRetry}
-          />
-
           <ConcernsGapsPanel
             riskScore={concernsAnalysis?.riskScore || 0}
             riskFactors={concernsAnalysis?.factors}
@@ -265,8 +112,6 @@ export function ReviewDashboard({
 export { ImplementationSummaryCard } from './ImplementationSummaryCard';
 export { QAStatusSection } from './QAStatusSection';
 export type { QAStatus } from './QAStatusSection';
-export { DeployToTestControl } from './DeployToTestControl';
-export type { DeploymentStatus } from './DeployToTestControl';
 export { ConcernsGapsPanel } from './ConcernsGapsPanel';
 export { ScreenshotGallery } from './ScreenshotGallery';
 export type { ScreenshotCategory } from './ScreenshotGallery';

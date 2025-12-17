@@ -10,7 +10,6 @@ import { StoryTraceabilityTabs } from '../components/story/StoryTraceabilityTabs
 import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
 import { ReviewDashboard } from '../components/story/ReviewDashboard';
 import { StoryDetailTabs } from '../components/story/StoryDetailTabs';
-import { StoryDeploymentsTab } from '../components/story/StoryDeploymentsTab';
 import { StandardStateList, useWorkflowRun, WorkflowControlPanel, StartWorkflowModal } from '../components/workflow-viz';
 import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
 import { StoryStatus } from '../types';
@@ -531,10 +530,6 @@ export function StoryDetailPage() {
                 <ReviewDashboard
                   story={story}
                   commits={(story as any).commits || []}
-                  onDeployToTest={async () => {
-                    console.log('Deploy to test triggered for story:', story.key);
-                    // MCP tool call would happen here via backend API
-                  }}
                   onQAStatusChange={async (status) => {
                     console.log('QA status changed to:', status);
                     // Update story metadata via API
@@ -543,9 +538,6 @@ export function StoryDetailPage() {
               </div>
             )}
           </>
-        }
-        deploymentsContent={
-          story?.id && <StoryDeploymentsTab storyId={story.id} />
         }
       />
 

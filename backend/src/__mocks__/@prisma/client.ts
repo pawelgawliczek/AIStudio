@@ -23,14 +23,6 @@ export const RunStatus = {
   cancelled: 'cancelled',
 } as const;
 
-export const DeploymentStatus = {
-  pending: 'pending',
-  building: 'building',
-  deploying: 'deploying',
-  success: 'success',
-  failed: 'failed',
-  rolled_back: 'rolled_back',
-} as const;
 
 export const UserRole = {
   admin: 'admin',
@@ -164,11 +156,8 @@ export class PrismaClient {
   run = createMockModel();
   runnerBreakpoint = createMockModel();
 
-  // Deployment models
-  deploymentLog = createMockModel();
-  deploymentLock = createMockModel();
+  // Worktree model
   worktree = createMockModel();
-  serviceDeploymentState = createMockModel();
 
   // User/Auth models
   user = createMockModel();
@@ -375,11 +364,8 @@ export function resetAllMocks(): void {
     // Run models
     prismaMock.run,
     prismaMock.runnerBreakpoint,
-    // Deployment models
-    prismaMock.deploymentLog,
-    prismaMock.deploymentLock,
+    // Worktree model
     prismaMock.worktree,
-    prismaMock.serviceDeploymentState,
     // User/Auth models
     prismaMock.user,
     prismaMock.apiKey,

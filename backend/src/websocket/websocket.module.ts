@@ -3,8 +3,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RemoteAgentModule } from '../remote-agent/remote-agent.module';
 import { TelemetryModule } from '../telemetry/telemetry.module';
-import { DeploymentLockService } from '../services/deployment-lock.service';
-import { OrphanDeploymentDetectorService } from '../workers/orphan-deployment-detector.service';
 import { AppWebSocketGateway } from './websocket.gateway';
 
 @Module({
@@ -20,8 +18,6 @@ import { AppWebSocketGateway } from './websocket.gateway';
   ],
   providers: [
     AppWebSocketGateway,
-    DeploymentLockService, // ST-268: For orphan detector
-    OrphanDeploymentDetectorService, // ST-268: Orphan deployment cleanup
   ],
   exports: [AppWebSocketGateway],
 })

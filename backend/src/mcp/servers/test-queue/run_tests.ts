@@ -537,7 +537,7 @@ export async function handler(
 
   if (!entry) {
     throw new NotFoundError('TestQueue', params.storyId, {
-      message: 'No running test queue entry found. Deploy first using deploy_to_test_env.',
+      message: 'No running test queue entry found.',
     });
   }
 

@@ -23,11 +23,11 @@
 
 | Category | Items |
 |----------|-------|
-| **Protected** (approval required) | `deploy_to_production`, `git push`, Dockerfile, docker-compose.yml, package.json, schema.prisma |
+| **Protected** (approval required) | `git push`, Dockerfile, docker-compose.yml, package.json, schema.prisma, `/deploy-backend`, `/deploy-frontend` |
 | **Blocked** (denied) | `docker compose build/up`, `npm install/build`, `prisma db push --accept-data-loss` |
-| **Free** (no prompts) | All code edits, git commit/add/branch, all MCP tools (except deploy_to_production), tests |
+| **Free** (no prompts) | All code edits, git commit/add/branch, all MCP tools, tests |
 
-Typical workflow has 2 prompts: git push + deploy_to_production.
+Typical workflow has 2 prompts: git push + deployment slash command.
 
 ---
 
@@ -35,13 +35,14 @@ Typical workflow has 2 prompts: git push + deploy_to_production.
 
 | Action | Method | Notes |
 |--------|--------|-------|
-| Deploy production | `deploy_to_production` MCP | `confirmDeploy: true` required |
-| Deploy test | `deploy_to_test_env` MCP | - |
+| Deploy backend | `/deploy-backend` slash command | SSH to Hostinger, pull changes, rebuild backend |
+| Deploy frontend | `/deploy-frontend` slash command | SSH to Hostinger, pull changes, rebuild frontend |
 | Local rebuild | `docker compose build --no-cache` | Local dev only, not for prod |
 
-**Deployment modes:**
-- **PR mode:** Story in qa/done status + PR approved & merged
-- **Direct commit mode:** Story in qa/done status + `approve_deployment` tool first (valid 60 min)
+**Deployment process:**
+1. Ensure changes are committed and pushed to main
+2. Use `/deploy-backend` or `/deploy-frontend` slash commands
+3. Commands handle SSH connection, git pull, Docker rebuild, and health checks
 
 **Never use:** `npm run build`, `npm install`, direct Docker commands for production.
 

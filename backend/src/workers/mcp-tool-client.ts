@@ -13,21 +13,6 @@ import { PrismaClient } from '@prisma/client';
 // Response Types
 // ============================================================================
 
-export interface DeployToTestEnvResponse {
-  success: boolean;
-  storyKey: string;
-  branchName: string;
-  duration: number;
-  migrationDetails?: {
-    lockAcquired: boolean;
-    lockId?: string;
-    migrationsApplied: number;
-    isBreaking?: boolean;
-  };
-  warnings?: string[];
-  message: string;
-}
-
 export interface TestResults {
   testType: 'unit' | 'integration' | 'e2e' | 'all';
   success: boolean;
@@ -80,40 +65,6 @@ export class McpToolClient {
     logger?: Logger
   ) {
     this.logger = logger || new Logger(McpToolClient.name);
-  }
-
-  /**
-   * Deploy story branch to test environment
-   *
-   * Orchestrates safe deployment including:
-   * - Conflict detection
-   * - Schema migration execution with queue locking
-   * - Dependency installation
-   * - Docker rebuild and health checks
-   *
-   * @param storyId - Story UUID
-   * @returns DeployToTestEnvResponse
-   * @throws Error if deployment fails
-   */
-  async deployToTestEnv(storyId: string): Promise<DeployToTestEnvResponse> {
-    this.logger.log(`[McpToolClient] Calling deploy_to_test_env for story ${storyId}`);
-
-    try {
-      const { handler } = await import('../mcp/servers/deployment/deploy_to_test_env.js');
-      const response = await handler(this.prisma, { storyId });
-
-      this.logger.log(
-        `[McpToolClient] deploy_to_test_env completed - success: ${response.success}`
-      );
-
-      return response as DeployToTestEnvResponse;
-    } catch (error: any) {
-      this.logger.error(
-        `[McpToolClient] deploy_to_test_env failed: ${error.message}`,
-        error.stack
-      );
-      throw error;
-    }
   }
 
   /**

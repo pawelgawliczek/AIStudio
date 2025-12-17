@@ -64,8 +64,8 @@ export function mcpError(message: string, data?: Record<string, unknown>): void 
  * Create a scoped logger with a prefix
  *
  * Usage:
- *   const log = createMcpLogger('deploy_to_production');
- *   log.info('Starting deployment');
+ *   const log = createMcpLogger('run_tests');
+ *   log.info('Starting test execution');
  *   log.debug('Validation passed', { storyId });
  */
 export function createMcpLogger(scope: string) {
