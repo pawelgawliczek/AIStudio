@@ -788,4 +788,255 @@ describe('Agent Tracking - ST-265 (userPrompts & Code Impact)', () => {
       // Should not attempt git diff without story/worktree
     });
   });
+
+  // ST-278: Tests for startCommitHash tracking
+  describe('ST-278: startCommitHash Tracking for Accurate LOC', () => {
+    it('should call git rev-parse HEAD and store startCommitHash when starting agent', async () => {
+      const mockComponentRun = {
+        id: uuidv4(),
+        workflowRunId: testRunId,
+        componentId: testComponentId,
+        status: 'running',
+        startedAt: new Date(),
+        metadata: { startCommitHash: 'abc123def456' },
+      };
+
+      (prisma.workflowRun.findUnique as jest.Mock).mockResolvedValue({
+        id: testRunId,
+        status: 'running',
+        storyId: testStoryId,
+        metadata: {},
+      });
+      (prisma.worktree.findFirst as jest.Mock).mockResolvedValue({
+        worktreePath: '/opt/stack/worktrees/st-278',
+      });
+      (prisma.component.findUnique as jest.Mock).mockResolvedValue({
+        id: testComponentId,
+        name: 'Implementer',
+      });
+      (prisma.componentRun.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.componentRun.create as jest.Mock).mockResolvedValue(mockComponentRun);
+      (prisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
+
+      // Mock git rev-parse HEAD returning commit hash
+      mockRemoteRunner.execute.mockResolvedValueOnce({
+        executed: true,
+        success: true,
+        result: {
+          stdout: 'abc123def456\n',
+          stderr: '',
+          exitCode: 0,
+          command: 'git',
+        },
+      });
+
+      // THIS TEST WILL FAIL - startAgentTracking doesn't capture startCommitHash yet
+      const result = await startAgentTracking(prisma as any, {
+        runId: testRunId,
+        componentId: testComponentId,
+      });
+
+      expect(result.success).toBe(true);
+
+      // Verify git rev-parse HEAD was called
+      expect(mockRemoteRunner.execute).toHaveBeenCalledWith(
+        'exec-command',
+        expect.arrayContaining([
+          '--command=git rev-parse HEAD',
+          '--cwd=/opt/stack/worktrees/st-278',
+        ]),
+        expect.objectContaining({
+          requestedBy: 'startAgentTracking',
+        })
+      );
+
+      // Verify ComponentRun was created with startCommitHash in metadata
+      expect(prisma.componentRun.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          metadata: expect.objectContaining({
+            startCommitHash: 'abc123def456',
+          }),
+        }),
+      });
+    });
+
+    it('should use startCommitHash for git diff when completing agent', async () => {
+      const mockComponentRun = {
+        id: uuidv4(),
+        workflowRunId: testRunId,
+        componentId: testComponentId,
+        status: 'running',
+        startedAt: new Date(Date.now() - 30000),
+        metadata: { startCommitHash: 'start-commit-hash' },
+      };
+
+      (prisma.componentRun.findFirst as jest.Mock).mockResolvedValue(mockComponentRun);
+      (prisma.component.findUnique as jest.Mock).mockResolvedValue({
+        id: testComponentId,
+        name: 'Implementer',
+      });
+      (prisma.workflowRun.findUnique as jest.Mock)
+        .mockResolvedValueOnce({
+          id: testRunId,
+          storyId: testStoryId,
+          metadata: {},
+        })
+        .mockResolvedValueOnce({
+          id: testRunId,
+          storyId: testStoryId,
+          metadata: {},
+        });
+      (prisma.worktree.findFirst as jest.Mock).mockResolvedValue({
+        worktreePath: '/opt/stack/worktrees/st-278',
+      });
+      (prisma.componentRun.update as jest.Mock).mockResolvedValue(mockComponentRun);
+      (prisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
+
+      // Mock git diff using startCommitHash
+      mockRemoteRunner.execute.mockResolvedValueOnce({
+        executed: true,
+        success: true,
+        result: {
+          stdout: '50\t10\tsrc/test.ts\n',
+          stderr: '',
+        },
+      });
+
+      // THIS TEST WILL FAIL - completeAgentTracking doesn't use startCommitHash yet
+      const result = await completeAgentTracking(prisma as any, {
+        runId: testRunId,
+        componentId: testComponentId,
+        output: { status: 'done' },
+      });
+
+      expect(result.success).toBe(true);
+
+      // Verify git diff was called with startCommitHash...HEAD
+      expect(mockRemoteRunner.execute).toHaveBeenCalledWith(
+        'exec-command',
+        expect.arrayContaining([
+          '--command=git diff start-commit-hash...HEAD --numstat',
+          '--cwd=/opt/stack/worktrees/st-278',
+        ]),
+        expect.any(Object)
+      );
+
+      // Verify code impact metrics were calculated
+      expect(prisma.componentRun.update).toHaveBeenCalledWith({
+        where: { id: mockComponentRun.id },
+        data: expect.objectContaining({
+          linesAdded: 50,
+          linesDeleted: 10,
+          filesModified: ['src/test.ts'],
+        }),
+      });
+    });
+
+    it('should fallback to main...HEAD when startCommitHash is null', async () => {
+      const mockComponentRun = {
+        id: uuidv4(),
+        workflowRunId: testRunId,
+        componentId: testComponentId,
+        status: 'running',
+        startedAt: new Date(Date.now() - 30000),
+        metadata: {}, // No startCommitHash
+      };
+
+      (prisma.componentRun.findFirst as jest.Mock).mockResolvedValue(mockComponentRun);
+      (prisma.component.findUnique as jest.Mock).mockResolvedValue({
+        id: testComponentId,
+        name: 'Implementer',
+      });
+      (prisma.workflowRun.findUnique as jest.Mock)
+        .mockResolvedValueOnce({
+          id: testRunId,
+          storyId: testStoryId,
+          metadata: {},
+        })
+        .mockResolvedValueOnce({
+          id: testRunId,
+          storyId: testStoryId,
+          metadata: {},
+        });
+      (prisma.worktree.findFirst as jest.Mock).mockResolvedValue({
+        worktreePath: '/opt/stack/worktrees/st-278',
+      });
+      (prisma.componentRun.update as jest.Mock).mockResolvedValue(mockComponentRun);
+      (prisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
+
+      mockRemoteRunner.execute.mockResolvedValueOnce({
+        executed: true,
+        success: true,
+        result: {
+          stdout: '25\t5\tsrc/test.ts\n',
+          stderr: '',
+        },
+      });
+
+      // THIS TEST WILL FAIL - completeAgentTracking doesn't implement fallback yet
+      const result = await completeAgentTracking(prisma as any, {
+        runId: testRunId,
+        componentId: testComponentId,
+        output: { status: 'done' },
+      });
+
+      expect(result.success).toBe(true);
+
+      // Should fallback to main...HEAD when no startCommitHash
+      expect(mockRemoteRunner.execute).toHaveBeenCalledWith(
+        'exec-command',
+        expect.arrayContaining([
+          '--command=git diff main...HEAD --numstat',
+        ]),
+        expect.any(Object)
+      );
+    });
+
+    it('should handle git rev-parse failure gracefully when starting agent', async () => {
+      (prisma.workflowRun.findUnique as jest.Mock).mockResolvedValue({
+        id: testRunId,
+        status: 'running',
+        storyId: testStoryId,
+        metadata: {},
+      });
+      (prisma.worktree.findFirst as jest.Mock).mockResolvedValue({
+        worktreePath: '/opt/stack/worktrees/st-278',
+      });
+      (prisma.component.findUnique as jest.Mock).mockResolvedValue({
+        id: testComponentId,
+        name: 'Implementer',
+      });
+      (prisma.componentRun.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.componentRun.create as jest.Mock).mockResolvedValue({
+        id: uuidv4(),
+        executionOrder: 1,
+        startedAt: new Date(),
+      });
+      (prisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
+
+      // Mock git rev-parse failure
+      mockRemoteRunner.execute.mockRejectedValueOnce(
+        new Error('Not a git repository')
+      );
+
+      // THIS TEST WILL FAIL - startAgentTracking doesn't handle git failure yet
+      const result = await startAgentTracking(prisma as any, {
+        runId: testRunId,
+        componentId: testComponentId,
+      });
+
+      // Should still succeed without startCommitHash
+      expect(result.success).toBe(true);
+      expect(result.warning).toContain('Failed to capture start commit hash');
+
+      // ComponentRun should be created without startCommitHash
+      expect(prisma.componentRun.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          metadata: expect.not.objectContaining({
+            startCommitHash: expect.any(String),
+          }),
+        }),
+      });
+    });
+  });
 });
