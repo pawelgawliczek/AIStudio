@@ -143,41 +143,26 @@ export class BuildDecisionService {
 
   /**
    * Get last deployed commit for a service
+   * Note: ServiceDeploymentState was removed in ST-273. This now returns null.
+   * Build decisions will always build both services when no history is available.
    */
-  async getLastDeployedCommit(service: 'backend' | 'frontend'): Promise<string | null> {
-    const state = await this.prisma.serviceDeploymentState.findUnique({
-      where: { service },
-    });
-    return state?.lastDeployedCommit ?? null;
+  async getLastDeployedCommit(_service: 'backend' | 'frontend'): Promise<string | null> {
+    // ServiceDeploymentState table removed - always return null
+    return null;
   }
 
   /**
    * Update deployment state after successful deploy
+   * Note: ServiceDeploymentState was removed in ST-273. This is now a no-op.
    */
   async recordDeployment(
-    service: 'backend' | 'frontend',
-    commitHash: string,
-    filesChanged: string[] = [],
-    metadata?: Record<string, any>
+    _service: 'backend' | 'frontend',
+    _commitHash: string,
+    _filesChanged: string[] = [],
+    _metadata?: Record<string, any>
   ): Promise<void> {
-    console.log(`[BuildDecisionService] Recording deployment for ${service} at ${commitHash.substring(0, 7)}`);
-
-    await this.prisma.serviceDeploymentState.upsert({
-      where: { service },
-      update: {
-        lastDeployedCommit: commitHash,
-        lastDeployedAt: new Date(),
-        filesChanged,
-        metadata: metadata ?? {},
-      },
-      create: {
-        service,
-        lastDeployedCommit: commitHash,
-        lastDeployedAt: new Date(),
-        filesChanged,
-        metadata: metadata ?? {},
-      },
-    });
+    // ServiceDeploymentState table removed - no-op
+    console.log(`[BuildDecisionService] recordDeployment is no-op (ST-273)`);
   }
 
   /**

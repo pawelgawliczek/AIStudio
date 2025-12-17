@@ -35,8 +35,8 @@ IS_ORCHESTRATOR=$(jq -r --arg sid "$SESSION_ID" '
   .sessions[$sid].runId != null
 ' "$WORKFLOWS_FILE" 2>/dev/null || echo "false")
 
-# DEBUG: Log session info to understand spawned agent behavior
-echo "$(date): TOOL=$TOOL_NAME SESSION_ID=$SESSION_ID IS_ORCHESTRATOR=$IS_ORCHESTRATOR" >> /tmp/enforce-no-edit-debug.log
+# DEBUG: Log full input to see all available fields
+echo "$(date): INPUT=$INPUT" >> /tmp/enforce-no-edit-debug.log
 
 # If NOT orchestrator (spawned agent), ALWAYS allow Edit/Write
 if [ "$IS_ORCHESTRATOR" != "true" ]; then
