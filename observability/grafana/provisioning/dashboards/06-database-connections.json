@@ -69,7 +69,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
-          "fields": "pool_utilization total"
+          "fields": ""
         },
         "textMode": "auto"
       },
@@ -83,7 +83,10 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "pool_utilization",
+          "root_selector": "",
+          "columns": [
+            {"selector": "pool_utilization.total", "text": "total", "type": "number"}
+          ],
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -143,7 +146,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
-          "fields": "pool_utilization active"
+          "fields": ""
         },
         "textMode": "auto"
       },
@@ -157,7 +160,10 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "pool_utilization",
+          "root_selector": "",
+          "columns": [
+            {"selector": "pool_utilization.active", "text": "active", "type": "number"}
+          ],
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -209,7 +215,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
-          "fields": "pool_utilization idle"
+          "fields": ""
         },
         "textMode": "auto"
       },
@@ -223,7 +229,10 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "pool_utilization",
+          "root_selector": "",
+          "columns": [
+            {"selector": "pool_utilization.idle", "text": "idle", "type": "number"}
+          ],
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -286,7 +295,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
-          "fields": "pool_utilization utilization_percent"
+          "fields": ""
         },
         "showThresholdLabels": false,
         "showThresholdMarkers": true
@@ -301,7 +310,10 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "pool_utilization",
+          "root_selector": "",
+          "columns": [
+            {"selector": "pool_utilization.utilization_percent", "text": "utilization_percent", "type": "number"}
+          ],
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -421,7 +433,7 @@
           }
         }
       ],
-      "type": "timeseries"
+      "type": "barchart"
     },
     {
       "datasource": {
@@ -720,7 +732,7 @@
         "reduceOptions": {
           "values": false,
           "calcs": ["lastNotNull"],
-          "fields": "oldest_connection_age_seconds"
+          "fields": ""
         },
         "textMode": "auto"
       },
@@ -735,6 +747,9 @@
           "global_query_id": "",
           "refId": "A",
           "root_selector": "",
+          "columns": [
+            {"selector": "oldest_connection_age_seconds", "text": "oldest_connection_age_seconds", "type": "number"}
+          ],
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
