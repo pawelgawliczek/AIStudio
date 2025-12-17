@@ -1,5 +1,6 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
+import * as os from 'os';
 
 /**
  * Script Execution Module
@@ -7,6 +8,19 @@ import * as path from 'path';
  * Executes approved scripts with whitelisted parameters.
  * Uses ts-node to run TypeScript scripts directly.
  */
+
+/**
+ * Shell-escape an argument for safe use in shell commands.
+ * Wraps arguments containing spaces or special characters in single quotes.
+ */
+function shellEscape(arg: string): string {
+  // If arg contains spaces or shell special characters, wrap in single quotes
+  // and escape any single quotes within
+  if (/[\s'"\\\$`!&|;<>(){}[\]*?~]/.test(arg)) {
+    return `'${arg.replace(/'/g, "'\\''")}'`;
+  }
+  return arg;
+}
 
 export interface ScriptResult {
   success: boolean;
@@ -28,23 +42,30 @@ export async function executeScript(
   projectPath: string,
   scriptName: string,
   params: string[],
-  timeout: number = 30000,
+  timeout: number = 60000,
 ): Promise<ScriptResult> {
   const scriptPath = path.join(projectPath, 'scripts', `${scriptName}.ts`);
 
   return new Promise((resolve) => {
     const args = [scriptPath, ...params];
 
-    console.log(`Executing: npx tsx ${args.join(' ')}`);
+    // Build shell command with properly escaped arguments
+    // This ensures arguments with spaces (like --command=git rev-parse HEAD) are preserved
+    const escapedArgs = args.map(shellEscape);
+    const shellCommand = `npx tsx ${escapedArgs.join(' ')}`;
 
-    const proc = childProcess.spawn('npx', ['tsx', ...args], {
+    const startTime = Date.now();
+    console.log(`[scripts] Executing: ${shellCommand}`);
+
+    const proc = childProcess.spawn(shellCommand, [], {
       cwd: projectPath,
       timeout,
       shell: true, // Use shell to resolve npx in PATH
       env: {
         ...process.env,
-        // Add nvm node path for launchd context
-        PATH: `${process.env.HOME}/.nvm/versions/node/v20.17.0/bin:${process.env.PATH}`,
+        // Add nvm node path for launchd context (use os.homedir() for reliability in daemon context)
+        HOME: os.homedir(),
+        PATH: `${os.homedir()}/.nvm/versions/node/v20.17.0/bin:${process.env.PATH || '/usr/bin:/bin'}`,
         // Ensure we can access project dependencies
         NODE_PATH: path.join(projectPath, 'node_modules'),
       },
@@ -62,6 +83,8 @@ export async function executeScript(
     });
 
     proc.on('close', (code) => {
+      const elapsed = Date.now() - startTime;
+      console.log(`[scripts] Process exited with code ${code} after ${elapsed}ms`);
       if (code === 0) {
         // Try to parse stdout as JSON
         try {
@@ -82,9 +105,10 @@ export async function executeScript(
           });
         }
       } else {
+        console.error(`[scripts] Script failed with code ${code}. stderr: ${stderr.substring(0, 500)}`);
         resolve({
           success: false,
-          error: `Script exited with code ${code}`,
+          error: `Script exited with code ${code}: ${stderr.substring(0, 200)}`,
           stdout,
           stderr,
         });

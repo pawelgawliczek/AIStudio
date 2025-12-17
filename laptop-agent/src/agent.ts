@@ -394,11 +394,32 @@ export class RemoteAgent {
     try {
       console.log(`Executing: ${script} ${params.join(' ')}`);
 
+      // Fast path for exec-command: run git directly instead of through tsx
+      if (script === 'exec-command') {
+        const result = await this.executeGitCommandDirectly(params);
+        if (result.success) {
+          this.socket!.emit('agent:result', {
+            jobId: id,
+            status: 'completed',
+            result: result.result,
+          });
+          console.log(`Job ${id} completed successfully (direct git)`);
+        } else {
+          this.socket!.emit('agent:result', {
+            jobId: id,
+            status: 'failed',
+            error: result.error,
+          });
+          console.error(`Job ${id} failed: ${result.error}`);
+        }
+        return;
+      }
+
       const result = await executeScript(
         this.config.projectPath,
         script,
         params,
-        30000 // 30 second timeout
+        30000
       );
 
       // Send result to server
@@ -425,6 +446,87 @@ export class RemoteAgent {
       });
       console.error(`Job ${id} execution error:`, error.message);
     }
+  }
+
+  /**
+   * Execute git command directly (fast path for exec-command)
+   * This avoids the tsx overhead that causes hangs in daemon context
+   */
+  private async executeGitCommandDirectly(params: string[]): Promise<{ success: boolean; result?: any; error?: string }> {
+    // Parse params to get --command= and --cwd= values
+    let command = '';
+    let cwd = this.config.projectPath;
+
+    for (const param of params) {
+      if (param.startsWith('--command=')) {
+        command = param.slice('--command='.length);
+      } else if (param.startsWith('--cwd=')) {
+        cwd = param.slice('--cwd='.length);
+      }
+    }
+
+    if (!command) {
+      return { success: false, error: 'Missing --command parameter' };
+    }
+
+    // Security: Only allow whitelisted git commands
+    const allowedPatterns = [
+      /^git diff(\s|$)/,
+      /^git status(\s|$)/,
+      /^git rev-parse(\s|$)/,
+    ];
+
+    if (!allowedPatterns.some(pattern => pattern.test(command))) {
+      return { success: false, error: `Command not whitelisted: ${command.split(' ')[0]}` };
+    }
+
+    // Parse command into executable and args
+    const parts = command.split(/\s+/);
+    const executable = parts[0];
+    const args = parts.slice(1);
+
+    return new Promise((resolve) => {
+      const { spawn } = require('child_process');
+      const startTime = Date.now();
+
+      const proc = spawn(executable, args, {
+        cwd,
+        timeout: 10000,
+        shell: false,
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      proc.stdout.on('data', (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr.on('data', (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      proc.on('close', (code: number | null) => {
+        const elapsed = Date.now() - startTime;
+        console.log(`[exec-command] git exited with code ${code} after ${elapsed}ms`);
+        resolve({
+          success: true,
+          result: {
+            stdout,
+            stderr,
+            exitCode: code ?? 0,
+            command: executable,
+          },
+        });
+      });
+
+      proc.on('error', (error: Error) => {
+        resolve({
+          success: false,
+          error: `Command execution failed: ${error.message}`,
+        });
+      });
+    });
   }
 
   /**
