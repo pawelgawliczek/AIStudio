@@ -83,10 +83,7 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "",
-          "columns": [
-            {"selector": "total_connections", "text": "total_connections", "type": "number"}
-          ],
+          "root_selector": "pool_stats",
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -97,6 +94,14 @@
         }
       ],
       "title": "Total Connections",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {"names": ["total_connections"]}
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -160,10 +165,7 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "",
-          "columns": [
-            {"selector": "active_connections", "text": "active_connections", "type": "number"}
-          ],
+          "root_selector": "pool_stats",
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -174,6 +176,14 @@
         }
       ],
       "title": "Active Connections",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {"names": ["active_connections"]}
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -229,10 +239,7 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "",
-          "columns": [
-            {"selector": "idle_connections", "text": "idle_connections", "type": "number"}
-          ],
+          "root_selector": "pool_stats",
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -243,6 +250,14 @@
         }
       ],
       "title": "Idle Connections",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {"names": ["idle_connections"]}
+          }
+        }
+      ],
       "type": "stat"
     },
     {
@@ -310,10 +325,7 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "",
-          "columns": [
-            {"selector": "utilization_percent", "text": "utilization_percent", "type": "number"}
-          ],
+          "root_selector": "pool_stats",
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -324,6 +336,14 @@
         }
       ],
       "title": "Pool Utilization %",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {"names": ["utilization_percent"]}
+          }
+        }
+      ],
       "type": "gauge"
     },
     {
@@ -746,10 +766,7 @@
           "format": "table",
           "global_query_id": "",
           "refId": "A",
-          "root_selector": "",
-          "columns": [
-            {"selector": "oldest_connection_age_seconds", "text": "oldest_connection_age_seconds", "type": "number"}
-          ],
+          "root_selector": "pool_stats",
           "source": "url",
           "type": "json",
           "url": "https://vibestudio.example.com/api/database-metrics/connections",
@@ -760,6 +777,14 @@
         }
       ],
       "title": "Oldest Connection Age",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {"names": ["oldest_connection_age_seconds"]}
+          }
+        }
+      ],
       "type": "stat"
     }
   ],

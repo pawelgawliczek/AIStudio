@@ -18,15 +18,19 @@ export interface ConnectionDetail {
   wait_event: string | null;
 }
 
-export interface DatabaseMetrics {
-  timestamp: string;
-  // Flat pool utilization fields for Grafana Infinity datasource
+export interface PoolStats {
   total_connections: number;
   active_connections: number;
   idle_connections: number;
   pool_size: number;
   utilization_percent: number;
   oldest_connection_age_seconds: number | null;
+}
+
+export interface DatabaseMetrics {
+  timestamp: string;
+  // Single-element array for Grafana Infinity datasource compatibility
+  pool_stats: PoolStats[];
   // Arrays for charts/tables
   connection_states: ConnectionState[];
   connection_details: ConnectionDetail[];
@@ -98,12 +102,17 @@ export class DatabaseMetricsService {
 
       return {
         timestamp: new Date().toISOString(),
-        total_connections: total,
-        active_connections: active,
-        idle_connections: idle,
-        pool_size: poolSize,
-        utilization_percent: utilizationPercent,
-        oldest_connection_age_seconds: oldestConnectionAge,
+        // Single-element array for Grafana Infinity stat panels
+        pool_stats: [
+          {
+            total_connections: total,
+            active_connections: active,
+            idle_connections: idle,
+            pool_size: poolSize,
+            utilization_percent: utilizationPercent,
+            oldest_connection_age_seconds: oldestConnectionAge,
+          },
+        ],
         connection_states: connectionStates,
         connection_details: connectionDetails,
       };
