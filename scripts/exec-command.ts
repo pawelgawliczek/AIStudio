@@ -1,5 +1,6 @@
 #!/usr/bin/env npx tsx
 // ST-280: Test comment for LOC tracking verification
+// ST-281: Second test comment for LOC tracking verification
 // ST-271: Test comment to verify code impact metrics are being captured
 /**
  * ST-269: Execute Command Script for Remote Agent
