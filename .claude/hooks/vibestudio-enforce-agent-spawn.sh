@@ -74,16 +74,19 @@ if [ "$IS_ALLOWED" = "false" ]; then
     "$ENFORCEMENT_FILE" 2>/dev/null || echo "unknown")
   ALLOWED_LIST=$(echo "$ALLOWED_TYPES" | jq -r 'join(", ")' 2>/dev/null || echo "unknown")
 
-  # Block the tool
-  echo "BLOCKED: Wrong agent type '${SUBAGENT_TYPE}' for current workflow state."
-  echo ""
-  echo "Current State: ${STATE_NAME}"
-  echo "Expected Component: ${COMPONENT_NAME}"
-  echo "Allowed Agent Types: ${ALLOWED_LIST}"
-  echo "Requested Type: ${SUBAGENT_TYPE}"
-  echo ""
-  echo "To proceed:"
-  echo "  Use Task with subagent_type from the allowed list: ${ALLOWED_LIST}"
+  # Block the tool - output to BOTH stdout and stderr for visibility
+  MSG="BLOCKED: Wrong agent type '${SUBAGENT_TYPE}' for current workflow state.
+
+Current State: ${STATE_NAME}
+Expected Component: ${COMPONENT_NAME}
+Allowed Agent Types: ${ALLOWED_LIST}
+Requested Type: ${SUBAGENT_TYPE}
+
+To proceed:
+  Use Task with subagent_type from the allowed list: ${ALLOWED_LIST}"
+
+  echo "$MSG"
+  echo "$MSG" >&2
   exit 2
 fi
 

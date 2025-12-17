@@ -37,10 +37,18 @@ if [ ! -f "$ENFORCEMENT_FILE" ]; then
   echo '{"sessions":{}}' > "$ENFORCEMENT_FILE"
 fi
 
-# tool_response is an ARRAY, get first element
-RESPONSE=$(echo "$INPUT" | jq -r '.tool_response[0] // empty' 2>/dev/null)
+# tool_response is an ARRAY of content blocks like {"type": "text", "text": "..."}
+# Extract the text field and parse it as JSON
+RAW_RESPONSE=$(echo "$INPUT" | jq -r '.tool_response[0].text // .tool_response[0] // empty' 2>/dev/null)
+if [ -z "$RAW_RESPONSE" ] || [ "$RAW_RESPONSE" = "null" ]; then
+  echo "ERROR: No tool_response[0].text" >> "$DEBUG_LOG"
+  exit 0
+fi
+
+# Parse the text as JSON
+RESPONSE=$(echo "$RAW_RESPONSE" | jq -r '. // empty' 2>/dev/null)
 if [ -z "$RESPONSE" ] || [ "$RESPONSE" = "null" ]; then
-  echo "ERROR: No tool_response[0]" >> "$DEBUG_LOG"
+  echo "ERROR: Could not parse response as JSON" >> "$DEBUG_LOG"
   exit 0
 fi
 
@@ -58,11 +66,14 @@ if [ "$WORKFLOW_COMPLETE" = "true" ] || [ "$STATUS" = "completed" ] || [ "$STATU
   exit 0
 fi
 
+# Debug: show response structure
+echo "RESPONSE keys: $(echo "$RESPONSE" | jq -r 'keys | join(", ")' 2>/dev/null)" >> "$DEBUG_LOG"
+
 # Try to extract enforcement from multiple locations:
 # 1. Top-level .enforcement (start_team_run, advance_step)
 # 2. .instructions.enforcement (get_current_step in agent phase)
 ENFORCEMENT=$(echo "$RESPONSE" | jq -r '.enforcement // .instructions.enforcement // empty' 2>/dev/null)
-echo "ENFORCEMENT found: $(echo "$ENFORCEMENT" | head -c 100)" >> "$DEBUG_LOG"
+echo "ENFORCEMENT found: $(echo "$ENFORCEMENT" | head -c 200)" >> "$DEBUG_LOG"
 
 if [ -z "$ENFORCEMENT" ] || [ "$ENFORCEMENT" = "null" ]; then
   echo "No enforcement data - nothing to update" >> "$DEBUG_LOG"

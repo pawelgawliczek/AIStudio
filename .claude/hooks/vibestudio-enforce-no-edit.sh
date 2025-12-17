@@ -40,17 +40,21 @@ if [ "$WORKFLOW_ACTIVE" = "true" ]; then
     "$ENFORCEMENT_FILE" 2>/dev/null || echo "unknown")
 
   # Block the tool - exit code 2 is deterministic block
-  echo "BLOCKED: Direct ${TOOL_NAME} not allowed during workflow execution."
-  echo ""
-  echo "You are the ORCHESTRATOR. You must use Task agents for all code changes."
-  echo ""
-  echo "Current State: ${STATE_NAME}"
-  echo "Expected Agent: ${COMPONENT_NAME}"
-  echo ""
-  echo "To proceed:"
-  echo "  1. Call get_current_step() to get agent spawn instructions"
-  echo "  2. Use Task tool to spawn the ${COMPONENT_NAME} agent"
-  echo "  3. Pass agent output to advance_step()"
+  # Output to BOTH stdout and stderr for visibility
+  MSG="BLOCKED: Direct ${TOOL_NAME} not allowed during workflow execution.
+
+You are the ORCHESTRATOR. You must use Task agents for all code changes.
+
+Current State: ${STATE_NAME}
+Expected Agent: ${COMPONENT_NAME}
+
+To proceed:
+  1. Call get_current_step() to get agent spawn instructions
+  2. Use Task tool to spawn the ${COMPONENT_NAME} agent
+  3. Pass agent output to advance_step()"
+
+  echo "$MSG"
+  echo "$MSG" >&2
   exit 2
 fi
 
