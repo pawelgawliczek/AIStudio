@@ -10,10 +10,10 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { ToolLoader, ToolModule } from './loader.js';
-import { getActiveProfile, isToolInProfile, ProfileName } from './profiles.js';
 import { TelemetryService } from '../../telemetry/telemetry.service.js';
 import { resolveStory, isUUID } from '../shared/resolve-identifiers.js';
+import { ToolLoader, ToolModule } from './loader.js';
+import { getActiveProfile, isToolInProfile, ProfileName } from './profiles.js';
 
 export class ToolRegistry {
   private loader: ToolLoader;

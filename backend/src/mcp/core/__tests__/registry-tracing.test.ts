@@ -12,10 +12,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { PrismaClient } from '@prisma/client';
 import { TelemetryService } from '../../../telemetry/telemetry.service';
 import { ToolRegistry } from '../registry';
-import { SpanStatusCode } from '@opentelemetry/api';
 
 describe('ToolRegistry - MCP Tool Tracing (TDD)', () => {
   let registry: ToolRegistry;

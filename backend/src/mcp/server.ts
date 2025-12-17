@@ -23,9 +23,9 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { TelemetryService } from '../telemetry/telemetry.service.js';
 import { ToolRegistry } from './core/registry.js';
 import { formatError } from './utils.js';
-import { TelemetryService } from '../telemetry/telemetry.service.js';
 
 // ============================================================================
 // LOGGING UTILITY

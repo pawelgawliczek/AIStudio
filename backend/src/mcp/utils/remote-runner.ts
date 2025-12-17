@@ -172,19 +172,29 @@ export class RemoteRunner {
    */
   async getOnlineAgents(): Promise<RemoteAgent[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/remote-agent/agents`, {
+      const url = `${this.baseUrl}/api/remote-agent/agents`;
+      console.log(`[RemoteRunner] Checking online agents at ${url}`);
+      console.log(`[RemoteRunner] Using AGENT_SECRET: ${this.agentSecret ? this.agentSecret.substring(0, 8) + '...' : 'NOT SET'}`);
+
+      const response = await fetch(url, {
         headers: {
           'X-Agent-Secret': this.agentSecret,
         },
       });
 
+      console.log(`[RemoteRunner] Response status: ${response.status}`);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`[RemoteRunner] Response not OK: ${response.status} - ${errorText}`);
         return [];
       }
 
       const agents = (await response.json()) as RemoteAgent[];
+      console.log(`[RemoteRunner] Found ${agents.length} agents, online: ${agents.filter(a => a.status === 'online').length}`);
       return agents.filter((a: RemoteAgent) => a.status === 'online');
-    } catch {
+    } catch (error) {
+      console.error(`[RemoteRunner] Error fetching agents: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return [];
     }
   }

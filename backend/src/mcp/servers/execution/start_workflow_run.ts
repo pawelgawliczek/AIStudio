@@ -4,9 +4,9 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { TranscriptRegistrationService } from '../../../remote-agent/transcript-registration.service';
 import { startAgentTracking } from '../../shared/agent-tracking';
+import { RemoteRunner } from '../../utils/remote-runner';
 import { buildMasterSessionInstructions } from './master-session-instructions';
 import { registerWorkflowOnLaptop } from './workflow-tracker-utils';
-import { RemoteRunner } from '../../utils/remote-runner';
 
 export const tool: Tool = {
   name: 'start_team_run',

@@ -18,10 +18,10 @@ import * as readline from 'readline';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import * as chokidar from 'chokidar';
 import { redactSensitiveData } from '../mcp/utils/content-security';
-import { AppWebSocketGateway } from '../websocket/websocket.gateway';
-import { TranscriptsService } from './transcripts.service';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import { Traced } from '../telemetry/traced.decorator';
+import { AppWebSocketGateway } from '../websocket/websocket.gateway';
+import { TranscriptsService } from './transcripts.service';
 
 /**
  * Allowed base directories for transcript files (whitelist)

@@ -18,6 +18,11 @@ export interface AgentConfig {
   capabilities: string[];
   projectPath: string;
   logLevel: string;
+  // Centralized logging configuration
+  lokiEnabled: boolean;
+  lokiUrl: string;
+  lokiUsername: string;
+  lokiPassword: string;
 }
 
 const DEFAULT_CONFIG: Partial<AgentConfig> = {
@@ -25,6 +30,11 @@ const DEFAULT_CONFIG: Partial<AgentConfig> = {
   hostname: os.hostname(),
   capabilities: ['parse-transcript', 'analyze-story-transcripts', 'list-transcripts'],
   logLevel: 'info',
+  // Centralized logging defaults
+  lokiEnabled: true,
+  lokiUrl: 'https://vibestudio.example.com/loki',
+  lokiUsername: 'vibestudio',
+  lokiPassword: 'a0b961abd748e5ebe29fb074ab9f498e69ddf87028d33855',
 };
 
 /**
@@ -73,6 +83,22 @@ function loadEnvConfig(): Partial<AgentConfig> {
 
   if (process.env.LOG_LEVEL) {
     config.logLevel = process.env.LOG_LEVEL;
+  }
+
+  if (process.env.LOKI_ENABLED !== undefined) {
+    config.lokiEnabled = process.env.LOKI_ENABLED === 'true';
+  }
+
+  if (process.env.LOKI_URL) {
+    config.lokiUrl = process.env.LOKI_URL;
+  }
+
+  if (process.env.LOKI_USERNAME) {
+    config.lokiUsername = process.env.LOKI_USERNAME;
+  }
+
+  if (process.env.LOKI_PASSWORD) {
+    config.lokiPassword = process.env.LOKI_PASSWORD;
   }
 
   return config;

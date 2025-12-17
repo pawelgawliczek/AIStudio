@@ -1,5 +1,5 @@
-import { TelemetryService } from './telemetry.service';
 import { SpanStatusCode, trace, context } from '@opentelemetry/api';
+import { TelemetryService } from './telemetry.service';
 
 /**
  * @Traced decorator for automatic method tracing

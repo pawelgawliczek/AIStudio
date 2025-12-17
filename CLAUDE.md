@@ -86,6 +86,15 @@ Services call `/endpoint`, api.client prepends `/api`. Never add `/api` prefix t
 
 Use `ssh hostinger` (not `ssh kvm`).
 
+### Loki Log Queries
+
+Use the helper script for Loki queries (auto-approved):
+```bash
+.claude/scripts/loki-query.sh '{compose_service="backend"}' 20
+.claude/scripts/loki-query.sh '{compose_service="backend"} |~ "error"' 50
+```
+The script handles authentication and time range automatically.
+
 ---
 
 ## Claude Code Hooks

@@ -282,13 +282,14 @@ export class DashboardMetricsService {
     );
 
     // Calculate per-workflow metrics
-    // ST-263: Query workflow runs WITHOUT restrictive filters to get accurate story counts
+    // ST-272: Apply same date/complexity filters to workflow table as header counts
+    // This ensures the table totals match the header badge
     const workflowsWithMetrics = await Promise.all(allWorkflows.map(async wf => {
-      // Get ALL completed workflow runs for this workflow (no date/complexity filters)
-      const allWorkflowRunsForWorkflow = await this.prisma.workflowRun.findMany({
+      // Get workflow runs for this workflow WITH date and complexity filters
+      const workflowRunsForWorkflow = await this.prisma.workflowRun.findMany({
         where: {
+          ...baseWhere,
           workflowId: wf.id,
-          status: 'completed',
         },
         include: {
           story: true,
@@ -297,12 +298,12 @@ export class DashboardMetricsService {
       });
 
       const uniqueStories = new Set(
-        allWorkflowRunsForWorkflow.filter(r => r.story?.type === 'feature').map(r => r.storyId).filter(Boolean)
+        workflowRunsForWorkflow.filter(r => r.story?.type === 'feature').map(r => r.storyId).filter(Boolean)
       ).size;
       const uniqueBugs = new Set(
-        allWorkflowRunsForWorkflow.filter(r => r.story?.type === 'bug' || r.story?.type === 'defect').map(r => r.storyId).filter(Boolean)
+        workflowRunsForWorkflow.filter(r => r.story?.type === 'bug' || r.story?.type === 'defect').map(r => r.storyId).filter(Boolean)
       ).size;
-      const allComponentRuns = allWorkflowRunsForWorkflow.flatMap(r => r.componentRuns);
+      const allComponentRuns = workflowRunsForWorkflow.flatMap(r => r.componentRuns);
 
       const totalTokens = allComponentRuns.reduce((sum, cr) => sum + (cr.tokensInput || 0) + (cr.tokensOutput || 0), 0);
       const linesAdded = allComponentRuns.reduce((sum, cr) => sum + (cr.linesAdded || 0), 0);

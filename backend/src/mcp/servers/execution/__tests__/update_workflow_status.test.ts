@@ -8,10 +8,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import { PrismaClient } from '@prisma/client';
+import { TranscriptsService } from '../../../../workflow-runs/transcripts.service';
 import { ValidationError, NotFoundError } from '../../../types';
 import { handler } from '../update_workflow_status';
 import { fixtures, prismaMock, resetPrismaMock } from './test-setup';
-import { TranscriptsService } from '../../../../workflow-runs/transcripts.service';
 
 // Mock fs module
 jest.mock('fs');

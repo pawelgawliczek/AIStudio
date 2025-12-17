@@ -1,6 +1,6 @@
 import { Injectable, LoggerService } from '@nestjs/common';
-import * as winston from 'winston';
 import * as api from '@opentelemetry/api';
+import * as winston from 'winston';
 
 @Injectable()
 export class WinstonLoggerService implements LoggerService {

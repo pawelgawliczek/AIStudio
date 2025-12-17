@@ -5,11 +5,11 @@ import {
   CallHandler,
   Logger,
 } from '@nestjs/common';
+import * as api from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { TelemetryService } from './telemetry.service';
-import * as api from '@opentelemetry/api';
-import { SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * TracingInterceptor - Automatic HTTP request tracing

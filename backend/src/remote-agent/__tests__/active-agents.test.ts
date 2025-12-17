@@ -11,17 +11,17 @@
  * - Job information enrichment
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TelemetryService } from '../../telemetry/telemetry.service';
-import { RemoteAgentGateway } from '../remote-agent.gateway';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 import { RemoteAgentController } from '../remote-agent.controller';
+import { RemoteAgentGateway } from '../remote-agent.gateway';
 import { RemoteExecutionService } from '../remote-execution.service';
 import { StreamEventService } from '../stream-event.service';
 import { TranscriptRegistrationService } from '../transcript-registration.service';
-import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 
 describe('Active Agents Endpoint (TDD)', () => {
   let gateway: RemoteAgentGateway;

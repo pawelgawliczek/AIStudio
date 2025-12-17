@@ -3,10 +3,10 @@ import * as path from 'path';
 import * as readline from 'readline';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { TranscriptsService } from '../../../workflow-runs/transcripts.service';
 import { ValidationError, NotFoundError } from '../../types';
 import { calculateCost } from '../../utils/pricing';
 import { unregisterWorkflowOnLaptop } from './workflow-tracker-utils';
-import { TranscriptsService } from '../../../workflow-runs/transcripts.service';
 
 export const tool: Tool = {
   name: 'update_team_status',

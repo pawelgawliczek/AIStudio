@@ -10,13 +10,13 @@
  * - No-op behavior when OTEL_ENABLED=false
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { TranscriptTailService } from '../transcript-tail.service';
-import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
-import { TranscriptsService } from '../transcripts.service';
-import { TelemetryService } from '../../telemetry/telemetry.service';
 import * as fs from 'fs/promises';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as chokidar from 'chokidar';
+import { TelemetryService } from '../../telemetry/telemetry.service';
+import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
+import { TranscriptTailService } from '../transcript-tail.service';
+import { TranscriptsService } from '../transcripts.service';
 
 // Mock fs and chokidar
 jest.mock('fs/promises');

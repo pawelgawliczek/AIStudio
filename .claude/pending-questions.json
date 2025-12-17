@@ -1831,3 +1831,99 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-16T13:01:32Z",
+  "session_id": "9a991086-7859-4a29-98e0-370f99729b14",
+  "run_id": "0f8ec8cd-7876-452b-b3c3-1086fc765a79",
+  "questions": [
+    {
+      "question": "In the Team Runs view, how would you like stories to be grouped and sorted by default?",
+      "header": "Default View",
+      "options": [
+        {
+          "label": "Recent runs first",
+          "description": "Sort by most recent run timestamp, showing stories with latest activity at the top"
+        },
+        {
+          "label": "Outstanding first",
+          "description": "Show failed/paused/running items at top, then completed items sorted by date"
+        },
+        {
+          "label": "Story order",
+          "description": "Sort by story key (ST-245, ST-244, etc.) in descending order"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T15:17:01Z",
+  "session_id": "65222792-26b2-4073-a530-0ee6edd1f6d1",
+  "run_id": "8d864401-53b0-44b2-a1ca-52811d977205",
+  "questions": [
+    {
+      "question": "Do you approve the implementation plan for ST-262 (Distributed Tracing)?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Yes, proceed",
+          "description": "Approve the plan and continue to TDD testing and implementation phases"
+        },
+        {
+          "label": "No, needs changes",
+          "description": "Reject and provide feedback for modifications"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T16:14:52Z",
+  "session_id": "580c75a8-b98d-4836-bf74-088fe81f0667",
+  "run_id": "5cba9ec8-3b1e-4543-bc59-dbfce0eda0e8",
+  "questions": [
+    {
+      "question": "For code impact metrics (linesAdded, etc.), should I track changes per-agent (diff from before agent started to after) or per-workflow-run (total changes in the commit)?",
+      "header": "Code tracking",
+      "options": [
+        {
+          "label": "Per workflow run",
+          "description": "Track total git diff for the entire workflow run (simpler, captures final result)"
+        },
+        {
+          "label": "Per agent",
+          "description": "Track incremental changes each agent makes (more complex, requires snapshots)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-16T16:28:52Z",
+  "session_id": "580c75a8-b98d-4836-bf74-088fe81f0667",
+  "run_id": "90970dca-76c6-4f52-a188-5750c624edaf",
+  "questions": [
+    {
+      "question": "Approve implementation of ST-265 with the architecture review findings?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve - proceed with implementation",
+          "description": "Continue with TDD testing and implementation using the optimized approach"
+        },
+        {
+          "label": "Approve with Option A (git diff)",
+          "description": "Use working tree diff for code impact - simpler but cumulative for sequential agents"
+        },
+        {
+          "label": "Approve with Option B (commit-per-agent)",
+          "description": "Create commit after each agent for accurate per-agent tracking"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
