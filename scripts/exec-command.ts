@@ -32,6 +32,7 @@ import * as path from 'path';
 const ALLOWED_COMMANDS = [
   /^git diff(\s|$)/,
   /^git status(\s|$)/,
+  /^git rev-parse(\s|$)/, // ST-278: For capturing commit hashes
 ];
 
 // Timeout for command execution (60 seconds)
@@ -206,7 +207,7 @@ async function main() {
     console.error('Usage: npx tsx scripts/exec-command.ts --command=<command> --cwd=<directory>');
     console.error('');
     console.error('Security restrictions:');
-    console.error('  - Only whitelisted commands allowed: git diff, git status');
+    console.error('  - Only whitelisted commands allowed: git diff, git status, git rev-parse');
     console.error('  - Working directory must exist and be a directory');
     console.error(`  - Timeout: ${COMMAND_TIMEOUT / 1000} seconds`);
     console.error('  - No shell injection (uses spawn)');

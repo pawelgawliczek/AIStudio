@@ -432,7 +432,10 @@ export async function handler(prisma: PrismaClient, params: {
           },
         };
 
-        // ST-215: Simplified 2-step agent execution workflow
+        // ST-278: Check if this is a code-modifying component (requires orchestrator-driven commit)
+        const isCodeModifyingComponent = ['Implementer', 'Developer', 'Tester', 'Reviewer'].includes(componentName);
+
+        // ST-215: Simplified 2-step agent execution workflow (3-step for code-modifying components)
         // Agent tracking (record_agent_start/complete) is now AUTOMATIC in advance_step
         // Step 1: Spawn the agent via Task tool
         workflowSequence.push({
@@ -452,9 +455,31 @@ export async function handler(prisma: PrismaClient, params: {
 Agent tracking is AUTOMATIC - advance_step handles record_agent_start/complete internally.`,
         });
 
-        // Step 2: Advance to post phase (auto-completes agent tracking)
+        // ST-278: Step 2 (for code-modifying components only): Commit changes
+        if (isCodeModifyingComponent) {
+          // Get project path for commit command
+          let projectPath = '/opt/stack/AIStudio'; // Default fallback
+          if (run.story?.id) {
+            // Will be resolved at runtime via worktree
+            projectPath = '{{WORKTREE_PATH}}';
+          }
+
+          workflowSequence.push({
+            step: 2,
+            type: 'mcp_tool',
+            description: `Commit ${componentName} changes`,
+            tool: 'exec-command',
+            parameters: {
+              command: `git add -A && git commit -m "feat(${run.story?.key || 'workflow'}): ${componentName} phase\n\nChanges made by ${componentName} agent.\n\nCo-Authored-By: ${componentName} Agent <noreply@vibestudio.ai>"`,
+              cwd: projectPath,
+            },
+            notes: `Orchestrator-driven commit for accurate per-phase LOC tracking. This commit captures ${componentName} work before advancing to next phase. The agent itself does NOT commit - orchestrator handles this.`,
+          });
+        }
+
+        // Step 3 (or 2 for non-code components): Advance to post phase (auto-completes agent tracking)
         workflowSequence.push({
-          step: 2,
+          step: isCodeModifyingComponent ? 3 : 2,
           type: 'mcp_tool',
           description: 'Advance to post-execution phase (auto-completes agent tracking)',
           tool: 'advance_step',

@@ -66,6 +66,38 @@ export interface CompleteAgentResult {
 }
 
 /**
+ * ST-278: Get current git HEAD commit hash
+ *
+ * Helper function to capture commit hash for accurate LOC tracking.
+ *
+ * @param projectPath - Path to git repository
+ * @returns Commit hash (40-char SHA-1) or null if failed
+ */
+async function getHeadCommit(projectPath: string): Promise<string | null> {
+  try {
+    const runner = new RemoteRunner();
+    const result = await runner.execute<{ stdout: string; stderr: string; exitCode: number }>('exec-command', [
+      '--command=git rev-parse HEAD',
+      `--cwd=${projectPath}`,
+    ], {
+      requestedBy: 'getHeadCommit',
+    });
+
+    if (result.executed && result.success && result.result?.stdout) {
+      const commitHash = result.result.stdout.trim();
+      // Validate it's a valid git hash (40 hex chars)
+      if (/^[0-9a-f]{40}$/.test(commitHash)) {
+        return commitHash;
+      }
+    }
+    return null;
+  } catch (error: any) {
+    console.warn(`[getHeadCommit] Failed to get HEAD commit: ${error.message}`);
+    return null;
+  }
+}
+
+/**
  * Start agent execution tracking
  *
  * Creates ComponentRun record with status='running'
@@ -149,6 +181,42 @@ export async function startAgentTracking(
     const nextExecutionOrder =
       existingRuns.length > 0 ? (existingRuns[0].executionOrder || 0) + 1 : 1;
 
+    // ST-278: Capture startCommitHash for accurate LOC tracking
+    let startCommitHash: string | null = null;
+    let captureWarning: string | null = null;
+    try {
+      // Try to get project path (worktree or from metadata)
+      let projectPath: string | null = null;
+
+      if (workflowRun.storyId) {
+        const worktree = await prisma.worktree.findFirst({
+          where: { storyId: workflowRun.storyId, status: 'active' },
+          select: { worktreePath: true },
+        });
+        projectPath = worktree?.worktreePath || null;
+      }
+
+      // Fallback to metadata projectPath for MasterSession
+      if (!projectPath && workflowRun.metadata) {
+        const transcriptTracking = (workflowRun.metadata as any)?._transcriptTracking;
+        projectPath = transcriptTracking?.projectPath;
+      }
+
+      if (projectPath) {
+        startCommitHash = await getHeadCommit(projectPath);
+        if (startCommitHash) {
+          console.log(`[agent-tracking] Captured start commit hash for ${component.name}: ${startCommitHash}`);
+        } else {
+          captureWarning = 'Failed to capture start commit hash (git command failed)';
+        }
+      } else {
+        captureWarning = 'No project path available to capture commit hash';
+      }
+    } catch (commitError: any) {
+      console.warn(`[agent-tracking] Failed to capture start commit hash: ${commitError.message}`);
+      captureWarning = `Failed to capture start commit hash: ${commitError.message}`;
+    }
+
     // Create ComponentRun record
     const componentRun = await prisma.componentRun.create({
       data: {
@@ -157,7 +225,8 @@ export async function startAgentTracking(
         executionOrder: nextExecutionOrder,
         status: 'running',
         inputData: (params.input || {}) as Prisma.InputJsonValue,
-        metadata: {} as Prisma.InputJsonValue,
+        metadata: (startCommitHash ? { startCommitHash } : {}) as Prisma.InputJsonValue,
+        startCommitHash: startCommitHash, // ST-278: Store in dedicated field
         startedAt: new Date(),
         userPrompts: 0,
         systemIterations: 1,
@@ -217,6 +286,7 @@ export async function startAgentTracking(
       componentRunId: componentRun.id,
       componentName: component.name,
       executionOrder: nextExecutionOrder,
+      ...(captureWarning && { warning: captureWarning }), // ST-278: Include warning if commit capture failed
     };
   } catch (error: any) {
     return {
@@ -535,7 +605,9 @@ export async function completeAgentTracking(
 
     // ST-234: Get code impact metrics from git diff
     // ST-265: Add fallback to projectPath for MasterSession
+    // ST-278: Capture endCommitHash and use startCommitHash for accurate diff
     let codeImpactMetrics: { linesAdded: number; linesDeleted: number; filesModified: string[] } | null = null;
+    let endCommitHash: string | null = null;
     try {
       // Get workflow run to find story's worktree
       const workflowRunForWorktree = await prisma.workflowRun.findUnique({
@@ -564,10 +636,25 @@ export async function completeAgentTracking(
       }
 
       if (projectPath) {
+        // ST-278: Capture endCommitHash
+        endCommitHash = await getHeadCommit(projectPath);
+        if (endCommitHash) {
+          console.log(`[agent-tracking] Captured end commit hash for ${component?.name}: ${endCommitHash}`);
+        }
+
+        // ST-278: Use startCommitHash if available for accurate per-agent diff
+        // Fallback to main...HEAD if startCommitHash not available
+        const startCommit = (componentRun.metadata as any)?.startCommitHash || componentRun.startCommitHash || 'main';
+        const diffCommand = componentRun.startCommitHash
+          ? `git diff ${startCommit}...HEAD --numstat`
+          : 'git diff main...HEAD --numstat';
+
+        console.log(`[agent-tracking] Computing code impact with: ${diffCommand}`);
+
         // Use RemoteRunner to get git diff from laptop
         const runner = new RemoteRunner();
         const gitResult = await runner.execute<{ stdout: string; stderr: string }>('exec-command', [
-          '--command=git diff main...HEAD --numstat',
+          `--command=${diffCommand}`,
           `--cwd=${projectPath}`,
         ], {
           requestedBy: 'completeAgentTracking',
@@ -630,6 +717,10 @@ export async function completeAgentTracking(
           linesAdded: codeImpactMetrics.linesAdded,
           linesDeleted: codeImpactMetrics.linesDeleted,
           filesModified: codeImpactMetrics.filesModified,
+        }),
+        // ST-278: Add endCommitHash if captured
+        ...(endCommitHash && {
+          endCommitHash: endCommitHash,
         }),
       },
     });

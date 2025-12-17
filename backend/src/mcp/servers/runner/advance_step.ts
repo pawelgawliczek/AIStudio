@@ -264,7 +264,7 @@ export async function handler(prisma: PrismaClient, params: {
     // Save checkpoint
     await saveCheckpoint(prisma, runId, checkpoint, metadata);
 
-    return buildAdvanceResponse(run, checkpoint, targetState, null);
+    return buildAdvanceResponse(run, checkpoint, targetState, null, false, null, true);
   }
 
   // Normal advancement
@@ -292,6 +292,9 @@ export async function handler(prisma: PrismaClient, params: {
 
   // ST-215: Track agent start/complete automatically
   let agentTrackingResult: AgentTrackingResult | null = null;
+
+  // ST-278: Track if agent completed successfully (for commitBeforeAdvance logic)
+  let agentWasSuccessful = true; // Default to true if no agent or agent not yet run
 
   const previousState = { name: currentState.name, phase: currentPhase };
 
@@ -392,7 +395,11 @@ export async function handler(prisma: PrismaClient, params: {
       }
 
       // ST-215: AUTO - Call completeAgentTracking
+      // ST-278: Track agent status for commitBeforeAdvance logic
       if (currentState.component) {
+        // ST-278: Track if agent completed successfully (not failed)
+        agentWasSuccessful = params.agentStatus !== 'failed';
+
         try {
           // ST-203: Generate structured summary if not provided
           let summary: string | ComponentSummaryStructured;
@@ -442,7 +449,7 @@ export async function handler(prisma: PrismaClient, params: {
       nextPhase = 'post';
       break;
 
-    case 'post':
+    case 'post': {
       // Post done - move to next state or complete
       const currentIndex = run.workflow.states.findIndex(s => s.id === currentStateId);
       const nextState = run.workflow.states[currentIndex + 1];
@@ -497,6 +504,7 @@ export async function handler(prisma: PrismaClient, params: {
         nextPhase = 'post'; // Keep as post
       }
       break;
+    }
 
     default:
       throw new Error(`Unknown phase: ${currentPhase}`);
@@ -514,7 +522,7 @@ export async function handler(prisma: PrismaClient, params: {
   // Get the next state object
   const nextStateObj = run.workflow.states.find(s => s.id === nextStateId);
 
-  return buildAdvanceResponse(run, checkpoint, nextStateObj, previousState, workflowComplete, agentTrackingResult);
+  return buildAdvanceResponse(run, checkpoint, nextStateObj, previousState, workflowComplete, agentTrackingResult, agentWasSuccessful);
 }
 
 async function saveCheckpoint(
@@ -549,10 +557,36 @@ function buildAdvanceResponse(
   previousState: { name: string; phase: string } | null,
   workflowComplete = false,
   agentTracking: AgentTrackingResult | null = null,
+  agentWasSuccessful = true,
 ) {
   const totalStates = run.workflow.states.length;
   const completedCount = checkpoint.completedStates?.length || 0;
   const skippedCount = checkpoint.skippedStates?.length || 0;
+
+  // ST-278: Check if we advanced from agent to post phase for code-modifying component
+  // If so, include commitBeforeAdvance instruction
+  // BUT NOT if agent failed (no code changes to commit in failure case)
+  let commitBeforeAdvance: any = undefined;
+  if (previousState?.phase === 'agent' && checkpoint.currentPhase === 'post' && currentState?.component && agentWasSuccessful) {
+    const componentName = currentState.component.name;
+    const isCodeModifyingComponent = ['Implementer', 'Developer', 'Tester', 'Reviewer'].includes(componentName);
+
+    if (isCodeModifyingComponent) {
+      // Get project path for commit command
+      let projectPath = '/opt/stack/AIStudio'; // Default fallback
+      // Will be resolved at runtime via worktree or metadata
+      projectPath = '{{WORKTREE_PATH}}';
+
+      commitBeforeAdvance = {
+        tool: 'exec-command',
+        parameters: {
+          command: `git add -A && git commit -m "feat(${run.story?.key || 'workflow'}): ${componentName} phase\n\nChanges made by ${componentName} agent.\n\nCo-Authored-By: ${componentName} Agent <noreply@vibestudio.ai>"`,
+          cwd: projectPath,
+        },
+        description: `Commit ${componentName} changes before advancing`,
+      };
+    }
+  }
 
   // Build instructions for new step
   let instructions: any;
@@ -705,6 +739,9 @@ function buildAdvanceResponse(
         allowedSubagentTypes: (instructions as any)?.enforcement?.allowedSubagentTypes || null,
       } : null,
     },
+
+    // ST-278: Commit instruction for code-modifying components
+    ...(commitBeforeAdvance && { commitBeforeAdvance }),
 
     message: workflowComplete
       ? 'Workflow completed successfully.'
