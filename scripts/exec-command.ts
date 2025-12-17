@@ -2,6 +2,7 @@
 // ST-280: Test comment for LOC tracking verification
 // ST-281: Second test comment for LOC tracking verification
 // ST-271: Test comment to verify code impact metrics are being captured
+// ST-282: Test comment for verifying end_commit_hash and LOC diff calculation
 /**
  * ST-269: Execute Command Script for Remote Agent
  *
