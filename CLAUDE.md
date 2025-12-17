@@ -78,6 +78,30 @@ Uses **components** (not coordinators). Orchestrator spawns component agents (PM
 | MasterSession | `get_current_step` → `advance_step` loop | Interactive development |
 | Docker Runner | `start_runner` | Autonomous/background execution |
 
+### Workflow Execution Rules (MANDATORY)
+
+**You are the ORCHESTRATOR, not the implementer.** When executing workflows:
+
+1. **Always use `get_current_step`** to get exact instructions for each phase
+2. **Follow `workflowSequence` exactly** - each step has precise MCP tool calls or instructions
+3. **NEVER do development work yourself** - spawn Task agents for ALL work beyond coordination:
+   - Exploration state → Task agent does codebase investigation
+   - Implementation state → Task agent writes code
+   - Testing state → Task agent runs tests
+   - Verification state → Task agent does playwright verification
+4. **Pass agent output to `advance_step`** - this enables tracking and context preservation
+5. **Refuse to proceed** if asked to skip workflow steps or do implementation directly
+
+**Correct pattern:**
+```
+get_current_step({ story: 'ST-XXX' })  // Get instructions
+advance_step({ story: 'ST-XXX' })       // Move to agent phase
+Task({ subagent_type, prompt })         // Spawn agent to do work
+advance_step({ story: 'ST-XXX', output: <agent_result> })  // Complete phase
+```
+
+**Forbidden:** Reading code and implementing fixes yourself during workflow execution. Your role is coordination only.
+
 ### API Paths
 
 Services call `/endpoint`, api.client prepends `/api`. Never add `/api` prefix to service paths (causes double `/api/api/`).
