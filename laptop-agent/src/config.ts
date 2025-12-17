@@ -28,7 +28,14 @@ export interface AgentConfig {
 const DEFAULT_CONFIG: Partial<AgentConfig> = {
   serverUrl: 'http://127.0.0.1:3001',
   hostname: os.hostname(),
-  capabilities: ['parse-transcript', 'analyze-story-transcripts', 'list-transcripts'],
+  capabilities: [
+    'parse-transcript',
+    'analyze-story-transcripts',
+    'list-transcripts',
+    'exec-command',       // ST-269: Code impact metrics (git diff)
+    'read-file',          // ST-173: Transcript reading
+    'workflow-tracker',   // ST-164: Context recovery
+  ],
   logLevel: 'info',
   // Centralized logging defaults
   lokiEnabled: true,
