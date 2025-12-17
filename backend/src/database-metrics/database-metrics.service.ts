@@ -18,20 +18,18 @@ export interface ConnectionDetail {
   wait_event: string | null;
 }
 
-export interface PoolUtilization {
-  total: number;
-  active: number;
-  idle: number;
-  pool_size: number;
-  utilization_percent: number;
-}
-
 export interface DatabaseMetrics {
   timestamp: string;
-  pool_utilization: PoolUtilization;
+  // Flat pool utilization fields for Grafana Infinity datasource
+  total_connections: number;
+  active_connections: number;
+  idle_connections: number;
+  pool_size: number;
+  utilization_percent: number;
+  oldest_connection_age_seconds: number | null;
+  // Arrays for charts/tables
   connection_states: ConnectionState[];
   connection_details: ConnectionDetail[];
-  oldest_connection_age_seconds: number | null;
 }
 
 @Injectable()
@@ -66,14 +64,7 @@ export class DatabaseMetricsService {
       const active = Number(poolUtilizationData.active);
       const idle = Number(poolUtilizationData.idle);
       const poolSize = poolUtilizationData.pool_size;
-
-      const poolUtilization: PoolUtilization = {
-        total,
-        active,
-        idle,
-        pool_size: poolSize,
-        utilization_percent: poolSize > 0 ? (total / poolSize) * 100 : 0,
-      };
+      const utilizationPercent = poolSize > 0 ? Math.round((total / poolSize) * 100) : 0;
 
       // Get connection details
       const connectionDetails = await this.prisma.$queryRaw<ConnectionDetail[]>`
@@ -107,10 +98,14 @@ export class DatabaseMetricsService {
 
       return {
         timestamp: new Date().toISOString(),
-        pool_utilization: poolUtilization,
+        total_connections: total,
+        active_connections: active,
+        idle_connections: idle,
+        pool_size: poolSize,
+        utilization_percent: utilizationPercent,
+        oldest_connection_age_seconds: oldestConnectionAge,
         connection_states: connectionStates,
         connection_details: connectionDetails,
-        oldest_connection_age_seconds: oldestConnectionAge,
       };
     } catch (error) {
       this.logger.error('Failed to get database metrics', error);

@@ -85,7 +85,7 @@
           "refId": "A",
           "root_selector": "",
           "columns": [
-            {"selector": "pool_utilization.total", "text": "total", "type": "number"}
+            {"selector": "total_connections", "text": "total_connections", "type": "number"}
           ],
           "source": "url",
           "type": "json",
@@ -162,7 +162,7 @@
           "refId": "A",
           "root_selector": "",
           "columns": [
-            {"selector": "pool_utilization.active", "text": "active", "type": "number"}
+            {"selector": "active_connections", "text": "active_connections", "type": "number"}
           ],
           "source": "url",
           "type": "json",
@@ -231,7 +231,7 @@
           "refId": "A",
           "root_selector": "",
           "columns": [
-            {"selector": "pool_utilization.idle", "text": "idle", "type": "number"}
+            {"selector": "idle_connections", "text": "idle_connections", "type": "number"}
           ],
           "source": "url",
           "type": "json",
@@ -312,7 +312,7 @@
           "refId": "A",
           "root_selector": "",
           "columns": [
-            {"selector": "pool_utilization.utilization_percent", "text": "utilization_percent", "type": "number"}
+            {"selector": "utilization_percent", "text": "utilization_percent", "type": "number"}
           ],
           "source": "url",
           "type": "json",
