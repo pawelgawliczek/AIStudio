@@ -1,11 +1,13 @@
 #!/bin/bash
 # VibeStudio Enforce Agent Spawn Hook
 # Validates Task agent type matches expected workflow component
+# Sets agent-active flag to allow Edit/Write by spawned agents
 #
 # Triggers: PreToolUse (Task)
 # Purpose: Ensure correct agent type is spawned for current workflow state
 #
 # ST-273: Workflow Execution Enforcement
+# ST-276: Sets .agent-active.json when Task is allowed, cleared by advance_step
 #
 # Exit codes:
 #   0 = Allow (hook passes, tool proceeds)
@@ -24,9 +26,14 @@ fi
 # Determine project directory
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 ENFORCEMENT_FILE="$PROJECT_DIR/.claude/.workflow-enforcement.json"
+AGENT_ACTIVE_FILE="$PROJECT_DIR/.claude/.agent-active.json"
+
+# Debug logging
+DEBUG_LOG="/tmp/enforce-agent-spawn-debug.log"
 
 # If no enforcement file, allow
 if [ ! -f "$ENFORCEMENT_FILE" ]; then
+  echo "$(date): ALLOWING Task - no enforcement file" >> "$DEBUG_LOG"
   exit 0
 fi
 
@@ -37,6 +44,7 @@ WORKFLOW_ACTIVE=$(jq -r --arg sid "$SESSION_ID" \
 
 # If no active workflow, allow any Task spawn
 if [ "$WORKFLOW_ACTIVE" != "true" ]; then
+  echo "$(date): ALLOWING Task - no active workflow" >> "$DEBUG_LOG"
   exit 0
 fi
 
@@ -45,16 +53,22 @@ ALLOWED_TYPES=$(jq -r --arg sid "$SESSION_ID" \
   '.sessions[$sid].currentState.allowedSubagentTypes // []' \
   "$ENFORCEMENT_FILE" 2>/dev/null)
 
-# If no restrictions, allow
+# If no restrictions, allow and set flag
 if [ -z "$ALLOWED_TYPES" ] || [ "$ALLOWED_TYPES" = "null" ] || [ "$ALLOWED_TYPES" = "[]" ]; then
+  # ST-276: Set agent-active flag to allow Edit/Write
+  echo "{\"sessionId\":\"$SESSION_ID\",\"activatedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$AGENT_ACTIVE_FILE"
+  echo "$(date): ALLOWING Task - no type restrictions, set agent-active flag" >> "$DEBUG_LOG"
   exit 0
 fi
 
 # Get the subagent_type from tool input
 SUBAGENT_TYPE=$(echo "$INPUT" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null)
 
-# If no subagent_type provided, allow (Task tool will use default)
+# If no subagent_type provided, allow and set flag (Task tool will use default)
 if [ -z "$SUBAGENT_TYPE" ]; then
+  # ST-276: Set agent-active flag to allow Edit/Write
+  echo "{\"sessionId\":\"$SESSION_ID\",\"activatedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$AGENT_ACTIVE_FILE"
+  echo "$(date): ALLOWING Task - no subagent_type provided, set agent-active flag" >> "$DEBUG_LOG"
   exit 0
 fi
 
@@ -85,10 +99,14 @@ Requested Type: ${SUBAGENT_TYPE}
 To proceed:
   Use Task with subagent_type from the allowed list: ${ALLOWED_LIST}"
 
+  echo "$(date): BLOCKING Task - wrong type $SUBAGENT_TYPE, allowed: $ALLOWED_LIST" >> "$DEBUG_LOG"
   echo "$MSG"
   echo "$MSG" >&2
   exit 2
 fi
 
-# Allowed - proceed
+# ST-276: Set agent-active flag to allow Edit/Write
+echo "{\"sessionId\":\"$SESSION_ID\",\"activatedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"subagentType\":\"$SUBAGENT_TYPE\"}" > "$AGENT_ACTIVE_FILE"
+echo "$(date): ALLOWING Task type $SUBAGENT_TYPE, set agent-active flag" >> "$DEBUG_LOG"
+
 exit 0

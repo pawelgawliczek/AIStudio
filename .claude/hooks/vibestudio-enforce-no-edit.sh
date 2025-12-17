@@ -7,7 +7,7 @@
 # Purpose: Ensure orchestrator uses Task agents instead of direct edits
 #
 # ST-273: Workflow Execution Enforcement
-# ST-276: Fixed - use running-workflows.json to distinguish orchestrator from spawned agents
+# ST-276: Uses .agent-active.json flag (set by enforce-agent-spawn, cleared by track-agents PostToolUse)
 #
 # Exit codes:
 #   0 = Allow (hook passes, tool proceeds)
@@ -20,49 +20,47 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id')
 
 # Determine project directory
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
-WORKFLOWS_FILE="$PROJECT_DIR/.claude/running-workflows.json"
 ENFORCEMENT_FILE="$PROJECT_DIR/.claude/.workflow-enforcement.json"
+AGENT_ACTIVE_FILE="$PROJECT_DIR/.claude/.agent-active.json"
 
-# If no workflows file, allow (no way to determine if orchestrator)
-if [ ! -f "$WORKFLOWS_FILE" ]; then
-  exit 0
-fi
+# Debug logging
+DEBUG_LOG="/tmp/enforce-no-edit-debug.log"
 
-# ST-276: Check if this session is the ORCHESTRATOR
-# Orchestrator sessions have runId in running-workflows.json
-# Spawned agents have different session IDs not registered there
-IS_ORCHESTRATOR=$(jq -r --arg sid "$SESSION_ID" '
-  .sessions[$sid].runId != null
-' "$WORKFLOWS_FILE" 2>/dev/null || echo "false")
-
-# DEBUG: Log full input to see all available fields
-echo "$(date): INPUT=$INPUT" >> /tmp/enforce-no-edit-debug.log
-
-# If NOT orchestrator (spawned agent), ALWAYS allow Edit/Write
-if [ "$IS_ORCHESTRATOR" != "true" ]; then
-  exit 0
-fi
-
-# This IS the orchestrator - check if workflow is active
+# If no enforcement file, allow
 if [ ! -f "$ENFORCEMENT_FILE" ]; then
+  echo "$(date): ALLOWING $TOOL_NAME - no enforcement file" >> "$DEBUG_LOG"
   exit 0
 fi
 
+# Check if this session has an active workflow
 WORKFLOW_ACTIVE=$(jq -r --arg sid "$SESSION_ID" \
   '.sessions[$sid].workflowActive // false' \
   "$ENFORCEMENT_FILE" 2>/dev/null || echo "false")
 
-if [ "$WORKFLOW_ACTIVE" = "true" ]; then
-  # Get current state info for error message
-  STATE_NAME=$(jq -r --arg sid "$SESSION_ID" \
-    '.sessions[$sid].currentState.name // "unknown"' \
-    "$ENFORCEMENT_FILE" 2>/dev/null || echo "unknown")
-  COMPONENT_NAME=$(jq -r --arg sid "$SESSION_ID" \
-    '.sessions[$sid].currentState.componentName // "unknown"' \
-    "$ENFORCEMENT_FILE" 2>/dev/null || echo "unknown")
+if [ "$WORKFLOW_ACTIVE" != "true" ]; then
+  echo "$(date): ALLOWING $TOOL_NAME - no active workflow" >> "$DEBUG_LOG"
+  exit 0
+fi
 
-  # Block the orchestrator from direct edits
-  MSG="BLOCKED: Direct ${TOOL_NAME} not allowed during workflow execution.
+# ST-276: Check if agent-active flag is set (by enforce-agent-spawn PreToolUse)
+if [ -f "$AGENT_ACTIVE_FILE" ]; then
+  AGENT_SESSION=$(jq -r '.sessionId // empty' "$AGENT_ACTIVE_FILE" 2>/dev/null)
+  if [ "$AGENT_SESSION" = "$SESSION_ID" ]; then
+    AGENT_ID=$(jq -r '.agentId // "unknown"' "$AGENT_ACTIVE_FILE" 2>/dev/null)
+    echo "$(date): ALLOWING $TOOL_NAME - agent $AGENT_ID active (flag set)" >> "$DEBUG_LOG"
+    exit 0
+  fi
+fi
+
+# Workflow is active but no agent flag - block
+STATE_NAME=$(jq -r --arg sid "$SESSION_ID" \
+  '.sessions[$sid].currentState.name // "unknown"' \
+  "$ENFORCEMENT_FILE" 2>/dev/null || echo "unknown")
+COMPONENT_NAME=$(jq -r --arg sid "$SESSION_ID" \
+  '.sessions[$sid].currentState.componentName // "unknown"' \
+  "$ENFORCEMENT_FILE" 2>/dev/null || echo "unknown")
+
+MSG="BLOCKED: Direct ${TOOL_NAME} not allowed during workflow execution.
 
 You are the ORCHESTRATOR. You must use Task agents for all code changes.
 
@@ -74,10 +72,7 @@ To proceed:
   2. Use Task tool to spawn the ${COMPONENT_NAME} agent
   3. Pass agent output to advance_step()"
 
-  echo "$MSG"
-  echo "$MSG" >&2
-  exit 2
-fi
-
-# No active workflow - allow
-exit 0
+echo "$(date): BLOCKING $TOOL_NAME - workflow active, no agent flag" >> "$DEBUG_LOG"
+echo "$MSG"
+echo "$MSG" >&2
+exit 2

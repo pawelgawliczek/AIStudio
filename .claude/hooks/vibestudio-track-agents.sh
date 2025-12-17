@@ -1,6 +1,7 @@
 #!/bin/bash
 # VibeStudio Track Agents Hook
 # Track spawned agent transcript paths locally for debugging
+# ST-276: Also clears agent-active flag when agent completes
 #
 # Triggers: PostToolUse (Task)
 # Purpose: Track spawned agent transcript paths in running-workflows.json (for debugging)
@@ -21,12 +22,19 @@ if [ "$TOOL_NAME" != "Task" ]; then
 fi
 
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id')
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
+WORKFLOWS_FILE="$PROJECT_DIR/.claude/running-workflows.json"
+AGENT_ACTIVE_FILE="$PROJECT_DIR/.claude/.agent-active.json"
+
+# ST-276: Clear agent-active flag - agent has completed
+if [ -f "$AGENT_ACTIVE_FILE" ]; then
+  rm -f "$AGENT_ACTIVE_FILE"
+  echo "$(date): Cleared agent-active flag (PostToolUse Task)" >> /tmp/track-agents-debug.log
+fi
 
 # FILTER: Only track Task calls from master orchestrator session
 # Spawned agents (native or custom) that spawn their own sub-agents will have
 # different session IDs not registered in running-workflows.json
-WORKFLOWS_FILE="$CLAUDE_PROJECT_DIR/.claude/running-workflows.json"
-
 if [ -f "$WORKFLOWS_FILE" ]; then
   IS_ORCHESTRATOR=$(jq -r --arg sid "$SESSION_ID" '
     .sessions[$sid].runId != null
@@ -48,7 +56,7 @@ fi
 
 if [ -n "$AGENT_ID" ]; then
   # Build agent transcript path using Claude Code's naming convention
-  ESCAPED_PATH=$(echo "$CLAUDE_PROJECT_DIR" | sed 's|^/|-|' | tr '/' '-')
+  ESCAPED_PATH=$(echo "$PROJECT_DIR" | sed 's|^/|-|' | tr '/' '-')
   AGENT_TRANSCRIPT="$HOME/.claude/projects/$ESCAPED_PATH/agent-${AGENT_ID}.jsonl"
 
   # Track locally for debugging (ST-170 handles the actual registration)
