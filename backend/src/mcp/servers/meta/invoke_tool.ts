@@ -76,7 +76,9 @@ export async function handler(
     const message = error instanceof Error ? error.message : String(error);
 
     // Provide helpful error for unknown tools
-    if (message.includes('not found')) {
+    // Only transform "Tool not found:" errors from the registry, not other "not found" errors
+    // (e.g., "DeploymentLog not found" should not become "Tool not found")
+    if (message.startsWith('Tool not found:')) {
       throw new Error(
         `Tool "${toolName}" not found. Use search_tools({ query: "${toolName}" }) to find available tools.`
       );
