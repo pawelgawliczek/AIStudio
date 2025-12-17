@@ -8,6 +8,7 @@ import { CodeMetricsModule } from './code-metrics/code-metrics.module';
 import { CommitsModule } from './commits/commits.module';
 import { ComponentsModule } from './components/components.module'; // New Generic Component pattern
 import { CoordinatorsModule } from './coordinators/coordinators.module';
+import { DatabaseMetricsModule } from './database-metrics/database-metrics.module';
 import { DocsModule } from './docs/docs.module';
 import { EpicsModule } from './epics/epics.module';
 import { HealthController } from './health.controller';
@@ -80,6 +81,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     RemoteAgentModule, // ST-133: Remote execution agent
     RunnerModule, // ST-145: Story Runner REST API endpoints
     McpHttpModule, // ST-163: MCP HTTP Transport
+    DatabaseMetricsModule, // ST-280: PostgreSQL connection pool monitoring
   ],
   controllers: [HealthController],
 })
