@@ -690,8 +690,8 @@ export function WorkflowDetailsPage() {
                   <div className="flex-1 hidden md:block"></div>
                 </div>
 
-                {/* Charts - Center single chart if no workflow B */}
-                <div className={`grid gap-6 ${workflowB ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
+                {/* Charts - Full width for better readability */}
+                <div className={`grid gap-6 ${workflowB ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                 {/* Workflow A Chart */}
                 <div className="flex flex-col gap-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">{workflowA.name}</h3>
