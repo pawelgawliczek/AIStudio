@@ -36,9 +36,21 @@ export interface DatabaseMetrics {
   connection_details: ConnectionDetail[];
 }
 
+export interface ConnectionHistoryPoint {
+  timestamp: string;
+  total_connections: number;
+  active_connections: number;
+  idle_connections: number;
+  utilization_percent: number;
+}
+
+const HISTORY_KEY = 'db_connection_history';
+const MAX_HISTORY_POINTS = 180; // 30 minutes at 10s intervals
+
 @Injectable()
 export class DatabaseMetricsService {
   private readonly logger = new Logger(DatabaseMetricsService.name);
+  private history: ConnectionHistoryPoint[] = [];
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -99,9 +111,19 @@ export class DatabaseMetricsService {
       `;
 
       const oldestConnectionAge = oldestConnection[0]?.oldest_seconds ?? null;
+      const timestamp = new Date().toISOString();
+
+      // Store in history for time series
+      this.addToHistory({
+        timestamp,
+        total_connections: total,
+        active_connections: active,
+        idle_connections: idle,
+        utilization_percent: utilizationPercent,
+      });
 
       return {
-        timestamp: new Date().toISOString(),
+        timestamp,
         // Single-element array for Grafana Infinity stat panels
         pool_stats: [
           {
@@ -120,5 +142,17 @@ export class DatabaseMetricsService {
       this.logger.error('Failed to get database metrics', error);
       throw error;
     }
+  }
+
+  private addToHistory(point: ConnectionHistoryPoint): void {
+    this.history.push(point);
+    // Keep only last MAX_HISTORY_POINTS
+    while (this.history.length > MAX_HISTORY_POINTS) {
+      this.history.shift();
+    }
+  }
+
+  getConnectionHistory(): ConnectionHistoryPoint[] {
+    return [...this.history];
   }
 }
