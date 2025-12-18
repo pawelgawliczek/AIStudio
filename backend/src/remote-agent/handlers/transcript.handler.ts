@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { getErrorMessage, getErrorStack } from '../../common';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -30,6 +30,7 @@ export class TranscriptHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly transcriptRegistrationService: TranscriptRegistrationService,
+    @Inject(forwardRef(() => AppWebSocketGateway))
     private readonly appWebSocketGateway: AppWebSocketGateway,
   ) {}
 
