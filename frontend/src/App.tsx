@@ -13,22 +13,22 @@ import ComponentCoverageView from './pages/ComponentCoverageView';
 import { DashboardPage } from './pages/DashboardPage';
 import { EpicPlanningView } from './pages/EpicPlanningView';
 import { LoginPage } from './pages/LoginPage';
-import { ProjectsPage } from './pages/ProjectsPage';
+import { PerformanceDashboard } from './pages/PerformanceDashboard';
 import { PlanningView } from './pages/PlanningView';
+import { ProjectsPage } from './pages/ProjectsPage';
 import { StoryDetailPage } from './pages/StoryDetailPage';
+import { TeamComparisonPage } from './pages/TeamComparisonPage';
 import { TeamDetailPage } from './pages/TeamDetailPage';
+import TeamDetailsPage from './pages/TeamDetailsPage';
 import { TeamManagementView } from './pages/TeamManagementView';
+import { TeamRunsListView } from './pages/TeamRunsListView';
+import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
+import { TestExecutionDetailPage } from './pages/TestExecutionDetailPage';
+import { TestExecutionHistoryPage } from './pages/TestExecutionHistoryPage';
 import { TimelineView } from './pages/TimelineView';
 import { UseCaseLibraryView } from './pages/UseCaseLibraryView';
-import { TeamComparisonPage } from './pages/TeamComparisonPage';
-import { TeamRunsListView } from './pages/TeamRunsListView';
 import WorkflowExecutionMonitor from './pages/WorkflowExecutionMonitor';
 import { WorkflowResultsView } from './pages/WorkflowResultsView';
-import { PerformanceDashboard } from './pages/PerformanceDashboard';
-import { TestExecutionHistoryPage } from './pages/TestExecutionHistoryPage';
-import { TestExecutionDetailPage } from './pages/TestExecutionDetailPage';
-import TestCaseCoverageDashboard from './pages/TestCaseCoverageDashboard';
-import TeamDetailsPage from './pages/TeamDetailsPage';
 
 // Redirect components that preserve URL params (React Router v6 <Navigate> doesn't auto-substitute params)
 const RedirectWithId = ({ to }: { to: string }) => {

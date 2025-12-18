@@ -229,7 +229,6 @@ describe('advance_step - commitBeforeAdvance Logic (ST-278)', () => {
         success: true,
       });
 
-      // THIS TEST WILL FAIL - advance_step doesn't create commitBeforeAdvance yet
       const result: any = await handler(mockPrisma, {
         runId: 'run-uuid',
         output: { files: ['auth.ts'] },
@@ -239,7 +238,8 @@ describe('advance_step - commitBeforeAdvance Logic (ST-278)', () => {
         tool: 'exec-command',
         parameters: expect.objectContaining({
           command: expect.stringMatching(/git add -A.*&&.*git commit/),
-          cwd: expect.stringMatching(/worktrees|AIStudio/),
+          // ST-289: cwd uses placeholder that gets resolved at runtime
+          cwd: expect.stringMatching(/{{WORKTREE_PATH}}|worktrees|AIStudio/),
         }),
         description: expect.stringContaining('Implementer'),
       });
