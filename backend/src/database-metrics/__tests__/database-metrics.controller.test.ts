@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../../prisma/prisma.service';
 import { DatabaseMetricsController } from '../database-metrics.controller';
 import { DatabaseMetricsService } from '../database-metrics.service';
-import { PrismaService } from '../../prisma/prisma.service';
 
 describe('DatabaseMetricsController', () => {
   let controller: DatabaseMetricsController;

@@ -1953,3 +1953,760 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-17T09:02:54Z",
+  "session_id": "1ea589ba-2558-47dc-86f6-c87c9e97dba2",
+  "run_id": "02f22e63-fbc9-4213-bb4a-7a61e5400814",
+  "questions": [
+    {
+      "question": "ST-277 is already in planning for this same issue. Should I implement this fix now, or coordinate with ST-277?",
+      "header": "Approach",
+      "options": [
+        {
+          "label": "Fix it now",
+          "description": "Add exec-command capability to laptop-agent defaults (simple one-line change)"
+        },
+        {
+          "label": "Coordinate with ST-277",
+          "description": "Review ST-277 scope first, may have additional requirements beyond this fix"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-17T10:33:17Z",
+  "session_id": "1ea589ba-2558-47dc-86f6-c87c9e97dba2",
+  "run_id": "02f22e63-fbc9-4213-bb4a-7a61e5400814",
+  "questions": [
+    {
+      "question": "The plan has two parts: (1) Update postExecutionInstructions to include commit step, (2) Add startCommitHash tracking for per-phase metrics. Do you want both, or just the commit instructions?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "Both parts",
+          "description": "Add commit instructions + track startCommitHash for accurate per-phase metrics"
+        },
+        {
+          "label": "Just commit instructions",
+          "description": "Only update postExecutionInstructions, keep using main..HEAD diff (simpler)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-17T11:15:29Z",
+  "session_id": "37717a7b-fc99-4347-aa5e-eacebe34db70",
+  "run_id": "02f22e63-fbc9-4213-bb4a-7a61e5400814",
+  "questions": [
+    {
+      "question": "Which workflows should get the Document Writer state?",
+      "header": "Workflows",
+      "options": [
+        {
+          "label": "All 3 workflows",
+          "description": "Add to Simplified, Standard, and Standard with Approved Plan workflows"
+        },
+        {
+          "label": "Standard workflows only",
+          "description": "Add to Standard Dev Workflow and Standard with Approved Plan (skip Simplified)"
+        },
+        {
+          "label": "Just Simplified",
+          "description": "Start with Simplified Dev Workflow only, expand later"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Where should Documentation state go in the workflow order?",
+      "header": "State Order",
+      "options": [
+        {
+          "label": "After final state (Recommended)",
+          "description": "Run documentation after testing/review completes - captures full implementation"
+        },
+        {
+          "label": "Before testing",
+          "description": "Write docs before tests run - may miss test-driven changes"
+        },
+        {
+          "label": "Optional/skippable",
+          "description": "Add as non-mandatory state that can be skipped"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-17T16:34:46Z",
+  "session_id": "d5d55037-b704-4b34-a998-aa4d8c3c0d75",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "What specific problems are you experiencing after waking from hibernation?",
+      "header": "Current Issue",
+      "options": [
+        {
+          "label": "Agent shows connected but can't receive jobs",
+          "description": "The UI shows online but jobs fail or timeout"
+        },
+        {
+          "label": "Agent stuck, requires manual restart",
+          "description": "Have to kill and restart the agent process manually"
+        },
+        {
+          "label": "Connection doesn't auto-recover",
+          "description": "Socket.IO reconnection fails or doesn't trigger after wake"
+        },
+        {
+          "label": "Want proactive health recovery",
+          "description": "No current issue, but want automatic detection and recovery"
+        }
+      ],
+      "multiSelect": true
+    },
+    {
+      "question": "What reconnection behavior would you like?",
+      "header": "Desired Behavior",
+      "options": [
+        {
+          "label": "Auto-detect wake and reconnect (Recommended)",
+          "description": "Agent detects hibernation wake and forces fresh connection"
+        },
+        {
+          "label": "CLI command to manually reconnect",
+          "description": "Add a command like 'laptop-agent reconnect' to force recovery"
+        },
+        {
+          "label": "Health check endpoint/status",
+          "description": "Way to verify connection health and trigger recovery if needed"
+        },
+        {
+          "label": "All of the above",
+          "description": "Comprehensive solution with auto-detect + manual fallback + status"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:21:05Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "What's your primary goal for expanding the MCP server?",
+      "header": "Goal",
+      "options": [
+        {
+          "label": "Research only",
+          "description": "Just wanted to understand the landscape - no implementation planned"
+        },
+        {
+          "label": "Pick features to build",
+          "description": "Want to select specific features to add to VibeStudio"
+        },
+        {
+          "label": "Competitive analysis",
+          "description": "Understanding where VibeStudio fits vs other tools"
+        },
+        {
+          "label": "Create new product",
+          "description": "Building a new standalone MCP server from scratch"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Which feature category interests you most?",
+      "header": "Focus area",
+      "options": [
+        {
+          "label": "Developer Intelligence",
+          "description": "Real-time docs, codebase memory, design systems"
+        },
+        {
+          "label": "Agent Orchestration",
+          "description": "A2A communication, multi-agent coordination"
+        },
+        {
+          "label": "Quality & Testing",
+          "description": "Test generation, security scanning, refactoring"
+        },
+        {
+          "label": "DevOps Integration",
+          "description": "CI/CD, observability, environment management"
+        }
+      ],
+      "multiSelect": true
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:24:44Z",
+  "session_id": "dea84907-e280-45ce-a69b-cdff2b4328b2",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "What's your timeline before the podcast recording? This affects how much we can realistically tackle.",
+      "header": "Timeline",
+      "options": [
+        {
+          "label": "1-2 weeks",
+          "description": "Focus on quick wins: security fixes, basic CI/CD, enable some strict TypeScript"
+        },
+        {
+          "label": "3-4 weeks",
+          "description": "Can tackle quick wins plus refactor 2-3 large files and reduce any usage"
+        },
+        {
+          "label": "1+ month",
+          "description": "Full cleanup: all phases including deprecated code removal and comprehensive refactoring"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Are you comfortable with potentially breaking changes from enabling TypeScript strict mode?",
+      "header": "Breaking?",
+      "options": [
+        {
+          "label": "Yes, fix them",
+          "description": "Enable strict mode and fix all resulting TypeScript errors (more work but better result)"
+        },
+        {
+          "label": "Gradual only",
+          "description": "Enable one strict option at a time (noImplicitAny first), pause if too many errors"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Which areas matter most for podcast presentation?",
+      "header": "Focus",
+      "options": [
+        {
+          "label": "Security posture",
+          "description": "Zero vulnerabilities, secure defaults, proper secret handling"
+        },
+        {
+          "label": "Code architecture",
+          "description": "Clean file structure, no circular deps, proper module organization"
+        },
+        {
+          "label": "Type safety",
+          "description": "TypeScript strict mode, reduced any usage, better inference"
+        },
+        {
+          "label": "CI/CD pipeline",
+          "description": "Automated testing, linting, and quality gates on every PR"
+        }
+      ],
+      "multiSelect": true
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:26:30Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "What would you like to do next with this research?",
+      "header": "Next step",
+      "options": [
+        {
+          "label": "Deep dive on PRD/AC",
+          "description": "Design the intelligent PRD and AC generation system in detail"
+        },
+        {
+          "label": "Explore prompt management",
+          "description": "Look at how to implement version-controlled prompts"
+        },
+        {
+          "label": "Competitive analysis",
+          "description": "Compare VibeStudio vs ChatPRD, StoriesOnBoard, etc."
+        },
+        {
+          "label": "Just the research",
+          "description": "This research is enough - no implementation needed"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:38:53Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Is this research sufficient, or do you want me to explore anything further?",
+      "header": "Completeness",
+      "options": [
+        {
+          "label": "Research complete",
+          "description": "This gives me enough to make decisions"
+        },
+        {
+          "label": "More on standalone product",
+          "description": "Help me think about this as a separate product"
+        },
+        {
+          "label": "Implementation estimate",
+          "description": "Break down effort for each feature"
+        },
+        {
+          "label": "Something else",
+          "description": "Specify in the text box"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:44:03Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Does this AC-centric system design match your vision?",
+      "header": "Design check",
+      "options": [
+        {
+          "label": "Yes, this is it",
+          "description": "The design captures what I'm looking for"
+        },
+        {
+          "label": "Need more detail",
+          "description": "Specify which part needs more depth"
+        },
+        {
+          "label": "Missing something",
+          "description": "There's a key aspect I haven't covered"
+        },
+        {
+          "label": "Different approach",
+          "description": "I have a different idea in mind"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:52:09Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Is the research complete, or do you want to explore anything else?",
+      "header": "Next step",
+      "options": [
+        {
+          "label": "Research complete",
+          "description": "I have enough information to make decisions"
+        },
+        {
+          "label": "Add more sections",
+          "description": "Need to cover additional topics"
+        },
+        {
+          "label": "Start implementation plan",
+          "description": "Create a phased implementation roadmap"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:53:36Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Where do your acceptance criteria currently live?",
+      "header": "AC Storage",
+      "options": [
+        {
+          "label": "In story descriptions",
+          "description": "Written as part of story text, not structured"
+        },
+        {
+          "label": "Separate field on stories",
+          "description": "Have a dedicated AC field but it's free-form text"
+        },
+        {
+          "label": "Don't track ACs yet",
+          "description": "No formal AC documentation currently"
+        },
+        {
+          "label": "External tool (Linear, Jira)",
+          "description": "ACs live in a project management tool"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:53:55Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "What format are your ACs currently in?",
+      "header": "AC Format",
+      "options": [
+        {
+          "label": "Free text",
+          "description": "Plain text descriptions like 'User can login with email'"
+        },
+        {
+          "label": "Gherkin (GIVEN/WHEN/THEN)",
+          "description": "Structured BDD format"
+        },
+        {
+          "label": "Bullet points",
+          "description": "List format but not strictly structured"
+        },
+        {
+          "label": "Mixed formats",
+          "description": "Different people use different formats"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:54:35Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Would you like the system to convert free-text ACs to structured format?",
+      "header": "AC Conversion",
+      "options": [
+        {
+          "label": "Yes, auto-convert to Gherkin",
+          "description": "AI parses free text and structures it (Recommended)"
+        },
+        {
+          "label": "Yes, but keep both",
+          "description": "Store original + structured version"
+        },
+        {
+          "label": "No, work with free text",
+          "description": "Analyze free text directly without conversion"
+        },
+        {
+          "label": "Enforce structured input",
+          "description": "Require Gherkin format for new ACs going forward"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:54:51Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "When checking for conflicts, what scope should be searched?",
+      "header": "Conflict Scope",
+      "options": [
+        {
+          "label": "Same story only",
+          "description": "Check conflicts within the same feature"
+        },
+        {
+          "label": "Same epic/module",
+          "description": "Check against related features in the same area"
+        },
+        {
+          "label": "Entire project",
+          "description": "Check against all existing ACs (Recommended for catching behavioral conflicts)"
+        },
+        {
+          "label": "Cross-project",
+          "description": "Check against ACs in other projects too (e.g., shared libraries)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:55:16Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "When a conflict is detected, what should happen?",
+      "header": "Conflict Action",
+      "options": [
+        {
+          "label": "Block and alert",
+          "description": "Cannot proceed until conflict is resolved"
+        },
+        {
+          "label": "Warn but allow",
+          "description": "Show warning, let user decide to proceed or not"
+        },
+        {
+          "label": "Log for review",
+          "description": "Silently log, surface in reports for later review"
+        },
+        {
+          "label": "Configurable per severity",
+          "description": "Critical conflicts block, minor conflicts warn (Recommended)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:59:11Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "When in the development process should conflict checking happen?",
+      "header": "Check Timing",
+      "options": [
+        {
+          "label": "When AC is created/edited",
+          "description": "Real-time check as user writes ACs"
+        },
+        {
+          "label": "Before story approval",
+          "description": "Gate check before story moves to implementation"
+        },
+        {
+          "label": "Both times",
+          "description": "Real-time feedback + formal gate (Recommended)"
+        },
+        {
+          "label": "On-demand only",
+          "description": "User explicitly requests a conflict scan"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T05:59:43Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Which types of conflicts are most important to detect?",
+      "header": "Conflict Types",
+      "options": [
+        {
+          "label": "Behavioral contradictions",
+          "description": "'User can only have 1 session' vs 'User can login from multiple devices'"
+        },
+        {
+          "label": "Data inconsistencies",
+          "description": "'Email is optional' vs 'Login requires email'"
+        },
+        {
+          "label": "Permission conflicts",
+          "description": "'Only admins can delete' vs 'Users can delete their own posts'"
+        },
+        {
+          "label": "All of the above",
+          "description": "Comprehensive conflict detection"
+        }
+      ],
+      "multiSelect": true
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T06:02:35Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Should conflicts be checked against ACs only, or also against existing code?",
+      "header": "Conflict Source",
+      "options": [
+        {
+          "label": "ACs only",
+          "description": "Compare new AC against existing documented ACs"
+        },
+        {
+          "label": "ACs + Code comments",
+          "description": "Also check JSDoc, inline comments that describe behavior"
+        },
+        {
+          "label": "ACs + Code behavior",
+          "description": "Actually analyze code to detect undocumented behaviors that might conflict"
+        },
+        {
+          "label": "ACs + Code + Tests",
+          "description": "Most comprehensive - use test descriptions as additional AC source"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T06:03:11Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "When a difference is found, what resolution options should users have?",
+      "header": "Resolution",
+      "options": [
+        {
+          "label": "Update the AC",
+          "description": "The new requirement takes precedence, update existing AC"
+        },
+        {
+          "label": "Update the new feature",
+          "description": "Existing behavior is correct, modify the new feature"
+        },
+        {
+          "label": "Mark as intentional",
+          "description": "Document that this is a known exception/override"
+        },
+        {
+          "label": "All options available",
+          "description": "User chooses appropriate action per case (Recommended)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T06:03:35Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Should conflict resolutions be tracked for audit/learning?",
+      "header": "Resolution Tracking",
+      "options": [
+        {
+          "label": "Yes, full audit trail",
+          "description": "Track every conflict found, how it was resolved, and by whom"
+        },
+        {
+          "label": "Yes, for learning",
+          "description": "Track patterns to improve future conflict detection"
+        },
+        {
+          "label": "Both audit and learning",
+          "description": "Comprehensive tracking for compliance and improvement"
+        },
+        {
+          "label": "No tracking needed",
+          "description": "Just resolve and move on"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T06:05:50Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Do you have more questions about the AC system, or is the research complete?",
+      "header": "Status",
+      "options": [
+        {
+          "label": "More questions about AC",
+          "description": "Continue exploring the AC system design"
+        },
+        {
+          "label": "Research complete",
+          "description": "I have enough information"
+        },
+        {
+          "label": "Create implementation roadmap",
+          "description": "Break this into implementable phases with priorities"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T06:10:14Z",
+  "session_id": "3208874f-8378-4627-b1e1-a0de7c8cca48",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "What would you like to do next?",
+      "header": "Next step",
+      "options": [
+        {
+          "label": "Research complete",
+          "description": "I have enough information to make decisions"
+        },
+        {
+          "label": "More academic depth",
+          "description": "Dig deeper into specific research papers"
+        },
+        {
+          "label": "Implementation roadmap",
+          "description": "Create a phased implementation plan with priorities"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T06:18:09Z",
+  "session_id": "4fd80981-6a13-4686-ba22-f9b95badb233",
+  "run_id": "ff5831f3-ba6a-4244-852c-0e5126dedf6e",
+  "questions": [
+    {
+      "question": "Do you approve the revised implementation plan for ST-282 security fixes?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Yes, proceed",
+          "description": "Execute all phases in order with rollback points"
+        },
+        {
+          "label": "Phase 1 only",
+          "description": "Start with Quick Wins (ESLint fixes), review before continuing"
+        },
+        {
+          "label": "Skip MCP SDK",
+          "description": "Do phases 1, 2, 3A, 3B but skip the high-risk MCP SDK update"
+        },
+        {
+          "label": "Reject",
+          "description": "Need changes to the plan before proceeding"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

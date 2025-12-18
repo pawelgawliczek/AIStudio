@@ -249,6 +249,7 @@ export class PrismaClient {
     if (_singletonInstance) {
       return _singletonInstance;
     }
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     _singletonInstance = this;
   }
 }

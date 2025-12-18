@@ -8,8 +8,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler } from '../advance_step';
 import * as agentTracking from '../../../shared/agent-tracking';
+import { handler } from '../advance_step';
 
 // Mock the agent-tracking module
 jest.mock('../../../shared/agent-tracking', () => ({

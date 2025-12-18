@@ -31,14 +31,12 @@ export default defineConfig({
         'src/**/__tests__/**',
       ],
       all: true,
-      // Thresholds temporarily disabled to allow coverage file generation
-      // Will re-enable after verifying coverage collection works
-      // thresholds: {
-      //   statements: 60,
-      //   branches: 50,
-      //   functions: 60,
-      //   lines: 60,
-      // },
+      thresholds: {
+        statements: 70,
+        branches: 70,
+        functions: 70,
+        lines: 70,
+      },
     },
   },
   resolve: {
