@@ -52,7 +52,7 @@ export class UpdateTestCaseDto {
   @IsOptional()
   expectedResults?: string;
 
-  @ApiPropertyOptional({ description: 'Test data (JSON object)', type: 'object' })
+  @ApiPropertyOptional({ description: 'Test data (JSON object)', type: 'object', additionalProperties: true })
   @IsOptional()
   testData?: any;
 
