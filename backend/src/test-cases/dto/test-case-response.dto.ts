@@ -38,7 +38,7 @@ export class TestCaseResponseDto {
   @ApiPropertyOptional()
   expectedResults?: string;
 
-  @ApiPropertyOptional({ type: 'object' })
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   testData?: any;
 
   @ApiPropertyOptional()
@@ -57,13 +57,13 @@ export class TestCaseResponseDto {
   updatedAt: Date;
 
   // Optional included relations
-  @ApiPropertyOptional({ type: 'object' })
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   useCase?: any;
 
-  @ApiPropertyOptional({ type: 'object' })
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   assignedTo?: any;
 
-  @ApiPropertyOptional({ type: 'object' })
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   createdBy?: any;
 
   @ApiPropertyOptional({ type: 'array' })
