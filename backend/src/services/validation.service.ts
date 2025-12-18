@@ -158,8 +158,9 @@ export class ValidationService {
         message: `Found ${fkCount} foreign keys`,
         details: { fkCount },
       });
-    } catch (error: any) {
-      errors.push(`Schema validation error: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`Schema validation error: ${errorMessage}`);
     }
 
     const passed = checks.every((c) => c.passed) && errors.length === 0;
@@ -192,13 +193,14 @@ export class ValidationService {
           passed: true,
           message: 'Connected successfully',
         });
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Prisma Client connection',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Prisma connection failed: ${error.message}`);
+        errors.push(`Prisma connection failed: ${errorMessage}`);
       }
 
       // Check 2: Primary key uniqueness (sample check on projects)
@@ -224,11 +226,12 @@ export class ValidationService {
         if (hasDuplicates) {
           errors.push('Duplicate primary keys found in projects table');
         }
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Primary key uniqueness check',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
       }
 
@@ -254,11 +257,12 @@ export class ValidationService {
         if (hasOrphans) {
           errors.push('Orphaned stories found (invalid project references)');
         }
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Foreign key integrity check',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
       }
 
@@ -281,15 +285,17 @@ export class ValidationService {
         if (hasNulls) {
           errors.push('NULL values found in required project fields');
         }
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'NOT NULL constraints check',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
       }
-    } catch (error: any) {
-      errors.push(`Data integrity validation error: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`Data integrity validation error: ${errorMessage}`);
     } finally {
       await getPrisma().$disconnect();
     }
@@ -325,13 +331,14 @@ export class ValidationService {
           message: 'Prisma Client operational',
         });
         await getPrisma().$disconnect();
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Prisma Client functional',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Prisma Client not functional: ${error.message}`);
+        errors.push(`Prisma Client not functional: ${errorMessage}`);
       }
 
       // Check 2: Database connection pool
@@ -350,13 +357,14 @@ export class ValidationService {
           errors.push('Cannot execute database queries');
         }
         await getPrisma().$disconnect();
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Database query execution',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Query execution failed: ${error.message}`);
+        errors.push(`Query execution failed: ${errorMessage}`);
       }
 
       // Check 3: Critical table row counts
@@ -372,16 +380,18 @@ export class ValidationService {
           details: { projectCount, storyCount },
         });
         await getPrisma().$disconnect();
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Data accessible',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Cannot access data: ${error.message}`);
+        errors.push(`Cannot access data: ${errorMessage}`);
       }
-    } catch (error: any) {
-      errors.push(`Health validation error: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`Health validation error: ${errorMessage}`);
     }
 
     const passed = checks.every((c) => c.passed) && errors.length === 0;
@@ -416,13 +426,14 @@ export class ValidationService {
           passed: true,
           message: `Retrieved ${projects.length} project(s)`,
         });
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Query projects',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Cannot query projects: ${error.message}`);
+        errors.push(`Cannot query projects: ${errorMessage}`);
       }
 
       // Smoke Test 2: Query stories
@@ -433,13 +444,14 @@ export class ValidationService {
           passed: true,
           message: `Retrieved ${stories.length} story(ies)`,
         });
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Query stories',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Cannot query stories: ${error.message}`);
+        errors.push(`Cannot query stories: ${errorMessage}`);
       }
 
       // Smoke Test 3: Query use cases
@@ -450,13 +462,14 @@ export class ValidationService {
           passed: true,
           message: `Retrieved ${useCases.length} use case(s)`,
         });
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Query use cases',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Cannot query use cases: ${error.message}`);
+        errors.push(`Cannot query use cases: ${errorMessage}`);
       }
 
       // Smoke Test 4: Query workflows
@@ -467,13 +480,14 @@ export class ValidationService {
           passed: true,
           message: `Retrieved ${workflows.length} workflow(s)`,
         });
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Query workflows',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Cannot query workflows: ${error.message}`);
+        errors.push(`Cannot query workflows: ${errorMessage}`);
       }
 
       // Smoke Test 5: Complex join query
@@ -487,18 +501,20 @@ export class ValidationService {
           passed: true,
           message: `Join query successful`,
         });
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         checks.push({
           name: 'Join query',
           passed: false,
-          message: error.message,
+          message: errorMessage,
         });
-        errors.push(`Join query failed: ${error.message}`);
+        errors.push(`Join query failed: ${errorMessage}`);
       }
 
       await getPrisma().$disconnect();
-    } catch (error: any) {
-      errors.push(`Smoke tests error: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`Smoke tests error: ${errorMessage}`);
     }
 
     const passed = checks.every((c) => c.passed) && errors.length === 0;

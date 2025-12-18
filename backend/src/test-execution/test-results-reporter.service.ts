@@ -166,16 +166,16 @@ export class TestResultsReporterService {
         testCaseKey: testData.testCaseKey,
         testCaseTitle: testData.testCaseTitle,
         testLevel: testData.testLevel,
-        storyId: testData.storyId || null,
-        commitHash: testData.commitHash || null,
+        storyId: testData.storyId ?? undefined,
+        commitHash: testData.commitHash ?? undefined,
         status: testData.status, // Already in correct format: 'pass', 'fail', 'skip', 'error'
         durationMs: testData.durationMs,
-        errorMessage: testData.errorMessage || null,
-        coveragePercentage: testData.coveragePercentage || null,
-        linesCovered: testData.linesCovered || null,
-        linesTotal: testData.linesTotal || null,
-        ciRunId: null,
-        environment: testData.environment,
+        errorMessage: testData.errorMessage ?? undefined,
+        coveragePercentage: testData.coveragePercentage ?? undefined,
+        linesCovered: testData.linesCovered ?? undefined,
+        linesTotal: testData.linesTotal ?? undefined,
+        ciRunId: undefined,
+        environment: testData.environment ?? undefined,
       });
 
       this.logger.log(

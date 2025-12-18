@@ -79,7 +79,7 @@ export async function handleCreateMigration(
 
   try {
     // Validate required fields
-    validateRequired(params, ['name']);
+    validateRequired(params as unknown as Record<string, unknown>, ['name']);
 
     // Sanitize migration name (alphanumeric and underscores only)
     const sanitizedName = params.name.replace(/[^a-zA-Z0-9_]/g, '_');

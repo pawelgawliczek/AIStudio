@@ -119,11 +119,11 @@ export class TestAnalyzerProcessor {
         coveredLOC: 0,
         testCases: {
           unit: 0,
-              integration: 0,
-              e2e: 0,
-            },
-            gaps: [],
-          };
+          integration: 0,
+          e2e: 0,
+        },
+        gaps: [],
+      };
 
       // Calculate project-level metrics
       for (const file of fileMetrics) {
@@ -131,7 +131,8 @@ export class TestAnalyzerProcessor {
         projectCoverage.totalLOC += file.linesOfCode;
 
         // Get coverage from metadata (would come from actual coverage tool)
-        const coverage = (file.metadata as any)?.coverage || 0;
+        const metadata = file.metadata as Record<string, unknown> | null;
+        const coverage = (metadata && typeof metadata.coverage === 'number') ? metadata.coverage : 0;
         projectCoverage.coveredLOC += Math.floor((file.linesOfCode * coverage) / 100);
 
         // Identify files with low/no coverage
@@ -299,7 +300,7 @@ export class TestAnalyzerProcessor {
       select: { metadata: true },
     });
 
-    const existingMetadata = story?.metadata as any || {};
+    const existingMetadata = (story?.metadata as Record<string, unknown>) || {};
     await this.prisma.story.update({
       where: { id: storyId },
       data: {

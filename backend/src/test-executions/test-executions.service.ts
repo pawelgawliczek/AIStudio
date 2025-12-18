@@ -261,7 +261,7 @@ export class TestExecutionsService {
 
     const durationsWithValues = executions.filter(e => e.durationMs !== null);
     const avgDuration = durationsWithValues.length > 0
-      ? durationsWithValues.reduce((sum, e) => sum + e.durationMs, 0) / durationsWithValues.length
+      ? durationsWithValues.reduce((sum, e) => sum + (e.durationMs ?? 0), 0) / durationsWithValues.length
       : 0;
 
     const coveragesWithValues = executions.filter(e => e.coveragePercentage !== null);
@@ -481,7 +481,8 @@ export class TestExecutionsService {
       // Calculate average duration
       const durations = execs
         .filter(e => e.durationMs !== null)
-        .map(e => e.durationMs);
+        .map(e => e.durationMs!)
+        .filter((d): d is number => d !== null);
       summary[levelKey].avgDuration = durations.length > 0
         ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
         : 0;

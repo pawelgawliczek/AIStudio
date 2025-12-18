@@ -50,13 +50,13 @@ export class MetricsAggregatorProcessor {
       }
 
       // Calculate total tokens
-      const totalTokensInput = story.runs.reduce((sum: number, run: any) => sum + (run.tokensInput || 0), 0);
-      const totalTokensOutput = story.runs.reduce((sum: number, run: any) => sum + (run.tokensOutput || 0), 0);
+      const totalTokensInput = story.runs.reduce((sum: number, run) => sum + (run.tokensInput || 0), 0);
+      const totalTokensOutput = story.runs.reduce((sum: number, run) => sum + (run.tokensOutput || 0), 0);
       const totalTokens = totalTokensInput + totalTokensOutput;
 
       // Calculate total LOC from commits
       const totalLOC = story.commits.reduce(
-        (sum: number, commit: any) => sum + (commit.linesAdded || 0) + Math.abs(commit.linesDeleted || 0),
+        (sum: number, commit) => sum + (commit.linesAdded || 0) + Math.abs(commit.linesDeleted || 0),
         0,
       );
 
@@ -65,8 +65,8 @@ export class MetricsAggregatorProcessor {
 
       // Calculate total duration
       const durations = story.runs
-        .filter((run: any) => run.startedAt && run.finishedAt)
-        .map((run: any) => run.finishedAt!.getTime() - run.startedAt!.getTime());
+        .filter((run) => run.startedAt && run.finishedAt)
+        .map((run) => run.finishedAt!.getTime() - run.startedAt!.getTime());
       const totalDuration = durations.reduce((sum: number, d: number) => sum + d, 0);
 
       // Calculate efficiency metrics
@@ -140,10 +140,11 @@ export class MetricsAggregatorProcessor {
       });
 
       // Group stories by framework
-      const frameworkGroups = new Map<string, any[]>();
+      const frameworkGroups = new Map<string, typeof stories>();
 
       for (const story of stories) {
-        const framework = (story.metadata as any)?.framework || 'unknown';
+        const metadata = story.metadata as Record<string, unknown> | null;
+        const framework = (metadata && typeof metadata.framework === 'string' ? metadata.framework : 'unknown');
         if (!frameworkGroups.has(framework)) {
           frameworkGroups.set(framework, []);
         }
@@ -151,7 +152,18 @@ export class MetricsAggregatorProcessor {
       }
 
       // Calculate metrics per framework
-      const frameworkMetrics: any[] = [];
+      const frameworkMetrics: Array<{
+        framework: string;
+        totalStories: number;
+        totalTokens: number;
+        totalLOC: number;
+        totalIterations: number;
+        avgTokensPerStory: number;
+        avgLOCPerStory: number;
+        avgIterationsPerStory: number;
+        avgDurationPerStory: number;
+        avgTokensPerLOC: number;
+      }> = [];
 
       for (const [framework, frameworkStories] of frameworkGroups.entries()) {
         // Calculate aggregate metrics
@@ -162,12 +174,13 @@ export class MetricsAggregatorProcessor {
         let totalDuration = 0;
 
         for (const story of frameworkStories) {
-          const storyMetrics = (story.metadata as any)?.metrics;
+          const metadata = story.metadata as Record<string, unknown> | null;
+          const storyMetrics = (metadata && typeof metadata.metrics === 'object' && metadata.metrics !== null) ? metadata.metrics as Record<string, unknown> : null;
           if (storyMetrics) {
-            totalTokens += storyMetrics.totalTokens || 0;
-            totalLOC += storyMetrics.totalLOC || 0;
-            totalIterations += storyMetrics.totalIterations || 0;
-            totalDuration += storyMetrics.totalDurationMs || 0;
+            totalTokens += (typeof storyMetrics.totalTokens === 'number' ? storyMetrics.totalTokens : 0);
+            totalLOC += (typeof storyMetrics.totalLOC === 'number' ? storyMetrics.totalLOC : 0);
+            totalIterations += (typeof storyMetrics.totalIterations === 'number' ? storyMetrics.totalIterations : 0);
+            totalDuration += (typeof storyMetrics.totalDurationMs === 'number' ? storyMetrics.totalDurationMs : 0);
           }
         }
 
@@ -237,7 +250,13 @@ export class MetricsAggregatorProcessor {
       });
 
       // Group by week and calculate metrics
-      const weeklyMetrics = new Map<string, any>();
+      const weeklyMetrics = new Map<string, {
+        week: string;
+        stories: string[];
+        totalTokens: number;
+        totalLOC: number;
+        totalIterations: number;
+      }>();
 
       for (const story of stories) {
         const week = this.getWeekKey(story.updatedAt);
@@ -255,11 +274,12 @@ export class MetricsAggregatorProcessor {
         const weekData = weeklyMetrics.get(week)!;
         weekData.stories.push(story.id);
 
-        const metrics = (story.metadata as any)?.metrics;
+        const metadata = story.metadata as Record<string, unknown> | null;
+        const metrics = (metadata && typeof metadata.metrics === 'object' && metadata.metrics !== null) ? metadata.metrics as Record<string, unknown> : null;
         if (metrics) {
-          weekData.totalTokens += metrics.totalTokens || 0;
-          weekData.totalLOC += metrics.totalLOC || 0;
-          weekData.totalIterations += metrics.totalIterations || 0;
+          weekData.totalTokens += (typeof metrics.totalTokens === 'number' ? metrics.totalTokens : 0);
+          weekData.totalLOC += (typeof metrics.totalLOC === 'number' ? metrics.totalLOC : 0);
+          weekData.totalIterations += (typeof metrics.totalIterations === 'number' ? metrics.totalIterations : 0);
         }
       }
 

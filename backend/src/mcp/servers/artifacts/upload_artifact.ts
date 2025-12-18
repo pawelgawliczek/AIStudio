@@ -115,7 +115,7 @@ export async function handler(
   params: UploadArtifactParams,
 ): Promise<ArtifactResponse> {
   try {
-    validateRequired(params, ['content']);
+    validateRequired(params as unknown as Record<string, unknown>, ['content']);
 
     // ST-214: Support direct storyId OR workflowRunId
     if (!params.storyId && !params.workflowRunId) {

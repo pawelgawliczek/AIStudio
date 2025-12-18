@@ -113,7 +113,7 @@ export class EmbeddingProcessor {
         const batch = useCases.slice(i, i + batchSize);
 
         await Promise.all(
-          batch.map(async (useCase: any) => {
+          batch.map(async (useCase) => {
             const latestVersion = useCase.versions[0];
             const content = this.buildUseCaseContent({
               code: useCase.key,
@@ -123,7 +123,7 @@ export class EmbeddingProcessor {
             });
             return this.generateEmbedding({
               data: { useCaseId: useCase.id, content },
-            } as Job);
+            } as Job<{ useCaseId: string; content: string }>);
           }),
         );
 
@@ -149,7 +149,7 @@ export class EmbeddingProcessor {
     code: string;
     title: string;
     description: string;
-    mainFlow?: any;
+    mainFlow?: unknown;
   }): string {
     let content = `${useCase.code}: ${useCase.title}\n\n${useCase.description}`;
 

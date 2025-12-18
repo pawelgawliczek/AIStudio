@@ -110,7 +110,7 @@ export async function handler(
   params: CreateArtifactDefinitionParams,
 ): Promise<ArtifactDefinitionResponse> {
   try {
-    validateRequired(params, ['workflowId', 'name', 'key', 'type']);
+    validateRequired(params as unknown as Record<string, unknown>, ['workflowId', 'name', 'key', 'type']);
 
     // Validate type
     if (!VALID_ARTIFACT_TYPES.includes(params.type)) {

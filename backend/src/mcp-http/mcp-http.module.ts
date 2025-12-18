@@ -116,6 +116,6 @@ export class McpHttpModule implements OnModuleInit {
    * This allows the session service to emit WebSocket events
    */
   onModuleInit() {
-    this.sessionService.setGateway(this.gateway);
+    this.sessionService.setGateway(this.gateway as any);
   }
 }

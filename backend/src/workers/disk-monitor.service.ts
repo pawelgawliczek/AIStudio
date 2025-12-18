@@ -197,7 +197,7 @@ export class DiskMonitorService implements OnModuleInit {
       // Send critical alert if circuit breaker about to trip
       if (this.consecutiveFailures >= 3) {
         try {
-          await (this.workersService as any).sendNotification({
+          await (this.workersService as unknown as { sendNotification: (data: Record<string, unknown>) => Promise<unknown> }).sendNotification({
             type: 'disk-monitor-error',
             priority: 1,
             message: `Disk monitor failing: ${this.consecutiveFailures} consecutive failures`,
@@ -358,7 +358,7 @@ export class DiskMonitorService implements OnModuleInit {
 
     // Enqueue notification
     try {
-      await (this.workersService as any).sendNotification({
+      await (this.workersService as unknown as { sendNotification: (data: Record<string, unknown>) => Promise<unknown> }).sendNotification({
         type: 'disk-space-alert',
         priority: alertType === 'critical' ? 1 : 2,
         alertType,
@@ -454,7 +454,7 @@ export class DiskMonitorService implements OnModuleInit {
       });
 
       // Enqueue email notification
-      await (this.workersService as any).sendNotification({
+      await (this.workersService as unknown as { sendNotification: (data: Record<string, unknown>) => Promise<unknown> }).sendNotification({
         type: 'weekly-disk-report',
         priority: 5,
         reportId: report.id,

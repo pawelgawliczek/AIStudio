@@ -26,7 +26,7 @@ export async function createEpic(
   params: CreateEpicParams,
 ): Promise<EpicResponse> {
   try {
-    validateRequired(params, ['projectId', 'title']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId', 'title']);
 
     // Verify project exists
     const project = await prisma.project.findUnique({
@@ -58,8 +58,8 @@ export async function createEpic(
     });
 
     return formatEpic(epic, true);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'create_epic');
@@ -74,7 +74,7 @@ export async function listEpics(
   params: ListEpicsParams,
 ): Promise<PaginatedResponse<EpicResponse>> {
   try {
-    validateRequired(params, ['projectId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId']);
 
     // Verify project exists
     const project = await prisma.project.findUnique({
@@ -89,7 +89,10 @@ export async function listEpics(
     const pageSize = Math.min(params.pageSize || 20, 100);
     const skip = (page - 1) * pageSize;
 
-    const whereClause: any = {
+    const whereClause: {
+      projectId: string;
+      status?: string;
+    } = {
       projectId: params.projectId,
     };
     if (params.status) {
@@ -97,11 +100,11 @@ export async function listEpics(
     }
 
     // Get total count
-    const total = await prisma.epic.count({ where: whereClause });
+    const total = await prisma.epic.count({ where: whereClause as any });
 
     // Get paginated data
     const epics = await prisma.epic.findMany({
-      where: whereClause,
+      where: whereClause as any,
       skip,
       take: pageSize,
       include: {
@@ -115,7 +118,7 @@ export async function listEpics(
     const totalPages = Math.ceil(total / pageSize);
 
     return {
-      data: epics.map((e: any) => formatEpic(e, true)),
+      data: epics.map((e) => formatEpic(e, true)),
       pagination: {
         page,
         pageSize,
@@ -125,8 +128,8 @@ export async function listEpics(
         hasPrev: page > 1,
       },
     };
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'list_epics');

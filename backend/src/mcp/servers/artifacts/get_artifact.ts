@@ -243,7 +243,7 @@ export async function handler(
     // Content is only included when explicitly requested with includeContent: true
     if (params.includeContent !== true) {
       const contentSize = artifact.content?.length || 0;
-      response.content = null;
+      response.content = '';
       (response as any)._truncated = markOmitted(
         'content',
         contentSize,

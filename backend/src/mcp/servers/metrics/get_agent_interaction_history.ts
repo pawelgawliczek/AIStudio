@@ -46,7 +46,44 @@ export const metadata = {
   since: '2025-11-17',
 };
 
-export async function handler(prisma: PrismaClient, params: any) {
+interface HandlerParams {
+  componentRunId?: string;
+  workflowRunId?: string;
+  includeToolParameters?: boolean;
+  includeMetadata?: boolean;
+  limit?: number;
+}
+
+interface BaseEvent {
+  eventId: string;
+  timestamp: string;
+  eventType: string;
+  eventName: string | null;
+  sessionId: string | null;
+  componentName?: string;
+}
+
+interface ApiEvent extends BaseEvent {
+  tokens: unknown;
+  fullMetadata?: unknown;
+  attributes?: unknown;
+}
+
+interface ToolEvent extends BaseEvent {
+  toolName: string | null;
+  duration: number | null;
+  success: boolean | null;
+  error: string | null;
+  parameters?: unknown;
+  fullMetadata?: unknown;
+}
+
+interface OtherEvent extends BaseEvent {
+  metadata?: unknown;
+  attributes?: unknown;
+}
+
+export async function handler(prisma: PrismaClient, params: HandlerParams) {
   if (!params.componentRunId && !params.workflowRunId) {
     throw new Error('Either componentRunId or workflowRunId is required');
   }
@@ -56,7 +93,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   const limit = Math.min(params.limit || 100, 500);
 
   // Build query based on provided ID
-  const whereClause: any = {};
+  const whereClause: { componentRunId?: string; workflowRunId?: string } = {};
   if (params.componentRunId) {
     whereClause.componentRunId = params.componentRunId;
   } else if (params.workflowRunId) {
@@ -84,12 +121,12 @@ export async function handler(prisma: PrismaClient, params: any) {
   });
 
   // Group events by type
-  const apiRequests: any[] = [];
-  const toolCalls: any[] = [];
-  const otherEvents: any[] = [];
+  const apiRequests: ApiEvent[] = [];
+  const toolCalls: ToolEvent[] = [];
+  const otherEvents: OtherEvent[] = [];
 
   for (const event of events) {
-    const baseEvent: any = {
+    const baseEvent: BaseEvent = {
       eventId: event.id,
       timestamp: event.timestamp.toISOString(),
       eventType: event.eventType,
@@ -99,9 +136,9 @@ export async function handler(prisma: PrismaClient, params: any) {
     };
 
     if (event.eventType === 'claude_code.api_request') {
-      const apiEvent = {
+      const apiEvent: ApiEvent = {
         ...baseEvent,
-        tokens: event.metadata as any,
+        tokens: event.metadata,
       };
       if (includeMetadata) {
         apiEvent.fullMetadata = event.metadata;
@@ -112,7 +149,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       event.eventType === 'claude_code.tool_use' ||
       event.toolName
     ) {
-      const toolEvent: any = {
+      const toolEvent: ToolEvent = {
         ...baseEvent,
         toolName: event.toolName,
         duration: event.toolDuration,
@@ -127,7 +164,7 @@ export async function handler(prisma: PrismaClient, params: any) {
       }
       toolCalls.push(toolEvent);
     } else {
-      const otherEvent = { ...baseEvent };
+      const otherEvent: OtherEvent = { ...baseEvent };
       if (includeMetadata) {
         otherEvent.metadata = event.metadata;
         otherEvent.attributes = event.attributes;
@@ -137,7 +174,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
 
   // Get iteration log if available (contains prompt summaries)
-  let iterationHistory: any[] = [];
+  let iterationHistory: unknown[] = [];
   if (params.componentRunId) {
     const componentRun = await prisma.componentRun.findUnique({
       where: { id: params.componentRunId },
@@ -150,7 +187,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     });
 
     if (componentRun?.iterationLog) {
-      iterationHistory = componentRun.iterationLog as any[];
+      iterationHistory = componentRun.iterationLog as unknown[];
     }
   }
 
@@ -195,12 +232,13 @@ export async function handler(prisma: PrismaClient, params: any) {
 }
 
 function generateInteractionSummary(
-  apiRequests: any[],
-  toolCalls: any[],
+  apiRequests: ApiEvent[],
+  toolCalls: ToolEvent[],
 ): string {
   const toolGroups: Record<string, number> = {};
   for (const call of toolCalls) {
-    toolGroups[call.toolName] = (toolGroups[call.toolName] || 0) + 1;
+    const toolName = call.toolName || 'unknown';
+    toolGroups[toolName] = (toolGroups[toolName] || 0) + 1;
   }
 
   const sortedTools = Object.entries(toolGroups)

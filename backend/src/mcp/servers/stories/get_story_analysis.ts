@@ -63,7 +63,7 @@ export async function handler(
   params: GetStoryAnalysisParams,
 ): Promise<StoryAnalysisResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     const story = await prisma.story.findUnique({
       where: { id: params.storyId },

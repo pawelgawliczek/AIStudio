@@ -57,7 +57,7 @@ export async function handler(
   params: CreateEpicParams,
 ): Promise<EpicResponse> {
   try {
-    validateRequired(params, ['projectId', 'title']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId', 'title']);
 
     // Verify project exists
     const project = await prisma.project.findUnique({

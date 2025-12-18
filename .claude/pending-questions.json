@@ -2892,3 +2892,55 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-18T14:00:23Z",
+  "session_id": "c3be28c4-e9db-4869-ba38-5c3b869fdddc",
+  "run_id": "f40cbbd6-0d71-414e-bce7-d68d6f1950c8",
+  "questions": [
+    {
+      "question": "The story target of <500 'any' usages was not met (currently 2,703). How should we proceed?",
+      "header": "Any Reduction",
+      "options": [
+        {
+          "label": "Continue fixing in this workflow",
+          "description": "Spawn another implementation agent to aggressively reduce 'any' usage and fix the 58 remaining errors"
+        },
+        {
+          "label": "Accept current state, create follow-up story",
+          "description": "Mark this as done with documented gaps, create ST-284 for remaining work"
+        },
+        {
+          "label": "Just fix the 58 typecheck errors",
+          "description": "Only address the strictNullChecks errors to get typecheck passing"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T14:27:06Z",
+  "session_id": "c3be28c4-e9db-4869-ba38-5c3b869fdddc",
+  "run_id": "73945c42-cafe-468d-96f9-375ca78f3f04",
+  "questions": [
+    {
+      "question": "The <500 any target requires removing ~2,000 more. Most are in test files. How to proceed?",
+      "header": "Scope Decision",
+      "options": [
+        {
+          "label": "Accept current progress, close story",
+          "description": "We enabled strict mode, fixed 144+ errors, split types. Document remaining work for future."
+        },
+        {
+          "label": "Continue - fix typecheck errors only",
+          "description": "Fix the 113 typecheck errors to get clean build, accept current any count"
+        },
+        {
+          "label": "Continue - aggressive any reduction",
+          "description": "Spawn more agents to keep reducing any (will take significant time)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

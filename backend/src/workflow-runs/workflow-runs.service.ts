@@ -81,7 +81,7 @@ export class WorkflowRunsService {
     if (workflowRun.story) {
       this.websocketGateway.broadcastWorkflowStarted(workflowRun.id, projectId, {
         runId: workflowRun.id,
-        storyId: workflowRun.storyId,
+        storyId: workflowRun.storyId ?? undefined,
         storyKey: workflowRun.story.key,
         storyTitle: workflowRun.story.title,
         triggeredBy: createDto.status || 'system',
@@ -275,7 +275,7 @@ export class WorkflowRunsService {
         (updateDto.status === RunStatus.completed || updateDto.status === RunStatus.failed)) {
       this.websocketGateway.broadcastWorkflowStatusUpdated(workflowRun.id, existingRun.projectId, {
         runId: workflowRun.id,
-        storyId: workflowRun.storyId,
+        storyId: workflowRun.storyId ?? undefined,
         storyKey: workflowRun.story.key,
         status: updateDto.status,
         completedAt: workflowRun.finishedAt?.toISOString(),
@@ -729,7 +729,7 @@ export class WorkflowRunsService {
       select: { id: true, workflowRunId: true },
     });
 
-    return artifact;
+    return artifact as { id: string; workflowRunId: string } | null;
   }
 
   private mapToResponseDto(workflowRun: any): WorkflowRunResponseDto {

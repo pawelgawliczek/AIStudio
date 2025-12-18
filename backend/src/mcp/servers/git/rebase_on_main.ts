@@ -199,7 +199,7 @@ export async function handler(
   let rebaseStarted = false;
 
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     const autoAbortOnConflict = params.autoAbortOnConflict || false;
 

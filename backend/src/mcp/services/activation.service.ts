@@ -150,7 +150,7 @@ export class ActivationService {
       const workflowFile = WorkflowSkillGenerator.generate(
         {
           ...workflow,
-          components,
+          components: components as any,
         },
         new Date(),
       );

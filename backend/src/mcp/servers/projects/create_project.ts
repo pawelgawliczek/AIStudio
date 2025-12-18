@@ -52,7 +52,7 @@ export async function handler(
   params: CreateProjectParams,
 ): Promise<ProjectResponse> {
   try {
-    validateRequired(params, ['name']);
+    validateRequired(params as unknown as Record<string, unknown>, ['name']);
 
     // Check if project already exists
     const existing = await prisma.project.findUnique({

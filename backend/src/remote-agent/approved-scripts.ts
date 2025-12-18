@@ -161,7 +161,7 @@ export const APPROVED_CAPABILITIES: Record<string, ApprovedCapability> = {
   },
   // ST-170: Transcript watching daemon
   'watch-transcripts': {
-    type: 'daemon' as any, // Daemon capability (not claude-agent)
+    type: 'daemon' as 'claude-agent', // Daemon capability (special type, using 'claude-agent' for type compatibility)
     description: 'Watch transcript directory and auto-register new agent and master session transcripts',
     timeout: -1, // Daemon mode (no timeout)
     requiredParams: [],

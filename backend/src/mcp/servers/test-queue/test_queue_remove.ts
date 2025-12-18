@@ -59,7 +59,7 @@ export async function handler(
 ): Promise<TestQueueRemoveResponse> {
   try {
     // Validation (AC-5)
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // 1. Find pending or running entry for story (AC-5)
     const entry = await prisma.testQueue.findFirst({

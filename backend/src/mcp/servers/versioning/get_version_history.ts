@@ -47,7 +47,7 @@ export async function handler(
   params: GetVersionHistoryParams,
 ): Promise<{ entityType: string; entityId: string; entityName: string; history: VersionHistoryItem[] }> {
   try {
-    validateRequired(params, ['entityType', 'entityId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['entityType', 'entityId']);
 
     // Validate entity type
     if (!['component', 'workflow', 'coordinator'].includes(params.entityType)) {

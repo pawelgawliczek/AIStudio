@@ -69,7 +69,21 @@ export const metadata = {
   since: '2025-11-13',
 };
 
-export async function handler(prisma: PrismaClient, params: any) {
+interface StartWorkflowRunParams {
+  teamId?: string;
+  workflowId?: string;
+  triggeredBy: string;
+  context?: Record<string, unknown>;
+  cwd: string;
+  sessionId: string;
+  transcriptPath: string;
+  approvalOverrides?: {
+    mode?: 'default' | 'all' | 'none';
+    stateOverrides?: Record<string, boolean>;
+  };
+}
+
+export async function handler(prisma: PrismaClient, params: StartWorkflowRunParams) {
   // Support both teamId (user-facing) and workflowId (internal) naming
   const workflowId = params.teamId || params.workflowId;
 
@@ -137,9 +151,9 @@ export async function handler(prisma: PrismaClient, params: any) {
   }
 
   // Get component IDs from workflow componentAssignments
-  const componentAssignments = (workflow.componentAssignments as any) || [];
+  const componentAssignments = (workflow.componentAssignments as unknown[]) || [];
   const componentIds = Array.isArray(componentAssignments)
-    ? componentAssignments.map((assignment: any) => assignment.componentId).filter(Boolean)
+    ? componentAssignments.map((assignment: any) => assignment.componentId as string).filter(Boolean)
     : [];
 
   // Determine transcript directory from cwd (now required)
@@ -258,7 +272,7 @@ export async function handler(prisma: PrismaClient, params: any) {
         _approvalOverrides: approvalOverrides,
         // ST-187: Initialize checkpoint so get_current_step works immediately
         ...(initialCheckpoint && { checkpoint: initialCheckpoint }),
-      },
+      } as any,
       triggeredBy: params.triggeredBy,
       startedAt: new Date(),
     },
@@ -303,8 +317,9 @@ export async function handler(prisma: PrismaClient, params: any) {
       } else {
         console.warn(`[ST-242] Failed to start agent tracking for first state: ${startResult.error}`);
       }
-    } catch (error: any) {
-      console.warn(`[ST-242] Failed to start agent tracking for first state: ${error.message}`);
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.warn(`[ST-242] Failed to start agent tracking for first state: ${errMsg}`);
     }
   }
 
@@ -314,11 +329,12 @@ export async function handler(prisma: PrismaClient, params: any) {
     const sessionId = params.sessionId || claudeSessionId;
     const transcriptRegistrationService = new TranscriptRegistrationService(prisma as any);
     try {
-      await transcriptRegistrationService.matchUnassignedTranscripts(workflowRun.id, sessionId);
+      await transcriptRegistrationService.matchUnassignedTranscripts(workflowRun.id, sessionId!);
       console.log(`[ST-170] Checked for unassigned transcripts (session: ${sessionId})`);
-    } catch (error: any) {
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       // Non-fatal - log but don't fail workflow start
-      console.warn(`[ST-170] Failed to match unassigned transcripts: ${error.message}`);
+      console.warn(`[ST-170] Failed to match unassigned transcripts: ${errMsg}`);
     }
   }
 
@@ -326,7 +342,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   // This enables unified tracking of orchestrator metrics in the same table as components
   // Note: orchestratorComponentRun is no longer created as coordinatorId field was removed
   // Orchestrator metrics are now tracked differently (ST-164)
-  const orchestratorComponentRun: any = null;
+  const orchestratorComponentRun: null = null;
 
   // ST-99: Get component REFERENCES only (not full instructions)
   // Agents pull their own instructions via get_component_instructions({ componentId })
@@ -370,9 +386,10 @@ export async function handler(prisma: PrismaClient, params: any) {
       claudeSessionId, // Pass Claude session ID for session-aware tracking
       storyKey // Pass story key for compaction recovery UX
     );
-  } catch (error: any) {
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
     // Non-fatal - log but don't fail
-    console.warn(`[ST-164] Failed to register workflow on laptop: ${error.message}`);
+    console.warn(`[ST-164] Failed to register workflow on laptop: ${errMsg}`);
   }
 
   // Build component list for master session instructions
@@ -391,8 +408,8 @@ export async function handler(prisma: PrismaClient, params: any) {
     components: componentList,
     storyContext: {
       storyId: storyId,
-      storyKey: params.context?.storyKey,
-      title: params.context?.title,
+      storyKey: params.context?.storyKey as string | undefined,
+      title: params.context?.title as string | undefined,
     },
   });
 
@@ -401,7 +418,7 @@ export async function handler(prisma: PrismaClient, params: any) {
     runId: workflowRun.id,
     workflowId: workflowRun.workflowId,
     workflowName: workflow.name,
-    orchestratorComponentRunId: orchestratorComponentRun?.id || null, // ST-57: Return orchestrator ComponentRun ID (null after ST-164)
+    orchestratorComponentRunId: (orchestratorComponentRun as any)?.id || null, // ST-57: Return orchestrator ComponentRun ID (null after ST-164)
     // ST-105: Name→UUID mapping to resolve component names
     componentMap,
     // ST-99: Component references only - agents call get_component_instructions({ componentId }) for full instructions

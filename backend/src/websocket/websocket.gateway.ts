@@ -18,6 +18,103 @@ import { RemoteAgentGateway } from '../remote-agent/remote-agent.gateway';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import { TranscriptSubscriptionDto } from './dto/transcript-subscription.dto';
 
+// WebSocket event payload types
+interface ProjectUpdatePayload {
+  projectId: string;
+  [key: string]: unknown;
+}
+
+interface StoryPayload {
+  projectId?: string;
+  storyId?: string;
+  [key: string]: unknown;
+}
+
+interface SubtaskPayload {
+  storyId?: string;
+  projectId?: string;
+  subtaskId?: string;
+  [key: string]: unknown;
+}
+
+interface EpicPayload {
+  projectId?: string;
+  epicId?: string;
+  [key: string]: unknown;
+}
+
+interface CommitPayload {
+  storyId: string | null;
+  projectId: string;
+  [key: string]: unknown;
+}
+
+interface RunPayload {
+  storyId: string | null;
+  projectId: string;
+  [key: string]: unknown;
+}
+
+interface CommentPayload {
+  storyId: string;
+  projectId: string;
+  [key: string]: unknown;
+}
+
+interface UseCaseLinkPayload {
+  storyId: string;
+  projectId: string;
+  [key: string]: unknown;
+}
+
+interface WorkflowEventPayload {
+  runId?: string;
+  projectId?: string;
+  storyId?: string;
+  storyKey?: string;
+  status?: string;
+  componentId?: string;
+  [key: string]: unknown;
+}
+
+interface DeploymentEventPayload {
+  storyId?: string;
+  projectId?: string;
+  deploymentLogId?: string;
+  [key: string]: unknown;
+}
+
+interface TestExecutionPayload {
+  executionId?: string;
+  projectId?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface WorkflowActionPayload {
+  runId: string;
+}
+
+interface MasterTranscriptSubscribePayload {
+  runId: string;
+  sessionIndex: number;
+  filePath: string;
+  fromBeginning?: boolean;
+}
+
+interface MasterTranscriptUnsubscribePayload {
+  runId: string;
+  sessionIndex: number;
+}
+
+interface TranscriptSubscribePayload {
+  componentRunId: string;
+}
+
+interface TranscriptUnsubscribePayload {
+  componentRunId: string;
+}
+
 /**
  * WebSocket Gateway for real-time updates
  * Broadcasts events globally to all authenticated clients
@@ -125,7 +222,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast project update
    */
-  broadcastProjectUpdated(projectId: string, data: any) {
+  broadcastProjectUpdated(projectId: string, data: ProjectUpdatePayload) {
     this.server.emit('project:updated', { ...data, projectId });
     this.logger.log(`Broadcasted project update globally`);
   }
@@ -133,7 +230,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast story created
    */
-  broadcastStoryCreated(projectId: string, story: any) {
+  broadcastStoryCreated(projectId: string, story: StoryPayload) {
     this.server.emit('story:created', { ...story, projectId });
     this.logger.log(`Broadcasted story created globally`);
   }
@@ -141,7 +238,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast story updated
    */
-  broadcastStoryUpdated(storyId: string, projectId: string, story: any) {
+  broadcastStoryUpdated(storyId: string, projectId: string, story: StoryPayload) {
     this.server.emit('story:updated', { ...story, storyId, projectId });
     this.logger.log(`Broadcasted story update globally`);
   }
@@ -149,7 +246,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast story status changed
    */
-  broadcastStoryStatusChanged(storyId: string, projectId: string, data: any) {
+  broadcastStoryStatusChanged(storyId: string, projectId: string, data: StoryPayload) {
     this.server.emit('story:status:changed', { ...data, storyId, projectId });
     this.logger.log(`Broadcasted story status change globally`);
   }
@@ -157,7 +254,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast subtask created
    */
-  broadcastSubtaskCreated(storyId: string, projectId: string, subtask: any) {
+  broadcastSubtaskCreated(storyId: string, projectId: string, subtask: SubtaskPayload) {
     this.server.emit('subtask:created', { ...subtask, storyId, projectId });
     this.logger.log(`Broadcasted subtask created globally`);
   }
@@ -165,7 +262,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast subtask updated
    */
-  broadcastSubtaskUpdated(subtaskId: string, storyId: string, projectId: string, subtask: any) {
+  broadcastSubtaskUpdated(subtaskId: string, storyId: string, projectId: string, subtask: SubtaskPayload) {
     this.server.emit('subtask:updated', { ...subtask, subtaskId, storyId, projectId });
     this.logger.log(`Broadcasted subtask update globally`);
   }
@@ -173,7 +270,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast epic created
    */
-  broadcastEpicCreated(projectId: string, epic: any) {
+  broadcastEpicCreated(projectId: string, epic: EpicPayload) {
     this.server.emit('epic:created', { ...epic, projectId });
     this.logger.log(`Broadcasted epic created globally`);
   }
@@ -181,7 +278,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast epic updated
    */
-  broadcastEpicUpdated(epicId: string, projectId: string, epic: any) {
+  broadcastEpicUpdated(epicId: string, projectId: string, epic: EpicPayload) {
     this.server.emit('epic:updated', { ...epic, epicId, projectId });
     this.logger.log(`Broadcasted epic update globally`);
   }
@@ -189,7 +286,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast story deleted
    */
-  broadcastStoryDeleted(storyId: string, projectId: string, data: any) {
+  broadcastStoryDeleted(storyId: string, projectId: string, data: StoryPayload) {
     this.server.emit('story:deleted', { ...data, storyId, projectId });
     this.logger.log(`Broadcasted story deletion globally`);
   }
@@ -197,7 +294,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast commit linked
    */
-  broadcastCommitLinked(storyId: string | null, projectId: string, commit: any) {
+  broadcastCommitLinked(storyId: string | null, projectId: string, commit: CommitPayload) {
     this.server.emit('commit:linked', { ...commit, storyId, projectId });
     this.logger.log(`Broadcasted commit linked globally`);
   }
@@ -205,7 +302,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast run logged
    */
-  broadcastRunLogged(storyId: string | null, projectId: string, run: any) {
+  broadcastRunLogged(storyId: string | null, projectId: string, run: RunPayload) {
     this.server.emit('run:logged', { ...run, storyId, projectId });
     this.logger.log(`Broadcasted run logged globally`);
   }
@@ -213,7 +310,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast comment added (for story detail drawer)
    */
-  broadcastCommentAdded(storyId: string, projectId: string, comment: any) {
+  broadcastCommentAdded(storyId: string, projectId: string, comment: CommentPayload) {
     this.server.emit('comment:added', { ...comment, storyId, projectId });
     this.logger.log(`Broadcasted comment added globally`);
   }
@@ -221,7 +318,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast use case linked
    */
-  broadcastUseCaseLinked(storyId: string, projectId: string, useCaseLink: any) {
+  broadcastUseCaseLinked(storyId: string, projectId: string, useCaseLink: UseCaseLinkPayload) {
     this.server.emit('usecase:linked', { ...useCaseLink, storyId, projectId });
     this.logger.log(`Broadcasted use case linked globally`);
   }
@@ -234,7 +331,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Broadcast workflow run started
    * ST-258 Phase 4: Add telemetry
    */
-  broadcastWorkflowStarted(runId: string, projectId: string, data: any) {
+  broadcastWorkflowStarted(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.telemetry.withSpan('websocket.broadcast.workflow_started', async (span) => {
       span.setAttribute('workflow.run.id', runId);
       span.setAttribute('project.id', projectId);
@@ -255,7 +352,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Broadcast workflow status updated
    * ST-258 Phase 4: Add telemetry
    */
-  broadcastWorkflowStatusUpdated(runId: string, projectId: string, data: any) {
+  broadcastWorkflowStatusUpdated(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.telemetry.withSpan('websocket.broadcast.workflow_status', async (span) => {
       span.setAttribute('workflow.run.id', runId);
       span.setAttribute('project.id', projectId);
@@ -279,7 +376,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Broadcast component execution started
    * ST-258 Phase 4: Add telemetry
    */
-  broadcastComponentStarted(runId: string, projectId: string, data: any) {
+  broadcastComponentStarted(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.telemetry.withSpan('websocket.broadcast.component_started', async (span) => {
       span.setAttribute('workflow.run.id', runId);
       span.setAttribute('project.id', projectId);
@@ -302,7 +399,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast component execution progress
    */
-  broadcastComponentProgress(runId: string, projectId: string, data: any) {
+  broadcastComponentProgress(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.server.emit('component:progress', { ...data, runId, projectId });
     this.logger.debug(`Broadcasted component progress globally`);
   }
@@ -311,7 +408,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Broadcast component execution completed
    * ST-258 Phase 4: Add telemetry
    */
-  broadcastComponentCompleted(runId: string, projectId: string, data: any) {
+  broadcastComponentCompleted(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.telemetry.withSpan('websocket.broadcast.component_completed', async (span) => {
       span.setAttribute('workflow.run.id', runId);
       span.setAttribute('project.id', projectId);
@@ -337,7 +434,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast artifact stored
    */
-  broadcastArtifactStored(runId: string, projectId: string, data: any) {
+  broadcastArtifactStored(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.server.emit('artifact:stored', { ...data, runId, projectId });
     this.logger.log(`Broadcasted artifact stored globally`);
   }
@@ -345,7 +442,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast aggregated metrics updated
    */
-  broadcastMetricsUpdated(runId: string, projectId: string, data: any) {
+  broadcastMetricsUpdated(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.server.emit('metrics:updated', { ...data, runId, projectId });
     this.logger.debug(`Broadcasted metrics updated globally`);
   }
@@ -354,7 +451,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
    * Broadcast queue status updated (ST-53)
    * Notifies clients of queue position, priority, wait time, and lock status changes
    */
-  broadcastQueueUpdated(runId: string, projectId: string, data: any) {
+  broadcastQueueUpdated(runId: string, projectId: string, data: WorkflowEventPayload) {
     this.server.emit('queue:updated', { ...data, runId, projectId });
     this.logger.log(`Broadcasted queue updated globally`);
   }
@@ -365,7 +462,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('workflow:pause')
   handleWorkflowPause(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { runId: string }
+    @MessageBody() data: WorkflowActionPayload
   ) {
     this.logger.log(`Client ${client.id} requested pause for workflow run: ${data.runId}`);
     // Implementation would be handled by WorkflowRunsService
@@ -378,7 +475,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('workflow:cancel')
   handleWorkflowCancel(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { runId: string }
+    @MessageBody() data: WorkflowActionPayload
   ) {
     this.logger.log(`Client ${client.id} requested cancel for workflow run: ${data.runId}`);
     // Implementation would be handled by WorkflowRunsService
@@ -392,7 +489,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast deployment started
    */
-  broadcastDeploymentStarted(storyId: string, projectId: string, data: any) {
+  broadcastDeploymentStarted(storyId: string, projectId: string, data: DeploymentEventPayload) {
     this.server.emit('deployment:started', { ...data, storyId, projectId });
     this.logger.log(`Broadcasted deployment started globally`);
   }
@@ -400,7 +497,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast deployment completed
    */
-  broadcastDeploymentCompleted(storyId: string, projectId: string, data: any) {
+  broadcastDeploymentCompleted(storyId: string, projectId: string, data: DeploymentEventPayload) {
     this.server.emit('deployment:completed', { ...data, storyId, projectId });
     this.logger.log(`Broadcasted deployment completed globally`);
   }
@@ -408,7 +505,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast review ready (ST-108)
    */
-  broadcastReviewReady(storyId: string, projectId: string, data: any) {
+  broadcastReviewReady(storyId: string, projectId: string, data: DeploymentEventPayload) {
     this.server.emit('review:ready', { ...data, storyId, projectId });
     this.logger.log(`Broadcasted review ready globally`);
   }
@@ -420,7 +517,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
     deploymentLogId: string,
     storyId: string,
     projectId: string,
-    data: any
+    data: DeploymentEventPayload
   ) {
     this.server.emit('deployment:progress', { ...data, deploymentLogId, storyId, projectId });
     this.logger.debug(`Broadcasted deployment progress for ${deploymentLogId}`);
@@ -433,7 +530,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast test execution started
    */
-  broadcastTestExecutionStarted(executionId: string, projectId: string, data: any) {
+  broadcastTestExecutionStarted(executionId: string, projectId: string, data: TestExecutionPayload) {
     this.server.emit('test:started', { ...data, executionId, projectId });
     this.logger.log(`Broadcasted test execution started: ${executionId}`);
   }
@@ -441,7 +538,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   /**
    * Broadcast test execution completed
    */
-  broadcastTestExecutionCompleted(executionId: string, projectId: string, data: any) {
+  broadcastTestExecutionCompleted(executionId: string, projectId: string, data: TestExecutionPayload) {
     this.server.emit('test:completed', { ...data, executionId, projectId });
     this.logger.log(`Broadcasted test execution completed: ${executionId} - ${data.status}`);
   }
@@ -457,7 +554,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('transcript:subscribe')
   async handleTranscriptSubscribe(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: any,
+    @MessageBody() payload: TranscriptSubscribePayload,
   ): Promise<void> {
     const userId = client.data?.user?.userId;
 
@@ -547,7 +644,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('transcript:unsubscribe')
   async handleTranscriptUnsubscribe(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: any,
+    @MessageBody() payload: TranscriptUnsubscribePayload,
   ): Promise<void> {
     const userId = client.data?.user?.userId;
     const { componentRunId } = payload;
@@ -627,12 +724,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('master-transcript:subscribe')
   async handleMasterTranscriptSubscribe(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: {
-      runId: string;
-      sessionIndex: number;
-      filePath: string;
-      fromBeginning?: boolean;
-    },
+    @MessageBody() data: MasterTranscriptSubscribePayload,
   ) {
     const { runId, sessionIndex, filePath, fromBeginning } = data;
     this.logger.log(`[ST-182] Master transcript subscribe: runId=${runId}, sessionIndex=${sessionIndex}`);
@@ -674,7 +766,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('master-transcript:unsubscribe')
   async handleMasterTranscriptUnsubscribe(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { runId: string; sessionIndex: number },
+    @MessageBody() data: MasterTranscriptUnsubscribePayload,
   ) {
     const { runId, sessionIndex } = data;
     this.logger.log(`[ST-182] Master transcript unsubscribe: runId=${runId}, sessionIndex=${sessionIndex}`);

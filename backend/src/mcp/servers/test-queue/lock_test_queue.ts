@@ -78,7 +78,7 @@ export async function handler(
 ): Promise<LockTestQueueResponse> {
   try {
     // 1. Validation (AC-1 from baAnalysis)
-    validateRequired(params, ['reason']);
+    validateRequired(params as unknown as Record<string, unknown>, ['reason']);
 
     if (params.reason.length < 10) {
       throw new ValidationError(
@@ -145,7 +145,7 @@ export async function handler(
         lockedAt,
         expiresAt,
         active: true,
-        metadata: params.metadata || null,
+        metadata: (params.metadata ?? null) as any,
       },
     });
 

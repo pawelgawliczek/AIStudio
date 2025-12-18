@@ -53,7 +53,7 @@ export async function handler(
   params: CreateCoordinatorVersionParams,
 ): Promise<any> {
   try {
-    validateRequired(params, ['coordinatorId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['coordinatorId']);
 
     // Check coordinator exists and is actually a coordinator
     const sourceCoordinator = await prisma.component.findUnique({

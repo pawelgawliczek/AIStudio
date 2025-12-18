@@ -29,7 +29,7 @@ export async function createStory(
   params: CreateStoryParams,
 ): Promise<StoryResponse> {
   try {
-    validateRequired(params, ['projectId', 'title']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId', 'title']);
 
     // Verify project exists
     const project = await prisma.project.findUnique({
@@ -92,8 +92,8 @@ export async function createStory(
     });
 
     return formatStory(story);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'create_story');
@@ -113,7 +113,12 @@ export async function listStories(
     const skip = (page - 1) * pageSize;
 
     // Build where clause dynamically
-    const whereClause: any = {};
+    const whereClause: {
+      projectId?: string;
+      epicId?: string;
+      status?: string;
+      type?: string;
+    } = {};
 
     if (params.projectId) {
       whereClause.projectId = params.projectId;
@@ -132,11 +137,11 @@ export async function listStories(
     }
 
     // Get total count
-    const total = await prisma.story.count({ where: whereClause });
+    const total = await prisma.story.count({ where: whereClause as any });
 
     // Get paginated data
     const stories = await prisma.story.findMany({
-      where: whereClause,
+      where: whereClause as any,
       skip,
       take: pageSize,
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
@@ -145,7 +150,7 @@ export async function listStories(
     const totalPages = Math.ceil(total / pageSize);
 
     return {
-      data: stories.map((s: any) => formatStory(s)),
+      data: stories.map((s) => formatStory(s)),
       pagination: {
         page,
         pageSize,
@@ -155,7 +160,7 @@ export async function listStories(
         hasPrev: page > 1,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw handlePrismaError(error, 'list_stories');
   }
 }
@@ -168,9 +173,13 @@ export async function getStory(
   params: GetStoryParams,
 ): Promise<StoryResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
-    const includeClause: any = {};
+    const includeClause: {
+      subtasks?: { orderBy: { createdAt: string } };
+      useCaseLinks?: { include: { useCase: { include: { versions: { orderBy: { version: string }; take: number } } } } };
+      commits?: { include: { files: boolean }; orderBy: { timestamp: string }; take: number };
+    } = {};
 
     if (params.includeSubtasks) {
       includeClause.subtasks = {
@@ -205,7 +214,7 @@ export async function getStory(
 
     const story = await prisma.story.findUnique({
       where: { id: params.storyId },
-      include: Object.keys(includeClause).length > 0 ? includeClause : undefined,
+      include: Object.keys(includeClause).length > 0 ? (includeClause as any) : undefined,
     });
 
     if (!story) {
@@ -216,8 +225,8 @@ export async function getStory(
       story,
       params.includeSubtasks || params.includeUseCases || params.includeCommits,
     );
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'get_story');
@@ -232,7 +241,7 @@ export async function updateStory(
   params: UpdateStoryParams,
 ): Promise<StoryResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // Verify story exists
     const existingStory = await prisma.story.findUnique({
@@ -255,7 +264,15 @@ export async function updateStory(
     }
 
     // Build update data object (only include provided fields)
-    const updateData: any = {};
+    const updateData: {
+      title?: string;
+      description?: string;
+      status?: string;
+      businessImpact?: number;
+      businessComplexity?: number;
+      technicalComplexity?: number;
+      assignedFrameworkId?: string;
+    } = {};
 
     if (params.title !== undefined) updateData.title = params.title;
     if (params.description !== undefined) updateData.description = params.description;
@@ -272,12 +289,12 @@ export async function updateStory(
     // Update story
     const updatedStory = await prisma.story.update({
       where: { id: params.storyId },
-      data: updateData,
+      data: updateData as any,
     });
 
     return formatStory(updatedStory);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'update_story');
@@ -290,9 +307,12 @@ export async function updateStory(
 export async function getStorySummary(
   prisma: PrismaClient,
   params: { projectId: string; groupBy: 'status' | 'type' | 'epic' | 'complexity' },
-): Promise<any> {
+): Promise<{
+  groupBy: string;
+  summary: Array<Record<string, unknown>>;
+}> {
   try {
-    validateRequired(params, ['projectId', 'groupBy']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId', 'groupBy']);
 
     const { projectId, groupBy } = params;
 
@@ -374,8 +394,8 @@ export async function getStorySummary(
       default:
         throw new ValidationError(`Invalid groupBy: ${groupBy}`);
     }
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'get_story_summary');

@@ -474,13 +474,13 @@ export async function handler(prisma: PrismaClient, params: any) {
       // ST-112: Store cache tokens in metadata (no dedicated fields in schema)
       metadata: contextMetrics?.tokensCacheCreation || contextMetrics?.tokensCacheRead
         ? {
-            ...(typeof componentRun.metadata === 'object' && componentRun.metadata !== null ? componentRun.metadata : {}),
+            ...(typeof componentRun.metadata === 'object' && componentRun.metadata !== null && !Array.isArray(componentRun.metadata) ? componentRun.metadata : {}),
             cacheTokens: {
               creation: contextMetrics.tokensCacheCreation || 0,
               read: contextMetrics.tokensCacheRead || 0,
             },
           }
-        : componentRun.metadata,
+        : componentRun.metadata ?? undefined,
       // Duration
       durationSeconds,
       finishedAt: completedAt,

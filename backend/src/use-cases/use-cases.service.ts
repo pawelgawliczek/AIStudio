@@ -164,19 +164,19 @@ export class UseCasesService {
       projectId: uc.projectId,
       key: uc.key,
       title: uc.title,
-      area: uc.area,
+      area: uc.area ?? undefined,
       createdAt: uc.createdAt,
       updatedAt: uc.updatedAt,
       latestVersion: uc.versions[0]
         ? {
             id: uc.versions[0].id,
             version: uc.versions[0].version,
-            summary: uc.versions[0].summary,
+            summary: uc.versions[0].summary ?? undefined,
             content: uc.versions[0].content,
             createdAt: uc.versions[0].createdAt,
             createdBy: uc.versions[0].createdBy,
-            linkedStoryId: uc.versions[0].linkedStoryId,
-            linkedDefectId: uc.versions[0].linkedDefectId,
+            linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
+            linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
           }
         : undefined,
       storyLinks: uc.storyLinks.map((link) => ({
@@ -230,30 +230,30 @@ export class UseCasesService {
       projectId: useCase.projectId,
       key: useCase.key,
       title: useCase.title,
-      area: useCase.area,
+      area: useCase.area ?? undefined,
       createdAt: useCase.createdAt,
       updatedAt: useCase.updatedAt,
       latestVersion: useCase.versions[0]
         ? {
             id: useCase.versions[0].id,
             version: useCase.versions[0].version,
-            summary: useCase.versions[0].summary,
+            summary: useCase.versions[0].summary ?? undefined,
             content: useCase.versions[0].content,
             createdAt: useCase.versions[0].createdAt,
             createdBy: useCase.versions[0].createdBy,
-            linkedStoryId: useCase.versions[0].linkedStoryId,
-            linkedDefectId: useCase.versions[0].linkedDefectId,
+            linkedStoryId: useCase.versions[0].linkedStoryId ?? undefined,
+            linkedDefectId: useCase.versions[0].linkedDefectId ?? undefined,
           }
         : undefined,
       versions: useCase.versions.map((v) => ({
         id: v.id,
         version: v.version,
-        summary: v.summary,
+        summary: v.summary ?? undefined,
         content: v.content,
         createdAt: v.createdAt,
         createdBy: v.createdBy,
-        linkedStoryId: v.linkedStoryId,
-        linkedDefectId: v.linkedDefectId,
+        linkedStoryId: v.linkedStoryId ?? undefined,
+        linkedDefectId: v.linkedDefectId ?? undefined,
       })),
       storyLinks: useCase.storyLinks.map((link) => ({
         storyId: link.storyId,
@@ -439,19 +439,19 @@ export class UseCasesService {
       projectId: uc.projectId,
       key: uc.key,
       title: uc.title,
-      area: uc.area,
+      area: uc.area ?? undefined,
       createdAt: uc.createdAt,
       updatedAt: uc.updatedAt,
       latestVersion: uc.versions[0]
         ? {
             id: uc.versions[0].id,
             version: uc.versions[0].version,
-            summary: uc.versions[0].summary,
+            summary: uc.versions[0].summary ?? undefined,
             content: uc.versions[0].content,
             createdAt: uc.versions[0].createdAt,
             createdBy: uc.versions[0].createdBy,
-            linkedStoryId: uc.versions[0].linkedStoryId,
-            linkedDefectId: uc.versions[0].linkedDefectId,
+            linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
+            linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
           }
         : undefined,
       storyLinks: uc.storyLinks.map((link) => ({
@@ -542,38 +542,40 @@ export class UseCasesService {
     // Map results with similarity scores
     const useCaseMap = new Map(useCases.map((uc) => [uc.id, uc]));
 
-    return results.map((result) => {
-      const uc = useCaseMap.get(result.id);
-      if (!uc) return null;
+    return results
+      .map((result) => {
+        const uc = useCaseMap.get(result.id);
+        if (!uc) return null;
 
-      return {
-        id: uc.id,
-        projectId: uc.projectId,
-        key: uc.key,
-        title: uc.title,
-        area: uc.area,
-        createdAt: uc.createdAt,
-        updatedAt: uc.updatedAt,
-        similarity: result.similarity,
-        latestVersion: uc.versions[0]
-          ? {
-              id: uc.versions[0].id,
-              version: uc.versions[0].version,
-              summary: uc.versions[0].summary,
-              content: uc.versions[0].content,
-              createdAt: uc.versions[0].createdAt,
-              createdBy: uc.versions[0].createdBy,
-              linkedStoryId: uc.versions[0].linkedStoryId,
-              linkedDefectId: uc.versions[0].linkedDefectId,
-            }
-          : undefined,
-        storyLinks: uc.storyLinks.map((link) => ({
-          storyId: link.storyId,
-          relation: link.relation,
-          story: link.story,
-        })),
-      };
-    }).filter(Boolean);
+        return {
+          id: uc.id,
+          projectId: uc.projectId,
+          key: uc.key,
+          title: uc.title,
+          area: uc.area ?? undefined,
+          createdAt: uc.createdAt,
+          updatedAt: uc.updatedAt,
+          similarity: result.similarity,
+          latestVersion: uc.versions[0]
+            ? {
+                id: uc.versions[0].id,
+                version: uc.versions[0].version,
+                summary: uc.versions[0].summary ?? undefined,
+                content: uc.versions[0].content,
+                createdAt: uc.versions[0].createdAt,
+                createdBy: uc.versions[0].createdBy,
+                linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
+                linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
+              }
+            : undefined,
+          storyLinks: uc.storyLinks.map((link) => ({
+            storyId: link.storyId,
+            relation: link.relation,
+            story: link.story,
+          })),
+        };
+      })
+      .filter((uc): uc is NonNullable<typeof uc> => uc !== null) as UseCaseResponse[];
   }
 
   /**
@@ -632,19 +634,19 @@ export class UseCasesService {
       projectId: uc.projectId,
       key: uc.key,
       title: uc.title,
-      area: uc.area,
+      area: uc.area ?? undefined,
       createdAt: uc.createdAt,
       updatedAt: uc.updatedAt,
       latestVersion: uc.versions[0]
         ? {
             id: uc.versions[0].id,
             version: uc.versions[0].version,
-            summary: uc.versions[0].summary,
+            summary: uc.versions[0].summary ?? undefined,
             content: uc.versions[0].content,
             createdAt: uc.versions[0].createdAt,
             createdBy: uc.versions[0].createdBy,
-            linkedStoryId: uc.versions[0].linkedStoryId,
-            linkedDefectId: uc.versions[0].linkedDefectId,
+            linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
+            linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
           }
         : undefined,
       storyLinks: uc.storyLinks.map((link) => ({
@@ -796,19 +798,21 @@ export class UseCasesService {
           projectId: link.useCase.projectId,
           key: link.useCase.key,
           title: link.useCase.title,
-          area: link.useCase.area,
+          area: link.useCase.area ?? undefined,
           createdAt: link.useCase.createdAt,
           updatedAt: link.useCase.updatedAt,
-          latestVersion: link.useCase.versions[0] ? {
-            id: link.useCase.versions[0].id,
-            version: link.useCase.versions[0].version,
-            summary: link.useCase.versions[0].summary,
-            content: link.useCase.versions[0].content,
-            createdAt: link.useCase.versions[0].createdAt,
-            createdBy: link.useCase.versions[0].createdBy,
-            linkedStoryId: link.useCase.versions[0].linkedStoryId,
-            linkedDefectId: link.useCase.versions[0].linkedDefectId,
-          } : undefined,
+          latestVersion: link.useCase.versions[0]
+            ? {
+                id: link.useCase.versions[0].id,
+                version: link.useCase.versions[0].version,
+                summary: link.useCase.versions[0].summary ?? undefined,
+                content: link.useCase.versions[0].content,
+                createdAt: link.useCase.versions[0].createdAt,
+                createdBy: link.useCase.versions[0].createdBy,
+                linkedStoryId: link.useCase.versions[0].linkedStoryId ?? undefined,
+                linkedDefectId: link.useCase.versions[0].linkedDefectId ?? undefined,
+              }
+            : undefined,
           similarity: 1.0, // Already linked = perfect match
         });
       }
@@ -850,19 +854,21 @@ export class UseCasesService {
             projectId: uc.projectId,
             key: uc.key,
             title: uc.title,
-            area: uc.area,
+            area: uc.area ?? undefined,
             createdAt: uc.createdAt,
             updatedAt: uc.updatedAt,
-            latestVersion: uc.versions[0] ? {
-              id: uc.versions[0].id,
-              version: uc.versions[0].version,
-              summary: uc.versions[0].summary,
-              content: uc.versions[0].content,
-              createdAt: uc.versions[0].createdAt,
-              createdBy: uc.versions[0].createdBy,
-              linkedStoryId: uc.versions[0].linkedStoryId,
-              linkedDefectId: uc.versions[0].linkedDefectId,
-            } : undefined,
+            latestVersion: uc.versions[0]
+              ? {
+                  id: uc.versions[0].id,
+                  version: uc.versions[0].version,
+                  summary: uc.versions[0].summary ?? undefined,
+                  content: uc.versions[0].content,
+                  createdAt: uc.versions[0].createdAt,
+                  createdBy: uc.versions[0].createdBy,
+                  linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
+                  linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
+                }
+              : undefined,
             similarity: 0.8, // Same epic = high relevance
           });
         }
@@ -1001,23 +1007,23 @@ export class UseCasesService {
       },
     });
 
-    return useCases.map((uc) => ({
+    return useCases.map((uc): UseCaseResponse => ({
       id: uc.id,
       projectId: uc.projectId,
       key: uc.key,
       title: uc.title,
-      area: uc.area,
+      area: uc.area ?? undefined,
       createdAt: uc.createdAt,
       updatedAt: uc.updatedAt,
       latestVersion: uc.versions[0] ? {
         id: uc.versions[0].id,
         version: uc.versions[0].version,
-        summary: uc.versions[0].summary,
-        content: uc.versions[0].content,
+        summary: uc.versions[0].summary ?? undefined,
+        content: uc.versions[0].content ?? undefined,
         createdAt: uc.versions[0].createdAt,
-        createdBy: uc.versions[0].createdBy,
-        linkedStoryId: uc.versions[0].linkedStoryId,
-        linkedDefectId: uc.versions[0].linkedDefectId,
+        createdBy: uc.versions[0].createdBy ?? undefined,
+        linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
+        linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
       } : undefined,
       storyLinks: uc.storyLinks.map((link) => ({
         storyId: link.storyId,

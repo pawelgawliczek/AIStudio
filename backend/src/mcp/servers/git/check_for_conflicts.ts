@@ -324,7 +324,7 @@ export async function handler(
   params: CheckConflictsParams
 ): Promise<CheckConflictsResult> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // Validate git version
     validateGitVersion();

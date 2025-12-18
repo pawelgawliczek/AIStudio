@@ -70,7 +70,7 @@ export async function handler(
   params: DeleteEpicParams,
 ): Promise<DeleteEpicResponse> {
   try {
-    validateRequired(params, ['epicId', 'confirm']);
+    validateRequired(params as unknown as Record<string, unknown>, ['epicId', 'confirm']);
 
     // Safety check: require explicit confirmation
     if (params.confirm !== true) {

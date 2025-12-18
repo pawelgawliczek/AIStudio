@@ -115,7 +115,7 @@ export class StoryMetricsService {
       status: story.status,
       complexity: story.technicalComplexity || 3,
       epicId: story.epicId,
-      epicKey: story.epic.key,
+      epicKey: story.epic?.key ?? null,
       totalExecutions: executions.length,
       executionsByRole: {
         ba: executions.filter((e) => e.agentRole === 'ba').length,
@@ -158,11 +158,13 @@ export class StoryMetricsService {
         title: story.title,
         status: story.status,
         complexity: story.technicalComplexity || 3,
-        epic: {
-          id: story.epic.id,
-          key: story.epic.key,
-          name: story.epic.title,
-        },
+        epic: story.epic
+          ? {
+              id: story.epic.id,
+              key: story.epic.key,
+              name: story.epic.title,
+            }
+          : null,
       },
       executions,
       summary,

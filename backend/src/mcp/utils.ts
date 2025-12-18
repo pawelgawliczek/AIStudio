@@ -14,15 +14,30 @@ import {
   WorkflowStateResponse,
 } from './types/';
 
+// Type for Prisma result with counts
+interface ProjectWithCounts {
+  id: string;
+  name: string;
+  description: string | null;
+  repositoryUrl: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    epics?: number;
+    stories?: number;
+  };
+}
+
 /**
  * Format project for MCP response
  */
-export function formatProject(project: any, includeCounts = false): ProjectResponse {
+export function formatProject(project: ProjectWithCounts, includeCounts = false): ProjectResponse {
   return {
     id: project.id,
     name: project.name,
-    description: project.description,
-    repositoryUrl: project.repositoryUrl,
+    description: project.description || undefined,
+    repositoryUrl: project.repositoryUrl || undefined,
     status: project.status,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -33,16 +48,31 @@ export function formatProject(project: any, includeCounts = false): ProjectRespo
   };
 }
 
+interface EpicWithCounts {
+  id: string;
+  projectId: string;
+  key: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: number;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    stories?: number;
+  };
+}
+
 /**
  * Format epic for MCP response
  */
-export function formatEpic(epic: any, includeStoryCount = false): EpicResponse {
+export function formatEpic(epic: EpicWithCounts, includeStoryCount = false): EpicResponse {
   return {
     id: epic.id,
     projectId: epic.projectId,
     key: epic.key,
     title: epic.title,
-    description: epic.description,
+    description: epic.description || undefined,
     status: epic.status,
     priority: epic.priority,
     createdAt: epic.createdAt.toISOString(),
@@ -77,41 +107,105 @@ export function autoTruncateSummary(
   return twoSentences.slice(0, 300);
 }
 
+interface SubtaskData {
+  id: string;
+  storyId: string;
+  key: string;
+  title: string;
+  description: string | null;
+  layer: string;
+  component: string | null;
+  assigneeType: string | null;
+  assigneeId: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface UseCaseLinkData {
+  useCase: {
+    id: string;
+    projectId: string;
+    key: string;
+    title: string;
+    area: string | null;
+    versions?: Array<{
+      version: number;
+      summary: string | null;
+      content: string;
+    }>;
+  };
+}
+
+interface CommitData {
+  hash: string;
+  author: string;
+  timestamp: Date;
+  message: string;
+  files?: Array<{
+    filePath: string;
+    locAdded: number;
+    locDeleted: number;
+  }>;
+}
+
+interface StoryWithRelations {
+  id: string;
+  projectId: string;
+  epicId: string | null;
+  key: string;
+  type: string;
+  title: string;
+  summary: string | null;
+  description: string | null;
+  status: string;
+  businessImpact: number | null;
+  businessComplexity: number | null;
+  technicalComplexity: number | null;
+  estimatedTokenCost: number | null;
+  assignedFrameworkId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  subtasks?: SubtaskData[];
+  useCaseLinks?: UseCaseLinkData[];
+  commits?: CommitData[];
+}
+
 /**
  * Format story for MCP response
  */
-export function formatStory(story: any, includeRelations = false): StoryResponse {
+export function formatStory(story: StoryWithRelations, includeRelations = false): StoryResponse {
   const formatted: StoryResponse = {
     id: story.id,
     projectId: story.projectId,
-    epicId: story.epicId,
+    epicId: story.epicId || undefined,
     key: story.key,
     type: story.type,
     title: story.title,
-    summary: story.summary || null, // Token-efficient 2-sentence summary
-    description: story.description,
+    summary: story.summary || undefined, // Token-efficient 2-sentence summary
+    description: story.description || undefined,
     status: story.status,
-    businessImpact: story.businessImpact,
-    businessComplexity: story.businessComplexity,
-    technicalComplexity: story.technicalComplexity,
-    estimatedTokenCost: story.estimatedTokenCost,
-    assignedFrameworkId: story.assignedFrameworkId,
+    businessImpact: story.businessImpact ?? undefined,
+    businessComplexity: story.businessComplexity ?? undefined,
+    technicalComplexity: story.technicalComplexity ?? undefined,
+    estimatedTokenCost: story.estimatedTokenCost ?? undefined,
+    assignedFrameworkId: story.assignedFrameworkId || undefined,
     createdAt: story.createdAt.toISOString(),
     updatedAt: story.updatedAt.toISOString(),
   };
 
   if (includeRelations) {
     if (story.subtasks) {
-      formatted.subtasks = story.subtasks.map((subtask: any) => ({
+      formatted.subtasks = story.subtasks.map((subtask) => ({
         id: subtask.id,
         storyId: subtask.storyId,
-        key: subtask.key,
+        key: subtask.key || undefined,
         title: subtask.title,
-        description: subtask.description,
-        layer: subtask.layer,
-        component: subtask.component,
-        assigneeType: subtask.assigneeType,
-        assigneeId: subtask.assigneeId,
+        description: subtask.description || undefined,
+        layer: subtask.layer || undefined,
+        component: subtask.component || undefined,
+        assigneeType: subtask.assigneeType || 'agent',
+        assigneeId: subtask.assigneeId || undefined,
         status: subtask.status,
         createdAt: subtask.createdAt.toISOString(),
         updatedAt: subtask.updatedAt.toISOString(),
@@ -119,16 +213,16 @@ export function formatStory(story: any, includeRelations = false): StoryResponse
     }
 
     if (story.useCaseLinks) {
-      formatted.useCases = story.useCaseLinks.map((link: any) => ({
+      formatted.useCases = story.useCaseLinks.map((link) => ({
         id: link.useCase.id,
         projectId: link.useCase.projectId,
         key: link.useCase.key,
         title: link.useCase.title,
-        area: link.useCase.area,
+        area: link.useCase.area || undefined,
         latestVersion: link.useCase.versions?.[0]
           ? {
               version: link.useCase.versions[0].version,
-              summary: link.useCase.versions[0].summary,
+              summary: link.useCase.versions[0].summary || undefined,
               content: link.useCase.versions[0].content,
             }
           : undefined,
@@ -136,12 +230,12 @@ export function formatStory(story: any, includeRelations = false): StoryResponse
     }
 
     if (story.commits) {
-      formatted.commits = story.commits.map((commit: any) => ({
+      formatted.commits = story.commits.map((commit) => ({
         hash: commit.hash,
         author: commit.author,
         timestamp: commit.timestamp.toISOString(),
         message: commit.message,
-        files: commit.files?.map((file: any) => ({
+        files: commit.files?.map((file) => ({
           filePath: file.filePath,
           locAdded: file.locAdded,
           locDeleted: file.locDeleted,
@@ -194,7 +288,7 @@ export async function generateNextKey(
 /**
  * Validate required parameters
  */
-export function validateRequired(params: any, required: string[]): void {
+export function validateRequired(params: Record<string, unknown>, required: string[]): void {
   const missing = required.filter((field) => !params[field]);
   if (missing.length > 0) {
     throw new ValidationError(`Missing required fields: ${missing.join(', ')}`);
@@ -204,29 +298,42 @@ export function validateRequired(params: any, required: string[]): void {
 /**
  * Handle Prisma errors and convert to MCPError
  */
-export function handlePrismaError(error: any, operation: string): never {
+export function handlePrismaError(error: unknown, operation: string): never {
   console.error(`Prisma error during ${operation}:`, error);
 
   // Check if error is already an MCPError before wrapping
-  if (error.name === 'MCPError' || error instanceof MCPError) {
+  if (error instanceof MCPError) {
     throw error;  // Already wrapped, re-throw as-is
   }
 
-  if (error.code === 'P2002') {
-    throw new ValidationError(
-      `A record with this ${error.meta?.target || 'field'} already exists`,
-    );
+  // Type guard for Prisma error structure
+  const isPrismaError = (err: unknown): err is { code: string; meta?: { target?: string | string[] }; message?: string } => {
+    return typeof err === 'object' && err !== null && 'code' in err;
+  };
+
+  if (isPrismaError(error)) {
+    if (error.code === 'P2002') {
+      const target = Array.isArray(error.meta?.target) ? error.meta.target.join(', ') : error.meta?.target || 'field';
+      throw new ValidationError(
+        `A record with this ${target} already exists`,
+      );
+    }
+
+    if (error.code === 'P2003') {
+      throw new ValidationError('Referenced record does not exist');
+    }
+
+    if (error.code === 'P2025') {
+      throw new NotFoundError('Record', 'unknown');
+    }
+
+    const message = error.message || 'Unknown database error';
+    throw new DatabaseError(`Database error during ${operation}: ${message}`);
   }
 
-  if (error.code === 'P2003') {
-    throw new ValidationError('Referenced record does not exist');
-  }
-
-  if (error.code === 'P2025') {
-    throw new NotFoundError('Record', 'unknown');
-  }
-
-  throw new DatabaseError(`Database error during ${operation}: ${error.message}`);
+  // Generic error fallback
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  throw new DatabaseError(`Database error during ${operation}: ${message}`);
 }
 
 /**
@@ -277,7 +384,7 @@ export interface EnhancedErrorResponse {
     resourceId?: string;
     currentState?: string;
     expectedState?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   suggestions?: string[];
   nextSteps?: string[];
@@ -303,9 +410,9 @@ function extractErrorContext(message: string): Partial<EnhancedErrorResponse['co
 /**
  * Generate helpful suggestions based on error type and message
  */
-function generateSuggestions(error: any): string[] {
+function generateSuggestions(error: unknown): string[] {
   const suggestions: string[] = [];
-  const message = error.message?.toLowerCase() || '';
+  const message = (error instanceof Error ? error.message : '').toLowerCase();
 
   // Workflow-related errors
   if (message.includes('workflow')) {
@@ -351,9 +458,9 @@ function generateSuggestions(error: any): string[] {
 /**
  * Generate next steps based on error type
  */
-function generateNextSteps(error: any): string[] {
+function generateNextSteps(error: unknown): string[] {
   const nextSteps: string[] = [];
-  const message = error.message?.toLowerCase() || '';
+  const message = (error instanceof Error ? error.message : '').toLowerCase();
 
   if (message.includes('not found')) {
     nextSteps.push('Verify the resource ID is correct');
@@ -377,9 +484,9 @@ function generateNextSteps(error: any): string[] {
 /**
  * Generate helpful hints
  */
-function generateHints(error: any): string[] {
+function generateHints(error: unknown): string[] {
   const hints: string[] = [];
-  const message = error.message?.toLowerCase() || '';
+  const message = (error instanceof Error ? error.message : '').toLowerCase();
 
   if (message.includes('validation')) {
     hints.push('Validation errors indicate that the request parameters are incorrect or incomplete');
@@ -399,9 +506,9 @@ function generateHints(error: any): string[] {
 /**
  * Format error for MCP response with enhanced error reporting
  */
-export function formatError(error: any): EnhancedErrorResponse {
+export function formatError(error: unknown): EnhancedErrorResponse {
   const response: EnhancedErrorResponse = {
-    error: error.message || 'An unexpected error occurred',
+    error: error instanceof Error ? error.message : 'An unexpected error occurred',
     code: 'INTERNAL_ERROR',
     statusCode: 500,
   };
@@ -425,7 +532,7 @@ export function formatError(error: any): EnhancedErrorResponse {
 
   // Extract context from error message
   const extractedContext = extractErrorContext(response.error);
-  if (Object.keys(extractedContext).length > 0) {
+  if (extractedContext && Object.keys(extractedContext).length > 0) {
     response.context = { ...response.context, ...extractedContext };
 
     // Also set currentState at top level for backward compatibility
@@ -454,11 +561,32 @@ export function formatError(error: any): EnhancedErrorResponse {
   return response;
 }
 
+interface WorkflowStateWithComponent {
+  id: string;
+  workflowId: string;
+  name: string;
+  order: number;
+  componentId: string | null;
+  preExecutionInstructions: string | null;
+  postExecutionInstructions: string | null;
+  requiresApproval: boolean;
+  mandatory: boolean;
+  runLocation: 'laptop' | 'server' | string;
+  offlineFallback: 'skip' | 'error' | boolean | string;
+  createdAt: Date;
+  updatedAt: Date;
+  component?: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+}
+
 /**
  * Format workflow state for MCP response
  */
 export function formatWorkflowState(
-  state: any,
+  state: WorkflowStateWithComponent,
   includeComponent = false,
 ): WorkflowStateResponse {
   const formatted: WorkflowStateResponse = {
@@ -471,8 +599,8 @@ export function formatWorkflowState(
     postExecutionInstructions: state.postExecutionInstructions || undefined,
     requiresApproval: state.requiresApproval,
     mandatory: state.mandatory,
-    runLocation: state.runLocation, // ST-150
-    offlineFallback: state.offlineFallback, // ST-150
+    runLocation: state.runLocation === 'laptop' || state.runLocation === 'server' ? state.runLocation : 'laptop', // ST-150
+    offlineFallback: state.offlineFallback === 'skip' || state.offlineFallback === 'error' ? state.offlineFallback : 'skip', // ST-150
     createdAt: state.createdAt.toISOString(),
     updatedAt: state.updatedAt.toISOString(),
   };

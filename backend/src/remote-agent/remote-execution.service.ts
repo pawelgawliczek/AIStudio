@@ -1,6 +1,7 @@
 import { createHmac } from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
+import { RemoteAgent, RemoteJob, Prisma } from '@prisma/client';
 import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -109,7 +110,7 @@ export class RemoteExecutionService {
     scriptName: string,
     params: string[],
     requestedBy: string = 'mcp-user',
-  ): Promise<any> {
+  ): Promise<{ agentOffline: true; fallbackCommand: string; message: string } | unknown> {
     // Validate script is approved
     if (!isScriptApproved(scriptName)) {
       // ST-269: Log forbidden script attempt for security audit
@@ -229,7 +230,7 @@ export class RemoteExecutionService {
   /**
    * Wait for job result with timeout
    */
-  private async waitForResult(jobId: string, timeout: number): Promise<any> {
+  private async waitForResult(jobId: string, timeout: number): Promise<unknown> {
     const startTime = Date.now();
     const pollInterval = 1000; // Check every 1 second
 
@@ -306,7 +307,7 @@ export class RemoteExecutionService {
   /**
    * Get job status
    */
-  async getJobStatus(jobId: string): Promise<any> {
+  async getJobStatus(jobId: string): Promise<RemoteJob | null> {
     return this.prisma.remoteJob.findUnique({
       where: { id: jobId },
     });
@@ -315,7 +316,7 @@ export class RemoteExecutionService {
   /**
    * List recent jobs
    */
-  async listJobs(limit: number = 20): Promise<any[]> {
+  async listJobs(limit: number = 20): Promise<RemoteJob[]> {
     return this.prisma.remoteJob.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -325,7 +326,7 @@ export class RemoteExecutionService {
   /**
    * Get online agents
    */
-  async getOnlineAgents(): Promise<any[]> {
+  async getOnlineAgents(): Promise<RemoteAgent[]> {
     return this.prisma.remoteAgent.findMany({
       where: { status: 'online' },
     });
@@ -405,7 +406,7 @@ export class RemoteExecutionService {
     const job = await this.prisma.remoteJob.create({
       data: {
         script: 'claude-code', // Special marker for Claude Code jobs
-        params: request as unknown as any, // Store full request as params
+        params: request as unknown as Prisma.InputJsonValue, // Store full request as params
         status: 'pending',
         agentId: agent.id,
         requestedBy,
@@ -538,7 +539,7 @@ export class RemoteExecutionService {
   /**
    * Find online agents with Claude Code capability
    */
-  private async findClaudeCodeAgents(): Promise<any[]> {
+  private async findClaudeCodeAgents(): Promise<RemoteAgent[]> {
     return this.prisma.remoteAgent.findMany({
       where: {
         status: 'online',
@@ -553,7 +554,7 @@ export class RemoteExecutionService {
   /**
    * Select agent with least concurrent jobs
    */
-  private async selectLeastLoadedAgent(agents: any[]): Promise<any> {
+  private async selectLeastLoadedAgent(agents: RemoteAgent[]): Promise<RemoteAgent> {
     const agentLoads = await Promise.all(
       agents.map(async (agent) => {
         const runningJobs = await this.prisma.remoteJob.count({
@@ -642,14 +643,14 @@ export class RemoteExecutionService {
       }
 
       if (job.status === 'completed') {
-        const result = job.result as any;
+        const result = job.result as Record<string, unknown> | null;
         return {
           success: true,
           jobId: job.id,
           agentId: job.agentId || '',
           output: result?.output,
-          metrics: result?.metrics,
-          transcriptPath: result?.transcriptPath,
+          metrics: result?.metrics as { inputTokens: number; outputTokens: number; cacheCreationTokens?: number; cacheReadTokens?: number; totalTokens: number } | undefined,
+          transcriptPath: result?.transcriptPath as string | undefined,
         };
       }
 
@@ -838,7 +839,7 @@ export class RemoteExecutionService {
   /**
    * Get Claude Code capable agents
    */
-  async getClaudeCodeAgents(): Promise<any[]> {
+  async getClaudeCodeAgents(): Promise<RemoteAgent[]> {
     return this.findClaudeCodeAgents();
   }
 
@@ -964,7 +965,7 @@ export class RemoteExecutionService {
   /**
    * Find online agents with git-execute capability
    */
-  private async findGitExecuteAgents(): Promise<any[]> {
+  private async findGitExecuteAgents(): Promise<RemoteAgent[]> {
     return this.prisma.remoteAgent.findMany({
       where: {
         status: 'online',
@@ -995,25 +996,25 @@ export class RemoteExecutionService {
       }
 
       if (job.status === 'completed') {
-        const result = job.result as any;
+        const result = job.result as Record<string, unknown> | null;
         return {
           success: true,
           jobId: job.id,
           agentId: job.agentId || '',
-          output: result?.output,
-          operation: result?.operation,
+          output: result?.output as string | undefined,
+          operation: result?.operation as string | undefined,
         };
       }
 
       if (job.status === 'failed') {
-        const result = job.result as any;
+        const result = job.result as Record<string, unknown> | null;
         return {
           success: false,
           jobId: job.id,
           agentId: job.agentId || '',
           error: job.error || 'Execution failed',
-          output: result?.output,
-          exitCode: result?.exitCode,
+          output: result?.output as string | undefined,
+          exitCode: result?.exitCode as number | undefined,
         };
       }
 
@@ -1059,7 +1060,7 @@ export class RemoteExecutionService {
   /**
    * Get git-capable agents
    */
-  async getGitExecuteAgents(): Promise<any[]> {
+  async getGitExecuteAgents(): Promise<RemoteAgent[]> {
     return this.findGitExecuteAgents();
   }
 
@@ -1070,17 +1071,17 @@ export class RemoteExecutionService {
   /**
    * Derive job type from script name and params
    */
-  private deriveJobType(scriptName: string, params: any): string {
+  private deriveJobType(scriptName: string, params: string[] | Record<string, unknown>): string {
     if (scriptName === 'claude-code') {
       return 'claude-agent';
     }
     if (scriptName.startsWith('git-')) {
       return 'git-execute';
     }
-    if (scriptName.includes('read-file') || params?.includes?.('read-file')) {
+    if (scriptName.includes('read-file') || (Array.isArray(params) && params.includes('read-file'))) {
       return 'read-file';
     }
-    if (scriptName.includes('exec-command') || params?.includes?.('exec-command')) {
+    if (scriptName.includes('exec-command') || (Array.isArray(params) && params.includes('exec-command'))) {
       return 'exec-command';
     }
     if (scriptName.includes('workflow-tracker')) {
@@ -1092,7 +1093,7 @@ export class RemoteExecutionService {
   /**
    * Sanitize target path for logging (remove sensitive info)
    */
-  private sanitizeTargetPath(scriptName: string, params: any): string {
+  private sanitizeTargetPath(scriptName: string, params: string[] | Record<string, unknown>): string {
     if (Array.isArray(params) && params.length > 0) {
       // For file paths, just show the filename
       const firstParam = params[0];

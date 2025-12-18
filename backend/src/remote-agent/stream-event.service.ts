@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -32,12 +33,13 @@ export class StreamEventService {
           eventType,
           sequenceNumber,
           timestamp,
-          payload: payload as any, // Cast to any to satisfy Prisma JSON type
+          payload: payload as Prisma.InputJsonValue, // Prisma JSON type
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       // Log but don't throw - streaming events are observability, not critical path
-      this.logger.error(`Failed to store stream event: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to store stream event: ${errorMessage}`);
     }
   }
 
@@ -51,7 +53,7 @@ export class StreamEventService {
       afterSequence?: number;
       limit?: number;
     },
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     return this.prisma.agentStreamEvent.findMany({
       where: {
         componentRunId,
@@ -74,7 +76,7 @@ export class StreamEventService {
       eventType?: string;
       limit?: number;
     },
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     return this.prisma.agentStreamEvent.findMany({
       where: {
         workflowRunId,
@@ -88,7 +90,7 @@ export class StreamEventService {
   /**
    * Get latest event for a component run (for resume detection)
    */
-  async getLatestEvent(componentRunId: string): Promise<any | null> {
+  async getLatestEvent(componentRunId: string): Promise<unknown | null> {
     return this.prisma.agentStreamEvent.findFirst({
       where: { componentRunId },
       orderBy: { sequenceNumber: 'desc' },

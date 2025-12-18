@@ -138,7 +138,7 @@ export async function handler(
   params: DeleteWorktreeParams,
 ): Promise<DeleteWorktreeResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // Require explicit confirmation (check both presence and value)
     if (params.confirm === undefined || params.confirm === null) {

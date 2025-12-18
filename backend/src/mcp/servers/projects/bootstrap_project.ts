@@ -62,7 +62,7 @@ export async function handler(
   message: string;
 }> {
   try {
-    validateRequired(params, ['name']);
+    validateRequired(params as unknown as Record<string, unknown>, ['name']);
 
     await getSystemUserId(prisma); // Ensure system user exists
 

@@ -474,7 +474,7 @@ export class BreakpointService {
         where: { id: existingBreakpoint.id },
         data: {
           isActive: true,
-          condition: condition ? (condition as Prisma.InputJsonValue) : existingBreakpoint.condition,
+          condition: condition ? (condition as Prisma.InputJsonValue) : (existingBreakpoint.condition ?? undefined),
           hitAt: null, // Reset hit timestamp on reactivation
         },
       });

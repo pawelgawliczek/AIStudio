@@ -276,7 +276,7 @@ export class ApprovalService {
       await this.prisma.workflowRun.update({
         where: { id: params.runId },
         data: {
-          status: newRunStatus as any,
+          status: newRunStatus as 'running' | 'paused' | 'completed' | 'failed' | 'cancelled' | 'pending',
           ...(newRunStatus === 'cancelled' && { finishedAt: new Date() }),
         },
       });
@@ -477,7 +477,27 @@ export class ApprovalService {
   /**
    * Map Prisma model to approval data structure
    */
-  private mapToApprovalData(approval: any): ApprovalRequestData {
+  private mapToApprovalData(approval: {
+    id: string;
+    workflowRunId: string;
+    stateId: string;
+    projectId: string;
+    stateName: string;
+    stateOrder: number;
+    requestedBy: string;
+    requestedAt: Date;
+    status: ApprovalStatus;
+    contextSummary: string | null;
+    artifactKeys: string[];
+    tokensUsed: number;
+    resolvedAt: Date | null;
+    resolvedBy: string | null;
+    resolution: ApprovalResolution | null;
+    reason: string | null;
+    reExecutionMode: ReExecutionMode | null;
+    feedback: string | null;
+    editedArtifacts: string[];
+  }): ApprovalRequestData {
     return {
       id: approval.id,
       workflowRunId: approval.workflowRunId,

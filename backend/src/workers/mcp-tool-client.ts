@@ -93,10 +93,12 @@ export class McpToolClient {
       );
 
       return response as RunTestsResponse;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `[McpToolClient] run_tests failed: ${error.message}`,
-        error.stack
+        `[McpToolClient] run_tests failed: ${errorMessage}`,
+        errorStack
       );
       throw error;
     }
@@ -123,10 +125,12 @@ export class McpToolClient {
       await handler(this.prisma, { lockId, force });
 
       this.logger.log('[McpToolClient] unlock_test_queue completed successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `[McpToolClient] unlock_test_queue failed: ${error.message}`,
-        error.stack
+        `[McpToolClient] unlock_test_queue failed: ${errorMessage}`,
+        errorStack
       );
       throw error;
     }

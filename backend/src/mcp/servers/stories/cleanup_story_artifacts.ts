@@ -95,7 +95,7 @@ export async function handler(
   params: CleanupStoryArtifactsParams
 ): Promise<CleanupStoryArtifactsResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     const forceCleanup = params.forceCleanup === true;
     const repoPath = '/opt/stack/AIStudio';

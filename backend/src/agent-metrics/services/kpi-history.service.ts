@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 interface KpiHistoryParams {
   workflowId: string;
@@ -14,6 +15,23 @@ interface KpiHistoryResponse {
   workflowValues: number[];
   systemAverages: number[];
 }
+
+type WorkflowRunWithRelations = Prisma.WorkflowRunGetPayload<{
+  include: {
+    componentRuns: true;
+    story: true;
+  };
+}>;
+
+type ComponentRunForMetrics = {
+  linesAdded?: number | null;
+  linesDeleted?: number | null;
+  userPrompts?: number | null;
+  humanInterventions?: number | null;
+  systemIterations?: number | null;
+  tokensCacheRead?: number | null;
+  filesModified?: string[] | null;
+};
 
 @Injectable()
 export class KpiHistoryService {
@@ -42,7 +60,10 @@ export class KpiHistoryService {
     }
 
     // Build complexity filter - ensure valid array with numeric, non-NaN values
-    const complexityFilter: any = {};
+    const complexityFilter: {
+      businessComplexity?: { gte: number; lte: number };
+      technicalComplexity?: { gte: number; lte: number };
+    } = {};
     const isValidRange = (arr: unknown): arr is [number, number] => {
       return Array.isArray(arr) &&
         arr.length === 2 &&
@@ -144,7 +165,7 @@ export class KpiHistoryService {
   /**
    * Calculate the value for a specific KPI metric from a set of workflow runs
    */
-  private calculateMetricValue(kpiName: string, runs: any[]): number {
+  private calculateMetricValue(kpiName: string, runs: WorkflowRunWithRelations[]): number {
     if (runs.length === 0) return 0;
 
     switch (kpiName) {
@@ -155,7 +176,7 @@ export class KpiHistoryService {
         );
         const totalLOC = runs.reduce((sum, run) => {
           const componentLOC = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (cr.linesAdded || 0) + (cr.linesDeleted || 0),
             0,
           );
@@ -167,7 +188,7 @@ export class KpiHistoryService {
       case 'promptsPerStory': {
         const totalPrompts = runs.reduce((sum, run) => {
           const componentPrompts = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.userPrompts || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.userPrompts || 0),
             0,
           );
           return sum + componentPrompts;
@@ -186,14 +207,14 @@ export class KpiHistoryService {
       case 'humanPromptsPerLOC': {
         const totalPrompts = runs.reduce((sum, run) => {
           const componentPrompts = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.userPrompts || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.userPrompts || 0),
             0,
           );
           return sum + componentPrompts;
         }, 0);
         const totalLOC = runs.reduce((sum, run) => {
           const componentLOC = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (cr.linesAdded || 0) + (cr.linesDeleted || 0),
             0,
           );
@@ -218,14 +239,14 @@ export class KpiHistoryService {
       case 'locPerPrompt': {
         const totalPrompts = runs.reduce((sum, run) => {
           const componentPrompts = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.userPrompts || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.userPrompts || 0),
             0,
           );
           return sum + componentPrompts;
         }, 0);
         const totalLOC = runs.reduce((sum, run) => {
           const componentLOC = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (cr.linesAdded || 0) + (cr.linesDeleted || 0),
             0,
           );
@@ -241,7 +262,7 @@ export class KpiHistoryService {
         );
         const totalLOC = runs.reduce((sum, run) => {
           const componentLOC = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (cr.linesAdded || 0) + (cr.linesDeleted || 0),
             0,
           );
@@ -253,7 +274,7 @@ export class KpiHistoryService {
       case 'linesAdded': {
         const totalLines = runs.reduce((sum, run) => {
           const componentLines = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.linesAdded || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.linesAdded || 0),
             0,
           );
           return sum + componentLines;
@@ -265,7 +286,7 @@ export class KpiHistoryService {
         // Assuming linesModified = linesAdded + linesDeleted
         const totalLines = runs.reduce((sum, run) => {
           const componentLines = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (cr.linesAdded || 0) + (cr.linesDeleted || 0),
             0,
           );
@@ -277,7 +298,7 @@ export class KpiHistoryService {
       case 'linesDeleted': {
         const totalLines = runs.reduce((sum, run) => {
           const componentLines = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.linesDeleted || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.linesDeleted || 0),
             0,
           );
           return sum + componentLines;
@@ -288,7 +309,7 @@ export class KpiHistoryService {
       case 'totalLOC': {
         const totalLines = runs.reduce((sum, run) => {
           const componentLines = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (cr.linesAdded || 0) + (cr.linesDeleted || 0),
             0,
           );
@@ -305,7 +326,7 @@ export class KpiHistoryService {
       case 'filesModifiedCount': {
         const totalFiles = runs.reduce((sum, run) => {
           const componentFiles = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (Array.isArray(cr.filesModified) ? cr.filesModified.length : 0),
             0,
           );
@@ -317,7 +338,7 @@ export class KpiHistoryService {
       case 'totalUserPrompts': {
         const totalPrompts = runs.reduce((sum, run) => {
           const componentPrompts = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.userPrompts || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.userPrompts || 0),
             0,
           );
           return sum + componentPrompts;
@@ -328,7 +349,7 @@ export class KpiHistoryService {
       case 'humanInterventions': {
         const totalInterventions = runs.reduce((sum, run) => {
           const componentInterventions = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.humanInterventions || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.humanInterventions || 0),
             0,
           );
           return sum + componentInterventions;
@@ -349,7 +370,7 @@ export class KpiHistoryService {
       case 'interactionsPerStory': {
         const totalInteractions = runs.reduce((sum, run) => {
           const componentInteractions = run.componentRuns.reduce(
-            (cSum: number, cr: any) =>
+            (cSum: number, cr: ComponentRunForMetrics) =>
               cSum + (cr.userPrompts || 0) + (cr.humanInterventions || 0),
             0,
           );
@@ -361,7 +382,7 @@ export class KpiHistoryService {
       case 'avgIterations': {
         const totalIterations = runs.reduce((sum, run) => {
           const componentIterations = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.systemIterations || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.systemIterations || 0),
             0,
           );
           return sum + componentIterations;
@@ -393,7 +414,7 @@ export class KpiHistoryService {
       case 'cacheHitRate': {
         const totalCacheRead = runs.reduce((sum, run) => {
           const componentCache = run.componentRuns.reduce(
-            (cSum: number, cr: any) => cSum + (cr.tokensCacheRead || 0),
+            (cSum: number, cr: ComponentRunForMetrics) => cSum + (cr.tokensCacheRead || 0),
             0,
           );
           return sum + componentCache;

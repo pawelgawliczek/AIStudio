@@ -44,7 +44,7 @@ export async function handler(
   params: GetProjectParams,
 ): Promise<ProjectResponse> {
   try {
-    validateRequired(params, ['projectId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId']);
 
     const project = await prisma.project.findUnique({
       where: { id: params.projectId },

@@ -65,7 +65,7 @@ export async function handler(
   params: DeleteStoryParams,
 ): Promise<DeleteStoryResponse> {
   try {
-    validateRequired(params, ['storyId', 'confirm']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId', 'confirm']);
 
     // Safety check: require explicit confirmation
     if (params.confirm !== true) {

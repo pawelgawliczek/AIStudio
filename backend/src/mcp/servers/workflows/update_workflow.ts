@@ -108,7 +108,7 @@ export async function handler(
   params: UpdateWorkflowParams,
 ): Promise<WorkflowResponse> {
   try {
-    validateRequired(params, ['workflowId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['workflowId']);
 
     // Verify workflow exists
     const existingWorkflow = await prisma.workflow.findUnique({

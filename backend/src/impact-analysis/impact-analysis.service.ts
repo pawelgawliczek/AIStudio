@@ -138,7 +138,7 @@ export class ImpactAnalysisService {
           useCaseId: mapping.useCaseId,
           useCaseKey: mapping.useCase.key,
           title: mapping.useCase.title,
-          area: mapping.useCase.area,
+          area: mapping.useCase.area ?? undefined,
           confidence: mapping.confidence,
           affectedByFiles: [],
           riskLevel: 'low',
@@ -449,7 +449,7 @@ export class ImpactAnalysisService {
         id: useCase.id,
         key: useCase.key,
         title: useCase.title,
-        area: useCase.area,
+        area: useCase.area ?? undefined,
       },
       implementingFiles,
       relatedUseCases: [], // TODO: Implement

@@ -30,7 +30,26 @@ export const metadata: ToolMetadata = {
   lastUpdated: '2025-11-11',
 };
 
-export async function handler(prisma: PrismaClient, params: any): Promise<any> {
+interface GetFileHealthParams {
+  projectId: string;
+  filePath: string;
+}
+
+interface CodeSmell {
+  type: string;
+  message: string;
+  severity?: string;
+}
+
+interface FunctionInfo {
+  name: string;
+  complexity: number;
+  loc: number;
+}
+
+export async function handler(prisma: PrismaClient, params: GetFileHealthParams): Promise<{
+  content: Array<{ type: string; text: string }>;
+}> {
   const { projectId, filePath } = params;
 
   // Verify project exists
@@ -85,8 +104,9 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
   )));
 
   // Parse code smells from metadata
-  const codeSmells = (fileMetric.metadata as any)?.codeSmells || [];
-  const functions = (fileMetric.metadata as any)?.functions || [];
+  const metadata = fileMetric.metadata as Record<string, unknown> | null;
+  const codeSmells = (metadata?.codeSmells as CodeSmell[]) || [];
+  const functions = (metadata?.functions as FunctionInfo[]) || [];
 
   // Determine risk level
   const riskLevel =
@@ -156,8 +176,8 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
   }
 
   if (codeSmells.length > 0) {
-    const criticalSmells = codeSmells.filter((s: any) => s.severity === 'critical').length;
-    const majorSmells = codeSmells.filter((s: any) => s.severity === 'major').length;
+    const criticalSmells = codeSmells.filter((s) => s.severity === 'critical').length;
+    const majorSmells = codeSmells.filter((s) => s.severity === 'major').length;
 
     if (criticalSmells > 0) {
       insights.push(
@@ -176,8 +196,8 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
 
   // Find most complex functions
   const complexFunctions = functions
-    .filter((f: any) => f.complexity > 10)
-    .sort((a: any, b: any) => b.complexity - a.complexity);
+    .filter((f) => f.complexity > 10)
+    .sort((a, b) => b.complexity - a.complexity);
 
   if (complexFunctions.length > 0) {
     recommendations.push(
@@ -193,7 +213,7 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
 
   if (codeSmells.length > 0) {
     const topSmells = codeSmells.slice(0, 3);
-    topSmells.forEach((smell: any, index: number) => {
+    topSmells.forEach((smell, index: number) => {
       recommendations.push(
         `${index + 3}. Fix ${smell.type}: ${smell.message}`,
       );
@@ -271,7 +291,7 @@ export async function handler(prisma: PrismaClient, params: any): Promise<any> {
         details: codeSmells,
       },
     },
-    functions: functions.map((f: any) => ({
+    functions: functions.map((f) => ({
       name: f.name,
       complexity: f.complexity,
       loc: f.loc,

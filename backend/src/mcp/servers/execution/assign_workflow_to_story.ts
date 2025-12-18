@@ -99,7 +99,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   // Build response message
   let message;
   if (params.workflowId) {
-    message = `Assigned workflow "${workflow.name}" to story ${story.key}`;
+    message = `Assigned workflow "${workflow!.name}" to story ${story.key}`;
   } else {
     message = `Cleared workflow assignment for story ${story.key}`;
   }

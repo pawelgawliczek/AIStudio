@@ -106,7 +106,11 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
   private readonly circuitBreakerThreshold: number = 5;
 
   // Redis client for distributed lock
-  private redis: any;
+  private redis: {
+    set: (key: string, value: string, ...args: (string | number)[]) => Promise<string | null>;
+    get: (key: string) => Promise<string | null>;
+    del: (key: string) => Promise<number>;
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -146,7 +150,11 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
     };
 
     // Get Redis client from Bull queue
-    this.redis = this.codeAnalysisQueue.client;
+    this.redis = this.codeAnalysisQueue.client as unknown as {
+      set: (key: string, value: string, ...args: (string | number)[]) => Promise<string | null>;
+      get: (key: string) => Promise<string | null>;
+      del: (key: string) => Promise<number>;
+    };
   }
 
   /**
@@ -234,9 +242,11 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
 
       // Release lock
       await this.releaseLock();
-    } catch (error: any) {
-      this.logger.error(`Error in processing interval: ${error.message}`, error.stack);
-      this.state.lastError = error.message;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error in processing interval: ${errorMessage}`, errorStack);
+      this.state.lastError = errorMessage;
       this.state.lastErrorAt = new Date();
 
       // Release lock on error
@@ -293,7 +303,7 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `[${item.story.key}] Completed in ${duration}ms - status: ${finalStatus}`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle failure
       const duration = Date.now() - startTime;
       this.state.metrics.failedCount++;
@@ -301,11 +311,13 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       this.state.metrics.totalProcessingTime += duration;
       this.state.consecutiveFailures++;
 
-      this.logger.error(`[${item.story.key}] Processing failed: ${error.message}`, error.stack);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`[${item.story.key}] Processing failed: ${errorMessage}`, errorStack);
 
       // Update queue entry with error
       await this.updateQueueStatus(item.id, 'failed', {
-        errorMessage: error.message || 'Processing failed',
+        errorMessage: errorMessage || 'Processing failed',
       });
 
       // Circuit breaker
@@ -345,8 +357,10 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       }
 
       return false;
-    } catch (error: any) {
-      this.logger.error(`Failed to acquire lock: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to acquire lock: ${errorMessage}`, errorStack);
       return false;
     }
   }
@@ -368,8 +382,10 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
         await this.redis.del(lockKey);
         this.logger.debug('Released lock');
       }
-    } catch (error: any) {
-      this.logger.error(`Failed to release lock: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to release lock: ${errorMessage}`, errorStack);
     } finally {
       this.state.lockId = null;
     }
@@ -405,8 +421,10 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       }
 
       return { locked: false };
-    } catch (error: any) {
-      this.logger.error(`Failed to check queue lock: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to check queue lock: ${errorMessage}`, errorStack);
       return { locked: false };
     }
   }
@@ -432,8 +450,10 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
       });
 
       return item;
-    } catch (error: any) {
-      this.logger.error(`Failed to get next pending item: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to get next pending item: ${errorMessage}`, errorStack);
       return null;
     }
   }
@@ -444,7 +464,7 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
   private async updateQueueStatus(
     itemId: string,
     status: 'pending' | 'running' | 'passed' | 'failed' | 'cancelled' | 'skipped',
-    data: any
+    data: Record<string, unknown>
   ): Promise<void> {
     try {
       await this.prisma.testQueue.update({
@@ -455,8 +475,10 @@ export class QueueProcessorService implements OnModuleInit, OnModuleDestroy {
           updatedAt: new Date(),
         },
       });
-    } catch (error: any) {
-      this.logger.error(`Failed to update queue status: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to update queue status: ${errorMessage}`, errorStack);
       throw error;
     }
   }

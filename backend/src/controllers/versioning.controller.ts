@@ -20,7 +20,8 @@ import {
 } from '../dtos/versioning.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChecksumService } from '../services/checksum.service';
-import { VersioningService } from '../services/versioning.service';
+import { VersioningService, VersionNode } from '../services/versioning.service';
+import { Component, Workflow } from '@prisma/client';
 
 @Controller('versioning')
 export class VersioningController {
@@ -46,10 +47,10 @@ export class VersioningController {
     const tree = await this.versioningService.getVersionLineageTree('component', componentId);
 
     // Flatten tree to get all versions
-    const flattenTree = (node: any): any[] => {
+    const flattenTree = (node: VersionNode): VersionNode[] => {
       const versions = [node];
       if (node.children && node.children.length > 0) {
-        node.children.forEach((child: any) => {
+        node.children.forEach((child: VersionNode) => {
           versions.push(...flattenTree(child));
         });
       }
@@ -114,7 +115,7 @@ export class VersioningController {
       );
     }
 
-    return this.mapComponentToVersionResponse(newVersion);
+    return this.mapComponentToVersionResponse(newVersion as Component);
   }
 
   @Get('components/versions/compare')
@@ -219,7 +220,7 @@ export class VersioningController {
       );
     }
 
-    return this.mapCoordinatorToVersionResponse(newVersion);
+    return this.mapCoordinatorToVersionResponse(newVersion as Component);
   }
 
   @Get('coordinators/versions/compare')
@@ -375,7 +376,7 @@ export class VersioningController {
   // PRIVATE HELPER METHODS
   // ============================================================================
 
-  private mapComponentToVersionResponse(component: any): ComponentVersionResponse {
+  private mapComponentToVersionResponse(component: Component): ComponentVersionResponse {
     const config = typeof component.config === 'string'
       ? JSON.parse(component.config)
       : component.config;
@@ -392,15 +393,15 @@ export class VersioningController {
       config,
       tools: component.tools,
       active: component.active,
-      checksum: component.instructionsChecksum,
+      checksum: component.instructionsChecksum ?? undefined,
       checksumAlgorithm: 'MD5',
-      changeDescription: component.changeDescription,
+      changeDescription: component.changeDescription ?? undefined,
       createdAt: component.createdAt.toISOString(),
       updatedAt: component.updatedAt.toISOString(),
     };
   }
 
-  private mapCoordinatorToVersionResponse(component: any): CoordinatorVersionResponse {
+  private mapCoordinatorToVersionResponse(component: Component): CoordinatorVersionResponse {
     const config = typeof component.config === 'string'
       ? JSON.parse(component.config)
       : component.config;
@@ -419,15 +420,15 @@ export class VersioningController {
       config,
       tools: component.tools,
       active: component.active,
-      checksum: component.instructionsChecksum,
+      checksum: component.instructionsChecksum ?? undefined,
       checksumAlgorithm: 'MD5',
-      changeDescription: component.changeDescription,
+      changeDescription: component.changeDescription ?? undefined,
       createdAt: component.createdAt.toISOString(),
       updatedAt: component.updatedAt.toISOString(),
     };
   }
 
-  private mapWorkflowToVersionResponse(workflow: any): WorkflowVersionResponse {
+  private mapWorkflowToVersionResponse(workflow: Workflow): WorkflowVersionResponse {
     const triggerConfig = typeof workflow.triggerConfig === 'string'
       ? JSON.parse(workflow.triggerConfig)
       : workflow.triggerConfig;
@@ -440,15 +441,15 @@ export class VersioningController {
       // Note: coordinatorId and coordinatorVersion fields removed (ST-164)
       triggerConfig,
       active: workflow.active,
-      checksum: workflow.instructionsChecksum,
+      checksum: workflow.instructionsChecksum ?? undefined,
       checksumAlgorithm: 'MD5',
-      changeDescription: workflow.changeDescription,
+      changeDescription: workflow.changeDescription ?? undefined,
       createdAt: workflow.createdAt.toISOString(),
       updatedAt: workflow.updatedAt.toISOString(),
     };
   }
 
-  private extractDecisionStrategy(component: any): 'sequential' | 'adaptive' | 'parallel' | 'conditional' {
+  private extractDecisionStrategy(component: Component): 'sequential' | 'adaptive' | 'parallel' | 'conditional' {
     // Try to extract from tags or config
     if (component.tags?.includes('sequential')) return 'sequential';
     if (component.tags?.includes('adaptive')) return 'adaptive';
@@ -461,14 +462,14 @@ export class VersioningController {
 
   private compareVersions(
     entityType: 'component' | 'coordinator' | 'workflow',
-    version1: any,
-    version2: any,
+    version1: Component | Workflow,
+    version2: Component | Workflow,
   ): VersionComparisonResponse {
     const changes: Array<{
       field: string;
       changeType: 'added' | 'removed' | 'modified';
-      oldValue?: any;
-      newValue?: any;
+      oldValue?: unknown;
+      newValue?: unknown;
       description: string;
     }> = [];
 
@@ -478,48 +479,52 @@ export class VersioningController {
 
     // Compare based on entity type
     if (entityType === 'component' || entityType === 'coordinator') {
+      const v1 = version1 as Component;
+      const v2 = version2 as Component;
       this.compareField(
         changes,
         'inputInstructions',
-        version1.inputInstructions,
-        version2.inputInstructions,
+        v1.inputInstructions,
+        v2.inputInstructions,
         'Input instructions changed',
       );
       this.compareField(
         changes,
         'operationInstructions',
-        version1.operationInstructions,
-        version2.operationInstructions,
+        v1.operationInstructions,
+        v2.operationInstructions,
         'Operation instructions changed',
       );
       this.compareField(
         changes,
         'outputInstructions',
-        version1.outputInstructions,
-        version2.outputInstructions,
+        v1.outputInstructions,
+        v2.outputInstructions,
         'Output instructions changed',
       );
       this.compareField(
         changes,
         'config',
-        version1.config,
-        version2.config,
+        v1.config,
+        v2.config,
         'Configuration changed',
       );
       this.compareField(
         changes,
         'tools',
-        version1.tools,
-        version2.tools,
+        v1.tools,
+        v2.tools,
         'Tools changed',
       );
     } else if (entityType === 'workflow') {
+      const v1 = version1 as Workflow;
+      const v2 = version2 as Workflow;
       // Note: coordinatorId comparison removed (ST-164)
       this.compareField(
         changes,
         'triggerConfig',
-        version1.triggerConfig,
-        version2.triggerConfig,
+        v1.triggerConfig,
+        v2.triggerConfig,
         'Trigger configuration changed',
       );
     }
@@ -557,10 +562,16 @@ export class VersioningController {
   }
 
   private compareField(
-    changes: any[],
+    changes: Array<{
+      field: string;
+      changeType: 'added' | 'removed' | 'modified';
+      oldValue?: unknown;
+      newValue?: unknown;
+      description: string;
+    }>,
     field: string,
-    oldValue: any,
-    newValue: any,
+    oldValue: unknown,
+    newValue: unknown,
     description: string,
   ) {
     const oldStr = JSON.stringify(oldValue);
@@ -577,7 +588,13 @@ export class VersioningController {
     }
   }
 
-  private detectBreakingChanges(changes: any[]): boolean {
+  private detectBreakingChanges(changes: Array<{
+    field: string;
+    changeType: 'added' | 'removed' | 'modified';
+    oldValue?: unknown;
+    newValue?: unknown;
+    description: string;
+  }>): boolean {
     // Breaking changes:
     // - Removed tools
     // - Changed model ID
@@ -586,37 +603,42 @@ export class VersioningController {
       (change) =>
         (change.field === 'tools' && change.changeType === 'removed') ||
         (change.field === 'config' &&
-          change.oldValue?.modelId !== change.newValue?.modelId),
+          (change.oldValue as { modelId?: string })?.modelId !== (change.newValue as { modelId?: string })?.modelId),
     );
   }
 
-  private mapToVersionResponse(entityType: string, entity: any): any {
+  private mapToVersionResponse(
+    entityType: string,
+    entity: Component | Workflow
+  ): ComponentVersionResponse | CoordinatorVersionResponse | WorkflowVersionResponse {
     if (entityType === 'component') {
-      return this.mapComponentToVersionResponse(entity);
+      return this.mapComponentToVersionResponse(entity as Component);
     } else if (entityType === 'coordinator') {
-      return this.mapCoordinatorToVersionResponse(entity);
+      return this.mapCoordinatorToVersionResponse(entity as Component);
     } else {
-      return this.mapWorkflowToVersionResponse(entity);
+      return this.mapWorkflowToVersionResponse(entity as Workflow);
     }
   }
 
   private verifyChecksum(
     entityType: 'component' | 'coordinator' | 'workflow',
-    entity: any,
+    entity: Component | Workflow,
   ): ChecksumVerificationResponse {
     const expectedChecksum = entity.instructionsChecksum;
 
     let actualChecksum: string;
     if (entityType === 'component' || entityType === 'coordinator') {
+      const component = entity as Component;
       actualChecksum = this.checksumService.calculateChecksum({
-        inputInstructions: entity.inputInstructions,
-        operationInstructions: entity.operationInstructions,
-        outputInstructions: entity.outputInstructions,
+        inputInstructions: component.inputInstructions,
+        operationInstructions: component.operationInstructions,
+        outputInstructions: component.outputInstructions,
       });
     } else {
+      const workflow = entity as Workflow;
       // Note: Removed coordinatorId from checksum calculation (ST-164)
       actualChecksum = this.checksumService.calculateChecksum({
-        triggerConfig: entity.triggerConfig,
+        triggerConfig: workflow.triggerConfig,
       });
     }
 

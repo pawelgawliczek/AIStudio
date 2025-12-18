@@ -44,7 +44,7 @@ export class VersioningService {
    * Calculate MD5 checksum of normalized JSON data
    * Keys are sorted recursively for deterministic output
    */
-  calculateChecksum(data: any): string {
+  calculateChecksum(data: unknown): string {
     if (data === null || data === undefined) {
       return crypto.createHash('md5').update('null').digest('hex');
     }
@@ -178,21 +178,21 @@ export class VersioningService {
 
   // Private helper methods
 
-  private sortObjectKeys(obj: any): any {
+  private sortObjectKeys(obj: unknown): unknown {
     if (obj === null || typeof obj !== 'object') return obj;
     if (Array.isArray(obj)) return obj.map((item) => this.sortObjectKeys(item));
     return Object.keys(obj)
       .sort()
       .reduce((sorted, key) => {
-        sorted[key] = this.sortObjectKeys(obj[key]);
+        sorted[key] = this.sortObjectKeys((obj as Record<string, unknown>)[key]);
         return sorted;
-      }, {} as any);
+      }, {} as Record<string, unknown>);
   }
 
   private async getEntity(
     entityType: VersionableEntityType,
     id: string,
-  ): Promise<any> {
+  ): Promise<Component | Workflow> {
     const entity =
       entityType === 'component'
         ? await this.prisma.component.findUnique({ where: { id } })
@@ -208,7 +208,7 @@ export class VersioningService {
     tx: any,
     entityType: VersionableEntityType,
     id: string,
-  ): Promise<any> {
+  ): Promise<Component | Workflow> {
     const entity =
       entityType === 'component'
         ? await tx.component.findUnique({ where: { id } })
@@ -223,7 +223,7 @@ export class VersioningService {
   private async findRoot(
     entityType: VersionableEntityType,
     entityId: string,
-  ): Promise<any> {
+  ): Promise<Component | Workflow> {
     let current = await this.getEntity(entityType, entityId);
     while (current.parentId) {
       current = await this.getEntity(entityType, current.parentId);
@@ -234,7 +234,7 @@ export class VersioningService {
   private async getChildren(
     entityType: VersionableEntityType,
     parentId: string,
-  ): Promise<any[]> {
+  ): Promise<Component[] | Workflow[]> {
     if (entityType === 'component') {
       return this.prisma.component.findMany({
         where: { parentId },
@@ -250,7 +250,7 @@ export class VersioningService {
 
   private async buildTree(
     entityType: VersionableEntityType,
-    entity: any,
+    entity: Component | Workflow,
   ): Promise<VersionNode> {
     const children = await this.getChildren(entityType, entity.id);
     return {
@@ -268,7 +268,7 @@ export class VersioningService {
     };
   }
 
-  private mapToHistoryItem(entity: any): VersionHistoryItem {
+  private mapToHistoryItem(entity: Component | Workflow): VersionHistoryItem {
     return {
       id: entity.id,
       versionMajor: entity.versionMajor,
@@ -285,31 +285,32 @@ export class VersioningService {
   }
 
   private calculateEntityChecksums(
-    entity: any,
+    entity: Component | Workflow,
     entityType: VersionableEntityType,
   ): { instructionsChecksum: string; configChecksum: string } {
     if (entityType === 'component') {
+      const component = entity as Component;
       return {
         instructionsChecksum: this.calculateChecksum({
-          inputInstructions: entity.inputInstructions,
-          operationInstructions: entity.operationInstructions,
-          outputInstructions: entity.outputInstructions,
+          inputInstructions: component.inputInstructions,
+          operationInstructions: component.operationInstructions,
+          outputInstructions: component.outputInstructions,
         }),
-        configChecksum: this.calculateChecksum(entity.config),
+        configChecksum: this.calculateChecksum(component.config),
       };
     } else {
+      const workflow = entity as Workflow;
       return {
         instructionsChecksum: this.calculateChecksum({
-          coordinatorId: entity.coordinatorId,
-          triggerConfig: entity.triggerConfig,
+          triggerConfig: workflow.triggerConfig,
         }),
-        configChecksum: this.calculateChecksum(entity.triggerConfig),
+        configChecksum: this.calculateChecksum(workflow.triggerConfig),
       };
     }
   }
 
   private buildNewVersionData(
-    source: any,
+    source: Component | Workflow,
     entityType: VersionableEntityType,
     versionFields: {
       versionMajor: number;
@@ -337,7 +338,7 @@ export class VersioningService {
       'deprecatedAt',
     ];
 
-    const data: any = {};
+    const data: Record<string, unknown> = {};
 
     // Copy all fields except excluded ones
     for (const [key, value] of Object.entries(source)) {
@@ -346,7 +347,7 @@ export class VersioningService {
         if (key === 'componentAssignments' && entityType === 'workflow' && Array.isArray(value)) {
           // Keep only valid fields per ComponentAssignmentDto schema
           // Also handle legacy data format that may have 'role' field and missing version fields
-          data[key] = value.map((assignment: any) => {
+          data[key] = (value as any[]).map((assignment: any) => {
             // Parse version string to extract major/minor if not present
             let versionMajor = assignment.versionMajor;
             let versionMinor = assignment.versionMinor;
@@ -380,6 +381,6 @@ export class VersioningService {
       ...versionFields,
       isDeprecated: false,
       deprecatedAt: null,
-    };
+    } as any;
   }
 }

@@ -82,7 +82,7 @@ export async function handler(
 ): Promise<CreatePullRequestResponse> {
   try {
     // Validate required parameters
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // Validate GitHub CLI availability
     validateGitHubCLI();

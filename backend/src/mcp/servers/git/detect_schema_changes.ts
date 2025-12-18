@@ -378,7 +378,7 @@ export async function handler(
   params: DetectSchemaChangesParams,
 ): Promise<DetectSchemaChangesResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // 1. Fetch story and validate it exists
     const story = await prisma.story.findUnique({

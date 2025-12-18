@@ -70,7 +70,7 @@ export async function handler(
 ): Promise<AnswerQuestionResponse> {
   try {
     // 1. Validate input
-    validateRequired(params, ['questionId', 'answer']);
+    validateRequired(params as unknown as Record<string, unknown>, ['questionId', 'answer']);
 
     if (!params.answer.trim()) {
       throw new ValidationError('Answer cannot be empty');

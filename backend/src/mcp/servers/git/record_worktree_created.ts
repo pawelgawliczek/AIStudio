@@ -80,7 +80,7 @@ export async function handler(
   params: RecordWorktreeParams,
 ): Promise<RecordWorktreeResponse> {
   try {
-    validateRequired(params, ['storyId', 'branchName', 'worktreePath']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId', 'branchName', 'worktreePath']);
 
     const baseBranch = params.baseBranch || 'main';
     const hostName = params.hostName || os.hostname();

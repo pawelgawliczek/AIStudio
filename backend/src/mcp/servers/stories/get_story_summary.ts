@@ -41,7 +41,7 @@ export async function handler(
   params: { projectId: string; groupBy: 'status' | 'type' | 'epic' | 'complexity' },
 ): Promise<any> {
   try {
-    validateRequired(params, ['projectId', 'groupBy']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId', 'groupBy']);
 
     const { projectId, groupBy } = params;
 

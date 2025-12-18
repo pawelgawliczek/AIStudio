@@ -60,7 +60,7 @@ export async function handler(
   params: RemoveArtifactAccessParams,
 ): Promise<RemoveArtifactAccessResponse> {
   try {
-    validateRequired(params, ['stateId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['stateId']);
 
     // Resolve definition ID
     let definitionId = params.definitionId;

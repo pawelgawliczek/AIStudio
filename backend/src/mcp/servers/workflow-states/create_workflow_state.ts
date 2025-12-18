@@ -91,7 +91,7 @@ export async function handler(
   params: CreateWorkflowStateParams,
 ): Promise<WorkflowStateResponse> {
   try {
-    validateRequired(params, ['workflowId', 'name', 'order']);
+    validateRequired(params as unknown as Record<string, unknown>, ['workflowId', 'name', 'order']);
 
     // Validate order is a positive integer
     if (!Number.isInteger(params.order) || params.order < 1) {
@@ -176,7 +176,7 @@ export async function handler(
       },
     });
 
-    return formatWorkflowState(state, !!params.componentId);
+    return formatWorkflowState(state as any, !!params.componentId);
   } catch (error: any) {
     if (error.name === 'MCPError') {
       throw error;

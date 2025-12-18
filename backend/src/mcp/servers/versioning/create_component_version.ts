@@ -53,7 +53,7 @@ export async function handler(
   params: CreateComponentVersionParams,
 ): Promise<any> {
   try {
-    validateRequired(params, ['componentId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['componentId']);
 
     // Check component exists
     const sourceComponent = await prisma.component.findUnique({

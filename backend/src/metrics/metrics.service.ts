@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RunStatus } from '@prisma/client';
+import { RunStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AggregatedMetricsDto,
@@ -11,6 +11,18 @@ import {
   WeeklyAggregationDto,
 } from './dto/aggregated-metrics.dto';
 import { MetricsQueryDto, TimeGranularity, WorkflowComparisonDto } from './dto/metrics-query.dto';
+
+type WorkflowRunWithWorkflow = Prisma.WorkflowRunGetPayload<{
+  include: {
+    workflow: true;
+  };
+}>;
+
+type ComponentRunWithComponent = Prisma.ComponentRunGetPayload<{
+  include: {
+    component: true;
+  };
+}>;
 
 @Injectable()
 export class MetricsService {
@@ -26,7 +38,7 @@ export class MetricsService {
     const { workflowId, startDate, endDate, businessComplexity, technicalComplexity } = query;
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.WorkflowRunWhereInput = {
       projectId,
       status: RunStatus.completed,
     };
@@ -90,7 +102,7 @@ export class MetricsService {
     const { componentId, startDate, endDate, businessComplexity, technicalComplexity } = query;
 
     // Build where clause for workflow runs
-    const workflowRunWhere: any = {
+    const workflowRunWhere: Prisma.WorkflowRunWhereInput = {
       projectId,
       status: RunStatus.completed,
     };
@@ -125,7 +137,7 @@ export class MetricsService {
     }
 
     // Build where clause for component runs
-    const componentRunWhere: any = {
+    const componentRunWhere: Prisma.ComponentRunWhereInput = {
       workflowRunId: { in: workflowRunIds },
     };
 
@@ -171,7 +183,7 @@ export class MetricsService {
     const { workflowId, startDate, endDate, granularity = TimeGranularity.WEEKLY, businessComplexity, technicalComplexity } = query;
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.WorkflowRunWhereInput = {
       projectId,
       status: RunStatus.completed,
     };
@@ -204,7 +216,7 @@ export class MetricsService {
     });
 
     // Group by time period
-    const timePeriods = this.groupByTimePeriod(runs, granularity);
+    const timePeriods = this.groupByTimePeriod(runs as any, granularity);
 
     // Calculate trends for key metrics
     const trends: TrendsResponseDto[] = [];
@@ -307,7 +319,7 @@ export class MetricsService {
     startDate.setDate(startDate.getDate() - weeks * 7);
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.WorkflowRunWhereInput = {
       projectId,
       status: RunStatus.completed,
       startedAt: {
@@ -395,25 +407,25 @@ export class MetricsService {
   // Private Helper Methods
   // ============================================================================
 
-  private groupByWorkflow(runs: any[]): Record<string, any[]> {
+  private groupByWorkflow(runs: WorkflowRunWithWorkflow[]): Record<string, WorkflowRunWithWorkflow[]> {
     return runs.reduce((acc, run) => {
       const wfId = run.workflowId;
       if (!acc[wfId]) acc[wfId] = [];
       acc[wfId].push(run);
       return acc;
-    }, {});
+    }, {} as Record<string, WorkflowRunWithWorkflow[]>);
   }
 
-  private groupByComponent(runs: any[]): Record<string, any[]> {
+  private groupByComponent(runs: ComponentRunWithComponent[]): Record<string, ComponentRunWithComponent[]> {
     return runs.reduce((acc, run) => {
       const compId = run.componentId;
       if (!acc[compId]) acc[compId] = [];
       acc[compId].push(run);
       return acc;
-    }, {});
+    }, {} as Record<string, ComponentRunWithComponent[]>);
   }
 
-  private groupByTimePeriod(runs: any[], granularity: TimeGranularity): Record<string, any[]> {
+  private groupByTimePeriod(runs: WorkflowRunWithWorkflow[], granularity: TimeGranularity): Record<string, WorkflowRunWithWorkflow[]> {
     return runs.reduce((acc, run) => {
       const date = new Date(run.startedAt);
       let key: string;
@@ -437,10 +449,10 @@ export class MetricsService {
       if (!acc[key]) acc[key] = [];
       acc[key].push(run);
       return acc;
-    }, {});
+    }, {} as Record<string, WorkflowRunWithWorkflow[]>);
   }
 
-  private groupByWeek(runs: any[]): Record<string, any[]> {
+  private groupByWeek(runs: WorkflowRunWithWorkflow[]): Record<string, WorkflowRunWithWorkflow[]> {
     return runs.reduce((acc, run) => {
       const date = new Date(run.startedAt);
       const weekNumber = this.getWeekNumber(date);
@@ -449,10 +461,10 @@ export class MetricsService {
       if (!acc[key]) acc[key] = [];
       acc[key].push(run);
       return acc;
-    }, {});
+    }, {} as Record<string, WorkflowRunWithWorkflow[]>);
   }
 
-  private async calculateAggregatedMetrics(runs: any[], query: MetricsQueryDto): Promise<AggregatedMetricsDto> {
+  private async calculateAggregatedMetrics(runs: WorkflowRunWithWorkflow[], query: MetricsQueryDto): Promise<AggregatedMetricsDto> {
     const totalRuns = runs.length;
     const successfulRuns = runs.filter((r) => r.status === RunStatus.completed).length;
     const failedRuns = runs.filter((r) => r.status === RunStatus.failed).length;
@@ -540,7 +552,7 @@ export class MetricsService {
    * Calculate the number of tests added for stories in workflow runs
    * Counts test cases created during the period covered by the workflow runs
    */
-  private async calculateTestsAdded(runs: any[]): Promise<number | undefined> {
+  private async calculateTestsAdded(runs: WorkflowRunWithWorkflow[]): Promise<number | undefined> {
     if (runs.length === 0) return undefined;
 
     // Get unique story IDs from runs
@@ -559,7 +571,7 @@ export class MetricsService {
         useCase: {
           storyLinks: {
             some: {
-              storyId: { in: storyIds },
+              storyId: { in: storyIds.filter((id): id is string => id !== null) },
             },
           },
         },
@@ -573,7 +585,7 @@ export class MetricsService {
     return testCount > 0 ? testCount : undefined;
   }
 
-  private calculateComponentMetrics(runs: any[], query: MetricsQueryDto): AggregatedMetricsDto {
+  private calculateComponentMetrics(runs: ComponentRunWithComponent[], query: MetricsQueryDto): AggregatedMetricsDto {
     // Similar to calculateAggregatedMetrics but for component runs
     const totalRuns = runs.length;
     const successfulRuns = runs.filter((r) => r.success).length;
@@ -613,9 +625,9 @@ export class MetricsService {
   }
 
   private calculateTrend(
-    timePeriods: Record<string, any[]>,
+    timePeriods: Record<string, WorkflowRunWithWorkflow[]>,
     metric: string,
-    valueExtractor: (runs: any[]) => number,
+    valueExtractor: (runs: WorkflowRunWithWorkflow[]) => number,
   ): TrendsResponseDto {
     const dataPoints: TrendDataPointDto[] = [];
 

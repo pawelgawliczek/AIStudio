@@ -197,7 +197,7 @@ export async function handler(
   params: CreateComponentParams,
 ): Promise<ComponentResponse> {
   try {
-    validateRequired(params, [
+    validateRequired(params as unknown as Record<string, unknown>, [
       'projectId',
       'name',
       'inputInstructions',

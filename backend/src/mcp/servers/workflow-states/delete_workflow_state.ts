@@ -46,7 +46,7 @@ export async function handler(
   params: DeleteWorkflowStateParams,
 ): Promise<DeleteWorkflowStateResponse> {
   try {
-    validateRequired(params, ['workflowStateId', 'confirm']);
+    validateRequired(params as unknown as Record<string, unknown>, ['workflowStateId', 'confirm']);
 
     // Safety gate
     if (params.confirm !== true) {

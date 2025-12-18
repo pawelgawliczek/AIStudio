@@ -68,7 +68,7 @@ export async function handler(
   params: ReorderWorkflowStatesParams,
 ): Promise<ReorderResult> {
   try {
-    validateRequired(params, ['workflowId', 'stateOrder']);
+    validateRequired(params as unknown as Record<string, unknown>, ['workflowId', 'stateOrder']);
 
     if (!Array.isArray(params.stateOrder) || params.stateOrder.length === 0) {
       throw new ValidationError('stateOrder must be a non-empty array');
@@ -153,7 +153,7 @@ export async function handler(
       workflowId: params.workflowId,
       reorderedCount: params.stateOrder.length,
       states: updatedStates.map((state) =>
-        formatWorkflowState(state, !!state.componentId),
+        formatWorkflowState(state as any, !!state.componentId),
       ),
       message: `Successfully reordered ${params.stateOrder.length} states in workflow`,
     };

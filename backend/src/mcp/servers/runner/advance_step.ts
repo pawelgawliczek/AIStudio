@@ -225,8 +225,9 @@ export async function handler(prisma: PrismaClient, params: {
         } else {
           console.log(`[advance_step] Started agent tracking for first state: ${firstState.component.name}`);
         }
-      } catch (error: any) {
-        console.warn(`[advance_step] Failed to start agent tracking for first state: ${error.message}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.warn(`[advance_step] Failed to start agent tracking for first state: ${message}`);
       }
     }
   }
@@ -338,16 +339,16 @@ export async function handler(prisma: PrismaClient, params: {
               ]);
 
               if (readResult.success && readResult.result) {
-                const resultData = readResult.result as any;
+                const resultData = readResult.result as Record<string, unknown>;
                 // read-file returns { content, size, path }
                 const outputStr = typeof resultData.content === 'string'
                   ? resultData.content
                   : (typeof resultData === 'string' ? resultData : JSON.stringify(resultData));
 
                 // Parse the running-workflows.json content
-                let workflowsData: any;
+                let workflowsData: Record<string, unknown> | null = null;
                 try {
-                  workflowsData = JSON.parse(outputStr);
+                  workflowsData = JSON.parse(outputStr) as Record<string, unknown>;
                 } catch {
                   console.warn('[advance_step] Failed to parse running-workflows.json content');
                   workflowsData = null;
@@ -355,16 +356,17 @@ export async function handler(prisma: PrismaClient, params: {
 
                 // Extract spawned agent transcripts for this session
                 if (workflowsData) {
-                  const sessionData = workflowsData?.sessions?.[masterSessionId];
-                  const localTranscripts = sessionData?.spawnedAgentTranscripts || [];
+                  const sessions = workflowsData.sessions as Record<string, unknown> | undefined;
+                  const sessionData = sessions?.[masterSessionId] as Record<string, unknown> | undefined;
+                  const localTranscripts = (sessionData?.spawnedAgentTranscripts as Array<{ transcriptPath: string }>) || [];
 
                   if (localTranscripts.length > 0) {
                     // Merge with existing spawnedAgentTranscripts in DB
-                    const existingTranscripts = (runMetadata?.spawnedAgentTranscripts as any[]) || [];
-                    const existingPaths = new Set(existingTranscripts.map((t: any) => t.transcriptPath));
+                    const existingTranscripts = (runMetadata?.spawnedAgentTranscripts as Array<{ transcriptPath: string }>) || [];
+                    const existingPaths = new Set(existingTranscripts.map((t) => t.transcriptPath));
 
                     const newTranscripts = localTranscripts.filter(
-                      (t: any) => !existingPaths.has(t.transcriptPath)
+                      (t) => !existingPaths.has(t.transcriptPath)
                     );
 
                     if (newTranscripts.length > 0) {
@@ -386,13 +388,15 @@ export async function handler(prisma: PrismaClient, params: {
                   }
                 }
               }
-            } catch (syncError: any) {
+            } catch (syncError) {
               // Non-fatal - just log and continue
-              console.warn(`[advance_step] Failed to sync transcripts from laptop: ${syncError.message}`);
+              const message = syncError instanceof Error ? syncError.message : 'Unknown error';
+              console.warn(`[advance_step] Failed to sync transcripts from laptop: ${message}`);
             }
           }
-        } catch (syncSetupError: any) {
-          console.warn(`[advance_step] Transcript sync setup failed: ${syncSetupError.message}`);
+        } catch (syncSetupError) {
+          const message = syncSetupError instanceof Error ? syncSetupError.message : 'Unknown error';
+          console.warn(`[advance_step] Transcript sync setup failed: ${message}`);
         }
       }
 
@@ -437,12 +441,13 @@ export async function handler(prisma: PrismaClient, params: {
           if (!completeResult.success) {
             console.warn(`[advance_step] Agent tracking complete failed: ${completeResult.error}`);
           }
-        } catch (error: any) {
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
           agentTrackingResult = {
             action: 'completed',
             componentName: currentState.component.name,
             success: false,
-            warning: `Failed to complete agent tracking: ${error.message}`,
+            warning: `Failed to complete agent tracking: ${message}`,
           };
           console.warn(`[advance_step] ${agentTrackingResult.warning}`);
         }
@@ -490,12 +495,13 @@ export async function handler(prisma: PrismaClient, params: {
             if (!startResult.success) {
               console.warn(`[advance_step] Agent tracking start failed for ${nextState.component.name}: ${startResult.error}`);
             }
-          } catch (error: any) {
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
             agentTrackingResult = {
               action: 'started',
               componentName: nextState.component.name,
               success: false,
-              warning: `Failed to start agent tracking: ${error.message}`,
+              warning: `Failed to start agent tracking: ${message}`,
             };
             console.warn(`[advance_step] ${agentTrackingResult.warning}`);
           }
@@ -522,7 +528,7 @@ export async function handler(prisma: PrismaClient, params: {
   await saveCheckpoint(prisma, runId, checkpoint, metadata, workflowComplete);
 
   // Get the next state object
-  const nextStateObj = run.workflow.states.find(s => s.id === nextStateId);
+  const nextStateObj = run.workflow.states.find(s => s.id === nextStateId) || null;
 
   return buildAdvanceResponse(run, checkpoint, nextStateObj, previousState, workflowComplete, agentTrackingResult, agentWasSuccessful);
 }
@@ -552,10 +558,47 @@ async function saveCheckpoint(
   });
 }
 
+// Component data structure
+interface ComponentData {
+  id: string;
+  name: string;
+  executionType: string;
+  config?: Record<string, unknown>;
+  tools?: string[];
+  inputInstructions?: string | null;
+  operationInstructions?: string | null;
+  outputInstructions?: string | null;
+}
+
+// Workflow state data structure
+interface WorkflowStateData {
+  id: string;
+  name: string;
+  order: number;
+  componentId: string | null;
+  preExecutionInstructions: string | null;
+  postExecutionInstructions: string | null;
+  component?: ComponentData | null;
+}
+
+// Workflow run data structure
+interface WorkflowRunData {
+  id: string;
+  status: string;
+  story?: {
+    id: string;
+    key: string;
+    title: string;
+  } | null;
+  workflow: {
+    states: WorkflowStateData[];
+  };
+}
+
 function buildAdvanceResponse(
-  run: any,
+  run: WorkflowRunData,
   checkpoint: Partial<RunnerCheckpoint>,
-  currentState: any,
+  currentState: WorkflowStateData | null,
   previousState: { name: string; phase: string } | null,
   workflowComplete = false,
   agentTracking: AgentTrackingResult | null = null,
@@ -568,7 +611,7 @@ function buildAdvanceResponse(
   // ST-278: Check if we advanced from agent to post phase for code-modifying component
   // If so, include commitBeforeAdvance instruction
   // BUT NOT if agent failed (no code changes to commit in failure case)
-  let commitBeforeAdvance: any = undefined;
+  let commitBeforeAdvance: { tool: string; parameters: Record<string, string>; description: string } | undefined = undefined;
   if (previousState?.phase === 'agent' && checkpoint.currentPhase === 'post' && currentState?.component && agentWasSuccessful) {
     const componentName = currentState.component.name;
     const isCodeModifyingComponent = ['Implementer', 'Developer', 'Tester', 'Reviewer'].includes(componentName);
@@ -591,8 +634,8 @@ function buildAdvanceResponse(
   }
 
   // Build instructions for new step
-  let instructions: any;
-  let nextAction: any;
+  let instructions: Record<string, unknown>;
+  let nextAction: Record<string, unknown>;
 
   if (workflowComplete) {
     instructions = {
@@ -740,7 +783,7 @@ function buildAdvanceResponse(
         name: currentState.name,
         phase: checkpoint.currentPhase,
         componentName: currentState.component?.name || null,
-        allowedSubagentTypes: (instructions as any)?.enforcement?.allowedSubagentTypes || null,
+        allowedSubagentTypes: (instructions.enforcement as { allowedSubagentTypes?: string[] } | undefined)?.allowedSubagentTypes || null,
       } : null,
     },
 

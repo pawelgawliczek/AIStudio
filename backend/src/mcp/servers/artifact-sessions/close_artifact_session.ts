@@ -56,7 +56,7 @@ export async function handler(
   params: CloseArtifactSessionParams,
 ): Promise<CloseArtifactSessionResponse> {
   try {
-    validateRequired(params, ['jobId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['jobId']);
 
     const { jobId, reason } = params;
 

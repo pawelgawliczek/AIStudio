@@ -46,7 +46,7 @@ export async function handler(
   params: DeleteArtifactDefinitionParams,
 ): Promise<DeleteArtifactDefinitionResponse> {
   try {
-    validateRequired(params, ['definitionId', 'confirm']);
+    validateRequired(params as unknown as Record<string, unknown>, ['definitionId', 'confirm']);
 
     if (!params.confirm) {
       throw new ValidationError(

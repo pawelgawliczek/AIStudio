@@ -66,7 +66,7 @@ export async function handler(
   params: UpdateArtifactDefinitionParams,
 ): Promise<ArtifactDefinitionResponse> {
   try {
-    validateRequired(params, ['definitionId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['definitionId']);
 
     // Verify definition exists
     const existing = await prisma.artifactDefinition.findUnique({

@@ -183,7 +183,7 @@ export async function handler(
         });
 
         if (fullStory) {
-          const fullFormatted = formatStory(fullStory, true);
+          const fullFormatted = formatStory(fullStory as any, true);
           (fullFormatted as any)._responseMode = { mode: 'full' };
           return fullFormatted;
         }

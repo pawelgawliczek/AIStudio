@@ -61,7 +61,7 @@ export async function handler(
 ): Promise<TestQueueStatusResponse> {
   try {
     // Validation (AC-4)
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // 1. Find most recent queue entry for story (any status) (AC-4)
     const entry = await prisma.testQueue.findFirst({

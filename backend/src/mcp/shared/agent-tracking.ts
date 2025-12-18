@@ -40,6 +40,31 @@ interface TranscriptMetrics {
   };
 }
 
+// Spawned agent transcript entry
+interface SpawnedAgentTranscript {
+  componentId: string;
+  transcriptPath: string;
+  agentId: string;
+  spawnedAt: string;
+}
+
+// Workflow run metadata structure
+interface WorkflowRunMetadata {
+  spawnedAgentTranscripts?: SpawnedAgentTranscript[];
+  _transcriptTracking?: {
+    sessionId?: string;
+    projectPath?: string;
+  };
+  [key: string]: unknown;
+}
+
+// Component run metadata structure
+interface ComponentRunMetadata {
+  startCommitHash?: string;
+  retroactive?: boolean;
+  [key: string]: unknown;
+}
+
 export interface StartAgentResult {
   success: boolean;
   componentRunId?: string;
@@ -91,8 +116,9 @@ async function getHeadCommit(projectPath: string): Promise<string | null> {
       }
     }
     return null;
-  } catch (error: any) {
-    console.warn(`[getHeadCommit] Failed to get HEAD commit: ${error.message}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[getHeadCommit] Failed to get HEAD commit: ${message}`);
     return null;
   }
 }
@@ -198,8 +224,9 @@ export async function startAgentTracking(
 
       // Fallback to metadata projectPath for MasterSession
       if (!projectPath && workflowRun.metadata) {
-        const transcriptTracking = (workflowRun.metadata as any)?._transcriptTracking;
-        projectPath = transcriptTracking?.projectPath;
+        const metadata = workflowRun.metadata as Record<string, unknown>;
+        const transcriptTracking = metadata._transcriptTracking as Record<string, unknown> | undefined;
+        projectPath = (transcriptTracking?.projectPath as string | undefined) || null;
       }
 
       if (projectPath) {
@@ -212,9 +239,10 @@ export async function startAgentTracking(
       } else {
         captureWarning = 'No project path available to capture commit hash';
       }
-    } catch (commitError: any) {
-      console.warn(`[agent-tracking] Failed to capture start commit hash: ${commitError.message}`);
-      captureWarning = `Failed to capture start commit hash: ${commitError.message}`;
+    } catch (commitError) {
+      const message = commitError instanceof Error ? commitError.message : 'Unknown error';
+      console.warn(`[agent-tracking] Failed to capture start commit hash: ${message}`);
+      captureWarning = `Failed to capture start commit hash: ${message}`;
     }
 
     // Create ComponentRun record
@@ -250,9 +278,10 @@ export async function startAgentTracking(
           startedAt: componentRun.startedAt.toISOString(),
         });
       }
-    } catch (wsError: any) {
+    } catch (wsError) {
+      const message = wsError instanceof Error ? wsError.message : 'Unknown error';
       console.warn(
-        `[agent-tracking] Failed to broadcast component started: ${wsError.message}`,
+        `[agent-tracking] Failed to broadcast component started: ${message}`,
       );
     }
 
@@ -265,19 +294,20 @@ export async function startAgentTracking(
       });
 
       if (runForTranscript) {
-        const spawnedAgents =
-          ((runForTranscript.metadata as any)?.spawnedAgentTranscripts as any[] | null) || [];
+        const metadata = runForTranscript.metadata as WorkflowRunMetadata | null;
+        const spawnedAgents = metadata?.spawnedAgentTranscripts || [];
         const agentEntry = spawnedAgents.find(
-          (a: any) => a.componentId === params.componentId,
+          (a) => a.componentId === params.componentId,
         );
 
         if (agentEntry?.transcriptPath) {
           await startTranscriptTailing(componentRun.id, agentEntry.transcriptPath);
         }
       }
-    } catch (tailError: any) {
+    } catch (tailError) {
+      const message = tailError instanceof Error ? tailError.message : 'Unknown error';
       console.warn(
-        `[agent-tracking] Failed to start transcript tailing: ${tailError.message}`,
+        `[agent-tracking] Failed to start transcript tailing: ${message}`,
       );
     }
 
@@ -288,10 +318,11 @@ export async function startAgentTracking(
       executionOrder: nextExecutionOrder,
       ...(captureWarning && { warning: captureWarning }), // ST-278: Include warning if commit capture failed
     };
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error in startAgentTracking';
     return {
       success: false,
-      error: error.message || 'Unknown error in startAgentTracking',
+      error: message,
     };
   }
 }
@@ -418,13 +449,13 @@ export async function completeAgentTracking(
         select: { metadata: true },
       });
 
-      const spawnedAgentTranscripts =
-        ((workflowRunForTranscripts?.metadata as any)?.spawnedAgentTranscripts as any[] | null) || [];
+      const metadata = workflowRunForTranscripts?.metadata as WorkflowRunMetadata | null;
+      const spawnedAgentTranscripts = metadata?.spawnedAgentTranscripts || [];
 
       // Find transcript for this component, most recent first
       const matchingTranscripts = spawnedAgentTranscripts
-        .filter((t: any) => t.componentId === params.componentId)
-        .sort((a: any, b: any) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
+        .filter((t) => t.componentId === params.componentId)
+        .sort((a, b) => new Date(b.spawnedAt).getTime() - new Date(a.spawnedAt).getTime());
 
       if (matchingTranscripts.length > 0) {
         transcriptPath = matchingTranscripts[0].transcriptPath;
@@ -464,32 +495,33 @@ export async function completeAgentTracking(
 
         if (dbTranscript && dbTranscript.metrics) {
           // Transcript already in DB with metrics - extract them directly
-          const metrics = dbTranscript.metrics as any;
+          const metrics = dbTranscript.metrics as Record<string, unknown>;
           if (metrics.tokensInput !== undefined) {
             console.log(`[agent-tracking] Found parsed transcript in DB for ${params.componentId}`);
             const componentCost = calculateCost({
-              tokensInput: metrics.tokensInput || 0,
-              tokensOutput: metrics.tokensOutput || 0,
-              tokensCacheCreation: metrics.tokensCacheCreation || 0,
-              tokensCacheRead: metrics.tokensCacheRead || 0,
-              modelId: metrics.model || null,
+              tokensInput: (metrics.tokensInput as number) || 0,
+              tokensOutput: (metrics.tokensOutput as number) || 0,
+              tokensCacheCreation: (metrics.tokensCacheCreation as number) || 0,
+              tokensCacheRead: (metrics.tokensCacheRead as number) || 0,
+              modelId: (metrics.model as string) || null,
             });
 
             // ST-265: Extract userPrompts from DB transcript metrics
             let userPromptsCount = 0;
-            if (metrics.turns && typeof metrics.turns.manualPrompts === 'number') {
-              userPromptsCount = metrics.turns.manualPrompts;
+            const turns = metrics.turns as { manualPrompts?: number } | undefined;
+            if (turns && typeof turns.manualPrompts === 'number') {
+              userPromptsCount = turns.manualPrompts;
             }
 
             telemetryMetrics = {
-              tokensInput: metrics.tokensInput || 0,
-              tokensOutput: metrics.tokensOutput || 0,
+              tokensInput: (metrics.tokensInput as number) || 0,
+              tokensOutput: (metrics.tokensOutput as number) || 0,
               // ST-255: Fix double-counting - totalTokens = input + output + cache_creation (NOT cache_read)
               // cache_read is already included in input_tokens (it's a subset of context that was cached)
-              totalTokens: (metrics.tokensInput || 0) + (metrics.tokensOutput || 0) + (metrics.tokensCacheCreation || 0),
-              tokensCacheCreation: metrics.tokensCacheCreation || 0,
-              tokensCacheRead: metrics.tokensCacheRead || 0,
-              modelId: metrics.model || null,
+              totalTokens: ((metrics.tokensInput as number) || 0) + ((metrics.tokensOutput as number) || 0) + ((metrics.tokensCacheCreation as number) || 0),
+              tokensCacheCreation: (metrics.tokensCacheCreation as number) || 0,
+              tokensCacheRead: (metrics.tokensCacheRead as number) || 0,
+              modelId: (metrics.model as string) || null,
               cost: componentCost,
               userPrompts: userPromptsCount,
             };
@@ -506,7 +538,8 @@ export async function completeAgentTracking(
             where: { id: params.runId },
             select: { metadata: true },
           });
-          const transcriptTracking = (workflowRunForSession?.metadata as any)?._transcriptTracking;
+          const metadata = workflowRunForSession?.metadata as WorkflowRunMetadata | null;
+          const transcriptTracking = metadata?._transcriptTracking;
           const sessionId = transcriptTracking?.sessionId;
           const projectPath = transcriptTracking?.projectPath;
 
@@ -541,8 +574,9 @@ export async function completeAgentTracking(
               }
             }
           }
-        } catch (rwError: any) {
-          console.warn(`[agent-tracking] Failed to read running-workflows.json: ${rwError.message}`);
+        } catch (rwError) {
+          const message = rwError instanceof Error ? rwError.message : 'Unknown error';
+          console.warn(`[agent-tracking] Failed to read running-workflows.json: ${message}`);
         }
       }
 
@@ -599,8 +633,9 @@ export async function completeAgentTracking(
       } else if (!telemetryMetrics) {
         console.log(`[agent-tracking] No transcript found for component ${params.componentId}`);
       }
-    } catch (telemetryError: any) {
-      console.warn(`[agent-tracking] Telemetry parsing failed (non-fatal): ${telemetryError.message}`);
+    } catch (telemetryError) {
+      const message = telemetryError instanceof Error ? telemetryError.message : 'Unknown error';
+      console.warn(`[agent-tracking] Telemetry parsing failed (non-fatal): ${message}`);
     }
 
     // ST-234: Get code impact metrics from git diff
@@ -631,8 +666,9 @@ export async function completeAgentTracking(
 
       // Try 2: Get from workflow run metadata (for MasterSession on laptop)
       if (!projectPath) {
-        const transcriptTracking = (workflowRunForWorktree?.metadata as any)?._transcriptTracking;
-        projectPath = transcriptTracking?.projectPath;
+        const metadata = workflowRunForWorktree?.metadata as WorkflowRunMetadata | null;
+        const transcriptTracking = metadata?._transcriptTracking;
+        projectPath = transcriptTracking?.projectPath || null;
       }
 
       if (projectPath) {
@@ -644,7 +680,8 @@ export async function completeAgentTracking(
 
         // ST-278: Use startCommitHash if available for accurate per-agent diff
         // Fallback to main...HEAD if startCommitHash not available
-        const startCommit = (componentRun.metadata as any)?.startCommitHash || componentRun.startCommitHash || 'main';
+        const metadata = componentRun.metadata as ComponentRunMetadata | null;
+        const startCommit = metadata?.startCommitHash || componentRun.startCommitHash || 'main';
         const diffCommand = componentRun.startCommitHash
           ? `git diff ${startCommit}...HEAD --numstat`
           : 'git diff main...HEAD --numstat';
@@ -665,7 +702,7 @@ export async function completeAgentTracking(
           let linesDeleted = 0;
           const filesModified: string[] = [];
 
-          for (const line of gitResult.result.stdout.split('\n').filter((l: string) => l.trim())) {
+          for (const line of gitResult.result.stdout.split('\n').filter((l) => l.trim())) {
             const parts = line.split('\t');
             if (parts.length >= 3) {
               const added = parseInt(parts[0] || '0', 10) || 0;
@@ -685,9 +722,10 @@ export async function completeAgentTracking(
           });
         }
       }
-    } catch (gitError: any) {
+    } catch (gitError) {
       // Non-fatal - log and continue
-      console.warn(`[agent-tracking] Failed to get code impact metrics: ${gitError.message}`);
+      const message = gitError instanceof Error ? gitError.message : 'Unknown error';
+      console.warn(`[agent-tracking] Failed to get code impact metrics: ${message}`);
     }
 
     // Update ComponentRun with telemetry and code impact
@@ -728,9 +766,10 @@ export async function completeAgentTracking(
     // Non-fatal: Stop transcript tailing
     try {
       await stopTranscriptTailing(componentRun.id);
-    } catch (tailError: any) {
+    } catch (tailError) {
+      const message = tailError instanceof Error ? tailError.message : 'Unknown error';
       console.warn(
-        `[agent-tracking] Failed to stop transcript tailing: ${tailError.message}`,
+        `[agent-tracking] Failed to stop transcript tailing: ${message}`,
       );
     }
 
@@ -757,9 +796,10 @@ export async function completeAgentTracking(
           completedAt: completedAt.toISOString(),
         });
       }
-    } catch (wsError: any) {
+    } catch (wsError) {
+      const message = wsError instanceof Error ? wsError.message : 'Unknown error';
       console.warn(
-        `[agent-tracking] Failed to broadcast component completed: ${wsError.message}`,
+        `[agent-tracking] Failed to broadcast component completed: ${message}`,
       );
     }
 
@@ -805,8 +845,9 @@ export async function completeAgentTracking(
         totalCost: aggregatedMetrics.totalCost,
         totalLinesAdded: aggregatedMetrics.totalLinesAdded,
       });
-    } catch (aggError: any) {
-      console.warn(`[agent-tracking] Failed to aggregate workflow metrics: ${aggError.message}`);
+    } catch (aggError) {
+      const message = aggError instanceof Error ? aggError.message : 'Unknown error';
+      console.warn(`[agent-tracking] Failed to aggregate workflow metrics: ${message}`);
     }
 
     return {
@@ -822,10 +863,11 @@ export async function completeAgentTracking(
         cost: telemetryMetrics?.cost,
       },
     };
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error in completeAgentTracking';
     return {
       success: false,
-      error: error.message || 'Unknown error in completeAgentTracking',
+      error: message,
     };
   }
 }

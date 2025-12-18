@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, Logger, Headers, UnauthorizedException } from '@nestjs/common';
+import { RemoteAgent } from '@prisma/client';
 import { getErrorMessage } from '../common';
 import { RemoteAgentGateway } from './remote-agent.gateway';
 import { RemoteExecutionService } from './remote-execution.service';
@@ -60,7 +61,7 @@ export class RemoteAgentController {
   async getOnlineAgents() {
     const agents = await this.remoteExecution.getOnlineAgents();
     return {
-      agents: agents.map((agent: any) => ({
+      agents: agents.map((agent: RemoteAgent) => ({
         id: agent.id,
         hostname: agent.hostname,
         status: agent.status,

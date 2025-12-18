@@ -148,7 +148,7 @@ export async function handler(
   params: ManageTaxonomyParams
 ): Promise<TaxonomyResult> {
   try {
-    validateRequired(params, ['projectId', 'action']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId', 'action']);
 
     // Validate action
     const validActions = ['list', 'add', 'remove', 'rename', 'merge', 'suggest', 'validate'];
@@ -228,7 +228,7 @@ async function handleAdd(
   params: ManageTaxonomyParams,
   taxonomy: string[]
 ): Promise<AddResult> {
-  validateRequired(params, ['area']);
+  validateRequired(params as unknown as Record<string, unknown>, ['area']);
 
   const normalized = normalizeArea(params.area!);
 
@@ -278,7 +278,7 @@ async function handleRemove(
   params: ManageTaxonomyParams,
   taxonomy: string[]
 ): Promise<RemoveResult> {
-  validateRequired(params, ['area']);
+  validateRequired(params as unknown as Record<string, unknown>, ['area']);
 
   const normalized = normalizeArea(params.area!);
 
@@ -334,7 +334,7 @@ async function handleRename(
   params: ManageTaxonomyParams,
   taxonomy: string[]
 ): Promise<RenameResult> {
-  validateRequired(params, ['area', 'newName']);
+  validateRequired(params as unknown as Record<string, unknown>, ['area', 'newName']);
 
   const normalized = normalizeArea(params.area!);
   const newNormalized = normalizeArea(params.newName!);
@@ -399,7 +399,7 @@ async function handleMerge(
   params: ManageTaxonomyParams,
   taxonomy: string[]
 ): Promise<MergeResult> {
-  validateRequired(params, ['areas', 'targetArea']);
+  validateRequired(params as unknown as Record<string, unknown>, ['areas', 'targetArea']);
 
   if (!params.areas || params.areas.length < 2) {
     throw new ValidationError('merge action requires at least 2 areas to merge');
@@ -463,7 +463,7 @@ function handleSuggest(
   params: ManageTaxonomyParams,
   taxonomy: string[]
 ): SuggestResult {
-  validateRequired(params, ['area']);
+  validateRequired(params as unknown as Record<string, unknown>, ['area']);
 
   const similar = findSimilarAreas(params.area!, taxonomy);
 
@@ -476,7 +476,7 @@ function handleValidate(
   params: ManageTaxonomyParams,
   taxonomy: string[]
 ): ValidateResult {
-  validateRequired(params, ['area']);
+  validateRequired(params as unknown as Record<string, unknown>, ['area']);
 
   const normalized = normalizeArea(params.area!);
 

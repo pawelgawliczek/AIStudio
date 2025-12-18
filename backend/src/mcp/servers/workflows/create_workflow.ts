@@ -102,7 +102,7 @@ export async function handler(
   params: CreateWorkflowParams,
 ): Promise<WorkflowResponse> {
   try {
-    validateRequired(params, [
+    validateRequired(params as unknown as Record<string, unknown>, [
       'projectId',
       'name',
       'triggerConfig',

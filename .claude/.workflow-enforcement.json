@@ -1,16 +1,1 @@
-{
-  "sessions": {
-    "c3be28c4-e9db-4869-ba38-5c3b869fdddc": {
-      "workflowActive": true,
-      "runId": "f40cbbd6-0d71-414e-bce7-d68d6f1950c8",
-      "currentState": {
-        "id": "3b20a175-5c13-42a2-b725-3a93330b8e41",
-        "name": "implementation",
-        "phase": "post",
-        "componentName": "Developer",
-        "allowedSubagentTypes": null
-      },
-      "updatedAt": "2025-12-18T13:53:53Z"
-    }
-  }
-}
+{"sessions":{}}

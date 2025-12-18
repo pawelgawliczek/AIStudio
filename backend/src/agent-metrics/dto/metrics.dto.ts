@@ -251,8 +251,8 @@ export interface StoryExecutionSummaryDto {
   storyTitle: string;
   status: string;
   complexity: number;
-  epicId: string;
-  epicKey: string;
+  epicId: string | null;
+  epicKey: string | null;
   totalExecutions: number;
   executionsByRole: {
     ba: number;
@@ -292,7 +292,7 @@ export interface StoryExecutionDetailsResponseDto {
       id: string;
       key: string;
       name: string;
-    };
+    } | null;
   };
   executions: AgentExecutionDto[];
   summary: StoryExecutionSummaryDto;

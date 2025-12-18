@@ -75,7 +75,7 @@ export async function handler(
 ): Promise<TestQueueAddResponse> {
   try {
     // Validation (AC-1 from baAnalysis)
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     const priority = params.priority !== undefined ? params.priority : 5;
     const submittedBy = params.submittedBy || 'mcp-user';

@@ -113,7 +113,7 @@ export async function handler(
   params: GetWorktreeStatusParams,
 ): Promise<GetWorktreeStatusResponse> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // Default values
     const includeGitStatus = params.includeGitStatus !== false;

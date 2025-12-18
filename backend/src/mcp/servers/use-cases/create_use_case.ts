@@ -132,6 +132,10 @@ export async function handler(prisma: PrismaClient, params: any) {
       });
     });
 
+
+    if (!useCase) {
+      throw new Error('Failed to create use case - transaction returned null');
+    }
     const latestVersion = useCase.versions[0];
 
     return {

@@ -32,7 +32,7 @@ export class NotificationProcessor {
     recipients: string[];
     subject?: string;
     message: string;
-    data?: any;
+    data?: Record<string, unknown>;
   }>) {
     const { type, recipients, subject, message, data } = job.data;
     this.logger.log(`Sending ${type} notification to ${recipients.length} recipients`);
@@ -63,7 +63,7 @@ export class NotificationProcessor {
   private async sendWebSocketNotification(
     userIds: string[],
     message: string,
-    data?: any,
+    data?: Record<string, unknown>,
   ) {
     for (const userId of userIds) {
       this.websocketGateway.server.to(`user:${userId}`).emit('notification', {
@@ -85,7 +85,7 @@ export class NotificationProcessor {
     emails: string[],
     subject: string,
     message: string,
-    data?: any,
+    data?: Record<string, unknown>,
   ) {
     // TODO: Integrate with actual email service
     // For now, just log the email
@@ -112,7 +112,7 @@ export class NotificationProcessor {
   private async createInAppNotification(
     userIds: string[],
     message: string,
-    data?: any,
+    data?: Record<string, unknown>,
   ) {
     // TODO: Create notifications table if not exists
     // For now, just log
@@ -160,7 +160,7 @@ export class NotificationProcessor {
     projectId: string;
     severity: 'critical' | 'warning' | 'info';
     message: string;
-    details: any;
+    details: Record<string, unknown>;
   }>) {
     const { projectId, severity, message, details } = job.data;
 
@@ -188,7 +188,7 @@ export class NotificationProcessor {
   @Process('test-failure')
   async notifyTestFailure(job: Job<{
     storyId: string;
-    testResults: any;
+    testResults: { failed?: number; [key: string]: unknown };
   }>) {
     const { storyId, testResults } = job.data;
 
@@ -286,7 +286,17 @@ Use the get_disk_usage MCP tool for detailed analysis.
   async sendWeeklyDiskReport(
     job: Job<{
       reportId: string;
-      metrics: any;
+      metrics: {
+        totalSpaceGB: number;
+        availableSpaceGB: number;
+        percentUsed: number;
+        worktreeCount: number;
+        stalledWorktrees: Array<{
+          storyKey: string;
+          branchName: string;
+          daysStale: number;
+        }>;
+      };
       weekOverWeekChangeGB?: string;
       weekOverWeekChangePercent?: string;
     }>
@@ -313,7 +323,7 @@ Week-over-Week Change:
 ${weekOverWeekChangeGB ? `- Disk Usage: ${weekOverWeekChangeGB}GB (${weekOverWeekChangePercent}%)` : '- No previous report for comparison'}
 
 Stalled Worktrees Requiring Attention:
-${metrics.stalledWorktrees.slice(0, 10).map((wt: any, i: number) =>
+${metrics.stalledWorktrees.slice(0, 10).map((wt, i) =>
   `${i + 1}. ${wt.storyKey} (${wt.branchName}): ${wt.daysStale} days old`
 ).join('\n') || 'None'}
 

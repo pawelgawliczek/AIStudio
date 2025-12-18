@@ -95,7 +95,7 @@ export async function handler(
   params: SaveArtifactChangesParams,
 ): Promise<SaveArtifactChangesResponse> {
   try {
-    validateRequired(params, ['jobId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['jobId']);
 
     const { jobId, content: providedContent, extractFromOutput } = params;
 
@@ -145,8 +145,8 @@ export async function handler(
       const output = jobResult?.output as string | undefined;
 
       if (output) {
-        const artifactType = artifact.definition?.type || 'markdown';
-        contentToSave = extractArtifactContent(output, artifactType);
+        const artifactType = artifact.definition?.type ?? 'markdown';
+        contentToSave = extractArtifactContent(output, artifactType) ?? undefined;
       }
     }
 

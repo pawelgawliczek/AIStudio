@@ -262,7 +262,7 @@ export async function handler(
   params: CreateWorktreeParams,
 ): Promise<CreateWorktreeResponse | { runLocally: true; slashCommand: string; params: CreateWorktreeParams; instructions: string; story: { key: string; title: string } }> {
   try {
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     const baseBranch = params.baseBranch || 'main';
 

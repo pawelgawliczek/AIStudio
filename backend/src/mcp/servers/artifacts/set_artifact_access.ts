@@ -85,7 +85,7 @@ export async function handler(
   params: SetArtifactAccessParams,
 ): Promise<ArtifactAccessResponse> {
   try {
-    validateRequired(params, ['stateId', 'accessType']);
+    validateRequired(params as unknown as Record<string, unknown>, ['stateId', 'accessType']);
 
     // Validate access type
     if (!VALID_ACCESS_TYPES.includes(params.accessType)) {

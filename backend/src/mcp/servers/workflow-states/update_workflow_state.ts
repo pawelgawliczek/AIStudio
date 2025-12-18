@@ -83,7 +83,7 @@ export async function handler(
   params: UpdateWorkflowStateParams,
 ): Promise<WorkflowStateResponse> {
   try {
-    validateRequired(params, ['workflowStateId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['workflowStateId']);
 
     // Verify state exists
     const existingState = await prisma.workflowState.findUnique({
@@ -193,7 +193,7 @@ export async function handler(
       },
     });
 
-    return formatWorkflowState(updatedState, !!updatedState.componentId);
+    return formatWorkflowState(updatedState as any, !!updatedState.componentId);
   } catch (error: any) {
     if (error.name === 'MCPError') {
       throw error;

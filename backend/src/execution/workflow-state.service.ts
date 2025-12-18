@@ -69,17 +69,27 @@ export interface WorkflowRunStatus {
     filesModified?: string[];
     // Cost & Performance
     cost?: number;
-    costBreakdown?: any;
+    costBreakdown?: {
+      input?: number;
+      output?: number;
+      cacheCreation?: number;
+      cacheRead?: number;
+    };
     tokensPerSecond?: number;
     timeToFirstToken?: number;
     modelId?: string;
     temperature?: number;
     // Tool Usage
-    toolBreakdown?: any;
+    toolBreakdown?: Record<string, number>;
     // Artifacts & Content
-    artifacts: any[];
-    inputData?: any;
-    outputData?: any;
+    artifacts: Array<{
+      id: string;
+      definitionKey: string;
+      content?: string;
+      version?: number;
+    }>;
+    inputData?: Record<string, unknown>;
+    outputData?: Record<string, unknown>;
   }>;
 }
 
@@ -90,7 +100,7 @@ export interface ArtifactInfo {
   definitionKey: string;
   definitionName: string;
   type: string;
-  workflowRunId: string;
+  workflowRunId: string | null;
   version: number;
   content: string | null;
   contentPreview: string | null;
@@ -163,10 +173,10 @@ export class WorkflowStateService {
         acc.totalLocGenerated += cr.locGenerated || 0;
         acc.totalTestsAdded += cr.testsAdded || 0;
         // ST-263: Aggregate cache metrics from costBreakdown
-        const costBreakdown = cr.costBreakdown as any;
+        const costBreakdown = cr.costBreakdown as Record<string, unknown> | null;
         if (costBreakdown) {
-          acc.totalCacheCreation += costBreakdown.cacheCreation || 0;
-          acc.totalCacheRead += costBreakdown.cacheRead || 0;
+          acc.totalCacheCreation += (typeof costBreakdown.cacheCreation === 'number' ? costBreakdown.cacheCreation : 0);
+          acc.totalCacheRead += (typeof costBreakdown.cacheRead === 'number' ? costBreakdown.cacheRead : 0);
         }
         return acc;
       },
@@ -217,8 +227,14 @@ export class WorkflowStateService {
         totalInputTokens: aggregatedMetrics.totalInputTokens,
         totalOutputTokens: aggregatedMetrics.totalOutputTokens,
         // ST-234: Cache metrics from costBreakdown - ST-263: Aggregate from componentRuns
-        totalCacheCreation: aggregatedMetrics.totalCacheCreation || ((workflowRun as any).costBreakdown as any)?.cacheCreation || 0,
-        totalCacheRead: aggregatedMetrics.totalCacheRead || ((workflowRun as any).costBreakdown as any)?.cacheRead || 0,
+        totalCacheCreation: aggregatedMetrics.totalCacheCreation || (() => {
+          const breakdown = (workflowRun as unknown as Record<string, unknown>).costBreakdown;
+          return typeof breakdown === 'object' && breakdown !== null && 'cacheCreation' in breakdown && typeof breakdown.cacheCreation === 'number' ? breakdown.cacheCreation : 0;
+        })(),
+        totalCacheRead: aggregatedMetrics.totalCacheRead || (() => {
+          const breakdown = (workflowRun as unknown as Record<string, unknown>).costBreakdown;
+          return typeof breakdown === 'object' && breakdown !== null && 'cacheRead' in breakdown && typeof breakdown.cacheRead === 'number' ? breakdown.cacheRead : 0;
+        })(),
         // Cost Metrics
         totalCost: aggregatedMetrics.totalCost || (workflowRun.estimatedCost ? Number(workflowRun.estimatedCost) : null),
         costPerLOC,
@@ -430,7 +446,11 @@ export class WorkflowStateService {
         startedAt: cr.startedAt.toISOString(),
         completedAt: cr.finishedAt?.toISOString(),
       })),
-      remainingComponents: [] as any,
+      remainingComponents: [] as Array<{
+        componentId: string;
+        componentName: string;
+        status: string;
+      }>,
       aggregatedMetrics: {
         // ST-240: Calculate totalTokens from component runs instead of reading DB field
         // The DB field (workflowRun.totalTokens) is often not updated when components complete
@@ -449,7 +469,7 @@ export class WorkflowStateService {
    * List workflow runs for a project
    */
   async listWorkflowRuns(projectId: string, options?: { limit?: number; offset?: number; status?: string }) {
-    const where: any = { projectId };
+    const where: { projectId: string; status?: string } = { projectId };
     if (options?.status) {
       where.status = options.status;
     }

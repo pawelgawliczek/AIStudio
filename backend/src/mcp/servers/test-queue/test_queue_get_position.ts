@@ -61,7 +61,7 @@ export async function handler(
 ): Promise<TestQueuePositionResponse> {
   try {
     // Validation (AC-3)
-    validateRequired(params, ['storyId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['storyId']);
 
     // 1. Find pending queue entry for story (AC-3)
     const entry = await prisma.testQueue.findFirst({

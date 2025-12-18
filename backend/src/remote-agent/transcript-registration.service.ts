@@ -19,7 +19,7 @@ interface TranscriptDetectedPayload {
   agentId: string | null;
   transcriptPath: string;
   projectPath: string;
-  metadata?: any; // Parsed first line from laptop agent
+  metadata?: Record<string, unknown>; // Parsed first line from laptop agent
 }
 
 interface TranscriptMetadata {
@@ -48,20 +48,20 @@ export class TranscriptRegistrationService {
       if (payload.metadata) {
         // Laptop agent already parsed the first line and sent metadata
         metadata = {
-          sessionId: payload.metadata.sessionId,
-          agentId: payload.metadata.agentId || payload.agentId || undefined,
-          type: payload.metadata.type || 'unknown',
-          cwd: payload.metadata.cwd,
+          sessionId: payload.metadata.sessionId as string | undefined,
+          agentId: (payload.metadata.agentId as string | undefined) || payload.agentId || undefined,
+          type: (payload.metadata.type as string) || 'unknown',
+          cwd: payload.metadata.cwd as string | undefined,
         };
         this.logger.log(`Using metadata from laptop agent: sessionId=${metadata.sessionId}`);
       } else {
         // Fallback: try to parse locally (will fail with ENOENT for laptop files)
-        metadata = await this.parseTranscriptMetadata(payload.transcriptPath);
+        const parsedMetadata = await this.parseTranscriptMetadata(payload.transcriptPath);
 
-        if (!metadata) {
-          this.logger.warn(`Failed to parse transcript metadata and no metadata provided: ${payload.transcriptPath}`);
+        if (!parsedMetadata) {
           return;
         }
+        metadata = parsedMetadata;
       }
 
       // Try to match to active workflow
@@ -146,7 +146,8 @@ export class TranscriptRegistrationService {
 
     for (const run of runs) {
       // Check if metadata contains transcript tracking with matching sessionId
-      const transcriptTracking = (run.metadata as any)?._transcriptTracking;
+      const runMetadata = run.metadata as Record<string, unknown> | null;
+      const transcriptTracking = runMetadata?._transcriptTracking as { sessionId?: string } | undefined;
       if (transcriptTracking?.sessionId === metadata.sessionId) {
         // Find pending component (running but no transcript yet)
         const pendingComponent = run.componentRuns.find(
@@ -182,12 +183,12 @@ export class TranscriptRegistrationService {
     }
 
     // Add to spawnedAgentTranscripts array (with deduplication)
-    const metadata = run.metadata as any || {};
-    const spawnedAgentTranscripts = metadata.spawnedAgentTranscripts || [];
+    const metadata = (run.metadata as Record<string, unknown>) || {};
+    const spawnedAgentTranscripts = (metadata.spawnedAgentTranscripts as Array<{ componentId?: string; agentId: string | null; transcriptPath: string; spawnedAt: string }>) || [];
 
     // ST-249: Deduplicate by agentId AND transcriptPath to prevent multiple registrations
     const alreadyRegistered = spawnedAgentTranscripts.some(
-      (t: any) => t.agentId === payload.agentId && t.transcriptPath === payload.transcriptPath
+      (t) => t.agentId === payload.agentId && t.transcriptPath === payload.transcriptPath
     );
 
     if (alreadyRegistered) {
@@ -196,7 +197,7 @@ export class TranscriptRegistrationService {
     }
 
     spawnedAgentTranscripts.push({
-      componentId,
+      componentId: componentId || undefined,
       agentId: payload.agentId,
       transcriptPath: payload.transcriptPath,
       spawnedAt: new Date().toISOString(),

@@ -126,7 +126,7 @@ export async function handler(
   params: CompareVersionsParams,
 ): Promise<ComparisonResult> {
   try {
-    validateRequired(params, ['entityType', 'versionId1', 'versionId2']);
+    validateRequired(params as unknown as Record<string, unknown>, ['entityType', 'versionId1', 'versionId2']);
 
     if (!['component', 'workflow', 'coordinator'].includes(params.entityType)) {
       throw new ValidationError(`Invalid entityType: ${params.entityType}`);

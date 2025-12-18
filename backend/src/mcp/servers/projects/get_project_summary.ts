@@ -36,7 +36,7 @@ export async function handler(
   params: { projectId: string },
 ): Promise<any> {
   try {
-    validateRequired(params, ['projectId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId']);
 
     const [project, storiesByStatus, storiesByType, epicStats] = await Promise.all([
       prisma.project.findUnique({ where: { id: params.projectId } }),

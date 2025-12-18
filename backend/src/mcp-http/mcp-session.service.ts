@@ -33,7 +33,7 @@ import { validateToolArguments } from './utils/ssrf-validator';
 @Injectable()
 export class McpSessionService {
   private readonly logger = new Logger(McpSessionService.name);
-  private mcpGateway: any; // Injected later in Phase 3 for WebSocket events
+  private mcpGateway: { emitToSession: (sessionId: string, event: Record<string, unknown>) => void } | null = null; // Injected later in Phase 3 for WebSocket events
   private toolRegistry: ToolRegistry;
 
   constructor(
@@ -52,7 +52,7 @@ export class McpSessionService {
    * Set WebSocket gateway for event emission (Task 3.2)
    * Called by module after gateway is instantiated
    */
-  setGateway(gateway: any): void {
+  setGateway(gateway: { emitToSession: (sessionId: string, event: Record<string, unknown>) => void }): void {
     this.mcpGateway = gateway;
     this.logger.log('WebSocket gateway registered with session service');
   }
@@ -101,7 +101,7 @@ export class McpSessionService {
       apiKeyRevoked: String(session.apiKeyRevoked),
       reconnectCount: String(session.reconnectCount),
     };
-    await this.redis.hset(redisKey, redisData as any);
+    await this.redis.hset(redisKey, redisData as Record<string, string | number>);
     await this.redis.expire(redisKey, MCP_SESSION_TTL);
 
     this.logger.log(
@@ -130,8 +130,8 @@ export class McpSessionService {
       capabilities: typeof data.capabilities === 'string'
         ? JSON.parse(data.capabilities)
         : data.capabilities,
-      reconnectCount: parseInt(data.reconnectCount as any, 10) || 0,
-      apiKeyRevoked: (data.apiKeyRevoked as any) === 'true' || (data.apiKeyRevoked as any) === true,
+      reconnectCount: typeof data.reconnectCount === 'string' ? parseInt(data.reconnectCount, 10) : (data.reconnectCount || 0),
+      apiKeyRevoked: (typeof data.apiKeyRevoked === 'string' && data.apiKeyRevoked === 'true') || (typeof data.apiKeyRevoked === 'boolean' && data.apiKeyRevoked === true),
     } as McpSession;
 
     return session;
@@ -225,8 +225,8 @@ export class McpSessionService {
       if (data && data.apiKeyId === apiKeyId) {
         sessions.push({
           ...data,
-          capabilities: JSON.parse(data.capabilities as any),
-          reconnectCount: parseInt(data.reconnectCount as any, 10),
+          capabilities: typeof data.capabilities === 'string' ? JSON.parse(data.capabilities) : data.capabilities,
+          reconnectCount: typeof data.reconnectCount === 'string' ? parseInt(data.reconnectCount, 10) : (data.reconnectCount || 0),
           apiKeyRevoked: data.apiKeyRevoked === 'true',
         } as McpSession);
       }
@@ -302,7 +302,7 @@ export class McpSessionService {
     projectId: string,
     name: string,
     description?: string
-  ): Promise<any> {
+  ): Promise<{ key: string; keyData: { id: string; keyPrefix: string; name: string; projectId: string; createdAt: Date } }> {
     const { generateApiKey } = await import('./utils/api-key.util');
     const { key, keyData } = await generateApiKey(projectId, name);
 
@@ -337,7 +337,7 @@ export class McpSessionService {
   /**
    * List all API keys for a project (Task 2.4)
    */
-  async listApiKeys(projectId: string): Promise<any> {
+  async listApiKeys(projectId: string): Promise<{ keys: Array<{ id: string; keyPrefix: string; name: string; description: string | null; createdAt: Date; lastUsedAt: Date | null; expiresAt: Date | null; revokedAt: Date | null }> }> {
     const { PrismaService } = await import('../prisma/prisma.service');
     const prisma = new PrismaService();
 
@@ -363,7 +363,7 @@ export class McpSessionService {
    * Revoke an API key and invalidate all sessions (Task 2.4a)
    * This implements session invalidation on API key revocation
    */
-  async revokeApiKey(apiKeyId: string): Promise<any> {
+  async revokeApiKey(apiKeyId: string): Promise<{ message: string; sessionsInvalidated: number }> {
     const { PrismaService } = await import('../prisma/prisma.service');
     const prisma = new PrismaService();
 
@@ -394,7 +394,7 @@ export class McpSessionService {
     // Step 4: Emit WebSocket event to close connections (if gateway available)
     if (this.mcpGateway) {
       sessions.forEach((session) => {
-        this.mcpGateway.emitToSession(session.sessionId, {
+        this.mcpGateway!.emitToSession(session.sessionId, {
           type: 'session:revoked',
           message: 'API key revoked - session terminated',
         });
@@ -434,8 +434,8 @@ export class McpSessionService {
           capabilities: typeof data.capabilities === 'string'
             ? JSON.parse(data.capabilities)
             : data.capabilities,
-          reconnectCount: parseInt(data.reconnectCount as any, 10) || 0,
-          apiKeyRevoked: (data.apiKeyRevoked as any) === 'true',
+          reconnectCount: typeof data.reconnectCount === 'string' ? parseInt(data.reconnectCount, 10) : (data.reconnectCount || 0),
+          apiKeyRevoked: data.apiKeyRevoked === 'true',
         } as McpSession;
       })
     );
@@ -480,7 +480,7 @@ export class McpSessionService {
    * Delegates to ToolRegistry and emits events via WebSocket gateway
    * Includes SSRF validation for tool arguments
    */
-  async executeTool(sessionId: string, toolName: string, args: Record<string, any>): Promise<any> {
+  async executeTool(sessionId: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // Validate tool name format
     this.validateToolName(toolName);
 
@@ -514,7 +514,8 @@ export class McpSessionService {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Tool execution failed';
       // Emit tool:error event
       if (this.mcpGateway) {
         this.mcpGateway.emitToSession(sessionId, {
@@ -525,13 +526,13 @@ export class McpSessionService {
           data: {
             error: {
               code: 'TOOL_ERROR',
-              message: error.message || 'Tool execution failed',
+              message: errorMessage,
             },
           },
         });
       }
 
-      throw new BadRequestException(`Tool execution failed: ${error.message}`);
+      throw new BadRequestException(`Tool execution failed: ${errorMessage}`);
     }
   }
 
@@ -539,7 +540,7 @@ export class McpSessionService {
    * List available MCP tools (Phase 2 - ToolRegistry integration)
    * Delegates to ToolRegistry for actual tool discovery
    */
-  async listTools(sessionId: string, category?: string, query?: string): Promise<any> {
+  async listTools(sessionId: string, category?: string, query?: string): Promise<{ tools: Array<{ name: string; description: string; inputSchema: unknown }>; totalCount: number; category: string; query: string | null }> {
     try {
       // If query provided, use search_tools functionality
       if (query) {
@@ -565,9 +566,10 @@ export class McpSessionService {
         category: category || 'all',
         query: null,
       };
-    } catch (error: any) {
-      this.logger.error(`Failed to list tools: ${error.message}`);
-      throw new BadRequestException(`Failed to list tools: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to list tools';
+      this.logger.error(`Failed to list tools: ${errorMessage}`);
+      throw new BadRequestException(`Failed to list tools: ${errorMessage}`);
     }
   }
 }

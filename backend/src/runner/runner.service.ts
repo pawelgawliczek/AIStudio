@@ -484,7 +484,7 @@ export class RunnerService {
             metadata: {
               error: 'No laptop agent available',
               offlineFallback: result.offlineFallback,
-            } as any,
+            } as Prisma.InputJsonValue,
           },
         });
 

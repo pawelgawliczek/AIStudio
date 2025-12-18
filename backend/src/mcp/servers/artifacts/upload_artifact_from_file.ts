@@ -76,7 +76,7 @@ export async function handler(
   params: UploadArtifactFromFileParams,
 ): Promise<UploadArtifactFromFileResponse> {
   // 1. Validate required parameters
-  validateRequired(params, ['filePath', 'workflowRunId']);
+  validateRequired(params as unknown as Record<string, unknown>, ['filePath', 'workflowRunId']);
 
   const maxFileSize = params.maxFileSize || DEFAULT_MAX_FILE_SIZE;
 

@@ -49,7 +49,7 @@ export async function handler(
   params: GetCoordinatorParams,
 ): Promise<GetCoordinatorResponse> {
   try {
-    validateRequired(params, ['coordinatorId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['coordinatorId']);
 
     // Fetch coordinator (component with coordinator tag)
     const coordinator = await prisma.component.findUnique({

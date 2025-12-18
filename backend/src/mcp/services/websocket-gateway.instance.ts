@@ -33,8 +33,9 @@ export async function broadcastComponentStarted(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-129] Failed to broadcast component:started: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-129] Failed to broadcast component:started: ${message}`);
   }
 }
 
@@ -60,8 +61,9 @@ export async function broadcastComponentCompleted(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-129] Failed to broadcast component:completed: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-129] Failed to broadcast component:completed: ${message}`);
   }
 }
 
@@ -87,8 +89,9 @@ export async function broadcastDeploymentStarted(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-129] Failed to broadcast deployment:started: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-129] Failed to broadcast deployment:started: ${message}`);
   }
 }
 
@@ -114,8 +117,9 @@ export async function broadcastDeploymentCompleted(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-129] Failed to broadcast deployment:completed: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-129] Failed to broadcast deployment:completed: ${message}`);
   }
 }
 
@@ -150,8 +154,9 @@ export async function broadcastApprovalRequired(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-148] Failed to broadcast approval:required: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-148] Failed to broadcast approval:required: ${message}`);
   }
 }
 
@@ -184,8 +189,9 @@ export async function broadcastApprovalResolved(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-148] Failed to broadcast approval:resolved: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-148] Failed to broadcast approval:resolved: ${message}`);
   }
 }
 
@@ -224,9 +230,10 @@ export async function sendAnswerToRemoteAgent(
 
     const result = await response.json() as { success: boolean; error?: string };
     return result;
-  } catch (error: any) {
-    console.warn(`[ST-160] Failed to send answer to remote agent: ${error.message}`);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-160] Failed to send answer to remote agent: ${message}`);
+    return { success: false, error: message };
   }
 }
 
@@ -260,8 +267,9 @@ export async function broadcastQuestionDetected(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-160] Failed to broadcast question:detected: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-160] Failed to broadcast question:detected: ${message}`);
   }
 }
 
@@ -292,8 +300,9 @@ export async function broadcastQuestionAnswered(
         data,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-160] Failed to broadcast question:answered: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-160] Failed to broadcast question:answered: ${message}`);
   }
 }
 
@@ -317,8 +326,9 @@ export async function startTranscriptTailing(
         transcriptPath,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-176] Failed to start transcript tailing: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-176] Failed to start transcript tailing: ${message}`);
   }
 }
 
@@ -340,8 +350,9 @@ export async function stopTranscriptTailing(
         componentRunId,
       }),
     });
-  } catch (error: any) {
-    console.warn(`[ST-176] Failed to stop transcript tailing: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-176] Failed to stop transcript tailing: ${message}`);
   }
 }
 

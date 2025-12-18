@@ -39,7 +39,7 @@ export class TestCasesController {
   @ApiResponse({ status: 404, description: 'Project or use case not found' })
   @ApiResponse({ status: 409, description: 'Test case key already exists' })
   async create(@Body() dto: CreateTestCaseDto, @Request() req: ExpressRequest & { user: any }): Promise<TestCaseResponseDto> {
-    return this.testCasesService.create(dto, req.user.sub);
+    return this.testCasesService.create(dto, req.user.sub) as any;
   }
 
   @Get()
@@ -86,7 +86,7 @@ export class TestCasesController {
   @ApiResponse({ status: 200, description: 'Test case details' })
   @ApiResponse({ status: 404, description: 'Test case not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<TestCaseResponseDto> {
-    return this.testCasesService.findOne(id);
+    return this.testCasesService.findOne(id) as any;
   }
 
   @Put(':id')
@@ -98,7 +98,7 @@ export class TestCasesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTestCaseDto
   ): Promise<TestCaseResponseDto> {
-    return this.testCasesService.update(id, dto);
+    return this.testCasesService.update(id, dto) as any;
   }
 
   @Delete(':id')

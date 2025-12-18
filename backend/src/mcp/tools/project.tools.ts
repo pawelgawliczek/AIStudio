@@ -29,12 +29,12 @@ export async function bootstrapProject(
   params: BootstrapProjectParams,
 ): Promise<{
   project: ProjectResponse;
-  defaultEpic: any;
-  defaultFramework: any;
+  defaultEpic: { id: string; key: string; title: string };
+  defaultFramework: { id: string; name: string };
   message: string;
 }> {
   try {
-    validateRequired(params, ['name']);
+    validateRequired(params as unknown as Record<string, unknown>, ['name']);
 
     await getSystemUserId(prisma); // Ensure system user exists
 
@@ -48,7 +48,7 @@ export async function bootstrapProject(
     }
 
     // Create project with default epic and framework in a transaction
-    const result = await prisma.$transaction(async (tx: any) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Create project
       const project = await tx.project.create({
         data: {
@@ -107,8 +107,8 @@ export async function bootstrapProject(
       },
       message: `Project "${params.name}" bootstrapped successfully with default epic and framework`,
     };
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'bootstrap_project');
@@ -123,7 +123,7 @@ export async function createProject(
   params: CreateProjectParams,
 ): Promise<ProjectResponse> {
   try {
-    validateRequired(params, ['name']);
+    validateRequired(params as unknown as Record<string, unknown>, ['name']);
 
     // Check if project already exists
     const existing = await prisma.project.findUnique({
@@ -149,8 +149,8 @@ export async function createProject(
     });
 
     return formatProject(project, true);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'create_project');
@@ -169,17 +169,17 @@ export async function listProjects(
     const pageSize = Math.min(params.pageSize || 20, 100);
     const skip = (page - 1) * pageSize;
 
-    const whereClause: any = {};
+    const whereClause: { status?: string } = {};
     if (params.status) {
       whereClause.status = params.status;
     }
 
     // Get total count
-    const total = await prisma.project.count({ where: whereClause });
+    const total = await prisma.project.count({ where: whereClause as any });
 
     // Get paginated data
     const projects = await prisma.project.findMany({
-      where: whereClause,
+      where: whereClause as any,
       skip,
       take: pageSize,
       include: {
@@ -193,7 +193,7 @@ export async function listProjects(
     const totalPages = Math.ceil(total / pageSize);
 
     return {
-      data: projects.map((p: any) => formatProject(p, true)),
+      data: projects.map((p) => formatProject(p, true)),
       pagination: {
         page,
         pageSize,
@@ -203,7 +203,7 @@ export async function listProjects(
         hasPrev: page > 1,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw handlePrismaError(error, 'list_projects');
   }
 }
@@ -216,7 +216,7 @@ export async function getProject(
   params: GetProjectParams,
 ): Promise<ProjectResponse> {
   try {
-    validateRequired(params, ['projectId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId']);
 
     const project = await prisma.project.findUnique({
       where: { id: params.projectId },
@@ -232,8 +232,8 @@ export async function getProject(
     }
 
     return formatProject(project, true);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'get_project');
@@ -246,9 +246,18 @@ export async function getProject(
 export async function getProjectSummary(
   prisma: PrismaClient,
   params: { projectId: string },
-): Promise<any> {
+): Promise<{
+  project: { id: string; name: string; status: string };
+  statistics: {
+    storiesByStatus: Record<string, number>;
+    storiesByType: Record<string, number>;
+    totalEpics: number;
+    epicsWithStories: number;
+    totalStories: number;
+  };
+}> {
   try {
-    validateRequired(params, ['projectId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['projectId']);
 
     const [project, storiesByStatus, storiesByType, epicStats] = await Promise.all([
       prisma.project.findUnique({ where: { id: params.projectId } }),
@@ -298,8 +307,8 @@ export async function getProjectSummary(
         totalStories: storiesByStatus.reduce((sum, s) => sum + s._count, 0),
       },
     };
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
     throw handlePrismaError(error, 'get_project_summary');

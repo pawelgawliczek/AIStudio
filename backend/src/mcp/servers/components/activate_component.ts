@@ -57,7 +57,7 @@ export async function handler(
   params: ActivateComponentParams,
 ): Promise<ComponentResponse> {
   try {
-    validateRequired(params, ['componentId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['componentId']);
 
     const component = await prisma.component.findUnique({
       where: { id: params.componentId },

@@ -51,7 +51,7 @@ export async function handler(
   params: ListArtifactDefinitionsParams,
 ): Promise<PaginatedResponse<ArtifactDefinitionResponse>> {
   try {
-    validateRequired(params, ['workflowId']);
+    validateRequired(params as unknown as Record<string, unknown>, ['workflowId']);
 
     // Verify workflow exists
     const workflow = await prisma.workflow.findUnique({

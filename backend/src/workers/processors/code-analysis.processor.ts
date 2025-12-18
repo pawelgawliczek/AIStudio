@@ -70,7 +70,7 @@ export class CodeAnalysisProcessor {
 
       // 4. Analyze each file
       const fileMetrics = await Promise.all(
-        changedFiles.map((file: string) =>
+        changedFiles.map((file) =>
           this.analyzeFile(projectId, project.localPath!, file, commitHash),
         ),
       );
@@ -137,7 +137,7 @@ export class CodeAnalysisProcessor {
         await job.progress((i / allFiles.length) * 100);
 
         const fileMetrics = await Promise.all(
-          batch.map((file: string) => this.analyzeFile(projectId, project.localPath!, file)),
+          batch.map((file) => this.analyzeFile(projectId, project.localPath!, file)),
         );
 
         for (const fileMetric of fileMetrics) {
@@ -676,7 +676,20 @@ export class CodeAnalysisProcessor {
    */
   private async createSnapshot(
     projectId: string,
-    stats: any,
+    stats: {
+      _avg: {
+        maintainabilityIndex: number | null;
+        cyclomaticComplexity: number | null;
+        testCoverage: number | null;
+      };
+      _sum: {
+        linesOfCode: number | null;
+        codeSmellCount: number | null;
+      };
+      _count: {
+        filePath: number;
+      };
+    },
     healthScore: number,
     avgCoverage?: number,
   ): Promise<void> {
@@ -969,33 +982,34 @@ export class CodeAnalysisProcessor {
           for (const [filePath, data] of Object.entries(coverageData)) {
             if (filePath === 'total') continue;
 
-            const fileData = data as any;
+            const fileData = data as Record<string, unknown>;
             let coverage = 0;
 
             if (type === 'summary') {
               // Parse coverage-summary.json format (has .statements.pct)
-              coverage = fileData.statements?.pct || 0;
+              const statements = fileData.statements as { pct?: number } | undefined;
+              coverage = statements?.pct || 0;
             } else {
               // Parse coverage-final.json format (has .s, .b, .f objects)
-              const statements = fileData.s || {};
-              const branches = fileData.b || {};
-              const functions = fileData.f || {};
+              const statements = (fileData.s as Record<string, number>) || {};
+              const branches = (fileData.b as Record<string, number[]>) || {};
+              const functions = (fileData.f as Record<string, number>) || {};
 
               const stmtTotal = Object.keys(statements).length;
-              const stmtCovered = Object.values(statements).filter((v: any) => v > 0).length;
+              const stmtCovered = Object.values(statements).filter((v) => v > 0).length;
               const stmtPercent = stmtTotal > 0 ? (stmtCovered / stmtTotal) * 100 : 100;
 
               const branchTotal = Object.keys(branches).length;
               let branchCovered = 0;
-              for (const branchArray of Object.values(branches) as any[]) {
+              for (const branchArray of Object.values(branches)) {
                 if (Array.isArray(branchArray)) {
-                  branchCovered += branchArray.filter((v: any) => v > 0).length;
+                  branchCovered += branchArray.filter((v) => v > 0).length;
                 }
               }
               const branchPercent = branchTotal > 0 ? (branchCovered / (branchTotal * 2)) * 100 : 100;
 
               const funcTotal = Object.keys(functions).length;
-              const funcCovered = Object.values(functions).filter((v: any) => v > 0).length;
+              const funcCovered = Object.values(functions).filter((v) => v > 0).length;
               const funcPercent = funcTotal > 0 ? (funcCovered / funcTotal) * 100 : 100;
 
               // Average of statement, branch, and function coverage

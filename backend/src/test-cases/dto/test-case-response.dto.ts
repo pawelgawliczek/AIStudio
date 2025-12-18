@@ -18,7 +18,7 @@ export class TestCaseResponseDto {
   title: string;
 
   @ApiPropertyOptional()
-  description?: string;
+  description?: string | null;
 
   @ApiProperty({ enum: TestCaseType })
   testLevel: TestCaseType;
@@ -30,22 +30,22 @@ export class TestCaseResponseDto {
   status: TestCaseStatus;
 
   @ApiPropertyOptional()
-  preconditions?: string;
+  preconditions?: string | null;
 
   @ApiPropertyOptional()
-  testSteps?: string;
+  testSteps?: string | null;
 
   @ApiPropertyOptional()
-  expectedResults?: string;
+  expectedResults?: string | null;
 
   @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   testData?: any;
 
   @ApiPropertyOptional()
-  testFilePath?: string;
+  testFilePath?: string | null;
 
   @ApiPropertyOptional()
-  assignedToId?: string;
+  assignedToId?: string | null;
 
   @ApiProperty()
   createdById: string;
@@ -61,7 +61,7 @@ export class TestCaseResponseDto {
   useCase?: any;
 
   @ApiPropertyOptional({ type: 'object', additionalProperties: true })
-  assignedTo?: any;
+  assignedTo?: any | null;
 
   @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   createdBy?: any;

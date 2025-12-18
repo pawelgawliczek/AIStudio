@@ -10,6 +10,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import * as jwt from 'jsonwebtoken';
+import { Prisma } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,6 +18,29 @@ import { TelemetryService } from '../telemetry/telemetry.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
 import { StreamEventService } from './stream-event.service';
 import { TranscriptRegistrationService } from './transcript-registration.service';
+
+// Remote job result types
+interface RemoteJobResult {
+  status: 'completed' | 'failed' | 'timeout';
+  result?: unknown;
+  error?: string;
+}
+
+interface AgentJob {
+  id: string;
+  script?: string;
+  params?: Record<string, unknown> | string[];
+  jobToken?: string;
+  timestamp?: number;
+  [key: string]: unknown;
+}
+
+interface TranscriptDetectionPayload {
+  agentId: string | null;
+  transcriptPath: string;
+  projectPath: string;
+  metadata?: Record<string, unknown>;
+}
 
 /**
  * ST-160: Native subagent execution types
@@ -404,12 +428,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   @SubscribeMessage('agent:result')
   async handleAgentResult(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: {
-      jobId: string;
-      status: 'completed' | 'failed' | 'timeout';
-      result?: any;
-      error?: string;
-    },
+    @MessageBody() data: RemoteJobResult & { jobId: string },
   ) {
     const { agentId } = client.data;
     const { jobId, status, result, error } = data;
@@ -426,7 +445,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         where: { id: jobId },
         data: {
           status,
-          result: result || null,
+          result: result ? (result as Prisma.InputJsonValue) : Prisma.JsonNull,
           error: error || null,
           completedAt: new Date(),
           agentId,
@@ -444,7 +463,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
    * Emit job to connected agent
    * Called by RemoteExecutionService
    */
-  async emitJobToAgent(agentId: string, job: any) {
+  async emitJobToAgent(agentId: string, job: AgentJob) {
     // Find agent's socket
     const agent = await this.prisma.remoteAgent.findUnique({
       where: { id: agentId },
@@ -480,7 +499,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   /**
    * Get list of online agents with specific capability
    */
-  async getOnlineAgentsWithCapability(capability: string): Promise<any[]> {
+  async getOnlineAgentsWithCapability(capability: string) {
     return this.prisma.remoteAgent.findMany({
       where: {
         status: 'online',
@@ -495,18 +514,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
    * ST-259: Get active agents with execution state
    * Returns agents that are currently online or executing jobs
    */
-  async getActiveAgents(): Promise<Array<{
-    id: string;
-    hostname: string;
-    status: string;
-    capabilities: string[];
-    connectedAt: Date;
-    lastSeenAt: Date;
-    currentJobId?: string;
-    currentJobType?: string;
-    currentWorkflowRunId?: string;
-    jobsInFlight: number;
-  }>> {
+  async getActiveAgents() {
     // Get all online agents
     const agents = await this.prisma.remoteAgent.findMany({
       where: {
@@ -542,8 +550,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
           if (currentJob) {
             currentJobId = currentJob.id;
-            currentJobType = currentJob.jobType;
-            currentWorkflowRunId = currentJob.workflowRunId || undefined;
+            currentJobType = currentJob.jobType ?? undefined;
+            currentWorkflowRunId = currentJob.workflowRunId ? currentJob.workflowRunId : undefined;
           }
         }
 
@@ -553,7 +561,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           status: agent.status,
           capabilities: agent.capabilities,
           connectedAt: agent.createdAt,
-          lastSeenAt: agent.lastSeenAt,
+          lastSeenAt: agent.lastSeenAt ?? agent.createdAt,
           currentJobId,
           currentJobType,
           currentWorkflowRunId,
@@ -673,7 +681,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
             result: {
               ...(job.result as Record<string, unknown> || {}),
               sessionId,
-            } as any,
+            },
           },
         });
         this.logger.log(`[ST-160] Session ID captured for job ${data.jobId}: ${sessionId}`);
@@ -686,8 +694,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         });
 
         if (workflowRun) {
-          const existingMetadata = (workflowRun.metadata as any) || {};
-          const existingTracking = existingMetadata._transcriptTracking || {};
+          const existingMetadata = (workflowRun.metadata as Record<string, unknown>) || {};
+          const existingTracking = (existingMetadata._transcriptTracking as Record<string, unknown>) || {};
 
           // Update sessionId - transcriptPath will be added by TranscriptWatcher when detected
           const updatedTracking = {
@@ -722,8 +730,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       if (questionText && sessionId) {
         try {
           // Get state from job params
-          const jobParams = job.params as Record<string, unknown> || {};
-          const stateId = jobParams.stateId as string || job.workflowRunId; // Fallback to workflowRunId
+          const jobParams = (job.params as Record<string, unknown>) || {};
+          const stateId = (jobParams.stateId as string) || job.workflowRunId; // Fallback to workflowRunId
 
           const question = await this.prisma.agentQuestion.create({
             data: {
@@ -755,7 +763,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
             where: { id: data.jobId },
             data: { status: 'paused' },
           });
-        } catch (error: any) {
+        } catch (error) {
           this.logger.error(`[ST-160] Failed to create AgentQuestion: ${getErrorMessage(error)}`);
         }
       }
@@ -834,8 +842,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
                 output: data.output,
                 metrics: data.metrics,
                 transcriptPath: data.transcriptPath,
-              } as any) // Cast to any to satisfy Prisma JSON type
-            : null,
+              } as Prisma.InputJsonValue)
+            : Prisma.JsonNull,
           error: data.error || null,
           completedAt: new Date(),
         },
@@ -866,8 +874,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           });
 
           if (workflowRun) {
-            const existingMetadata = (workflowRun.metadata as any) || {};
-            const existingTracking = existingMetadata._transcriptTracking || {};
+            const existingMetadata = (workflowRun.metadata as Record<string, unknown>) || {};
+            const existingTracking = (existingMetadata._transcriptTracking as Record<string, unknown>) || {};
 
             // Update metadata with actual session info
             const updatedTracking = {
@@ -902,7 +910,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       }
 
       // ST-168: Upload transcript when agent completes (Story Runner integration)
-      if (data.success && data.transcriptPath && job?.componentRunId) {
+      if (data.success && data.transcriptPath && job?.componentRunId && job?.workflowRunId) {
         try {
           await this.uploadAgentTranscript(
             job.workflowRunId,
@@ -1170,14 +1178,14 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         data: {
           status: data.status,
           result: data.status === 'completed'
-            ? ({
+            ? {
                 output: data.output,
                 operation: data.operation,
-              } as any)
-            : ({
+              }
+            : {
                 output: data.output,
                 exitCode: data.exitCode,
-              } as any),
+              },
           error: data.error || null,
           completedAt: new Date(),
         },
@@ -1257,7 +1265,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
       client.emit('session:history', {
         workflowRunId,
-        events: events.map(e => ({
+        events: events.map((e: any) => ({
           componentRunId: e.componentRunId,
           type: e.eventType,
           sequenceNumber: e.sequenceNumber,
@@ -1265,7 +1273,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           payload: e.payload,
         })),
       });
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error(`[ST-160] Failed to fetch session history: ${getErrorMessage(error)}`);
     }
 
@@ -1419,7 +1427,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     const readJob = await this.prisma.remoteJob.create({
       data: {
         script: 'read-file',
-        params: { path: transcriptPath } as any,
+        params: { path: transcriptPath },
         status: 'pending',
         agentId,
         requestedBy: 'transcript-upload',
@@ -1469,7 +1477,8 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       throw new Error(`Failed to read transcript: ${result.error || 'Unknown error'}`);
     }
 
-    const transcriptContent = result.result?.content;
+    const resultData = result.result as Record<string, unknown> | undefined;
+    const transcriptContent = resultData?.content as string | undefined;
     if (!transcriptContent) {
       throw new Error('Transcript content is empty');
     }
@@ -1514,7 +1523,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       where: { id: componentRunId },
       data: {
         metadata: {
-          ...(componentRun.metadata as object || {}),
+          ...(componentRun.metadata as Record<string, unknown> || {}),
           transcriptArtifactId: artifact.id,
           transcriptPath,
         },
@@ -1532,7 +1541,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   private async waitForJobCompletion(
     jobId: string,
     timeoutMs: number,
-  ): Promise<{ success: boolean; result?: any; error?: string }> {
+  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
@@ -1562,11 +1571,11 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   /**
    * Helper: Find agent socket by agentId
    */
-  private async findAgentSocket(agentId: string): Promise<any | null> {
+  private async findAgentSocket(agentId: string) {
     const sockets = await this.server.fetchSockets();
     for (const socket of sockets) {
       if (socket.data.agentId === agentId) {
-        return socket as any; // RemoteSocket type is compatible for emit()
+        return socket; // RemoteSocket type is compatible for emit()
       }
     }
     return null;
@@ -1578,7 +1587,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
    */
   private transcriptQueue: Array<{
     client: Socket;
-    data: { agentId: string | null; transcriptPath: string; projectPath: string; metadata?: any };
+    data: TranscriptDetectionPayload;
   }> = [];
   private isProcessingTranscriptQueue = false;
   private readonly TRANSCRIPT_BATCH_SIZE = 5;  // Process 5 at a time
@@ -1591,7 +1600,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   @SubscribeMessage('agent:transcript_detected')
   async handleTranscriptDetected(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { agentId: string | null; transcriptPath: string; projectPath: string; metadata?: any },
+    @MessageBody() data: TranscriptDetectionPayload,
   ) {
     this.logger.log(`[ST-170] Transcript detected from agent: ${data.agentId}, sessionId: ${data.metadata?.sessionId}`);
 

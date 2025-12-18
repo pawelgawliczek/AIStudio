@@ -94,7 +94,7 @@ export class WorkersService {
     recipients: string[];
     subject?: string;
     message: string;
-    data?: any;
+    data?: Record<string, unknown>;
   }) {
     return this.notificationQueue.add('send-notification', data, {
       priority: 1, // High priority for notifications
@@ -107,8 +107,8 @@ export class WorkersService {
   async analyzeTestResults(data: {
     projectId: string;
     storyId?: string;
-    testResults: any;
-    coverageReport?: any;
+    testResults: Record<string, unknown>;
+    coverageReport?: Record<string, unknown>;
   }) {
     return this.testAnalysisQueue.add('analyze-tests', data, {
       priority: 2,
