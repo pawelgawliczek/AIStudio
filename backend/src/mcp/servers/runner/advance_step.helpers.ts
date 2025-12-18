@@ -88,7 +88,8 @@ export function buildPhaseInstructions(
     }
 
     const component = state.component;
-    const modelId = (component.config?.modelId as string) || 'claude-sonnet-4-20250514';
+    const config = component.config as Record<string, unknown> | undefined;
+    const modelId = (config?.modelId as string) || 'claude-sonnet-4-20250514';
 
     // Derive allowed subagent types based on component name
     let allowedSubagentTypes: string[] = ['code'];
