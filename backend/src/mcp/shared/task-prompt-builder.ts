@@ -242,9 +242,9 @@ export async function formatArtifactInstructions(
       });
 
       if (artifact) {
-        sections.push(`Update with: \`upload_artifact({ storyId: "${storyId}", definitionKey: "${def.key}", content: "..." })\`\n\n`);
+        sections.push(`Update with: \`create_artifact({ storyId: "${storyId}", definitionKey: "${def.key}", content: "..." })\`\n\n`);
       } else {
-        sections.push(`Create with: \`upload_artifact({ storyId: "${storyId}", definitionKey: "${def.key}", content: "..." })\`\n\n`);
+        sections.push(`Create with: \`create_artifact({ storyId: "${storyId}", definitionKey: "${def.key}", content: "..." })\`\n\n`);
       }
     }
   }

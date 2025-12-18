@@ -8,8 +8,9 @@
 
 export const REDACTION_PATTERNS = {
   // API Keys (OpenAI, Anthropic, etc.)
-  OPENAI_KEY: /sk-[A-Za-z0-9]{8,}/g, // Reduced from 32 to 8 for test compatibility
-  ANTHROPIC_KEY: /sk-ant-[A-Za-z0-9-_]{8,}/g, // Reduced from 32 to 8 for test compatibility
+  // ST-307: Restored proper minimum key lengths for security
+  OPENAI_KEY: /sk-[A-Za-z0-9]{32,}/g,
+  ANTHROPIC_KEY: /sk-ant-[A-Za-z0-9-_]{32,}/g,
   GENERIC_KEY: /[A-Za-z0-9_-]{32,}(?=["'\s,}])/g, // Conservative pattern
 
   // AWS Keys

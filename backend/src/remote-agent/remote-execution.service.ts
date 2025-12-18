@@ -86,7 +86,7 @@ export interface GitExecutionResult {
 @Injectable()
 export class RemoteExecutionService {
   private readonly logger = new Logger(RemoteExecutionService.name);
-  private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
+  private readonly DEFAULT_TIMEOUT = 60000; // 60 seconds
   private readonly CLAUDE_CODE_TIMEOUT = 3600000; // 60 minutes
   private readonly GRACE_PERIOD_MS = 15 * 60 * 1000; // 15 minutes
   private readonly MAX_CONCURRENT_PER_AGENT = 5;

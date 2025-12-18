@@ -52,8 +52,10 @@ These tools are pre-loaded for every agent and do not require `invoke_tool`:
 - `get_component_context` - Get component instructions and artifacts
 - `set_context` - Set session context (projectId, storyId, etc.)
 
-**Artifact Management (4 tools):**
-- `upload_artifact` - Create/update artifact
+**Artifact Management (5 tools):**
+- `create_artifact` - Create/update artifact (renamed from `upload_artifact`)
+- `upload_artifact_from_md_file` - Upload artifact from markdown file (renamed from `upload_artifact_from_file`)
+- `upload_artifact_from_binary_file` - Upload artifact from binary file (NEW - supports images, PDFs, etc.)
 - `get_artifact` - Get artifact by ID or key
 - `list_artifacts` - List artifacts for story/workflow
 
@@ -125,12 +127,19 @@ const result = await start_team_run({
   }
 });
 
-// Example: Upload artifact
-await upload_artifact({
+// Example: Create artifact
+await create_artifact({
   storyId: "story-uuid",
   definitionKey: "ARCH_DOC",
   content: "# Architecture Document\n\n...",
   contentType: "text/markdown"
+});
+
+// Example: Upload binary file (image, PDF, etc.)
+await upload_artifact_from_binary_file({
+  storyId: "story-uuid",
+  definitionKey: "DESIGN_IMAGE",
+  filePath: "/path/to/image.png"
 });
 
 // Example: Advance to next state
@@ -332,12 +341,18 @@ Tools for agent coordination (core tools).
 
 ### 6. Artifacts Server
 
-Tools for artifact management (core tools).
+Tools for artifact management (core tools). Supports text and binary artifact uploads.
 
 **Tools:**
-- `upload_artifact` - Create/update artifact
+- `create_artifact` - Create/update artifact with text content
+- `upload_artifact_from_md_file` - Upload artifact from markdown file
+- `upload_artifact_from_binary_file` - Upload artifact from binary file (images, PDFs, etc.)
 - `get_artifact` - Get artifact by ID or key
 - `list_artifacts` - List artifacts for story/workflow
+
+**Backward Compatibility:**
+- `upload_artifact` → `create_artifact` (deprecated alias)
+- `upload_artifact_from_file` → `upload_artifact_from_md_file` (deprecated alias)
 
 ### 7. Meta Server
 
@@ -519,6 +534,15 @@ console.log('Required params:', schema[0].inputSchema.required);
 - ST-279: Living Documentation System
 
 ## Changelog
+
+### Version 1.2 (2025-12-18)
+- ST-307: Updated artifact tool names and documentation
+  - `upload_artifact` → `create_artifact` (primary tool name)
+  - `upload_artifact_from_file` → `upload_artifact_from_md_file` (primary tool name)
+  - NEW: `upload_artifact_from_binary_file` - supports binary files (images, PDFs, etc.)
+- Added backward compatibility aliases for deprecated tool names
+- Updated core profile from 4 to 5 artifact tools
+- Updated examples to use new artifact tool naming
 
 ### Version 1.1 (2025-12-18)
 - ST-289: Documented agentConfig format in get_current_step response

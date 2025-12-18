@@ -38,7 +38,8 @@ export const CORE_PROFILE_TOOLS: string[] = [
   'list_stories', // Now includes text search (merged with search_stories)
 
   // === Artifacts (High usage for analysis docs) ===
-  'upload_artifact', // 817 calls
+  'upload_artifact', // 817 calls - Backward compat alias for create_artifact
+  'create_artifact', // ST-307: New name for direct content upload
   'get_artifact', // 765 calls
   'list_artifacts', // Needed for artifact discovery
 

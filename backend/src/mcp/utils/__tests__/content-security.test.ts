@@ -97,7 +97,7 @@ describe('content-security', () => {
 
     it('should redact multiple patterns in single content', () => {
       const content = `
-        OPENAI_KEY=sk-1234567890abcdefghij
+        OPENAI_KEY=sk-1234567890abcdefghij1234567890AB
         EMAIL=admin@example.com
         password="secret123"
       `;
@@ -110,7 +110,7 @@ describe('content-security', () => {
     });
 
     it('should return list of patterns that matched', () => {
-      const content = 'OPENAI_KEY=sk-test123\nEMAIL=user@test.com';
+      const content = 'OPENAI_KEY=sk-1234567890abcdefghij1234567890ABCDEF\nEMAIL=user@test.com';
       const result = redactSensitiveData(content);
 
       expect(result.patterns).toContain('OPENAI_KEY');

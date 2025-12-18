@@ -9,6 +9,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import * as path from 'path';
 import {
   UploadArtifactFromBinaryFileParams,
   UploadArtifactFromBinaryFileResponse,
@@ -77,7 +78,7 @@ interface ReadBinaryFileResult {
 const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB for binary files
 
 // ST-307: Security - Allowlist of supported binary file extensions
-const ALLOWED_BINARY_EXTENSIONS = [
+const ALLOWED_BINARY_EXTENSIONS = new Set([
   '.png',
   '.jpg',
   '.jpeg',
@@ -86,7 +87,7 @@ const ALLOWED_BINARY_EXTENSIONS = [
   '.svg',
   '.webp',
   '.bmp',
-] as const;
+]);
 
 // ST-307: MIME type detection from file extension
 const EXTENSION_TO_MIME_TYPE: Record<string, string> = {
@@ -117,11 +118,12 @@ export async function handler(
   }
 
   // 2. Validate file extension (security: allowlist)
-  const fileExtension = params.filePath.toLowerCase().substring(params.filePath.lastIndexOf('.'));
+  // ST-307: Use path.extname() to prevent path traversal attacks
+  const fileExtension = path.extname(params.filePath).toLowerCase();
 
-  if (!ALLOWED_BINARY_EXTENSIONS.includes(fileExtension as any)) {
+  if (!ALLOWED_BINARY_EXTENSIONS.has(fileExtension)) {
     throw new ValidationError(
-      `File extension '${fileExtension}' not supported. Allowed extensions: ${ALLOWED_BINARY_EXTENSIONS.join(', ')}`,
+      `File extension '${fileExtension}' not supported. Allowed extensions: ${Array.from(ALLOWED_BINARY_EXTENSIONS).join(', ')}`,
     );
   }
 
