@@ -10,6 +10,7 @@ import { executeGitCommand, checkGitAvailable, GitExecutionResult } from './git-
 import { TranscriptWatcher } from './transcript-watcher';
 import { TranscriptTailer, TailRequest } from './transcript-tailer';
 import { WakeDetector } from './wake-detector';
+import { Logger } from './logger';
 
 /**
  * ST-153: Git job payload from server
@@ -67,6 +68,9 @@ export class RemoteAgent {
   // ST-281: Wake detector for hibernation recovery
   private wakeDetector: WakeDetector | null = null;
 
+  // ST-281: Logger for structured logging
+  private readonly logger = new Logger('Agent');
+
   constructor(config: AgentConfig) {
     this.config = config;
 
@@ -106,7 +110,6 @@ export class RemoteAgent {
     this.wakeDetector = new WakeDetector();
     this.wakeDetector.onWakeDetected = () => this.handleWakeFromHibernation();
     this.wakeDetector.start();
-    console.log('[Agent] Wake detector started');
 
     // Wait for connection
     return new Promise((resolve, reject) => {
@@ -788,14 +791,14 @@ export class RemoteAgent {
   private async verifyConnectionHealth(): Promise<boolean> {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        console.log('[Agent] Health check timed out');
+        this.logger.warn('Health check timed out', { timeoutMs: 5000 });
         resolve(false);
       }, 5000);
 
       this.socket?.emit('agent:ping', {}, (response: any) => {
         clearTimeout(timeout);
         const healthy = response?.pong === true;
-        console.log(`[Agent] Health check result: ${healthy ? 'healthy' : 'unhealthy'}`);
+        this.logger.info('Health check completed', { healthy, response });
         resolve(healthy);
       });
     });
@@ -805,7 +808,7 @@ export class RemoteAgent {
    * ST-281: Force reconnection after detecting unhealthy connection
    */
   private async forceReconnect(): Promise<void> {
-    console.log('[Agent] Forcing reconnection...');
+    this.logger.info('Forcing reconnection due to unhealthy connection');
     this.stopHeartbeat();
     this.wakeDetector?.stop();
     this.socket?.disconnect();
@@ -814,20 +817,21 @@ export class RemoteAgent {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     await this.connect();
+    this.logger.info('Reconnection completed');
   }
 
   /**
    * ST-281: Handle wake from hibernation
    */
   private async handleWakeFromHibernation(): Promise<void> {
-    console.log('[Agent] Wake from hibernation detected, checking connection health...');
+    this.logger.info('Wake from hibernation detected, checking connection health');
 
     const healthy = await this.verifyConnectionHealth();
     if (!healthy) {
-      console.log('[Agent] Connection unhealthy after wake, forcing reconnect');
+      this.logger.warn('Connection unhealthy after wake, forcing reconnect');
       await this.forceReconnect();
     } else {
-      console.log('[Agent] Connection healthy after wake, no action needed');
+      this.logger.info('Connection healthy after wake, no action needed');
     }
   }
 }
