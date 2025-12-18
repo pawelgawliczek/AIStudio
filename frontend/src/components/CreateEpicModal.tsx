@@ -56,12 +56,15 @@ export function CreateEpicModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
+    const submitData = {
       title,
       description,
       priority,
       status: isEditing ? status : undefined, // Only include status when editing
-    });
+    };
+    console.log('[CreateEpicModal] Submitting:', JSON.stringify(submitData));
+    console.log('[CreateEpicModal] isEditing:', isEditing, 'status state:', status);
+    onSubmit(submitData);
     // Form will be reset via useEffect when modal closes
   };
 

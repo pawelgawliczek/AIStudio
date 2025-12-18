@@ -401,6 +401,7 @@ export function EpicPlanningView() {
     if (!editingEpic) return;
     try {
       setIsCreating(true);
+      console.log('[handleUpdateEpic] Updating epic with data:', JSON.stringify(data));
       await epicsApi.update(editingEpic.id, data);
       setShowEditEpicModal(false);
       setEditingEpic(null);
