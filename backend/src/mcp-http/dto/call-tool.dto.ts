@@ -31,6 +31,7 @@ export class CallToolDto {
     description: 'Tool arguments as key-value pairs',
     example: { projectId: '550e8400-e29b-41d4-a716-446655440000' },
     type: 'object',
+    additionalProperties: true,
   })
   @IsObject()
   // Note: Don't use @ValidateNested() here - it causes forbidNonWhitelisted
