@@ -256,6 +256,10 @@ export async function formatArtifactInstructions(
  * Build complete Task prompt from component configuration and context
  * Assembles all relevant information for spawned agent
  *
+ * Note: preExecutionInstructions are NOT included in agent prompts as they
+ * are meant for the orchestrator, not the spawned agent. Agent prompts only
+ * contain component instructions, previous outputs, and artifact instructions.
+ *
  * @param prisma - Prisma client instance
  * @param state - Workflow state with component configuration
  * @param runId - Workflow run ID for context
@@ -266,7 +270,6 @@ export async function buildTaskPrompt(
   prisma: PrismaClient,
   state: {
     id: string;
-    preExecutionInstructions: string | null;
     component: {
       id: string;
       name: string;
@@ -280,13 +283,7 @@ export async function buildTaskPrompt(
 ): Promise<string> {
   const sections: string[] = [];
 
-  // 1. Pre-execution context (if exists)
-  if (state.preExecutionInstructions) {
-    sections.push('## Context\n');
-    sections.push(`${state.preExecutionInstructions}\n\n`);
-  }
-
-  // 2. Component instructions (Input, Task, Output)
+  // 1. Component instructions (Input, Task, Output)
   if (state.component) {
     if (state.component.inputInstructions) {
       sections.push('## Input\n');
@@ -304,7 +301,7 @@ export async function buildTaskPrompt(
     }
   }
 
-  // 3. Previous component outputs
+  // 2. Previous component outputs
   const previousRuns = await prisma.componentRun.findMany({
     where: {
       workflowRunId: runId,
@@ -333,7 +330,7 @@ export async function buildTaskPrompt(
     sections.push(previousOutputsSection);
   }
 
-  // 4. Artifact instructions
+  // 3. Artifact instructions
   const artifactSection = await formatArtifactInstructions(prisma, state.id, storyId);
   if (artifactSection) {
     sections.push(artifactSection);

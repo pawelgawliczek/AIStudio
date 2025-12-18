@@ -127,7 +127,6 @@ export async function buildAgentInstructions(
   if (storyId && currentState.id && currentState.component) {
     const stateForPrompt = {
       id: currentState.id,
-      preExecutionInstructions: currentState.preExecutionInstructions,
       component: {
         id: currentState.component.id,
         name: currentState.component.name,
@@ -479,4 +478,189 @@ export async function completeAgentTrackingForComponent(
       agentWasSuccessful,
     };
   }
+}
+
+// Agent tracking result interface
+interface AgentTrackingResult {
+  action: 'started' | 'completed' | null;
+  componentRunId?: string;
+  componentName?: string;
+  success: boolean;
+  warning?: string;
+}
+
+// Workflow run data structure for buildAdvanceResponse
+interface WorkflowRunData {
+  id: string;
+  status: string;
+  story?: {
+    id: string;
+    key: string;
+    title: string;
+  } | null;
+  workflow: {
+    states: WorkflowStateData[];
+  };
+}
+
+/**
+ * Build advance response with instructions, progress, and tracking info
+ * ST-284: Extracted from advance_step handler to reduce file size
+ *
+ * @param prisma Prisma client
+ * @param run Workflow run data
+ * @param checkpoint Current checkpoint
+ * @param currentState Current state object
+ * @param previousState Previous state name and phase
+ * @param workflowComplete Whether workflow is complete
+ * @param agentTracking Agent tracking result
+ * @param agentWasSuccessful Whether agent completed successfully (for commit logic)
+ * @param storyId Story ID for building agent instructions
+ * @returns Response object with instructions and progress
+ */
+export async function buildAdvanceResponse(
+  prisma: PrismaClient,
+  run: WorkflowRunData,
+  checkpoint: Partial<RunnerCheckpoint>,
+  currentState: WorkflowStateData | null,
+  previousState: { name: string; phase: string } | null,
+  workflowComplete = false,
+  agentTracking: AgentTrackingResult | null = null,
+  agentWasSuccessful = true,
+  storyId?: string,
+) {
+  const totalStates = run.workflow.states.length;
+  const completedCount = checkpoint.completedStates?.length || 0;
+  const skippedCount = checkpoint.skippedStates?.length || 0;
+
+  // ST-278: Check if we advanced from agent to post phase for code-modifying component
+  // Import buildCommitInstruction from helpers
+  const { buildCommitInstruction, buildEnforcementData } = await import('./advance_step.helpers');
+
+  const commitBeforeAdvance =
+    previousState?.phase === 'agent' && checkpoint.currentPhase === 'post'
+      ? buildCommitInstruction(
+          currentState?.component?.name || null,
+          run.story ? { key: run.story.key, title: run.story.title } : null,
+          agentWasSuccessful
+        )
+      : undefined;
+
+  // Build instructions for new step
+  let instructions: Record<string, unknown>;
+  let nextAction: Record<string, unknown>;
+
+  if (workflowComplete) {
+    instructions = {
+      type: 'workflow_complete',
+      content: 'All states have been executed. Workflow completed successfully.',
+    };
+    nextAction = {
+      tool: 'update_team_status',
+      parameters: { runId: run.id, status: 'completed' },
+      hint: 'Update workflow status to completed.',
+    };
+  } else {
+    const phase = checkpoint.currentPhase || 'pre';
+
+    switch (phase) {
+      case 'pre':
+        instructions = {
+          type: 'pre_execution',
+          content: currentState?.preExecutionInstructions || 'No pre-execution instructions. Proceed to advance_step.',
+        };
+        nextAction = {
+          tool: 'advance_step',
+          parameters: { runId: run.id },
+          hint: 'Call advance_step when pre-execution is complete.',
+        };
+        break;
+
+      case 'agent':
+        // Use helper to build agent instructions
+        instructions = await buildAgentInstructions(prisma, currentState!, run.id, storyId);
+        nextAction = {
+          tool: 'advance_step',
+          parameters: { runId: run.id, output: {} },
+          hint: 'Call advance_step with output when complete.',
+        };
+        break;
+
+      case 'post':
+        instructions = {
+          type: 'post_execution',
+          content: currentState?.postExecutionInstructions || 'No post-execution instructions. Proceed to advance_step.',
+        };
+        nextAction = {
+          tool: 'advance_step',
+          parameters: { runId: run.id },
+          hint: 'Call advance_step to proceed to next state.',
+        };
+        break;
+    }
+  }
+
+  return {
+    success: true,
+    runId: run.id,
+
+    // What we advanced from
+    previousState,
+
+    // What we advanced to
+    currentState: currentState ? {
+      id: currentState.id,
+      name: currentState.name,
+      order: currentState.order,
+      phase: checkpoint.currentPhase,
+    } : null,
+
+    // Progress
+    progress: {
+      completedStates: completedCount,
+      skippedStates: skippedCount,
+      totalStates,
+      percentComplete: totalStates > 0
+        ? Math.round(((completedCount + skippedCount) / totalStates) * 100)
+        : 0,
+    },
+
+    // New instructions (same as get_current_step would return)
+    instructions,
+
+    nextAction,
+
+    // Workflow completion flag
+    workflowComplete,
+
+    // Story context
+    story: run.story ? {
+      key: run.story.key,
+      title: run.story.title,
+    } : undefined,
+
+    // ST-215: Agent tracking result
+    agentTracking: agentTracking || undefined,
+
+    // ST-215: Warnings collection (for non-fatal issues)
+    warnings: agentTracking?.warning
+      ? { agentTracking: agentTracking.warning }
+      : undefined,
+
+    // ST-273: Enforcement data for hooks (use helper)
+    enforcement: buildEnforcementData(
+      workflowComplete,
+      currentState,
+      (instructions.enforcement as { allowedSubagentTypes?: string[] } | undefined)?.allowedSubagentTypes || null,
+      run.id,
+      checkpoint.currentPhase
+    ),
+
+    // ST-278: Commit instruction for code-modifying components
+    ...(commitBeforeAdvance && { commitBeforeAdvance }),
+
+    message: workflowComplete
+      ? 'Workflow completed successfully.'
+      : `Advanced from ${previousState?.name || 'start'}:${previousState?.phase || 'pre'} to ${currentState?.name}:${checkpoint.currentPhase}`,
+  };
 }
