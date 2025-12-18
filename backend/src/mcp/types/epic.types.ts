@@ -8,12 +8,21 @@ export interface CreateEpicParams {
   projectId: string;
   title: string;
   description?: string;
+  status?: 'open' | 'closed' | 'cancelled';
+  priority?: number;
+}
+
+export interface UpdateEpicParams {
+  epicId: string;
+  title?: string;
+  description?: string;
+  status?: 'open' | 'closed' | 'cancelled';
   priority?: number;
 }
 
 export interface ListEpicsParams extends PaginationParams {
   projectId: string;
-  status?: 'planning' | 'in_progress' | 'done' | 'archived';
+  status?: 'open' | 'closed' | 'cancelled' | 'all';
   fields?: string[]; // Specific fields to return for token efficiency
 }
 

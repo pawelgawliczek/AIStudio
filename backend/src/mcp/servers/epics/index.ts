@@ -7,4 +7,5 @@
 
 export * as createEpic from './create_epic.js';
 export * as listEpics from './list_epics.js';
+export * as updateEpic from './update_epic.js';
 export * as deleteEpic from './delete_epic.js';

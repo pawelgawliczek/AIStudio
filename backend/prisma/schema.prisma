@@ -110,7 +110,7 @@ model Epic {
   key         String // e.g., EP-1, unique within project
   title       String
   description String?
-  status      EpicStatus @default(planning)
+  status      EpicStatus @default(open)
   priority    Int        @default(0)
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
@@ -1249,10 +1249,9 @@ enum ProjectStatus {
 }
 
 enum EpicStatus {
-  planning
-  in_progress
-  done
-  archived
+  open
+  closed
+  cancelled
 }
 
 enum StoryType {

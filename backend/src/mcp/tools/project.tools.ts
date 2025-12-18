@@ -71,7 +71,7 @@ export async function bootstrapProject(
           key: 'EP-1',
           title: 'Initial Development',
           description: 'Default epic for initial project setup and stories',
-          status: 'planning',
+          status: 'open',
           priority: 1,
         },
       });

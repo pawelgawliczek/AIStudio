@@ -78,7 +78,7 @@ export async function handler(
         key,
         title: params.title,
         description: params.description,
-        status: 'planning',
+        status: params.status ?? 'open',
         priority: params.priority ?? 0,
       },
       include: {

@@ -19,7 +19,7 @@ import {
 
 export const tool: Tool = {
   name: 'list_epics',
-  description: 'List all epics for a project with optional status filter and pagination',
+  description: 'List all epics for a project with optional status filter and pagination. By default, excludes closed and cancelled epics.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -29,8 +29,8 @@ export const tool: Tool = {
       },
       status: {
         type: 'string',
-        enum: ['planning', 'in_progress', 'done', 'archived'],
-        description: 'Filter by epic status',
+        enum: ['open', 'closed', 'cancelled', 'all'],
+        description: 'Filter by epic status. Use "all" to show all epics including closed/cancelled. Default: "open"',
       },
       page: {
         type: 'number',
@@ -86,8 +86,17 @@ export async function handler(
     const whereClause: any = {
       projectId: params.projectId,
     };
-    if (params.status) {
+
+    // Default: show only open epics (exclude closed and cancelled)
+    // Use status='all' to show everything
+    if (params.status === 'all') {
+      // No status filter - show all epics
+    } else if (params.status) {
+      // Specific status filter
       whereClause.status = params.status;
+    } else {
+      // Default: only open epics
+      whereClause.status = 'open';
     }
 
     // Get total count

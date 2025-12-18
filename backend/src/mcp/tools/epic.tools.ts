@@ -47,7 +47,7 @@ export async function createEpic(
         key,
         title: params.title,
         description: params.description,
-        status: 'planning',
+        status: 'open',
         priority: params.priority ?? 0,
       },
       include: {

@@ -58,7 +58,7 @@ export class EpicsService {
       data: {
         ...createEpicDto,
         key,
-        status: EpicStatus.planning,
+        status: EpicStatus.open,
       },
       include: {
         project: {
