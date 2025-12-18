@@ -1,3 +1,18 @@
 {
-  "sessions": {}
+  "sessions": {
+    "fccf7c75-c301-4da2-8c3d-53dcfda1e83c": {
+      "workflowActive": true,
+      "runId": "193bb24d-08f2-4437-b1bb-5e108917921e",
+      "currentState": {
+        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
+        "name": "implementation",
+        "phase": "agent",
+        "componentName": "Developer",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-18T07:12:18Z"
+    }
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "currentRunId": "run-001",
+  "currentRunId": "193bb24d-08f2-4437-b1bb-5e108917921e",
   "sessions": {
     "f88514e1-deec-4bd5-902d-0fac9f4cdaa4": {
       "masterTranscripts": [
@@ -648,6 +648,21 @@
           "agentId": "a635976",
           "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a635976.jsonl",
           "spawnedAt": "2025-12-18T06:35:16Z"
+        },
+        {
+          "agentId": "af0dd52",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-af0dd52.jsonl",
+          "spawnedAt": "2025-12-18T06:55:59Z"
+        },
+        {
+          "agentId": "a6f0b0a",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a6f0b0a.jsonl",
+          "spawnedAt": "2025-12-18T07:07:23Z"
+        },
+        {
+          "agentId": "a1d12b1",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a1d12b1.jsonl",
+          "spawnedAt": "2025-12-18T07:39:49Z"
         }
       ]
     },
@@ -657,6 +672,23 @@
       "storyId": "story-test-001",
       "storyKey": "ST-TEST-1",
       "startedAt": "2025-12-18T06:20:12Z"
+    },
+    "fccf7c75-c301-4da2-8c3d-53dcfda1e83c": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/fccf7c75-c301-4da2-8c3d-53dcfda1e83c.jsonl"
+      ],
+      "startedAt": "2025-12-18T06:58:13Z",
+      "runId": "193bb24d-08f2-4437-b1bb-5e108917921e",
+      "workflowId": "df9bf06d-38c5-4fa8-9c7d-b60d0bdfc122",
+      "storyId": "3df45b3d-61bc-4bb1-985b-17f265b7da6b",
+      "storyKey": "ST-287",
+      "spawnedAgentTranscripts": [
+        {
+          "agentId": "a08fe60",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a08fe60.jsonl",
+          "spawnedAt": "2025-12-18T07:26:36Z"
+        }
+      ]
     }
   }
 }
