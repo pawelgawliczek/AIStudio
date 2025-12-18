@@ -44,7 +44,7 @@ import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../../types';
 import { handler as getArtifact } from '../get_artifact';
 import { handler as listArtifacts } from '../list_artifacts';
-import { handler as uploadArtifact } from '../upload_artifact';
+import { handler as uploadArtifact } from '../create_artifact';
 
 // Mock Prisma
 const mockPrisma = {

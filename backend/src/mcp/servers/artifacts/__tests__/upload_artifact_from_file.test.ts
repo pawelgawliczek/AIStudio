@@ -12,12 +12,12 @@
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../../types';
 import { RemoteRunner } from '../../../utils/remote-runner';
-import { handler as uploadArtifact } from '../upload_artifact';
-import { handler } from '../upload_artifact_from_file';
+import { handler as createArtifact } from '../create_artifact';
+import { handler } from '../upload_artifact_from_md_file';
 
 // Mock dependencies
 jest.mock('../../../utils/remote-runner');
-jest.mock('../upload_artifact');
+jest.mock('../create_artifact');
 
 // Mock Prisma
 const mockPrisma = {
@@ -183,7 +183,7 @@ describe('upload_artifact_from_file', () => {
       });
 
       // Mock upload_artifact handler
-      (uploadArtifact as jest.Mock).mockResolvedValue(mockArtifact);
+      (createArtifact as jest.Mock).mockResolvedValue(mockArtifact);
 
       const result = await handler(mockPrisma, {
         filePath: '~/.claude/projects/test/THE_PLAN.md',
@@ -194,7 +194,7 @@ describe('upload_artifact_from_file', () => {
       expect(result.success).toBe(true);
       expect(result.artifact).toBeDefined();
       expect(result.artifact?.id).toBe('artifact-uuid');
-      expect(uploadArtifact).toHaveBeenCalledWith(
+      expect(createArtifact).toHaveBeenCalledWith(
         mockPrisma,
         expect.objectContaining({
           workflowRunId: 'run-uuid',
@@ -280,7 +280,7 @@ describe('upload_artifact_from_file', () => {
 
       // RemoteRunner should be called but upload_artifact should NOT
       expect(mockRemoteRunner.execute).toHaveBeenCalled();
-      expect(uploadArtifact).not.toHaveBeenCalled();
+      expect(createArtifact).not.toHaveBeenCalled();
     });
   });
 
@@ -387,7 +387,7 @@ describe('upload_artifact_from_file', () => {
       });
 
       // Mock upload_artifact throwing an error
-      (uploadArtifact as jest.Mock).mockRejectedValue(
+      (createArtifact as jest.Mock).mockRejectedValue(
         new ValidationError('Artifact definition must belong to the same workflow')
       );
 
@@ -462,7 +462,7 @@ describe('upload_artifact_from_file', () => {
         },
       });
 
-      (uploadArtifact as jest.Mock).mockImplementation(async (prisma, params) => {
+      (createArtifact as jest.Mock).mockImplementation(async (prisma, params) => {
         // Verify that the content passed to upload_artifact is redacted
         expect(params.content).toContain('[REDACTED-KEY]');
         expect(params.content).not.toContain('sk-1234567890');
@@ -481,7 +481,7 @@ describe('upload_artifact_from_file', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(uploadArtifact).toHaveBeenCalled();
+      expect(createArtifact).toHaveBeenCalled();
     });
   });
 
@@ -614,7 +614,7 @@ describe('upload_artifact_from_file', () => {
       });
 
       // Mock upload_artifact throwing ownership error
-      (uploadArtifact as jest.Mock).mockRejectedValue(
+      (createArtifact as jest.Mock).mockRejectedValue(
         new ValidationError('Artifact definition must belong to the same workflow')
       );
 

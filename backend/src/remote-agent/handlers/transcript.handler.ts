@@ -1,15 +1,15 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { getErrorMessage, getErrorStack } from '../../common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TranscriptRegistrationService } from '../transcript-registration.service';
-import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 import { TranscriptDetectionPayload } from '../types';
 import { uploadAgentTranscript as uploadAgentTranscriptUtil } from './transcript.utils';
 
 /**
  * ST-170, ST-182: Transcript Detection and Streaming Handler
  * Handles transcript detection, registration, and live streaming
+ * ST-284: Removed circular dependency on AppWebSocketGateway - frontend server injected via setter
  */
 @Injectable()
 export class TranscriptHandler {
@@ -27,12 +27,22 @@ export class TranscriptHandler {
   // ST-182: Track active master transcript subscriptions
   private readonly masterTranscriptSubscriptions = new Map<string, Set<string>>();
 
+  // ST-284: Frontend server for broadcasting to frontend clients (set after construction)
+  private frontendServer: Server | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly transcriptRegistrationService: TranscriptRegistrationService,
-    @Inject(forwardRef(() => AppWebSocketGateway))
-    private readonly appWebSocketGateway: AppWebSocketGateway,
   ) {}
+
+  /**
+   * ST-284: Set frontend server for broadcasting to frontend clients
+   * Called by RemoteAgentGateway after construction
+   */
+  setFrontendServer(server: Server): void {
+    this.frontendServer = server;
+    this.logger.log('[ST-284] Frontend server reference set for transcript broadcasting');
+  }
 
   /**
    * ST-170: Handle transcript detected event from laptop agent
@@ -197,7 +207,9 @@ export class TranscriptHandler {
     },
   ): Promise<void> {
     this.logger.log(`[ST-182] Streaming started: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
-    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:streaming_started', data);
+    if (this.frontendServer) {
+      this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:streaming_started', data);
+    }
   }
 
   /**
@@ -212,7 +224,9 @@ export class TranscriptHandler {
       timestamp: string;
     },
   ): Promise<void> {
-    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
+    if (this.frontendServer) {
+      this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
+    }
   }
 
   /**
@@ -228,7 +242,9 @@ export class TranscriptHandler {
     },
   ): Promise<void> {
     this.logger.log(`[ST-182] Batch received: runId=${data.runId}, lines=${data.lines.length}`);
-    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
+    if (this.frontendServer) {
+      this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
+    }
   }
 
   /**
@@ -243,7 +259,9 @@ export class TranscriptHandler {
     },
   ): Promise<void> {
     this.logger.error(`[ST-182] Transcript error: runId=${data.runId}, code=${data.code}, error=${data.error}`);
-    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:error', data);
+    if (this.frontendServer) {
+      this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:error', data);
+    }
   }
 
   /**
@@ -253,7 +271,9 @@ export class TranscriptHandler {
     data: { runId: string; sessionIndex: number },
   ): Promise<void> {
     this.logger.log(`[ST-182] Streaming stopped: runId=${data.runId}, sessionIndex=${data.sessionIndex}`);
-    this.appWebSocketGateway.server.to(`master-transcript:${data.runId}`).emit('master-transcript:stopped', data);
+    if (this.frontendServer) {
+      this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:stopped', data);
+    }
   }
 
   /**

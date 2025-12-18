@@ -23,6 +23,11 @@
           "agentId": "a9d4354",
           "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a9d4354.jsonl",
           "spawnedAt": "2025-12-18T16:48:42Z"
+        },
+        {
+          "agentId": "af3ea24",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-af3ea24.jsonl",
+          "spawnedAt": "2025-12-18T17:14:26Z"
         }
       ]
     },

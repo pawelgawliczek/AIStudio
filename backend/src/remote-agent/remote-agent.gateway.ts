@@ -6,6 +6,7 @@ import {
   SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
@@ -61,7 +62,7 @@ import {
     credentials: true,
   },
 })
-export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
@@ -81,6 +82,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     private readonly appWebSocketGateway: AppWebSocketGateway,
     private readonly claudeCodeHandler: ClaudeCodeHandler,
     private readonly gitJobHandler: GitJobHandler,
+    @Inject(forwardRef(() => TranscriptHandler))
     private readonly transcriptHandler: TranscriptHandler,
   ) {}
 
@@ -93,6 +95,15 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
   setReconnectHandler(handler: (agentId: string) => Promise<{ resumed: number; workflowRunIds: string[] }>) {
     this.reconnectHandler = handler;
+  }
+
+  /**
+   * ST-284: Initialize handlers after gateway is ready
+   * Inject frontend server reference to TranscriptHandler to avoid circular dependency
+   */
+  afterInit(): void {
+    this.transcriptHandler.setFrontendServer(this.appWebSocketGateway.server);
+    this.logger.log('[ST-284] Gateway initialized, frontend server injected into TranscriptHandler');
   }
 
   /**

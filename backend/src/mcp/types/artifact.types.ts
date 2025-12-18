@@ -122,6 +122,29 @@ export interface UploadArtifactFromFileResponse {
   message: string; // Human-readable status
 }
 
+export interface UploadArtifactFromBinaryFileParams {
+  filePath: string; // Absolute path to binary file
+  definitionId?: string; // Artifact Definition UUID
+  definitionKey?: string; // Artifact key (e.g., "SCREENSHOT", "DIAGRAM")
+  workflowRunId: string; // Required
+  componentId?: string; // Optional creator
+  maxFileSize?: number; // Optional override (max 5MB for binary)
+  contentType?: string; // Optional MIME type override (auto-detected from extension)
+}
+
+export interface UploadArtifactFromBinaryFileResponse {
+  success: boolean;
+  artifact?: ArtifactResponse; // Present if upload succeeded
+  agentOffline?: boolean; // True if laptop agent unavailable
+  fallbackCommand?: string; // Manual command if agent offline
+  message: string; // Human-readable status
+  metadata?: {
+    originalSize: number;
+    base64Size: number;
+    detectedMimeType?: string;
+  };
+}
+
 export interface GetArtifactParams {
   artifactId?: string;
   definitionKey?: string;
