@@ -419,6 +419,8 @@ export async function handler(prisma: PrismaClient, params: {
         // Map derived subagent type to enforcement array
         const allowedSubagentTypes = [subagentType];
 
+        // ST-306: When agentConfig is successfully built with assembled prompt,
+        // only include minimal component fields (not redundant raw instructions)
         instructions = {
           type: 'agent_spawn',
           content: `Spawn the ${componentName} agent with the following instructions.`,
@@ -427,9 +429,8 @@ export async function handler(prisma: PrismaClient, params: {
             name: componentName,
             tools: componentTools,
             model: componentModel,
-            inputInstructions: currentState.component.inputInstructions || undefined,
-            operationInstructions: currentState.component.operationInstructions || undefined,
-            outputInstructions: currentState.component.outputInstructions || undefined,
+            // ST-306: Omit raw instruction fields when agentPrompt is built
+            // These are already assembled in workflowSequence[].agentConfig.prompt
           },
           // ST-273: Enforcement data for hooks
           enforcement: {

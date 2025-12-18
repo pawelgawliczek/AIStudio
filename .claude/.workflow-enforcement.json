@@ -1,30 +1,44 @@
 {
   "sessions": {
-    "d91a8c8c-7e90-45f2-9fff-1a36783a2ed9": {
-      "workflowActive": true,
-      "runId": "28fc2fdf-0cd4-46df-8c21-8303346f6962",
-      "currentState": {
-        "id": "b240e7c0-88f6-471a-8547-c8041224793c",
-        "name": "review",
-        "phase": "agent",
-        "componentName": "Reviewer",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
-      },
-      "updatedAt": "2025-12-18T16:03:50Z"
-    },
     "28c561fb-88a8-42f0-9eaa-49ed07c15965": {
       "workflowActive": true,
-      "runId": "ba2f090a-7e1d-47ad-be92-43b74279cb24",
+      "runId": "501c61b8-a513-4035-a951-acb900859a8d",
       "currentState": {
-        "name": "testing",
-        "componentName": "Tester",
+        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
+        "name": "implementation",
+        "phase": "post",
+        "componentName": "Developer",
+        "allowedSubagentTypes": null
+      },
+      "updatedAt": "2025-12-18T16:29:35Z"
+    },
+    "787a9c16-1703-480a-b644-2519ec9d1029": {
+      "workflowActive": true,
+      "runId": "9a68b8c8-d7bb-4aad-9406-454c97847bfc",
+      "currentState": {
+        "id": "448a3025-43ec-4caa-9c9e-292f93291dd0",
+        "name": "architecture-review",
+        "phase": "agent",
+        "componentName": "Architect",
         "allowedSubagentTypes": [
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T15:59:06Z"
+      "updatedAt": "2025-12-18T16:25:28Z"
+    },
+    "88e10089-83bf-40a1-b026-fdedb51a0ca6": {
+      "workflowActive": true,
+      "runId": "ba9bf658-2834-432e-9a61-c85b1590475c",
+      "currentState": {
+        "id": "448a3025-43ec-4caa-9c9e-292f93291dd0",
+        "name": "architecture-review",
+        "phase": "agent",
+        "componentName": "Architect",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-18T16:28:31Z"
     }
   }
 }

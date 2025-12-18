@@ -2944,3 +2944,149 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-18T16:14:52Z",
+  "session_id": "787a9c16-1703-480a-b644-2519ec9d1029",
+  "run_id": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
+  "questions": [
+    {
+      "question": "Which fixes should be prioritized? The investigation found 5 distinct issues - should I implement all of them or focus on a subset first?",
+      "header": "Priority",
+      "options": [
+        {
+          "label": "All 5 fixes",
+          "description": "Implement all fixes for comprehensive solution (most thorough)"
+        },
+        {
+          "label": "Quick wins only (1, 2)",
+          "description": "Add fetch timeouts + increase client timeout (fastest impact)"
+        },
+        {
+          "label": "High impact (1, 2, 4)",
+          "description": "Timeouts + async transcript sync (best ROI)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T16:18:03Z",
+  "session_id": "787a9c16-1703-480a-b644-2519ec9d1029",
+  "run_id": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
+  "questions": [
+    {
+      "question": "Now that you understand the fixes, which should I implement?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "All 5 fixes (Recommended)",
+          "description": "Comprehensive fix - addresses all root causes"
+        },
+        {
+          "label": "Fixes 1, 2, 4 only",
+          "description": "High-impact subset: timeouts + async sync"
+        },
+        {
+          "label": "Fixes 1, 2 only",
+          "description": "Quick wins: just timeout fixes"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T16:19:52Z",
+  "session_id": "88e10089-83bf-40a1-b026-fdedb51a0ca6",
+  "run_id": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
+  "questions": [
+    {
+      "question": "What problem are you trying to solve with artifact storage?",
+      "header": "Goal",
+      "options": [
+        {
+          "label": "Reduce storage costs",
+          "description": "Database is growing too large, want to minimize disk usage"
+        },
+        {
+          "label": "Improve query performance",
+          "description": "Artifact reads/writes are slow, impacting workflow execution"
+        },
+        {
+          "label": "Architectural review",
+          "description": "Just want to ensure the design is sound before scaling up"
+        },
+        {
+          "label": "Simplify agent workflow",
+          "description": "Want agents to upload files directly instead of generating content"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What's your current artifact scale?",
+      "header": "Scale",
+      "options": [
+        {
+          "label": "Small (<1K artifacts)",
+          "description": "Early stage, planning for growth"
+        },
+        {
+          "label": "Medium (1K-10K artifacts)",
+          "description": "Moderate usage, some performance awareness"
+        },
+        {
+          "label": "Large (10K+ artifacts)",
+          "description": "Significant volume, actively concerned about storage"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T16:21:51Z",
+  "session_id": "88e10089-83bf-40a1-b026-fdedb51a0ca6",
+  "run_id": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
+  "questions": [
+    {
+      "question": "How should screenshots integrate with workflows?",
+      "header": "Screenshots",
+      "options": [
+        {
+          "label": "Auto-capture on verification (Recommended)",
+          "description": "Automatically save screenshots when Playwright verification steps run"
+        },
+        {
+          "label": "Manual trigger only",
+          "description": "Agent explicitly calls upload_screenshot when needed"
+        },
+        {
+          "label": "Both options",
+          "description": "Auto-capture on verification + manual trigger available"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What binary file types do you need to support?",
+      "header": "File types",
+      "options": [
+        {
+          "label": "Images only (png, jpg, gif, webp)",
+          "description": "Screenshots and diagrams"
+        },
+        {
+          "label": "Images + PDFs",
+          "description": "Also need to upload PDF documents"
+        },
+        {
+          "label": "All binary types",
+          "description": "Any binary file (images, PDFs, archives, etc.)"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
