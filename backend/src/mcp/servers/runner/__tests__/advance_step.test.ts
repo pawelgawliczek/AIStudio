@@ -37,6 +37,15 @@ describe('advance_step MCP Tool', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      componentRun: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      artifactAccess: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      artifact: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     } as any;
   });
 
@@ -767,6 +776,284 @@ describe('advance_step MCP Tool', () => {
 
       // Workflow should initialize at first state
       expect(result.success).toBe(true);
+    });
+  });
+
+  // ST-304: spawnAgent Block Tests
+  describe('spawnAgent block (ST-304)', () => {
+    const createMockRunWithStory = (phase: string, hasComponent = true) => ({
+      id: 'run-uuid',
+      status: 'running',
+      workflowId: 'workflow-uuid',
+      storyId: 'story-uuid',
+      story: { id: 'story-uuid', key: 'ST-304', title: 'Test Story' },
+      workflow: {
+        id: 'workflow-uuid',
+        name: 'Test Workflow',
+        states: [
+          {
+            id: 'state-0',
+            name: 'Implementation',
+            order: 1,
+            component: hasComponent ? {
+              id: 'comp-1',
+              name: 'Developer',
+              executionType: 'custom',
+              inputInstructions: 'Input instructions here',
+              operationInstructions: 'Operation instructions here',
+              outputInstructions: 'Output instructions here',
+              config: { modelId: 'claude-sonnet-4-20250514' },
+              tools: ['read', 'write'],
+            } : null,
+            preExecutionInstructions: 'Pre-execution context',
+            postExecutionInstructions: 'Post-execution context',
+          },
+        ],
+      },
+      metadata: {
+        checkpoint: {
+          currentStateId: 'state-0',
+          currentPhase: phase,
+          phaseOutputs: {},
+        },
+      },
+    });
+
+    it('should return spawnAgent block when entering agent phase with storyId', async () => {
+      const mockRun = createMockRunWithStory('pre', true);
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      // Mock buildTaskPrompt dependencies
+      (mockPrisma as any).componentRun = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+      (mockPrisma as any).artifactAccess = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.success).toBe(true);
+      expect(result.currentState.phase).toBe('agent');
+
+      // Verify spawnAgent block exists
+      expect(result.instructions.spawnAgent).toBeDefined();
+      expect(result.instructions.spawnAgent.instruction).toContain('Use the Task tool');
+      expect(result.instructions.spawnAgent.task).toBeDefined();
+      expect(result.instructions.spawnAgent.task.subagent_type).toBe('general-purpose');
+      expect(result.instructions.spawnAgent.task.model).toBe('claude-sonnet-4-20250514');
+      expect(result.instructions.spawnAgent.task.prompt).toBeDefined();
+      expect(typeof result.instructions.spawnAgent.task.prompt).toBe('string');
+
+      // Verify prompt contains component instructions
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Pre-execution context');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Input instructions here');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Operation instructions here');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Output instructions here');
+
+      // Verify componentName and componentId
+      expect(result.instructions.spawnAgent.componentName).toBe('Developer');
+      expect(result.instructions.spawnAgent.componentId).toBe('comp-1');
+    });
+
+    it('should NOT include redundant component fields when spawnAgent is present', async () => {
+      const mockRun = createMockRunWithStory('pre', true);
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      // Mock buildTaskPrompt dependencies
+      (mockPrisma as any).componentRun = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+      (mockPrisma as any).artifactAccess = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      // When spawnAgent is present, component should NOT be present
+      expect(result.instructions.spawnAgent).toBeDefined();
+      expect(result.instructions.component).toBeUndefined();
+    });
+
+    it('should fallback to old structure when storyId is unavailable', async () => {
+      const mockRunNoStory = {
+        id: 'run-uuid',
+        status: 'running',
+        workflowId: 'workflow-uuid',
+        storyId: null,
+        story: null,
+        workflow: {
+          id: 'workflow-uuid',
+          name: 'Test Workflow',
+          states: [
+            {
+              id: 'state-0',
+              name: 'Implementation',
+              order: 1,
+              component: {
+                id: 'comp-1',
+                name: 'Developer',
+                executionType: 'custom',
+                inputInstructions: 'Input instructions',
+                operationInstructions: 'Operation instructions',
+                outputInstructions: 'Output instructions',
+                config: { modelId: 'claude-sonnet-4-20250514' },
+                tools: ['read', 'write'],
+              },
+              preExecutionInstructions: 'Pre-execution context',
+              postExecutionInstructions: 'Post-execution context',
+            },
+          ],
+        },
+        metadata: {
+          checkpoint: {
+            currentStateId: 'state-0',
+            currentPhase: 'pre',
+            phaseOutputs: {},
+          },
+        },
+      };
+
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRunNoStory);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRunNoStory);
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.success).toBe(true);
+      expect(result.currentState.phase).toBe('agent');
+
+      // Should fallback to old component structure
+      expect(result.instructions.spawnAgent).toBeUndefined();
+      expect(result.instructions.component).toBeDefined();
+      expect(result.instructions.component.id).toBe('comp-1');
+      expect(result.instructions.component.name).toBe('Developer');
+      expect(result.instructions.component.model).toBe('claude-sonnet-4-20250514');
+      expect(result.instructions.component.tools).toEqual(['read', 'write']);
+      expect(result.instructions.component.inputInstructions).toBe('Input instructions');
+      expect(result.instructions.component.operationInstructions).toBe('Operation instructions');
+      expect(result.instructions.component.outputInstructions).toBe('Output instructions');
+    });
+
+    it('should include previous component outputs in spawnAgent prompt', async () => {
+      const mockRun = createMockRunWithStory('pre', true);
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      // Mock previous component runs
+      (mockPrisma as any).componentRun = {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'cr-1',
+            componentSummary: '{"version":"1.0","status":"success","summary":"Explored codebase successfully"}',
+            component: { name: 'Explorer' },
+          },
+        ]),
+      };
+      (mockPrisma as any).artifactAccess = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      // Verify prompt includes previous outputs
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Previous Component Outputs');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Explorer');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('success');
+    });
+
+    it('should include artifact instructions in spawnAgent prompt', async () => {
+      const mockRun = createMockRunWithStory('pre', true);
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      // Mock artifact access rules
+      (mockPrisma as any).componentRun = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+      (mockPrisma as any).artifactAccess = {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            accessType: 'write',
+            definitionId: 'def-1',
+            definition: {
+              key: 'THE_PLAN',
+              name: 'Implementation Plan',
+              description: 'Detailed implementation plan',
+            },
+          },
+        ]),
+      };
+      (mockPrisma as any).artifact = {
+        findFirst: jest.fn().mockResolvedValue(null), // Artifact doesn't exist yet
+      };
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      // Verify prompt includes artifact instructions
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Artifact Instructions');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('THE_PLAN');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('Implementation Plan');
+      expect(result.instructions.spawnAgent.task.prompt).toContain('upload_artifact');
+    });
+
+    it('should derive correct subagent_type for native_explore', async () => {
+      const mockRun = createMockRunWithStory('pre', true);
+      // Change executionType to native_explore
+      mockRun.workflow.states[0].component!.executionType = 'native_explore';
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      (mockPrisma as any).componentRun = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+      (mockPrisma as any).artifactAccess = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.instructions.spawnAgent.task.subagent_type).toBe('Explore');
+    });
+
+    it('should derive correct subagent_type for native_plan', async () => {
+      const mockRun = createMockRunWithStory('pre', true);
+      // Change executionType to native_plan
+      mockRun.workflow.states[0].component!.executionType = 'native_plan';
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      (mockPrisma as any).componentRun = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+      (mockPrisma as any).artifactAccess = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.instructions.spawnAgent.task.subagent_type).toBe('Plan');
+    });
+
+    it('should still include enforcement data with spawnAgent', async () => {
+      const mockRun = createMockRunWithStory('pre', true);
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      (mockPrisma as any).componentRun = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+      (mockPrisma as any).artifactAccess = {
+        findMany: jest.fn().mockResolvedValue([]),
+      };
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      // Verify enforcement data is still present
+      expect(result.instructions.enforcement).toBeDefined();
+      expect(result.instructions.enforcement.allowedSubagentTypes).toEqual(['general-purpose']);
+      expect(result.instructions.enforcement.requiredComponentName).toBe('Developer');
     });
   });
 

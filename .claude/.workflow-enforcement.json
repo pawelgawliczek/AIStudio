@@ -4,13 +4,15 @@
       "workflowActive": true,
       "runId": "28fc2fdf-0cd4-46df-8c21-8303346f6962",
       "currentState": {
-        "id": "3b20a175-5c13-42a2-b725-3a93330b8e41",
-        "name": "implementation",
-        "phase": "post",
-        "componentName": "Developer",
-        "allowedSubagentTypes": null
+        "id": "b240e7c0-88f6-471a-8547-c8041224793c",
+        "name": "review",
+        "phase": "agent",
+        "componentName": "Reviewer",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
       },
-      "updatedAt": "2025-12-18T15:58:49Z"
+      "updatedAt": "2025-12-18T16:03:50Z"
     },
     "28c561fb-88a8-42f0-9eaa-49ed07c15965": {
       "workflowActive": true,
@@ -22,7 +24,7 @@
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T15:57:27Z"
+      "updatedAt": "2025-12-18T15:59:06Z"
     }
   }
 }
