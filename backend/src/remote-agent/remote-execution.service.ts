@@ -157,14 +157,14 @@ export class RemoteExecutionService {
       },
     });
 
-    // ST-287: Log job submission
+    // ST-287: Log job submission with JSON for Loki parsing
     const jobType = this.deriveJobType(scriptName, params);
-    this.logger.log('Remote job submitted', {
+    this.logger.log(`Remote job submitted ${JSON.stringify({
       jobId: job.id,
       jobType,
       agentId: agent.id,
       targetPath: this.sanitizeTargetPath(scriptName, params),
-    });
+    })}`);
 
     // Emit job to agent via WebSocket
     try {
@@ -188,27 +188,27 @@ export class RemoteExecutionService {
       const startTime = Date.now();
       const result = await this.waitForResult(job.id, timeout);
 
-      // ST-287: Log job completion
-      this.logger.log('Remote job completed', {
+      // ST-287: Log job completion with JSON for Loki parsing
+      this.logger.log(`Remote job completed ${JSON.stringify({
         jobId: job.id,
         jobType,
         agentId: agent.id,
         durationMs: Date.now() - startTime,
         status: 'success',
-      });
+      })}`);
 
       return result;
     } catch (error) {
       const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
 
-      // ST-287: Log job failure/timeout
-      this.logger.error(`Remote execution ${errorStatus}`, {
+      // ST-287: Log job failure/timeout with JSON for Loki parsing
+      this.logger.error(`Remote execution ${errorStatus} ${JSON.stringify({
         jobId: job.id,
         jobType,
         agentId: agent.id,
         status: errorStatus,
         error: error.message,
-      });
+      })}`);
 
       // Update job status
       await this.prisma.remoteJob.update({
@@ -266,13 +266,13 @@ export class RemoteExecutionService {
       },
     });
 
-    // ST-287: Log timeout
-    this.logger.warn('Remote job timeout', {
+    // ST-287: Log timeout with JSON for Loki parsing
+    this.logger.warn(`Remote job timeout ${JSON.stringify({
       jobId,
       jobType: this.deriveJobType(job.script, job.params as string[]),
       agentId: job.agentId || 'unknown',
       timeoutMs: timeout,
-    });
+    })}`);
 
     throw new Error(`Job timed out after ${timeout}ms`);
   }
@@ -413,13 +413,13 @@ export class RemoteExecutionService {
       },
     });
 
-    // ST-287: Log Claude Code job submission
-    this.logger.log('Remote job submitted', {
+    // ST-287: Log Claude Code job submission with JSON for Loki parsing
+    this.logger.log(`Remote job submitted ${JSON.stringify({
       jobId: job.id,
       jobType: 'claude-agent',
       agentId: agent.id,
       targetPath: `component:${request.componentId}`,
-    });
+    })}`);
 
     // Update ComponentRun with job tracking (skip for orchestrator jobs without componentRunId)
     if (componentRunId) {
@@ -488,27 +488,27 @@ export class RemoteExecutionService {
       const startTime = Date.now();
       const result = await this.waitForClaudeCodeResult(job.id, timeout);
 
-      // ST-287: Log Claude Code job completion
-      this.logger.log('Remote job completed', {
+      // ST-287: Log Claude Code job completion with JSON for Loki parsing
+      this.logger.log(`Remote job completed ${JSON.stringify({
         jobId: job.id,
         jobType: 'claude-agent',
         agentId: agent.id,
         durationMs: Date.now() - startTime,
         status: result.success ? 'success' : 'failed',
-      });
+      })}`);
 
       return result;
     } catch (error) {
       const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
 
-      // ST-287: Log Claude Code job failure/timeout
-      this.logger.error(`Claude Code execution ${errorStatus}`, {
+      // ST-287: Log Claude Code job failure/timeout with JSON for Loki parsing
+      this.logger.error(`Claude Code execution ${errorStatus} ${JSON.stringify({
         jobId: job.id,
         jobType: 'claude-agent',
         agentId: agent.id,
         status: errorStatus,
         error: error.message,
-      });
+      })}`);
 
       // Update job status
       await this.prisma.remoteJob.update({
@@ -703,13 +703,13 @@ export class RemoteExecutionService {
       },
     });
 
-    // ST-287: Log Claude Code timeout
-    this.logger.warn('Remote job timeout', {
+    // ST-287: Log Claude Code timeout with JSON for Loki parsing
+    this.logger.warn(`Remote job timeout ${JSON.stringify({
       jobId,
       jobType: 'claude-agent',
       agentId: job.agentId || 'unknown',
       timeoutMs: timeout,
-    });
+    })}`);
 
     return {
       success: false,
@@ -890,13 +890,13 @@ export class RemoteExecutionService {
       },
     });
 
-    // ST-287: Log git job submission
-    this.logger.log('Remote job submitted', {
+    // ST-287: Log git job submission with JSON for Loki parsing
+    this.logger.log(`Remote job submitted ${JSON.stringify({
       jobId: job.id,
       jobType: 'git-execute',
       agentId: agent.id,
       targetPath: `git ${operation}`,
-    });
+    })}`);
 
     // Emit job to agent via WebSocket
     try {
@@ -921,27 +921,27 @@ export class RemoteExecutionService {
       const startTime = Date.now();
       const result = await this.waitForGitResult(job.id, timeout);
 
-      // ST-287: Log git job completion
-      this.logger.log('Remote job completed', {
+      // ST-287: Log git job completion with JSON for Loki parsing
+      this.logger.log(`Remote job completed ${JSON.stringify({
         jobId: job.id,
         jobType: 'git-execute',
         agentId: agent.id,
         durationMs: Date.now() - startTime,
         status: result.success ? 'success' : 'failed',
-      });
+      })}`);
 
       return result;
     } catch (error) {
       const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
 
-      // ST-287: Log git job failure/timeout
-      this.logger.error(`Git execution ${errorStatus}`, {
+      // ST-287: Log git job failure/timeout with JSON for Loki parsing
+      this.logger.error(`Git execution ${errorStatus} ${JSON.stringify({
         jobId: job.id,
         jobType: 'git-execute',
         agentId: agent.id,
         status: errorStatus,
         error: error.message,
-      });
+      })}`);
 
       // Update job status
       await this.prisma.remoteJob.update({
@@ -1036,13 +1036,13 @@ export class RemoteExecutionService {
       },
     });
 
-    // ST-287: Log git timeout
-    this.logger.warn('Remote job timeout', {
+    // ST-287: Log git timeout with JSON for Loki parsing
+    this.logger.warn(`Remote job timeout ${JSON.stringify({
       jobId,
       jobType: 'git-execute',
       agentId: job.agentId || 'unknown',
       timeoutMs: timeout,
-    });
+    })}`);
 
     return {
       success: false,

@@ -93,7 +93,7 @@
         "type": "loki",
         "uid": "loki"
       },
-      "description": "Average job duration over time",
+      "description": "Job duration extracted from logs",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -119,7 +119,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -169,7 +169,8 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{compose_service=\"backend\"} |~ \"Remote job completed\" | json | unwrap durationMs",
+          "expr": "{compose_service=\"backend\"} |~ \"Remote job completed\" | pattern `<_> <_> <_> <level>: Remote job completed <json>` | json json_data=json | unwrap json_data_durationMs",
+          "legendFormat": "Job Latency",
           "refId": "A"
         }
       ],
@@ -181,7 +182,7 @@
         "type": "loki",
         "uid": "loki"
       },
-      "description": "Distribution of job statuses (success/timeout/failed)",
+      "description": "Count of jobs by status in last hour",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -194,37 +195,55 @@
               "legend": false
             }
           },
-          "mappings": [
-            {
-              "options": {
-                "success": {
-                  "color": "green",
-                  "index": 0
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "timeout": {
-                  "color": "red",
-                  "index": 1
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "failed": {
-                  "color": "orange",
-                  "index": 2
-                }
-              },
-              "type": "value"
-            }
-          ]
+          "mappings": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "success"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timeout"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -243,7 +262,7 @@
         "pieType": "pie",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": ["sum"],
           "fields": ""
         },
         "tooltip": {
@@ -257,8 +276,27 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (status) (count_over_time({compose_service=\"backend\"} |~ \"Remote job completed|Remote job timeout|Remote execution\" | json [1h]))",
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote job completed.*success\" [1h]))",
+          "legendFormat": "success",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote job timeout\" [1h]))",
+          "legendFormat": "timeout",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote execution.*failed|Remote job completed.*failed\" [1h]))",
+          "legendFormat": "failed",
+          "refId": "C"
         }
       ],
       "title": "Jobs by Status (1h)",
@@ -269,11 +307,11 @@
         "type": "loki",
         "uid": "loki"
       },
-      "description": "Distribution of job types",
+      "description": "Count of jobs by type in last hour",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisCenteredZero": false,
@@ -302,10 +340,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
@@ -330,7 +364,7 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "orientation": "auto",
+        "orientation": "horizontal",
         "showValue": "auto",
         "stacking": "none",
         "tooltip": {
@@ -347,8 +381,45 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (jobType) (count_over_time({compose_service=\"backend\"} |~ \"Remote job\" | json [1h]))",
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote job.*exec-command\" [1h]))",
+          "legendFormat": "exec-command",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote job.*read-file\" [1h]))",
+          "legendFormat": "read-file",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote job.*git-execute\" [1h]))",
+          "legendFormat": "git-execute",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote job.*claude-agent\" [1h]))",
+          "legendFormat": "claude-agent",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum(count_over_time({compose_service=\"backend\"} |~ \"Remote job.*workflow-tracker\" [1h]))",
+          "legendFormat": "workflow-tracker",
+          "refId": "E"
         }
       ],
       "title": "Jobs by Type (1h)",
@@ -359,7 +430,7 @@
         "type": "loki",
         "uid": "loki"
       },
-      "description": "Recent timeout and error logs",
+      "description": "Recent timeout and error logs - click trace_id to see full trace",
       "gridPos": {
         "h": 10,
         "w": 24,
@@ -375,7 +446,7 @@
         "showLabels": false,
         "showTime": true,
         "sortOrder": "Descending",
-        "wrapLogMessage": false
+        "wrapLogMessage": true
       },
       "targets": [
         {
@@ -383,12 +454,24 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{compose_service=\"backend\"} |~ \"Remote job timeout|Remote execution failed|Remote execution timeout\"",
+          "expr": "{compose_service=\"backend\"} |~ \"Remote job timeout|Remote execution.*timeout|Remote execution.*failed\"",
           "refId": "A"
         }
       ],
       "title": "Recent Timeout & Error Logs",
-      "type": "logs"
+      "type": "logs",
+      "fieldConfig": {
+        "defaults": {
+          "links": [
+            {
+              "title": "View full trace in Loki",
+              "url": "/explore?orgId=1&left=%7B%22datasource%22:%22loki%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bcompose_service%3D%5C%22backend%5C%22%7D%20%7C~%20%5C%22${__data.fields.trace_id}%5C%22%22%7D%5D,%22range%22:%7B%22from%22:%22now-1h%22,%22to%22:%22now%22%7D%7D",
+              "targetBlank": true
+            }
+          ]
+        },
+        "overrides": []
+      }
     }
   ],
   "refresh": "10s",
@@ -406,6 +489,6 @@
   "timezone": "",
   "title": "AIStudio - Remote Execution Monitoring",
   "uid": "aistudio-remote-execution",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
