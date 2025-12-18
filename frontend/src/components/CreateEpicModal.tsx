@@ -2,6 +2,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Fragment, useState, useEffect } from 'react';
 import { MarkdownEditor } from './MarkdownEditor';
+import { EpicStatus } from '../types';
 
 interface CreateEpicModalProps {
   open: boolean;
@@ -10,12 +11,14 @@ interface CreateEpicModalProps {
     title: string;
     description: string;
     priority?: number;
+    status?: EpicStatus;
   }) => void;
   isLoading?: boolean;
   initialData?: {
     title: string;
     description?: string;
     priority?: number;
+    status?: EpicStatus;
   };
 }
 
@@ -31,6 +34,7 @@ export function CreateEpicModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<number>(3);
+  const [status, setStatus] = useState<EpicStatus>(EpicStatus.open);
 
   // Populate form with initial data when editing
   useEffect(() => {
@@ -40,11 +44,13 @@ export function CreateEpicModal({
       // Clamp priority to valid range (0-10) to match backend validation
       // This prevents validation errors while preserving the value when possible
       setPriority(Math.min(Math.max(initialData.priority ?? 3, 0), 10));
+      setStatus(initialData.status || EpicStatus.open);
     } else {
       // Reset form when creating new
       setTitle('');
       setDescription('');
       setPriority(3);
+      setStatus(EpicStatus.open);
     }
   }, [initialData, open]);
 
@@ -54,6 +60,7 @@ export function CreateEpicModal({
       title,
       description,
       priority,
+      status: isEditing ? status : undefined, // Only include status when editing
     });
     // Form will be reset via useEffect when modal closes
   };
@@ -168,6 +175,28 @@ export function CreateEpicModal({
                           <option value="10">10 - Highest</option>
                         </select>
                       </div>
+
+                      {/* Status - Only show when editing */}
+                      {isEditing && (
+                        <div>
+                          <label
+                            htmlFor="status"
+                            className="block text-sm font-medium text-fg mb-2"
+                          >
+                            Status
+                          </label>
+                          <select
+                            id="status"
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value as EpicStatus)}
+                            className="block w-full rounded-md shadow-sm sm:text-sm py-2.5 px-4"
+                          >
+                            <option value={EpicStatus.open}>Open</option>
+                            <option value={EpicStatus.closed}>Closed</option>
+                            <option value={EpicStatus.cancelled}>Cancelled</option>
+                          </select>
+                        </div>
+                      )}
 
                       {/* Action Buttons */}
                       <div className="mt-6 flex justify-end gap-3">

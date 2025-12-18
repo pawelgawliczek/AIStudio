@@ -741,6 +741,7 @@ export function EpicPlanningView() {
               title: editingEpic.title,
               description: editingEpic.description || '',
               priority: editingEpic.priority,
+              status: editingEpic.status,
             }}
           />
         )}
