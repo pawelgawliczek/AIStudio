@@ -1,7 +1,7 @@
 # MCP Tools
 
-**Version:** 1.0
-**Last Updated:** 2025-12-17
+**Version:** 1.1
+**Last Updated:** 2025-12-18
 **Epic:** ST-279
 
 ## Overview
@@ -234,6 +234,92 @@ Tools for story runner control (core tools).
 - `repeat_step` - Retry current state with feedback
 - `get_runner_status` - Get workflow status and checkpoint
 
+#### get_current_step - Agent Phase Response Format
+
+When `get_current_step` returns instructions for an agent phase, the `workflowSequence` includes an `agentConfig` object that provides everything needed to spawn the Task agent:
+
+```typescript
+{
+  workflowSequence: [
+    {
+      step: 1,
+      type: 'agent_spawn',
+      description: 'Spawn {{ComponentName}} agent via Task tool',
+      agentConfig: {
+        subagentType: string,      // Derived from component executionType
+        model: string,             // From component.config.modelId
+        prompt: string,            // Full prompt assembled by buildTaskPrompt()
+        componentId: string,       // Component UUID
+        componentName: string,     // Component name (e.g., "Explorer", "Implementer")
+        tools: string[]           // MCP tools available to agent
+      },
+      notes: '...'
+    },
+    // Additional steps...
+  ]
+}
+```
+
+**Subagent Type Mapping:**
+
+The `deriveSubagentType()` function maps component `executionType` to Claude Code Task types:
+- `native_explore` → `"Explore"`
+- `native_plan` → `"Plan"`
+- `native_general` → `"general-purpose"`
+- Any custom type → `"general-purpose"` (default)
+
+**Prompt Assembly:**
+
+The `buildTaskPrompt()` function assembles the agent prompt from:
+
+1. **Pre-execution Context** (if exists)
+   - `state.preExecutionInstructions` - Workflow context for this state
+
+2. **Component Instructions**
+   - `component.inputInstructions` - What inputs the agent receives
+   - `component.operationInstructions` - Task the agent should perform
+   - `component.outputInstructions` - Expected output format
+
+3. **Previous Component Outputs** (if any)
+   - Completed ComponentRun records with `componentSummary`
+   - Formatted with structured summary sections (status, keyOutputs, nextAgentHints, errors)
+
+4. **Artifact Access Instructions** (if configured)
+   - Required artifacts (MUST READ) - blocks if missing
+   - Read artifacts - available for reference
+   - Write artifacts - expected to create/update
+   - Includes MCP tool examples for each artifact
+
+**Example Usage:**
+
+```typescript
+// Get current step
+const step = await get_current_step({ story: "ST-123" });
+
+// Extract agentConfig from workflowSequence
+const agentStep = step.workflowSequence.find(s => s.type === 'agent_spawn');
+const config = agentStep.agentConfig;
+
+// Spawn Task agent with exact configuration
+await Task({
+  subagent_type: config.subagentType,  // "Explore", "Plan", or "general-purpose"
+  model: config.model,                  // e.g., "claude-sonnet-4-20250514"
+  prompt: config.prompt                 // Complete multi-section prompt
+});
+
+// Advance after agent completes (auto-tracks agent metrics)
+await advance_step({
+  story: "ST-123",
+  output: agentOutput  // Captured from Task agent
+});
+```
+
+**Notes:**
+- The orchestrator MUST use the Task tool - never do the work directly
+- Agent tracking (record_agent_start/complete) is AUTOMATIC in advance_step
+- The prompt includes all necessary context - agent doesn't need prior workflow knowledge
+- For code-modifying components (Implementer, Developer), an additional commit step is included
+
 ### 5. Orchestration Server
 
 Tools for agent coordination (core tools).
@@ -433,6 +519,12 @@ console.log('Required params:', schema[0].inputSchema.required);
 - ST-279: Living Documentation System
 
 ## Changelog
+
+### Version 1.1 (2025-12-18)
+- ST-289: Documented agentConfig format in get_current_step response
+- Added deriveSubagentType mapping (executionType to Task subagent types)
+- Documented buildTaskPrompt prompt assembly logic
+- Added example usage for Task agent spawning with agentConfig
 
 ### Version 1.0 (2025-12-17)
 - Initial documentation created for ST-279
