@@ -1,6 +1,6 @@
+import { WifiIcon } from '@heroicons/react/24/outline';
 import React from 'react';
 import { useWebSocket } from '../services/websocket.service';
-import { WifiIcon } from '@heroicons/react/24/outline';
 
 /**
  * ST-108: Connection status indicator

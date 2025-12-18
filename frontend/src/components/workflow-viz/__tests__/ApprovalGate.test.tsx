@@ -3,8 +3,8 @@
  * ST-168: Human-in-the-loop approval UI
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { ApprovalGate } from '../ApprovalGate';
 import { ApprovalRequest } from '../types';
 

@@ -1,20 +1,18 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tab } from '@headlessui/react';
 import { ArrowLeftIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
-
-import { workflowsService } from '../services/workflows.service';
-import { versioningService } from '../services/versioning.service';
-import { analyticsService } from '../services/analytics.service';
-import { useProject } from '../context/ProjectContext';
-import { Workflow } from '../types';
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { VersionHistoryTimeline } from '../components/shared';
+import { TeamFlowDiagram } from '../components/TeamFlowDiagram';
 import { VersionBadge } from '../components/VersionBadge';
 import { VersionBumpModal } from '../components/VersionBumpModal';
-import { VersionHistoryTimeline } from '../components/shared';
 import { WorkflowRunsTable } from '../components/WorkflowRunsTable';
-import { TeamFlowDiagram } from '../components/TeamFlowDiagram';
+import { useProject } from '../context/ProjectContext';
+import { analyticsService } from '../services/analytics.service';
+import { versioningService } from '../services/versioning.service';
+import { workflowsService } from '../services/workflows.service';
+import { Workflow } from '../types';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');

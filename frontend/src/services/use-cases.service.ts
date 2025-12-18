@@ -1,5 +1,5 @@
-import { apiClient } from './api.client';
 import type { UseCase, UseCaseVersion, CreateUseCaseDto, UpdateUseCaseDto } from '../types';
+import { apiClient } from './api.client';
 
 export const useCasesService = {
   // Get all use cases with optional filters

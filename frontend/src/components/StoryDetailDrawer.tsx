@@ -1,12 +1,12 @@
-import { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CheckCircleIcon, ClockIcon, CodeBracketIcon, PencilIcon } from '@heroicons/react/24/outline';
-import { Story, StoryStatus, StoryType, Subtask } from '../types';
-import { WorkflowAnalysisDisplay } from './workflow/WorkflowAnalysisDisplay';
-import { StoryTraceabilityTabs } from './story/StoryTraceabilityTabs';
-import { MarkdownRenderer } from './MarkdownRenderer';
-import { storiesService } from '../services/stories.service';
 import clsx from 'clsx';
+import { Fragment, useEffect, useState } from 'react';
+import { storiesService } from '../services/stories.service';
+import { Story, StoryStatus, StoryType, Subtask } from '../types';
+import { MarkdownRenderer } from './MarkdownRenderer';
+import { StoryTraceabilityTabs } from './story/StoryTraceabilityTabs';
+import { WorkflowAnalysisDisplay } from './workflow/WorkflowAnalysisDisplay';
 
 interface StoryDetailDrawerProps {
   story: Story | null;

@@ -1,4 +1,3 @@
-import { apiClient } from './api.client';
 import type {
   TestCase,
   CreateTestCaseDto,
@@ -9,6 +8,7 @@ import type {
   CoverageGap,
   PaginatedResponse,
 } from '../types';
+import { apiClient } from './api.client';
 
 class TestCasesService {
   /**

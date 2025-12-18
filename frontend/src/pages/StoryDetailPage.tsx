@@ -1,18 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import { storiesService } from '../services/stories.service';
-import { subtasksService } from '../services/subtasks.service';
-import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service';
-import { Breadcrumbs } from '../components/Breadcrumbs';
-import { WorkflowAnalysisDisplay } from '../components/workflow/WorkflowAnalysisDisplay';
-import { StoryTraceabilityTabs } from '../components/story/StoryTraceabilityTabs';
-import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
-import { ReviewDashboard } from '../components/story/ReviewDashboard';
-import { StoryDetailTabs } from '../components/story/StoryDetailTabs';
-import { StandardStateList, useWorkflowRun, WorkflowControlPanel, StartWorkflowModal } from '../components/workflow-viz';
-import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
-import { StoryStatus } from '../types';
 import {
   PlusIcon,
   PencilIcon,
@@ -22,6 +7,21 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { ReviewDashboard } from '../components/story/ReviewDashboard';
+import { StoryDetailTabs } from '../components/story/StoryDetailTabs';
+import { StoryTraceabilityTabs } from '../components/story/StoryTraceabilityTabs';
+import { TokenMetricsPanel } from '../components/story/TokenMetricsPanel';
+import { WorkflowAnalysisDisplay } from '../components/workflow/WorkflowAnalysisDisplay';
+import { StandardStateList, useWorkflowRun, WorkflowControlPanel, StartWorkflowModal } from '../components/workflow-viz';
+import { storiesService } from '../services/stories.service';
+import { subtasksService } from '../services/subtasks.service';
+import { useStoryEvents, useSubtaskEvents } from '../services/websocket.service';
+import type { Story, Subtask, SubtaskStatus, SubtaskLayer, CreateSubtaskDto, UpdateSubtaskDto } from '../types';
+import { StoryStatus } from '../types';
 
 const STATUS_COLORS: Record<string, string> = {
   planning: 'bg-bg-secondary0/10 text-muted border-gray-500/20',

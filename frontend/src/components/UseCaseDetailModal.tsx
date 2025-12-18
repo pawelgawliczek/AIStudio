@@ -1,10 +1,10 @@
-import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition, Tab } from '@headlessui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow, format } from 'date-fns';
+import { useState, useEffect, Fragment } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useCasesService } from '../services/use-cases.service';
 import { UseCase, UseCaseVersion } from '../types';
-import { formatDistanceToNow, format } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
 import { MarkdownEditor } from './MarkdownEditor';
 
 interface UseCaseDetailModalProps {

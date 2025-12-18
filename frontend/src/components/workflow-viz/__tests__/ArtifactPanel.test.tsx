@@ -3,8 +3,8 @@
  * ST-168: Artifact quick access UI
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { ArtifactPanel, Artifact } from '../ArtifactPanel';
 
 describe('ArtifactPanel', () => {

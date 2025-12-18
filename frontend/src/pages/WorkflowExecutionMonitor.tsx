@@ -1,7 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import io, { Socket } from 'socket.io-client';
+import { ArrowBack, Refresh } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -23,22 +20,25 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import { ArrowBack, Refresh } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import io, { Socket } from 'socket.io-client';
 import LiveMetricsDisplay from '../components/execution/LiveMetricsDisplay';
 // Use direct imports to avoid potential circular dependency issues with barrel exports
-import { FullStatePanel } from '../components/workflow-viz/FullStatePanel';
-import { useWorkflowRun } from '../components/workflow-viz/hooks/useWorkflowRun';
-import { useApprovals } from '../components/workflow-viz/hooks/useApprovals';
-import { useArtifacts, useArtifactAccess } from '../components/workflow-viz/hooks/useArtifacts';
 import { ApprovalGate } from '../components/workflow-viz/ApprovalGate';
 import { ArtifactPanel } from '../components/workflow-viz/ArtifactPanel';
 import { ArtifactViewerModal } from '../components/workflow-viz/ArtifactViewerModal';
-import { TranscriptViewerModal } from '../components/workflow-viz/TranscriptViewerModal';
-import { MasterTranscriptPanel } from '../components/workflow-viz/MasterTranscriptPanel';
-import { useRemoteAgents } from '../components/workflow-viz/hooks/useRemoteAgents';
-import { WorkflowControlPanel } from '../components/workflow-viz/WorkflowControlPanel';
 import { ComponentOutputModal } from '../components/workflow-viz/ComponentOutputModal';
+import { FullStatePanel } from '../components/workflow-viz/FullStatePanel';
+import { useApprovals } from '../components/workflow-viz/hooks/useApprovals';
+import { useArtifacts, useArtifactAccess } from '../components/workflow-viz/hooks/useArtifacts';
+import { useRemoteAgents } from '../components/workflow-viz/hooks/useRemoteAgents';
+import { useWorkflowRun } from '../components/workflow-viz/hooks/useWorkflowRun';
+import { MasterTranscriptPanel } from '../components/workflow-viz/MasterTranscriptPanel';
+import { TranscriptViewerModal } from '../components/workflow-viz/TranscriptViewerModal';
 import type { ComponentRunWithMetrics } from '../components/workflow-viz/types';
+import { WorkflowControlPanel } from '../components/workflow-viz/WorkflowControlPanel';
 
 interface WorkflowRunStatus {
   runId: string;

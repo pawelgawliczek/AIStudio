@@ -12,8 +12,8 @@
  * @see ST-176: Real-Time Agent Transcript Streaming in Web GUI
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock socket
 let mockSocket: any;
@@ -26,8 +26,8 @@ vi.mock('../../services/websocket.service', () => {
 });
 
 // Import after mock setup
-import { useTranscriptStream } from '../useTranscriptStream';
 import { useWebSocket } from '../../services/websocket.service';
+import { useTranscriptStream } from '../useTranscriptStream';
 
 describe('useTranscriptStream', () => {
   beforeEach(() => {

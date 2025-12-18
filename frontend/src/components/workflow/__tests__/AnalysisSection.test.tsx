@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { AnalysisSection } from '../AnalysisSection';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { AnalysisSection } from '../AnalysisSection';
 
 describe('AnalysisSection', () => {
   describe('TC-UI-013-001: Rendering with content', () => {

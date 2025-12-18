@@ -13,13 +13,13 @@
  * - AC-6: Works consistently across multiple analysis runs
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import CodeQualityDashboard from '../CodeQualityDashboard';
-import axios from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import axios from '../../lib/axios';
+import CodeQualityDashboard from '../CodeQualityDashboard';
 
 vi.mock('../../lib/axios');
 vi.mock('react-hot-toast');

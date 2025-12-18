@@ -1,5 +1,12 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import {
+  Description,
+  Code,
+  Assessment,
+  BugReport,
+  Download,
+  Visibility,
+  InsertDriveFile,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -18,15 +25,8 @@ import {
   DialogActions,
   Button,
 } from '@mui/material';
-import {
-  Description,
-  Code,
-  Assessment,
-  BugReport,
-  Download,
-  Visibility,
-  InsertDriveFile,
-} from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
+import React from 'react';
 
 interface Artifact {
   s3Key: string;

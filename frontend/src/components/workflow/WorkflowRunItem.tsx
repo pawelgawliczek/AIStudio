@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
 import { WorkflowRunItemProps } from '../../types/workflow-tracking';
-import { WorkflowStatusIcon } from './WorkflowStatusIcon';
-import { WorkflowRunProgress } from './WorkflowRunProgress';
 import { WorkflowRunDetails } from './WorkflowRunDetails';
+import { WorkflowRunProgress } from './WorkflowRunProgress';
+import { WorkflowStatusIcon } from './WorkflowStatusIcon';
 
 /**
  * Individual workflow run item with expand/collapse and interactions

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ImplementationSummaryCard } from './ImplementationSummaryCard';
-import { QAStatusSection, QAStatus } from './QAStatusSection';
-import { ConcernsGapsPanel } from './ConcernsGapsPanel';
-import { ScreenshotGallery, ScreenshotCategory } from './ScreenshotGallery';
 import { useWebSocket } from '../../services/websocket.service';
 import type { Story } from '../../types';
+import { ConcernsGapsPanel } from './ConcernsGapsPanel';
+import { ImplementationSummaryCard } from './ImplementationSummaryCard';
+import { QAStatusSection, QAStatus } from './QAStatusSection';
+import { ScreenshotGallery, ScreenshotCategory } from './ScreenshotGallery';
 
 // Commit type based on backend schema
 interface Commit {

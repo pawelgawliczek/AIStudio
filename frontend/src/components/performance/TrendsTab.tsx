@@ -1,5 +1,3 @@
-import { TrendsResponse, WeeklyAggregation } from '../../services/metrics.service';
-import { EmptyState } from './EmptyState';
 import {
   LineChart,
   Line,
@@ -10,6 +8,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { TrendsResponse, WeeklyAggregation } from '../../services/metrics.service';
+import { EmptyState } from './EmptyState';
 
 interface TrendsTabProps {
   trendsData: TrendsResponse[];

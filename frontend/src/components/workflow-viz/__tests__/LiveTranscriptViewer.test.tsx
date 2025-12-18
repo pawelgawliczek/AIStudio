@@ -13,8 +13,8 @@
  * @see ST-176: Real-Time Agent Transcript Streaming in Web GUI
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 
 // Mock dependencies

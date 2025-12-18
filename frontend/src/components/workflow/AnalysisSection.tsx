@@ -1,7 +1,7 @@
 import { Disclosure, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
-import ReactMarkdown from 'react-markdown';
 import { formatDistanceToNow } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
 
 interface AnalysisSectionProps {
   title: string;

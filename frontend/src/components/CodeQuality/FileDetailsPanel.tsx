@@ -3,7 +3,6 @@
  * Sticky right panel showing detailed metrics for selected file
  */
 
-import React from 'react';
 import {
   DocumentTextIcon,
   PlusIcon,
@@ -11,6 +10,7 @@ import {
   WrenchIcon,
   PaintBrushIcon,
 } from '@heroicons/react/24/outline';
+import React from 'react';
 import { FileDetail } from '../../types/codeQualityTypes';
 import { getHealthColor, getSeverityColor } from '../../utils/codeQuality/healthCalculations';
 

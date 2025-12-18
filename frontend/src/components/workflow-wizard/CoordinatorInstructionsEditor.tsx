@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   TextField,
@@ -10,8 +9,9 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { debounce } from 'lodash';
-import { ComponentAssignment, TemplateValidationResult } from '../../types/workflow-wizard';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../../services/api.client';
+import { ComponentAssignment, TemplateValidationResult } from '../../types/workflow-wizard';
 
 interface CoordinatorInstructionsEditorProps {
   instructions: string;

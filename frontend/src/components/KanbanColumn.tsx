@@ -1,8 +1,8 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import clsx from 'clsx';
 import { Story, StoryStatus } from '../types';
 import { StoryCard } from './StoryCard';
-import clsx from 'clsx';
 
 interface KanbanColumnProps {
   status: StoryStatus;

@@ -4,10 +4,6 @@
  * Phase 3: Reduced from 1,900 LOC to ~200 LOC using custom hooks and components
  */
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import axios from '../lib/axios';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -29,28 +25,32 @@ import {
   ClipboardDocumentCheckIcon,
   PlusCircleIcon,
 } from '@heroicons/react/24/outline';
-import { useCodeQualityMetrics } from '../hooks/useCodeQualityMetrics';
-import { useAnalysisPolling } from '../hooks/useAnalysisPolling';
-import { useFileTree } from '../hooks/useFileTree';
-import { useStoryCreation } from '../hooks/useStoryCreation';
-import { MetricsSummaryCard } from '../components/CodeQuality/MetricsSummaryCard';
-import { FileTreeView } from '../components/CodeQuality/FileTreeView';
-import { FileDetailsPanel } from '../components/CodeQuality/FileDetailsPanel';
+import React, { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
+import { useParams } from 'react-router-dom';
 import { AnalysisRefreshButton, AnalysisStatusBanner } from '../components/CodeQuality/AnalysisRefreshButton';
-import { StoryCreationDialog } from '../components/CodeQuality/StoryCreationDialog';
-import { CodeSmellsList } from '../components/CodeQuality/CodeSmellsList';
-import { TrendChart } from '../components/CodeQuality/TrendChart';
-import { RiskDistributionChart } from '../components/CodeQuality/RiskDistributionChart';
 import { ChurnVsComplexityChart } from '../components/CodeQuality/ChurnVsComplexityChart';
+import { CodeSmellsList } from '../components/CodeQuality/CodeSmellsList';
+import { FileDetailsPanel } from '../components/CodeQuality/FileDetailsPanel';
+import { FileTreeView } from '../components/CodeQuality/FileTreeView';
 import { HotspotDetailsPanel } from '../components/CodeQuality/HotspotDetailsPanel';
+import { DashboardIcon, FolderIcon, ShieldCheckIcon, BugIcon, FlameIcon, AnalyticsIcon } from '../components/CodeQuality/Icons';
+import { MetricsSummaryCard } from '../components/CodeQuality/MetricsSummaryCard';
+import { RiskDistributionChart } from '../components/CodeQuality/RiskDistributionChart';
+import { StoryCreationDialog } from '../components/CodeQuality/StoryCreationDialog';
 import { TestLevelBreakdown } from '../components/CodeQuality/TestLevelBreakdown';
 import { TestRunnerControl } from '../components/CodeQuality/TestRunnerControl';
-import { DashboardIcon, FolderIcon, ShieldCheckIcon, BugIcon, FlameIcon, AnalyticsIcon } from '../components/CodeQuality/Icons';
+import { TrendChart } from '../components/CodeQuality/TrendChart';
 import { FlakyTestsPanel } from '../components/FlakyTestsPanel';
 import { SlowTestsPanel } from '../components/SlowTestsPanel';
+import { useAnalysisPolling } from '../hooks/useAnalysisPolling';
+import { useCodeQualityMetrics } from '../hooks/useCodeQualityMetrics';
+import { useFileTree } from '../hooks/useFileTree';
+import { useStoryCreation } from '../hooks/useStoryCreation';
+import axios from '../lib/axios';
+import { testExecutionService } from '../services/test-execution.service';
 import { CodeQualityFilters, FileHotspot } from '../types/codeQualityTypes';
 import { formatAnalysisTimestamp, getAnalysisStatusConfig, getCommitUrl, getTestStatusIcon } from '../utils/analysisFormatters';
-import { testExecutionService } from '../services/test-execution.service';
 
 // Helper functions to transform trend data for different chart needs
 const transformTrendDataForCoverage = (trendData: any[]) => {
@@ -1967,7 +1967,7 @@ const CodeQualityDashboard: React.FC = () => {
                     <tbody className="bg-white dark:bg-[#1A202C] divide-y divide-gray-200 dark:divide-[#3b4354]">
                       {(() => {
                         // Filter and sort hotspots
-                        let filteredHotspots = metrics.hotspots.filter(h => {
+                        const filteredHotspots = metrics.hotspots.filter(h => {
                           // Search filter
                           if (hotspotSearchQuery && !h.filePath.toLowerCase().includes(hotspotSearchQuery.toLowerCase())) {
                             return false;

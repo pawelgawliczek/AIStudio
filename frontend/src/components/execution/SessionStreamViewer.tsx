@@ -5,19 +5,6 @@
  * Shows streaming text, tool calls, and session activity.
  */
 
-import React, { useRef, useEffect, useState } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  Divider,
-  Collapse,
-  LinearProgress,
-  Badge,
-} from '@mui/material';
 import {
   Terminal,
   ExpandMore,
@@ -30,6 +17,19 @@ import {
   FullscreenExit,
   ContentCopy,
 } from '@mui/icons-material';
+import {
+  Box,
+  Paper,
+  Typography,
+  Chip,
+  IconButton,
+  Tooltip,
+  Divider,
+  Collapse,
+  LinearProgress,
+  Badge,
+} from '@mui/material';
+import React, { useRef, useEffect, useState } from 'react';
 import { useSessionStream, type QuestionEvent } from '../../hooks/useSessionStream';
 
 interface SessionStreamViewerProps {

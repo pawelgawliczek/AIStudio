@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { RunStatusBadge } from '../RunStatusBadge';
 import { RunStatus } from '../../../services/workflow-runs.service';
+import { RunStatusBadge } from '../RunStatusBadge';
 
 describe('RunStatusBadge', () => {
   it('renders completed status correctly', () => {

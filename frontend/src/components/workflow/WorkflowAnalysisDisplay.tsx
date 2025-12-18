@@ -4,8 +4,8 @@ import {
   PaintBrushIcon,
   CubeIcon
 } from '@heroicons/react/24/outline';
-import { AnalysisSection } from './AnalysisSection';
 import type { Story } from '../../types';
+import { AnalysisSection } from './AnalysisSection';
 
 interface WorkflowAnalysisDisplayProps {
   story: Story;

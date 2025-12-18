@@ -3,12 +3,12 @@
  * Tests frontend rendering of totalUserPrompts and trend indicators
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PerformanceDashboard } from '../PerformanceDashboard';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProjectProvider } from '../../context/ProjectContext';
 import { apiClient } from '../../services/api.client';
+import { PerformanceDashboard } from '../PerformanceDashboard';
 
 // Mock API client
 vi.mock('../../services/api.client', () => ({

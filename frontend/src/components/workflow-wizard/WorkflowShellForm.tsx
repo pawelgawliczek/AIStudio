@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   TextField,
@@ -6,6 +5,7 @@ import {
   Paper,
   Alert,
 } from '@mui/material';
+import React from 'react';
 import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
 import { terminology } from '../../utils/terminology';
 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import authService, { User, LoginCredentials, RegisterData } from '../services/auth.service';
 import { onSessionExpired } from '../services/api.client';
+import authService, { User, LoginCredentials, RegisterData } from '../services/auth.service';
 
 interface AuthContextType {
   user: User | null;

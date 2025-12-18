@@ -3,10 +3,10 @@
  * Tests for the flaky tests analytics panel component
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { FlakyTestsPanel } from '../FlakyTestsPanel';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { testExecutionService, FlakyTest } from '../../services/test-execution.service';
+import { FlakyTestsPanel } from '../FlakyTestsPanel';
 
 vi.mock('../../services/test-execution.service');
 

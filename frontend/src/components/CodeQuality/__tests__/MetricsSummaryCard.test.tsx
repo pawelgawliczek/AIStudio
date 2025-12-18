@@ -2,8 +2,8 @@
  * Tests for MetricsSummaryCard component
  */
 
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { MetricsSummaryCard } from '../MetricsSummaryCard';
 
 describe('MetricsSummaryCard', () => {

@@ -3,9 +3,9 @@
  * ST-173 Phase 7
  */
 
-import React, { useState } from 'react';
-import { Box, Typography, IconButton, Collapse } from '@mui/material';
 import { Person, SmartToy, Settings, ExpandMore } from '@mui/icons-material';
+import { Box, Typography, IconButton, Collapse } from '@mui/material';
+import React, { useState } from 'react';
 import type { ConversationTurn } from '../../utils/transcript-parser';
 import { ToolCallCard } from './ToolCallCard';
 

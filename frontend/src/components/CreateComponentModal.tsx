@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { componentsService } from '../services/components.service';
 import { Component, CreateComponentDto, ExecutionConfig } from '../types';
-import { MarkdownEditor } from './MarkdownEditor';
 import { terminology } from '../utils/terminology';
+import { MarkdownEditor } from './MarkdownEditor';
 
 interface CreateComponentModalProps {
   isOpen: boolean;

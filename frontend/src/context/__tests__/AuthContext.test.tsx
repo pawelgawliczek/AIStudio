@@ -1,8 +1,8 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider, useAuth } from '../AuthContext';
-import authService from '../../services/auth.service';
 import { onSessionExpired } from '../../services/api.client';
+import authService from '../../services/auth.service';
+import { AuthProvider, useAuth } from '../AuthContext';
 
 // Mock dependencies
 jest.mock('../../services/auth.service');

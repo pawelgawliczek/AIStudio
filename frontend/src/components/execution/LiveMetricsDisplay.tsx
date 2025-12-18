@@ -1,6 +1,3 @@
-import React from 'react';
-import { Box, Paper, Typography, Chip, LinearProgress, Grid } from '@mui/material';
-import { terminology } from '../../utils/terminology';
 import {
   AccessTime,
   Token,
@@ -15,6 +12,9 @@ import {
   Output,
   Cached,
 } from '@mui/icons-material';
+import { Box, Paper, Typography, Chip, LinearProgress, Grid } from '@mui/material';
+import React from 'react';
+import { terminology } from '../../utils/terminology';
 
 interface Metrics {
   totalTokens: number | null;

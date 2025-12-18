@@ -1,6 +1,3 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   closestCorners,
@@ -11,16 +8,19 @@ import {
   useSensors,
   PointerSensor,
 } from '@dnd-kit/core';
-import { Story, Epic, StoryStatus, StoryType, PlanningOverview } from '../types';
-import { storiesApi, epicsApi } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { CreateEpicModal } from '../components/CreateEpicModal';
+import { CreateStoryModal } from '../components/CreateStoryModal';
 import { EpicGroup } from '../components/planning/EpicGroup';
 import { PlanningFilters } from '../components/planning/PlanningFilters';
 import { PlanningItemCard } from '../components/planning/PlanningItemCard';
 import { StoryDetailDrawer } from '../components/StoryDetailDrawer';
-import { CreateStoryModal } from '../components/CreateStoryModal';
-import { CreateEpicModal } from '../components/CreateEpicModal';
-import { useWebSocket, useStoryEvents, useEpicEvents } from '../services/websocket.service';
 import { useProject } from '../context/ProjectContext';
+import { storiesApi, epicsApi } from '../services/api';
+import { useWebSocket, useStoryEvents, useEpicEvents } from '../services/websocket.service';
+import { Story, Epic, StoryStatus, StoryType, PlanningOverview } from '../types';
 
 type ViewMode = 'grouped' | 'flat';
 type SortOption = 'priority-high' | 'priority-low' | 'created-new' | 'created-old' | 'updated' | 'title-az' | 'title-za';

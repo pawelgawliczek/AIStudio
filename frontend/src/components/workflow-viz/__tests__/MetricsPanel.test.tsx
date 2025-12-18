@@ -3,8 +3,8 @@
  * ST-168: Token metrics and cost visualization
  */
 
-import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { MetricsPanel, TokenMetrics, TurnMetrics, CodeImpact } from '../MetricsPanel';
 
 describe('MetricsPanel', () => {

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { WorkflowAnalysisDisplay } from '../WorkflowAnalysisDisplay';
+import { describe, it, expect, vi } from 'vitest';
 import { Story, StoryStatus, StoryType } from '../../../types';
+import { WorkflowAnalysisDisplay } from '../WorkflowAnalysisDisplay';
 
 // Mock AnalysisSection to simplify testing
 vi.mock('../AnalysisSection', () => ({

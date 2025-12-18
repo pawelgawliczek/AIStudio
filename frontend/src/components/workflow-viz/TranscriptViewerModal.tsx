@@ -9,7 +9,11 @@
  * - Size warning for transcripts >1MB
  */
 
-import React, { useState, useEffect } from 'react';
+import {
+  Close,
+  Download,
+  ContentCopy,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -25,15 +29,11 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
-import {
-  Close,
-  Download,
-  ContentCopy,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
 import { transcriptsService } from '../../services/transcripts.service';
 import { TranscriptParser } from '../../utils/transcript-parser';
-import { TranscriptTurn } from './TranscriptTurn';
 import type { ParsedTranscript } from '../../utils/transcript-parser';
+import { TranscriptTurn } from './TranscriptTurn';
 
 interface TranscriptViewerModalProps {
   open: boolean;

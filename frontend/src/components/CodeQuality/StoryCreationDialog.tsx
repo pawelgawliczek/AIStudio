@@ -3,7 +3,6 @@
  * Modal dialog for creating stories from code quality issues
  */
 
-import React from 'react';
 import {
   DocumentTextIcon,
   BugAntIcon,
@@ -14,6 +13,7 @@ import {
   ArrowPathIcon,
   CheckIcon,
 } from '@heroicons/react/24/outline';
+import React from 'react';
 import { StoryCreationContext } from '../../types/codeQualityTypes';
 
 interface StoryCreationDialogProps {

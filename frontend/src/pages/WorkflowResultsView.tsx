@@ -1,11 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { workflowRunsService } from '../services/workflow-runs.service';
-import { useProject } from '../context/ProjectContext';
-import { ExecutionSummary } from '../components/workflow-results/ExecutionSummary';
-import { ComponentTimeline } from '../components/workflow-results/ComponentTimeline';
 import { ComponentBreakdown } from '../components/workflow-results/ComponentBreakdown';
+import { ComponentTimeline } from '../components/workflow-results/ComponentTimeline';
+import { ExecutionSummary } from '../components/workflow-results/ExecutionSummary';
+import { useProject } from '../context/ProjectContext';
+import { workflowRunsService } from '../services/workflow-runs.service';
 
 type TabType = 'summary' | 'timeline' | 'breakdown' | 'decisions';
 

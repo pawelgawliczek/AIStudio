@@ -11,11 +11,11 @@
  * - AC-6: Works consistently across multiple analysis runs
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useAnalysisPolling } from '../useAnalysisPolling';
-import axios from '../../lib/axios';
 import toast from 'react-hot-toast';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import axios from '../../lib/axios';
+import { useAnalysisPolling } from '../useAnalysisPolling';
 
 vi.mock('../../lib/axios');
 vi.mock('react-hot-toast');

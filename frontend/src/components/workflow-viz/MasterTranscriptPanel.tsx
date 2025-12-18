@@ -12,7 +12,17 @@
  * - Connection status indicator
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  PlayArrow,
+  Stop,
+  ExpandMore,
+  ExpandLess,
+  Terminal,
+  Code,
+  Wifi,
+  WifiOff,
+  Refresh,
+} from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -28,17 +38,7 @@ import {
   Alert,
   Collapse,
 } from '@mui/material';
-import {
-  PlayArrow,
-  Stop,
-  ExpandMore,
-  ExpandLess,
-  Terminal,
-  Code,
-  Wifi,
-  WifiOff,
-  Refresh,
-} from '@mui/icons-material';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import { TranscriptParser, ConversationTurn } from '../../utils/transcript-parser';
 

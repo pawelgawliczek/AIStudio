@@ -3,10 +3,10 @@
  * Scatter plot showing relationship between churn and complexity
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ChurnVsComplexityChart } from '../ChurnVsComplexityChart';
+import { describe, it, expect, vi } from 'vitest';
 import { FileHotspot } from '../../../types/codeQualityTypes';
+import { ChurnVsComplexityChart } from '../ChurnVsComplexityChart';
 
 // Mock Recharts components
 vi.mock('recharts', () => ({

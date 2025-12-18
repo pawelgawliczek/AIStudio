@@ -1,6 +1,6 @@
+import { FunnelIcon } from '@heroicons/react/24/outline';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { FunnelIcon } from '@heroicons/react/24/outline';
 
 export interface WorkflowUsage {
   workflowId: string;

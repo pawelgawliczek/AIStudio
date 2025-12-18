@@ -5,7 +5,13 @@
  * Supports quick answers and handoff to session.
  */
 
-import React, { useState } from 'react';
+import {
+  QuestionAnswer,
+  Send,
+  OpenInNew,
+  Close,
+  AccessTime,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -21,13 +27,7 @@ import {
   Divider,
   IconButton,
 } from '@mui/material';
-import {
-  QuestionAnswer,
-  Send,
-  OpenInNew,
-  Close,
-  AccessTime,
-} from '@mui/icons-material';
+import React, { useState } from 'react';
 import { type QuestionEvent } from '../../hooks/useSessionStream';
 
 interface QuestionModalProps {

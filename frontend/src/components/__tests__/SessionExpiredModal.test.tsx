@@ -6,10 +6,10 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { SessionExpiredModal } from '../SessionExpiredModal';
 import { AuthProvider } from '../../context/AuthContext';
-import authService from '../../services/auth.service';
 import { onSessionExpired } from '../../services/api.client';
+import authService from '../../services/auth.service';
+import { SessionExpiredModal } from '../SessionExpiredModal';
 
 jest.mock('../../services/auth.service');
 jest.mock('../../services/api.client');

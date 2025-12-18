@@ -1,8 +1,8 @@
-import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { useTeamRunsList } from '../useTeamRunsList';
 import { workflowRunsService, RunStatus } from '../../services/workflow-runs.service';
+import { useTeamRunsList } from '../useTeamRunsList';
 
 // Mock the workflow runs service
 vi.mock('../../services/workflow-runs.service', () => ({

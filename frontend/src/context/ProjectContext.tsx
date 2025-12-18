@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Project } from '../types';
 import { projectsService } from '../services/projects.service';
+import type { Project } from '../types';
 import { useAuth } from './AuthContext';
 
 interface ProjectContextType {

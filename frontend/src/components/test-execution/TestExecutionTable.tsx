@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 export interface TestExecution {
   id: string;

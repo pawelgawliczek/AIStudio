@@ -1,6 +1,6 @@
+import { formatDistanceToNow } from 'date-fns';
 import { useState, useEffect, useRef } from 'react';
 import { TestExecutionEvent } from '../../hooks/useTestExecutionWebSocket';
-import { formatDistanceToNow } from 'date-fns';
 
 interface LiveActivityFeedProps {
   items: TestExecutionEvent[];

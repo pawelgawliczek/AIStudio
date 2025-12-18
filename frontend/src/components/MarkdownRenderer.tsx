@@ -1,5 +1,5 @@
-import ReactMarkdown from 'react-markdown';
 import clsx from 'clsx';
+import ReactMarkdown from 'react-markdown';
 
 interface MarkdownRendererProps {
   content: string;

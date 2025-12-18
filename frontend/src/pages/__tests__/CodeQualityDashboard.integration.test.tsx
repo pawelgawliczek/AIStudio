@@ -2,11 +2,11 @@
  * Integration tests for CodeQualityDashboard
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import CodeQualityDashboard from '../CodeQualityDashboard';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from '../../lib/axios';
+import CodeQualityDashboard from '../CodeQualityDashboard';
 
 vi.mock('../../lib/axios');
 

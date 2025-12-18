@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useTestExecutionWebSocket, TestExecutionEvent } from '../useTestExecutionWebSocket';
 import { useWebSocket } from '../../services/websocket.service';
+import { useTestExecutionWebSocket, TestExecutionEvent } from '../useTestExecutionWebSocket';
 
 // Mock the WebSocket service
 jest.mock('../../services/websocket.service');

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
-import { useWorkflowWebSocket } from '../../hooks/useWorkflowWebSocket';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
+import { useWorkflowWebSocket } from '../../hooks/useWorkflowWebSocket';
+import { WorkflowRunUpdate } from '../../types/workflow-tracking';
 import { WorkflowRunItem } from './WorkflowRunItem';
 import { WorkflowRunOverflow } from './WorkflowRunOverflow';
-import { WorkflowRunUpdate } from '../../types/workflow-tracking';
 
 /**
  * Multi-run progress tracker in status bar

@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { GlobalWorkflowTrackingBar } from '../GlobalWorkflowTrackingBar';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as api from '../../../services/api';
+import { GlobalWorkflowTrackingBar } from '../GlobalWorkflowTrackingBar';
 
 // Mock the API module
 vi.mock('../../../services/api', () => ({

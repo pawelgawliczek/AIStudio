@@ -5,11 +5,11 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
-import { Layout } from '../Layout';
 import { AuthProvider } from '../../context/AuthContext';
 import { ProjectProvider } from '../../context/ProjectContext';
-import authService from '../../services/auth.service';
 import { onSessionExpired } from '../../services/api.client';
+import authService from '../../services/auth.service';
+import { Layout } from '../Layout';
 
 jest.mock('../../services/auth.service');
 jest.mock('../../services/api.client');

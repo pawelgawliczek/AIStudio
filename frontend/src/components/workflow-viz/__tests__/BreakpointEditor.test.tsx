@@ -3,8 +3,8 @@
  * ST-168: Breakpoint CRUD modal
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { BreakpointEditor } from '../BreakpointEditor';
 import { WorkflowState, Breakpoint } from '../types';
 

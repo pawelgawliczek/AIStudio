@@ -1,9 +1,9 @@
-import { apiClient } from './api.client';
 import type {
   TestExecution,
   ReportTestExecutionDto,
   TestExecutionStatistics,
 } from '../types';
+import { apiClient } from './api.client';
 
 class TestExecutionsService {
   /**

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useWorkflowSettings } from '../useWorkflowSettings';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DEFAULT_SETTINGS } from '../../types/workflow-tracking';
+import { useWorkflowSettings } from '../useWorkflowSettings';
 
 describe('useWorkflowSettings', () => {
   const STORAGE_KEY = 'workflow-status-bar-settings';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -17,10 +17,10 @@ import {
   CardActions,
   Divider,
 } from '@mui/material';
-import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
 import { useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
-import { Component, ComponentVersion, ComponentAssignment } from '../../types/workflow-wizard';
 import { apiClient } from '../../services/api.client';
+import { Component, ComponentVersion, ComponentAssignment } from '../../types/workflow-wizard';
 import { terminology } from '../../utils/terminology';
 
 export const ComponentVersionSelector: React.FC = () => {

@@ -2,10 +2,10 @@
  * Tests for useAnalysisPolling hook
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useAnalysisPolling } from '../useAnalysisPolling';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios from '../../lib/axios';
+import { useAnalysisPolling } from '../useAnalysisPolling';
 
 vi.mock('../../lib/axios');
 

@@ -1,5 +1,5 @@
-import { apiClient } from './api.client';
 import type { Component, CreateComponentDto, UpdateComponentDto } from '../types';
+import { apiClient } from './api.client';
 
 export const componentsService = {
   /**

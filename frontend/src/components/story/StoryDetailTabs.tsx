@@ -1,10 +1,10 @@
-import React, { Fragment } from 'react';
 import { Tab } from '@headlessui/react';
-import { useSearchParams } from 'react-router-dom';
 import {
   DocumentTextIcon,
   PlayIcon,
 } from '@heroicons/react/24/outline';
+import React, { Fragment } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 interface StoryDetailTabsProps {
   storyContent: React.ReactNode;

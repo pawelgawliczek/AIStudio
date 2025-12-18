@@ -3,8 +3,8 @@
  * Pie chart component showing risk distribution across files
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { RiskDistributionChart } from '../RiskDistributionChart';
 
 // Mock Recharts to avoid canvas rendering issues in tests

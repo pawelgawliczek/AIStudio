@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { DashboardPage } from './DashboardPage';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ThemeProvider } from '../context/ThemeContext';
+import { DashboardPage } from './DashboardPage';
 
 // Mock the project context
 const mockSelectedProject = { id: 'test-project-id', name: 'Test Project' };

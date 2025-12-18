@@ -3,8 +3,8 @@
  * ST-168: Individual state visualization with phases
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { StateBlock } from '../StateBlock';
 
 describe('StateBlock', () => {

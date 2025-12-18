@@ -4,7 +4,15 @@
  * Cache-bust: v2
  */
 
-import React, { useState, useEffect } from 'react';
+import {
+  Close,
+  Edit,
+  Visibility,
+  Download,
+  Save,
+  ContentCopy,
+  History,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -21,15 +29,7 @@ import {
   Tabs,
   Tab,
 } from '@mui/material';
-import {
-  Close,
-  Edit,
-  Visibility,
-  Download,
-  Save,
-  ContentCopy,
-  History,
-} from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../services/api.client';
 
 interface Artifact {

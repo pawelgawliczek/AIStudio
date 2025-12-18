@@ -1,9 +1,9 @@
 import { Tab } from '@headlessui/react';
-import { Fragment } from 'react';
-import { WorkflowRunsSection } from './WorkflowRunsSection';
-import { UseCasesSection } from './UseCasesSection';
-import { CommitsSection } from './CommitsSection';
 import { PlayIcon, DocumentTextIcon, BeakerIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
+import { Fragment } from 'react';
+import { CommitsSection } from './CommitsSection';
+import { UseCasesSection } from './UseCasesSection';
+import { WorkflowRunsSection } from './WorkflowRunsSection';
 
 interface ComponentRun {
   id: string;

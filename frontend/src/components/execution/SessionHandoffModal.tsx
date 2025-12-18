@@ -5,7 +5,14 @@
  * Users can copy the resume command to run locally.
  */
 
-import React, { useState } from 'react';
+import {
+  OpenInNew,
+  Close,
+  ContentCopy,
+  Check,
+  Terminal,
+  Warning,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -24,14 +31,7 @@ import {
   Paper,
   Tooltip,
 } from '@mui/material';
-import {
-  OpenInNew,
-  Close,
-  ContentCopy,
-  Check,
-  Terminal,
-  Warning,
-} from '@mui/icons-material';
+import React, { useState } from 'react';
 
 interface SessionHandoffModalProps {
   open: boolean;

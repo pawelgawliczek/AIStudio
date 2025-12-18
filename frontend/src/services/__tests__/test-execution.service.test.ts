@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { testExecutionService } from '../test-execution.service';
 import { apiClient } from '../api.client';
+import { testExecutionService } from '../test-execution.service';
 
 vi.mock('../api.client');
 

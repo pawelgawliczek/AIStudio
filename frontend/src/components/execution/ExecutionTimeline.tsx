@@ -1,10 +1,4 @@
-import React from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Chip,
-} from '@mui/material';
+import { CheckCircle, Error, PlayArrow, Flag } from '@mui/icons-material';
 import {
   Timeline,
   TimelineItem,
@@ -14,7 +8,13 @@ import {
   TimelineDot,
   TimelineOppositeContent,
 } from '@mui/lab';
-import { CheckCircle, Error, PlayArrow, Flag } from '@mui/icons-material';
+import {
+  Box,
+  Typography,
+  Paper,
+  Chip,
+} from '@mui/material';
+import React from 'react';
 
 interface ComponentRun {
   componentRunId: string;

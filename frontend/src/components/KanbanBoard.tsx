@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -9,6 +8,7 @@ import {
   useSensors,
   closestCorners,
 } from '@dnd-kit/core';
+import { useState, useMemo } from 'react';
 import { Story, StoryStatus } from '../types';
 import { KanbanColumn } from './KanbanColumn';
 import { StoryCard } from './StoryCard';

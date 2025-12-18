@@ -1,4 +1,3 @@
-import { apiClient } from './api.client';
 import type {
   Story,
   CreateStoryDto,
@@ -7,6 +6,7 @@ import type {
   FilterStoryDto,
   PaginatedResponse,
 } from '../types';
+import { apiClient } from './api.client';
 
 export const storiesService = {
   /**

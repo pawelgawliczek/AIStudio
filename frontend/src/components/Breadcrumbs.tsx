@@ -1,8 +1,8 @@
+import { ChevronRightIcon, HomeIcon } from '@heroicons/react/20/solid';
+import clsx from 'clsx';
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRightIcon, HomeIcon } from '@heroicons/react/20/solid';
 import { useProject } from '../context/ProjectContext';
-import clsx from 'clsx';
 
 interface BreadcrumbItem {
   name: string;
@@ -19,7 +19,7 @@ export function Breadcrumbs({ items = [] }: BreadcrumbsProps) {
   const { selectedProject } = useProject();
 
   // Build default breadcrumbs based on current route
-  let defaultItems: BreadcrumbItem[] = [
+  const defaultItems: BreadcrumbItem[] = [
     { name: 'Dashboard', href: '/dashboard', testId: 'breadcrumb-home' },
   ];
 

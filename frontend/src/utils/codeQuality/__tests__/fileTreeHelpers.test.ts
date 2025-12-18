@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { FolderNode } from '../../../types/codeQualityTypes';
 import {
   getAllFiles,
   getFilesWithoutCoverage,
@@ -14,7 +15,6 @@ import {
   countFiles,
   getHighRiskFiles,
 } from '../fileTreeHelpers';
-import { FolderNode } from '../../../types/codeQualityTypes';
 
 const mockFileNode: FolderNode = {
   path: 'src/file.ts',

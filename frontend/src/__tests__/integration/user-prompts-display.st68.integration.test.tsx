@@ -3,10 +3,10 @@
  * Tests end-to-end flow from API to frontend rendering
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ProjectProvider } from '../../context/ProjectContext';
 import { PerformanceDashboard } from '../../pages/PerformanceDashboard';
 import { apiClient } from '../../services/api.client';

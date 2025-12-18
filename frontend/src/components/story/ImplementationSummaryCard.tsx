@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Disclosure, Transition } from '@headlessui/react';
 import {
   ChevronDownIcon,
@@ -10,6 +9,7 @@ import {
   CheckIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import React, { useState } from 'react';
 import type { Story } from '../../types';
 
 // Commit type based on backend schema

@@ -1,11 +1,11 @@
-import { useState, Fragment } from 'react';
 import { Dialog, Transition, Tab } from '@headlessui/react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Workflow } from '../types';
-import { versioningService, type WorkflowVersion } from '../services/versioning.service';
-import { analyticsService, type TimeRange } from '../services/analytics.service';
-import { VersionComparisonModal } from './VersionComparisonModal';
 import { XMarkIcon, ClockIcon, ChartBarIcon, Cog6ToothIcon, PlayIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, Fragment } from 'react';
+import { analyticsService, type TimeRange } from '../services/analytics.service';
+import { versioningService, type WorkflowVersion } from '../services/versioning.service';
+import { Workflow } from '../types';
+import { VersionComparisonModal } from './VersionComparisonModal';
 
 interface WorkflowDetailModalProps {
   workflow: Workflow;

@@ -13,14 +13,14 @@
  * They will pass AFTER the tabs are added to ProjectModal.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ProjectsPage } from '../ProjectsPage';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { projectsService } from '../../services/projects.service';
 import { taxonomyService } from '../../services/taxonomy.service';
 import type { Project } from '../../types';
+import { ProjectsPage } from '../ProjectsPage';
 
 // Mock services
 vi.mock('../../services/projects.service');

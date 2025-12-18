@@ -1,12 +1,12 @@
+import { PlusIcon } from '@heroicons/react/24/outline';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { epicsApi } from '../services/api';
-import { useProject } from '../context/ProjectContext';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { CreateEpicModal } from '../components/CreateEpicModal';
+import { useProject } from '../context/ProjectContext';
+import { epicsApi } from '../services/api';
 import type { Epic } from '../types';
-import { PlusIcon } from '@heroicons/react/24/outline';
 
 export function EpicListPage() {
   const { projectId } = useParams<{ projectId: string }>();

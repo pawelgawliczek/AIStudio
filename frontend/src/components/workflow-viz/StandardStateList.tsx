@@ -4,8 +4,8 @@
  */
 
 import React from 'react';
-import { StandardStateListProps } from './types';
 import { StateBlock } from './StateBlock';
+import { StandardStateListProps } from './types';
 
 export const StandardStateList: React.FC<StandardStateListProps> = ({
   states = [],

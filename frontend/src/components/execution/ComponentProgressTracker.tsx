@@ -1,4 +1,4 @@
-import React from 'react';
+import { CheckCircle, Error, HourglassEmpty, PlayArrow } from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -10,7 +10,7 @@ import {
   Chip,
   Divider,
 } from '@mui/material';
-import { CheckCircle, Error, HourglassEmpty, PlayArrow } from '@mui/icons-material';
+import React from 'react';
 
 interface ComponentRun {
   componentRunId: string;

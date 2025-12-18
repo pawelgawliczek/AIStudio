@@ -5,8 +5,8 @@
  * TDD Test Suite - Tests written BEFORE implementation
  */
 
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import { StructuredSummaryDisplay } from '../StructuredSummaryDisplay';
 import type { ComponentSummaryStructured } from '../types';
 

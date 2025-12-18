@@ -18,10 +18,10 @@
  * TDD STATUS: 🔴 ALL TESTS FAILING - Component not yet implemented
  */
 
-import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ToolCallCard } from '../ToolCallCard';
+import { describe, it, expect } from 'vitest';
 import type { ToolCall } from '../../../utils/transcript-parser';
+import { ToolCallCard } from '../ToolCallCard';
 
 describe('ToolCallCard', () => {
   const mockReadToolCall: ToolCall = {

@@ -1,8 +1,8 @@
-import React, { Fragment, useState } from 'react';
 import { Listbox, Transition } from '@headlessui/react';
 import { ChevronUpDownIcon, CheckIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
-import { useProject } from '../context/ProjectContext';
 import clsx from 'clsx';
+import React, { Fragment, useState } from 'react';
+import { useProject } from '../context/ProjectContext';
 
 export function ProjectSelector() {
   const { projects, selectedProject, setSelectedProject, isLoading } = useProject();

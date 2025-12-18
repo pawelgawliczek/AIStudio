@@ -3,13 +3,13 @@
  * Critical component that fetches and displays detailed file information
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { HotspotDetailsPanel } from '../HotspotDetailsPanel';
-import { FileHotspot, FileDetail } from '../../../types/codeQualityTypes';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from '../../../lib/axios';
+import { FileHotspot, FileDetail } from '../../../types/codeQualityTypes';
+import { HotspotDetailsPanel } from '../HotspotDetailsPanel';
 
 vi.mock('../../../lib/axios');
 vi.mock('../TrendChart', () => ({

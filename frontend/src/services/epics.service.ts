@@ -1,10 +1,10 @@
-import { apiClient } from './api.client';
 import type {
   Epic,
   CreateEpicDto,
   UpdateEpicDto,
   FilterEpicDto,
 } from '../types';
+import { apiClient } from './api.client';
 
 export const epicsService = {
   /**

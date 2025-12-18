@@ -1,8 +1,8 @@
-import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition, Tab } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { Epic, StoryType, Layer, Component } from '../types';
+import { Fragment, useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
+import { Epic, StoryType, Layer, Component } from '../types';
 import { MarkdownEditor } from './MarkdownEditor';
 
 interface CreateStoryModalProps {

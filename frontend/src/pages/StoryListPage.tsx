@@ -1,12 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { storiesService } from '../services/stories.service';
-import { epicsService } from '../services/epics.service';
-import { useStoryEvents } from '../services/websocket.service';
-import { useProject } from '../context/ProjectContext';
-import { Breadcrumbs } from '../components/Breadcrumbs';
-import { CreateStoryModal } from '../components/CreateStoryModal';
-import type { Story, Epic, StoryStatus, StoryType, FilterStoryDto } from '../types';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -14,6 +5,15 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Breadcrumbs } from '../components/Breadcrumbs';
+import { CreateStoryModal } from '../components/CreateStoryModal';
+import { useProject } from '../context/ProjectContext';
+import { epicsService } from '../services/epics.service';
+import { storiesService } from '../services/stories.service';
+import { useStoryEvents } from '../services/websocket.service';
+import type { Story, Epic, StoryStatus, StoryType, FilterStoryDto } from '../types';
 
 const STATUS_COLORS: Record<string, string> = {
   planning: 'bg-gray-100 text-gray-800',

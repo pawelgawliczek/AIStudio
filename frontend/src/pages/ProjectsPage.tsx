@@ -1,8 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { Dialog, Transition, Tab } from '@headlessui/react';
-import { Fragment } from 'react';
 import {
   PlusIcon,
   PencilIcon,
@@ -10,8 +6,11 @@ import {
   ChartBarIcon,
   RectangleStackIcon,
 } from '@heroicons/react/24/outline';
-import { projectsService } from '../services/projects.service';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect , Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TaxonomyManager } from '../components/project/TaxonomyManager';
+import { projectsService } from '../services/projects.service';
 import type { Project } from '../types';
 
 function classNames(...classes: string[]) {

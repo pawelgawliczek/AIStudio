@@ -2,10 +2,10 @@
  * Tests for useFileTree hook
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useFileTree } from '../useFileTree';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from '../../lib/axios';
+import { useFileTree } from '../useFileTree';
 
 vi.mock('../../lib/axios');
 

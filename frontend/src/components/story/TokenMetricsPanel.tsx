@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
 import { CurrencyDollarIcon, CpuChipIcon, ClockIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 
 interface ComponentMetrics {

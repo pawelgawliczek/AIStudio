@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { FullStatePanelProps } from './types';
 import { StateBlock } from './StateBlock';
+import { FullStatePanelProps } from './types';
 import { WorkflowResultsSummary } from './WorkflowResultsSummary';
 
 export const FullStatePanel: React.FC<FullStatePanelProps> = ({

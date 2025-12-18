@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { WorkflowRunItem } from '../WorkflowRunItem';
+import { describe, it, expect, vi } from 'vitest';
 import { WorkflowRun } from '../../../types/workflow-tracking';
+import { WorkflowRunItem } from '../WorkflowRunItem';
 
 const mockRun: WorkflowRun = {
   id: 'run-1',

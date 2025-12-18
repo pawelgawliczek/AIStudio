@@ -3,11 +3,11 @@
  * ST-195: Side panel showing agent results and artifacts for each completed state
  */
 
-import React from 'react';
 import { Box, Typography, Button, Chip } from '@mui/material';
-import { formatDuration } from './utils/format-duration';
+import React from 'react';
 import { StructuredSummaryDisplay } from './StructuredSummaryDisplay';
 import { ComponentSummaryStructured } from './types';
+import { formatDuration } from './utils/format-duration';
 
 interface ComponentRun {
   id: string;

@@ -1,6 +1,6 @@
-import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { Fragment, useState, useEffect } from 'react';
 import { versioningService } from '../services/versioning.service';
 import { VersionBadge } from './VersionBadge';
 

@@ -1,24 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tab } from '@headlessui/react';
 import { ArrowLeftIcon, TrashIcon, PencilIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-
-import { componentsService } from '../services/components.service';
-import { versioningService } from '../services/versioning.service';
-import { analyticsService } from '../services/analytics.service';
-import { useProject } from '../context/ProjectContext';
-import { Component, UpdateComponentDto } from '../types';
-
-import { VersionBadge } from '../components/VersionBadge';
-import { VersionBumpModal } from '../components/VersionBumpModal';
-import { VersionComparisonModal } from '../components/VersionComparisonModal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   VersionHistoryTimeline,
   InstructionSetsDisplay,
   WorkflowsUsingTable,
   ConfigurationDisplay,
 } from '../components/shared';
+import { VersionBadge } from '../components/VersionBadge';
+import { VersionBumpModal } from '../components/VersionBumpModal';
+import { VersionComparisonModal } from '../components/VersionComparisonModal';
+import { useProject } from '../context/ProjectContext';
+import { analyticsService } from '../services/analytics.service';
+import { componentsService } from '../services/components.service';
+import { versioningService } from '../services/versioning.service';
+import { Component, UpdateComponentDto } from '../types';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');

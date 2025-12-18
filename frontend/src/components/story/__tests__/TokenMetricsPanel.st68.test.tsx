@@ -3,10 +3,10 @@
  * Tests story details summary card and orchestrator detection
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { TokenMetricsPanel } from '../TokenMetricsPanel';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { api } from '../../../services/api';
+import { TokenMetricsPanel } from '../TokenMetricsPanel';
 
 // Mock API
 vi.mock('../../../services/api', () => ({

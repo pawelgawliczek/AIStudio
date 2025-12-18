@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { PlanningFilters } from './PlanningFilters';
+import { describe, it, expect, vi } from 'vitest';
 import { Epic, StoryStatus, StoryType, SubtaskLayer } from '../../types';
+import { PlanningFilters } from './PlanningFilters';
 
 const mockEpics: Epic[] = [
   {

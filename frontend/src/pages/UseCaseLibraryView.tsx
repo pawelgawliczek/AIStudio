@@ -1,12 +1,12 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCasesService } from '../services/use-cases.service';
-import { UseCase } from '../types';
-import { UseCaseSearchBar } from '../components/UseCaseSearchBar';
 import { UseCaseCard } from '../components/UseCaseCard';
 import { UseCaseDetailModal } from '../components/UseCaseDetailModal';
+import { UseCaseSearchBar } from '../components/UseCaseSearchBar';
 import { useProject } from '../context/ProjectContext';
+import { useCasesService } from '../services/use-cases.service';
+import { UseCase } from '../types';
 
 export function UseCaseLibraryView() {
   const [searchParams] = useSearchParams();

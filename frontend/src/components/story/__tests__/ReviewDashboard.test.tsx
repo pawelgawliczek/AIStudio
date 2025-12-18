@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+import { ConcernsGapsPanel } from '../ConcernsGapsPanel';
+import { DeployToTestControl } from '../DeployToTestControl';
 import { ImplementationSummaryCard } from '../ImplementationSummaryCard';
 import { QAStatusSection } from '../QAStatusSection';
-import { DeployToTestControl } from '../DeployToTestControl';
-import { ConcernsGapsPanel } from '../ConcernsGapsPanel';
 import { ScreenshotGallery } from '../ScreenshotGallery';
 
 // Mock Story data

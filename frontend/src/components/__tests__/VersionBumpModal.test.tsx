@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { versioningService } from '../../services/versioning.service';
 import {
   VersionBumpModal,
   calculateNextVersion,
   validateForm,
 } from '../VersionBumpModal';
-import { versioningService } from '../../services/versioning.service';
 
 // Mock the versioning service
 vi.mock('../../services/versioning.service', () => ({

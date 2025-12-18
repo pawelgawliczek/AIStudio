@@ -3,7 +3,6 @@
  * ST-195: Modal for selecting and starting a workflow/team for a story
  */
 
-import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +19,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
 import { workflowService } from '../../services/workflow.service';
 
 interface StartWorkflowModalProps {

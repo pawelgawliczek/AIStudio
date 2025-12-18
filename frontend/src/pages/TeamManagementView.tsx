@@ -1,18 +1,18 @@
+import { Add as AddIcon } from '@mui/icons-material';
+import { Button } from '@mui/material';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { workflowsService } from '../services/workflows.service';
-import { useProject } from '../context/ProjectContext';
-import { useWorkflowFilters } from '../hooks/useWorkflowFilters';
-import { useWorkflowActions } from '../hooks/useWorkflowActions';
-import { FilterBar } from '../components/FilterBar';
-import { EmptyState } from '../components/EmptyState';
-import { TeamCard } from '../components/TeamCard';
 import { ActiveWorkflowBanner } from '../components/ActiveWorkflowBanner';
-import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
+import { EmptyState } from '../components/EmptyState';
+import { FilterBar } from '../components/FilterBar';
+import { TeamCard } from '../components/TeamCard';
 import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
+import { WorkflowDetailModal } from '../components/WorkflowDetailModal';
+import { useProject } from '../context/ProjectContext';
+import { useWorkflowActions } from '../hooks/useWorkflowActions';
+import { useWorkflowFilters } from '../hooks/useWorkflowFilters';
+import { workflowsService } from '../services/workflows.service';
 import { terminology } from '../utils/terminology';
 
 export function TeamManagementView() {

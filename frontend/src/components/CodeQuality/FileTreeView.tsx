@@ -3,13 +3,13 @@
  * Recursive file tree with expand/collapse, metrics display, and keyboard navigation
  */
 
-import React, { useCallback } from 'react';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
   FolderIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
+import React, { useCallback } from 'react';
 import { FolderNode, FileDetail } from '../../types/codeQualityTypes';
 import { getHealthColor } from '../../utils/codeQuality/healthCalculations';
 

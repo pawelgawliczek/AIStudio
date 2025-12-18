@@ -1,5 +1,5 @@
-import { apiClient } from './api.client';
 import type { Project } from '../types';
+import { apiClient } from './api.client';
 
 export const projectsService = {
   /**

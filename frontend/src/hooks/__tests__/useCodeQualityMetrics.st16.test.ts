@@ -10,10 +10,10 @@
  * - AC-5: No need for hard refresh or cache clearing
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useCodeQualityMetrics } from '../useCodeQualityMetrics';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from '../../lib/axios';
+import { useCodeQualityMetrics } from '../useCodeQualityMetrics';
 
 vi.mock('../../lib/axios');
 

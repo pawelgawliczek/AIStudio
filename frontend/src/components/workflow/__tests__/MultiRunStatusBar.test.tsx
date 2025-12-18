@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MultiRunStatusBar } from '../MultiRunStatusBar';
 import { WorkflowRun } from '../../../types/workflow-tracking';
 
@@ -17,8 +17,8 @@ vi.mock('../../../hooks/useWorkflowSettings', () => ({
 }));
 
 import { useWorkflowRuns } from '../../../hooks/useWorkflowRuns';
-import { useWorkflowWebSocket } from '../../../hooks/useWorkflowWebSocket';
 import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
+import { useWorkflowWebSocket } from '../../../hooks/useWorkflowWebSocket';
 
 const mockRun: WorkflowRun = {
   id: 'run-1',

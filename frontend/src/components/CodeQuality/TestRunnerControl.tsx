@@ -3,8 +3,6 @@
  * Dropdown menu to trigger test runs at different levels
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   BeakerIcon,
   ChevronDownIcon,
@@ -14,6 +12,8 @@ import {
   GlobeAltIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface TestRunnerControlProps {
   onRunTests?: (level: 'all' | 'unit' | 'integration' | 'e2e') => void;

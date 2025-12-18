@@ -3,8 +3,8 @@
  * SVG icon components used throughout the Code Quality dashboard
  */
 
-import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import {
   TrendingUpIcon,
   TrendingDownIcon,

@@ -21,13 +21,13 @@
  * - Performance with large datasets
  */
 
-import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
-import { vi } from 'vitest';
 import type { AxiosInstance } from 'axios';
+import React from 'react';
+import { vi } from 'vitest';
+import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
 
 // Mock API client
 vi.mock('../services/api.client', () => ({

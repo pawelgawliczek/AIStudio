@@ -1,10 +1,10 @@
-import { apiClient } from './api.client';
 import type {
   Subtask,
   CreateSubtaskDto,
   UpdateSubtaskDto,
   FilterSubtaskDto,
 } from '../types';
+import { apiClient } from './api.client';
 
 export const subtasksService = {
   /**

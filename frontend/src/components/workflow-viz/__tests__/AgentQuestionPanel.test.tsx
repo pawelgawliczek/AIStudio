@@ -3,8 +3,8 @@
  * ST-168: Agent Q&A interface
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { AgentQuestionPanel, PendingQuestionsBanner } from '../AgentQuestionPanel';
 import { AgentQuestion } from '../types';
 

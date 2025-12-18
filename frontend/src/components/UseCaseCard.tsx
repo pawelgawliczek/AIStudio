@@ -1,5 +1,5 @@
-import { UseCase } from '../types';
 import { formatDistanceToNow } from 'date-fns';
+import { UseCase } from '../types';
 
 interface UseCaseCardProps {
   useCase: UseCase;

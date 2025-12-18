@@ -17,10 +17,10 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { StateBlockProps, StateStatus, ArtifactInstance, ArtifactAccess } from './types';
-import { getStatusClasses, getStatusLabel } from './utils/status-colors';
-import { formatDuration, formatTokens } from './utils/format-duration';
 import { StructuredSummaryDisplay } from './StructuredSummaryDisplay';
+import { StateBlockProps, StateStatus, ArtifactInstance, ArtifactAccess } from './types';
+import { formatDuration, formatTokens } from './utils/format-duration';
+import { getStatusClasses, getStatusLabel } from './utils/status-colors';
 
 // Extended props for artifact and transcript support
 interface ExtendedStateBlockProps extends StateBlockProps {

@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,12 +11,13 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import React, { useState } from 'react';
 import { WorkflowWizardProvider, useWorkflowWizard } from '../../contexts/WorkflowWizardContext';
-import { WorkflowShellForm } from './WorkflowShellForm';
-import { ComponentVersionSelector } from './ComponentVersionSelector';
-import { VersionBumpModal } from '../VersionBumpModal';
 import { apiClient } from '../../services/api.client';
 import { terminology } from '../../utils/terminology';
+import { VersionBumpModal } from '../VersionBumpModal';
+import { ComponentVersionSelector } from './ComponentVersionSelector';
+import { WorkflowShellForm } from './WorkflowShellForm';
 
 const STEPS = [`${terminology.team} Information`, `Select ${terminology.agents}`];
 

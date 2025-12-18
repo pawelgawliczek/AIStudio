@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { LiveActivityFeed } from '../LiveActivityFeed';
 import { TestExecutionEvent } from '../../../hooks/useTestExecutionWebSocket';
+import { LiveActivityFeed } from '../LiveActivityFeed';
 
 describe('LiveActivityFeed', () => {
   const mockItems: TestExecutionEvent[] = [

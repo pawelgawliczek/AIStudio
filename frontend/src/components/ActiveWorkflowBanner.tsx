@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { workflowActivationService } from '../services/workflow-activation.service';
-import { useProject } from '../context/ProjectContext';
 import { useState } from 'react';
+import { useProject } from '../context/ProjectContext';
+import { workflowActivationService } from '../services/workflow-activation.service';
 
 export function ActiveWorkflowBanner() {
   const { selectedProject } = useProject();

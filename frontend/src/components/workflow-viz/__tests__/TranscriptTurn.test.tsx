@@ -19,10 +19,10 @@
  * TDD STATUS: 🔴 ALL TESTS FAILING - Component not yet implemented
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { TranscriptTurn } from '../TranscriptTurn';
+import { describe, it, expect, beforeEach } from 'vitest';
 import type { ConversationTurn } from '../../../utils/transcript-parser';
+import { TranscriptTurn } from '../TranscriptTurn';
 
 describe('TranscriptTurn', () => {
   const mockUserTurn: ConversationTurn = {

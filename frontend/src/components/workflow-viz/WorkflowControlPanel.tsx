@@ -7,7 +7,6 @@
  * - 'panel': Full panel with status display and action descriptions
  */
 
-import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -25,8 +24,9 @@ import {
   FormControl,
   FormLabel,
 } from '@mui/material';
-import { useRunnerControl } from './hooks/useRunnerControl';
+import React, { useState } from 'react';
 import type { RunnerStatus } from '../../services/runner.service';
+import { useRunnerControl } from './hooks/useRunnerControl';
 
 // Repeat Step Modal
 interface RepeatStepModalProps {

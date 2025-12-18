@@ -3,9 +3,9 @@
  * ST-173 Phase 7
  */
 
-import React, { useState } from 'react';
-import { Box, Typography, IconButton, Collapse } from '@mui/material';
 import { ExpandMore, Build } from '@mui/icons-material';
+import { Box, Typography, IconButton, Collapse } from '@mui/material';
+import React, { useState } from 'react';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
 import type { ToolCall, ToolResult } from '../../utils/transcript-parser';

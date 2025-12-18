@@ -1,7 +1,7 @@
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { getActiveWorkflowForProject } from '../../services/api';
 import { CompactStatePipeline, useWorkflowRun } from '../workflow-viz';
 

@@ -3,7 +3,6 @@
  * ST-195: View component output when no transcript is available
  */
 
-import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,6 +13,7 @@ import {
   Typography,
   Chip,
 } from '@mui/material';
+import React from 'react';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
 import { vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';

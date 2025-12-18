@@ -3,8 +3,8 @@
  * Reusable line chart component for displaying trends
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { TrendChart } from '../TrendChart';
 
 // Mock Recharts components

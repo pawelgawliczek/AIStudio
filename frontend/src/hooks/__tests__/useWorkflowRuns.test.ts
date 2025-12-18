@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useWorkflowRuns } from '../useWorkflowRuns';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkflowRun } from '../../types/workflow-tracking';
+import { useWorkflowRuns } from '../useWorkflowRuns';
 
 // Mock react-query
 vi.mock('@tanstack/react-query', () => ({

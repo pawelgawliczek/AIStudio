@@ -2784,3 +2784,29 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-18T08:47:11Z",
+  "session_id": "4fd80981-6a13-4686-ba22-f9b95badb233",
+  "run_id": "a5de7651-d1f5-4b79-aad0-b1b4fa6cc494",
+  "questions": [
+    {
+      "question": "ESLint has 637 pre-existing errors. How to proceed?",
+      "header": "ESLint",
+      "options": [
+        {
+          "label": "Fix with --fix",
+          "description": "Run npm run lint -- --fix to auto-fix 493 errors"
+        },
+        {
+          "label": "Out of scope",
+          "description": "Consider ESLint cleanup a separate story, mark ST-282 done"
+        },
+        {
+          "label": "Manual fix",
+          "description": "Spawn agent to fix all 637 errors manually"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

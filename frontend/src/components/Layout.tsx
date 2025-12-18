@@ -1,22 +1,21 @@
-import { useEffect, useState } from 'react';
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { ProjectSelector } from './ProjectSelector';
-import { ConnectionStatus } from './ConnectionStatus';
-import { NavDropdown } from './NavDropdown';
-import { ThemeToggle } from './ThemeToggle';
-import { MultiRunStatusBar } from './workflow/MultiRunStatusBar';
-import { SessionExpiredModal } from './SessionExpiredModal';
 import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
-import { useProject } from '../context/ProjectContext';
+import { useEffect, useState , Fragment } from 'react';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useProject } from '../context/ProjectContext';
 import { terminology } from '../utils/terminology';
+import { ConnectionStatus } from './ConnectionStatus';
+import { NavDropdown } from './NavDropdown';
+import { ProjectSelector } from './ProjectSelector';
+import { SessionExpiredModal } from './SessionExpiredModal';
+import { ThemeToggle } from './ThemeToggle';
+import { MultiRunStatusBar } from './workflow/MultiRunStatusBar';
 
 export function Layout() {
   const navigate = useNavigate();

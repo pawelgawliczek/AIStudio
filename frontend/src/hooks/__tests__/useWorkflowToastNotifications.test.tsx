@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import React from 'react';
 import toast from 'react-hot-toast';
+import { BrowserRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useWorkflowToastNotifications } from '../useWorkflowToastNotifications';
 import { useWorkflowWebSocket } from '../useWorkflowWebSocket';
-import React from 'react';
 
 // Mock react-hot-toast
 vi.mock('react-hot-toast', () => ({

@@ -1,6 +1,6 @@
+import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { BackupInfo } from '../services/backups.service';
-import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface RestoreBackupModalProps {
   backup: BackupInfo | null;

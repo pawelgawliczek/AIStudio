@@ -3,8 +3,8 @@
  * ST-168: Breakpoint display and management
  */
 
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { BreakpointIndicator } from '../BreakpointIndicator';
 
 describe('BreakpointIndicator', () => {

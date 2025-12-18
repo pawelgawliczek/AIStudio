@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Disclosure, Transition } from '@headlessui/react';
 import {
   ChevronDownIcon,
@@ -8,6 +7,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import React, { useState } from 'react';
 
 export type QAStatus = 'not_started' | 'in_progress' | 'signed_off' | 'blocked';
 

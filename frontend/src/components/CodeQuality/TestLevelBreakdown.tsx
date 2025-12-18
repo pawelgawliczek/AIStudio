@@ -3,7 +3,6 @@
  * Displays test execution statistics broken down by test level (unit/integration/e2e)
  */
 
-import React from 'react';
 import {
   BeakerIcon,
   LinkIcon,
@@ -13,6 +12,7 @@ import {
   ClockIcon,
   PlayIcon,
 } from '@heroicons/react/24/outline';
+import React from 'react';
 import { TestLevelStats } from '../../services/test-execution.service';
 
 // Icon mapping for test levels

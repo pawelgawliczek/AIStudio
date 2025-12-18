@@ -3,13 +3,13 @@
  * ST-168: Main orchestrator for workflow state visualization
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { WorkflowStateVizProps, WorkflowState, ComponentRunWithMetrics, ArtifactInstance, ArtifactAccess } from './types';
-import { CompactStatePipeline } from './CompactStatePipeline';
-import { StandardStateList } from './StandardStateList';
-import { FullStatePanel } from './FullStatePanel';
+import React, { useState, useEffect, useCallback } from 'react';
 import { workflowRunsService } from '../../services/workflow-runs.service';
+import { CompactStatePipeline } from './CompactStatePipeline';
+import { FullStatePanel } from './FullStatePanel';
+import { StandardStateList } from './StandardStateList';
+import { WorkflowStateVizProps, WorkflowState, ComponentRunWithMetrics, ArtifactInstance, ArtifactAccess } from './types';
 
 // Response type that handles both test data and API data
 interface WorkflowRunData {

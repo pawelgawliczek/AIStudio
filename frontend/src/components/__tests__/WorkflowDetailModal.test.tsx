@@ -15,14 +15,14 @@
  * - Mutations and cache invalidation
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WorkflowDetailModal } from '../WorkflowDetailModal';
-import { versioningService } from '../../services/versioning.service';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { analyticsService } from '../../services/analytics.service';
+import { versioningService } from '../../services/versioning.service';
 import type { Workflow } from '../../types';
+import { WorkflowDetailModal } from '../WorkflowDetailModal';
 
 // Mock services
 vi.mock('../../services/versioning.service');

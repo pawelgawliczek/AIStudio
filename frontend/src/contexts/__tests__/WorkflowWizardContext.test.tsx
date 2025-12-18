@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
-import { WorkflowWizardProvider, useWorkflowWizard } from '../WorkflowWizardContext';
 import type { ComponentAssignment } from '../../types/workflow-wizard';
+import { WorkflowWizardProvider, useWorkflowWizard } from '../WorkflowWizardContext';
 
 const createWrapper = (projectId: string = 'test-project-id') => {
   return ({ children }: { children: React.ReactNode }) => (

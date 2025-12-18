@@ -56,7 +56,7 @@ export const LiveExecutionStream: React.FC<LiveExecutionStreamProps> = ({
   // Calculate live metrics from entries
   const metrics = React.useMemo<LiveMetrics>(() => {
     const toolsUsed: Record<string, number> = {};
-    let tokensIn = 0;
+    const tokensIn = 0;
     let tokensOut = 0;
 
     entries.forEach((entry) => {

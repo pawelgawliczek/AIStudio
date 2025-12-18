@@ -1,15 +1,15 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AgentCard } from '../components/AgentCard';
+import { CreateComponentModal } from '../components/CreateComponentModal';
+import { EmptyState } from '../components/EmptyState';
+import { FilterBar } from '../components/FilterBar';
+import { useProject } from '../context/ProjectContext';
+import { useComponentFilters } from '../hooks/useComponentFilters';
 import { componentsService } from '../services/components.service';
 import { versioningService } from '../services/versioning.service';
 import { workflowsService } from '../services/workflows.service';
-import { AgentCard } from '../components/AgentCard';
-import { CreateComponentModal } from '../components/CreateComponentModal';
-import { useProject } from '../context/ProjectContext';
-import { useComponentFilters } from '../hooks/useComponentFilters';
-import { FilterBar } from '../components/FilterBar';
-import { EmptyState } from '../components/EmptyState';
 import { terminology } from '../utils/terminology';
 
 export function AgentLibraryView() {

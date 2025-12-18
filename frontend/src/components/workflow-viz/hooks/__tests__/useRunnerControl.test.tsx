@@ -6,11 +6,11 @@
  * Expected: ALL TESTS WILL FAIL (implementation doesn't exist yet)
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useRunnerControl } from '../useRunnerControl';
+import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as runnerService from '../../../../services/runner.service';
+import { useRunnerControl } from '../useRunnerControl';
 
 vi.mock('../../../../services/runner.service');
 

@@ -3,11 +3,11 @@
  * Tests taxonomy management UI and user interactions
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TaxonomyManager } from '../TaxonomyManager';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { taxonomyService } from '../../../services/taxonomy.service';
+import { TaxonomyManager } from '../TaxonomyManager';
 
 // Mock the taxonomy service
 vi.mock('../../../services/taxonomy.service', () => ({

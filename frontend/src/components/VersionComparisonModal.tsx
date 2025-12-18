@@ -1,8 +1,8 @@
-import { Fragment } from 'react';
 import { Dialog, Transition, Tab } from '@headlessui/react';
-import { useQuery } from '@tanstack/react-query';
-import { versioningService, type VersionComparison } from '../services/versioning.service';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useQuery } from '@tanstack/react-query';
+import { Fragment } from 'react';
+import { versioningService, type VersionComparison } from '../services/versioning.service';
 
 interface VersionComparisonModalProps {
   isOpen: boolean;

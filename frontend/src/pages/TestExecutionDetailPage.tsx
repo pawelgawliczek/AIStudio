@@ -1,7 +1,7 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { ArrowBack } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { useParams, useNavigate } from 'react-router-dom';
 import { testExecutionService } from '../services/test-execution.service';
 
 export function TestExecutionDetailPage() {

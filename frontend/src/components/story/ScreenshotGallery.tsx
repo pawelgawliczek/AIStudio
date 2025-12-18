@@ -1,4 +1,3 @@
-import React, { useState, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   XMarkIcon,
@@ -10,6 +9,7 @@ import {
   PlusIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
+import React, { useState, Fragment } from 'react';
 
 export type ScreenshotCategory = 'before' | 'after' | 'feature' | 'bugfix' | 'ui' | 'database';
 

@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { EpicPlanningView } from './EpicPlanningView';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ThemeProvider } from '../context/ThemeContext';
+import { EpicPlanningView } from './EpicPlanningView';
 
 // Mock the project context
 vi.mock('../context/ProjectContext', () => ({

@@ -4,28 +4,29 @@
       "workflowActive": true,
       "runId": "a5de7651-d1f5-4b79-aad0-b1b4fa6cc494",
       "currentState": {
-        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
-        "name": "implementation",
+        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
+        "name": "testing",
         "phase": "agent",
-        "componentName": "Developer",
+        "componentName": "Tester",
         "allowedSubagentTypes": [
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T08:35:08Z"
+      "updatedAt": "2025-12-18T08:43:15Z"
     },
     "fbc469ca-a500-4cd7-9397-0eb3162a6cc0": {
       "workflowActive": true,
       "runId": "dbaedf4c-0065-4004-a73a-e22f8fec1db7",
       "currentState": {
-        "id": "bea1aca2-d756-4cd6-9c14-ac3e5c95fdca",
-        "name": "exploration",
-        "componentName": "Native Explorer",
+        "id": "206d1990-2ff8-43f7-9e06-7ec5cca73486",
+        "name": "planning",
+        "phase": "agent",
+        "componentName": "Native Planner",
         "allowedSubagentTypes": [
-          "Explore"
+          "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T08:42:05Z"
+      "updatedAt": "2025-12-18T08:45:45Z"
     }
   }
 }

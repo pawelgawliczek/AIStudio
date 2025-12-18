@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import { WorkflowRunDetailsProps } from '../../types/workflow-tracking';
 import { LiveTranscriptViewer } from '../workflow-viz/LiveTranscriptViewer';
 

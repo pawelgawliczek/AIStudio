@@ -22,12 +22,12 @@
  * TDD STATUS: 🔴 ALL TESTS FAILING - Component not yet implemented
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TranscriptViewerModal } from '../TranscriptViewerModal';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { transcriptsService } from '../../../services/transcripts.service';
 import type { TranscriptDetail } from '../../../services/transcripts.service';
+import { TranscriptViewerModal } from '../TranscriptViewerModal';
 
 // Mock services
 vi.mock('../../../services/transcripts.service');

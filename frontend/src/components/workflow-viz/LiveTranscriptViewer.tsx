@@ -10,7 +10,13 @@
  * - Download transcript functionality
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Close,
+  Download,
+  Clear,
+  VerticalAlignBottom,
+  VerticalAlignTop,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -27,13 +33,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import {
-  Close,
-  Download,
-  Clear,
-  VerticalAlignBottom,
-  VerticalAlignTop,
-} from '@mui/icons-material';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTranscriptStream } from '../../hooks/useTranscriptStream';

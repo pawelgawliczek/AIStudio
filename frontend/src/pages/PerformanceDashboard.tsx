@@ -1,7 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { useProject } from '../context/ProjectContext';
-import { apiClient } from '../services/api.client';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   LineChart,
   Line,
@@ -12,6 +10,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { useProject } from '../context/ProjectContext';
+import { apiClient } from '../services/api.client';
 
 interface WorkflowMetrics {
   id: string;

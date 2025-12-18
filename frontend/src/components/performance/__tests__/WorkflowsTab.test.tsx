@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { WorkflowsTab } from '../WorkflowsTab';
+import { describe, it, expect } from 'vitest';
 import { WeeklyAggregation, WorkflowMetrics } from '../../../services/metrics.service';
+import { WorkflowsTab } from '../WorkflowsTab';
 
 const mockWorkflowMetrics: WorkflowMetrics[] = [
   {
