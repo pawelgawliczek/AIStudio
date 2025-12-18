@@ -1327,4 +1327,205 @@ describe('advance_step MCP Tool', () => {
       );
     });
   });
+
+  // ST-305: Transcript Sync Warning Surfacing Tests
+  describe('Transcript Sync Warnings (ST-305)', () => {
+    const createMockRunWithTranscriptSync = (syncStatus: string) => ({
+      id: 'run-uuid',
+      status: 'running',
+      workflowId: 'workflow-uuid',
+      storyId: 'story-uuid',
+      story: { id: 'story-uuid', key: 'ST-305', title: 'Test Story' },
+      workflow: {
+        id: 'workflow-uuid',
+        name: 'Test Workflow',
+        states: [
+          {
+            id: 'state-0',
+            name: 'Implementation',
+            order: 1,
+            component: { id: 'comp-1', name: 'Implementer' },
+          },
+        ],
+      },
+      metadata: {
+        checkpoint: {
+          currentStateId: 'state-0',
+          currentPhase: 'pre',
+          phaseOutputs: {},
+        },
+        transcriptSync: {
+          status: syncStatus,
+          lastAttempt: new Date().toISOString(),
+          retryCount: 2,
+          error: 'Agent offline',
+        },
+      },
+    });
+
+    it('should surface warning when transcript sync is pending', async () => {
+      const mockRun = createMockRunWithTranscriptSync('pending');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeDefined();
+      expect(result.warnings.transcriptSync).toBeDefined();
+      expect(result.warnings.transcriptSync).toContain('pending');
+    });
+
+    it('should surface warning when transcript sync failed', async () => {
+      const mockRun = createMockRunWithTranscriptSync('failed');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeDefined();
+      expect(result.warnings.transcriptSync).toBeDefined();
+      expect(result.warnings.transcriptSync).toContain('failed');
+      expect(result.warnings.transcriptSync).toContain('Agent offline');
+    });
+
+    it('should include retry count in warning message', async () => {
+      const mockRun = createMockRunWithTranscriptSync('retrying');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.warnings).toBeDefined();
+      expect(result.warnings.transcriptSync).toContain('2'); // retry count
+    });
+
+    it('should not show warning when sync is completed', async () => {
+      const mockRun = {
+        id: 'run-uuid',
+        status: 'running',
+        workflowId: 'workflow-uuid',
+        story: null,
+        workflow: {
+          id: 'workflow-uuid',
+          name: 'Test Workflow',
+          states: [
+            {
+              id: 'state-0',
+              name: 'State',
+              order: 1,
+              component: null,
+            },
+          ],
+        },
+        metadata: {
+          checkpoint: {
+            currentStateId: 'state-0',
+            currentPhase: 'pre',
+          },
+          transcriptSync: {
+            status: 'completed',
+            completedAt: new Date().toISOString(),
+          },
+        },
+      };
+
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.success).toBe(true);
+      // Should not have transcript sync warning
+      if (result.warnings) {
+        expect(result.warnings.transcriptSync).toBeUndefined();
+      }
+    });
+
+    it('should not show warning when no transcript sync metadata exists', async () => {
+      const mockRun = {
+        id: 'run-uuid',
+        status: 'running',
+        story: null,
+        workflow: {
+          id: 'w-1',
+          name: 'Test',
+          states: [
+            {
+              id: 'state-0',
+              name: 'State',
+              order: 1,
+              component: null,
+            },
+          ],
+        },
+        metadata: {
+          checkpoint: {
+            currentStateId: 'state-0',
+            currentPhase: 'pre',
+          },
+          // No transcriptSync field
+        },
+      };
+
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.success).toBe(true);
+      if (result.warnings) {
+        expect(result.warnings.transcriptSync).toBeUndefined();
+      }
+    });
+
+    it('should format warning message with timestamp', async () => {
+      const mockRun = createMockRunWithTranscriptSync('failed');
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.warnings.transcriptSync).toContain('failed');
+      // Warning should provide actionable info
+      expect(typeof result.warnings.transcriptSync).toBe('string');
+      expect(result.warnings.transcriptSync.length).toBeGreaterThan(0);
+    });
+
+    it('should handle malformed transcript sync metadata gracefully', async () => {
+      const mockRun = {
+        id: 'run-uuid',
+        status: 'running',
+        story: null,
+        workflow: {
+          id: 'w-1',
+          name: 'Test',
+          states: [{ id: 'state-0', name: 'State', order: 1, component: null }],
+        },
+        metadata: {
+          checkpoint: {
+            currentStateId: 'state-0',
+            currentPhase: 'pre',
+          },
+          transcriptSync: {
+            // Malformed - missing required fields
+            status: 'failed',
+            // No error message, no retry count
+          },
+        },
+      };
+
+      (mockPrisma.workflowRun.findUnique as jest.Mock).mockResolvedValue(mockRun);
+      (mockPrisma.workflowRun.update as jest.Mock).mockResolvedValue(mockRun);
+
+      // Should not throw
+      const result: any = await handler(mockPrisma, { runId: 'run-uuid' });
+
+      expect(result.success).toBe(true);
+      if (result.warnings?.transcriptSync) {
+        expect(result.warnings.transcriptSync).toContain('failed');
+      }
+    });
+  });
 });
