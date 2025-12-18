@@ -1,7 +1,7 @@
 import { createHmac } from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import * as jwt from 'jsonwebtoken';
 import { RemoteAgent, RemoteJob, Prisma } from '@prisma/client';
+import * as jwt from 'jsonwebtoken';
 import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import {

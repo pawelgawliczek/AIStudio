@@ -255,50 +255,114 @@ export class WorkflowStateService {
         componentsTotal,
         percentComplete,
       },
-      componentRuns: workflowRun.componentRuns.map((cr) => ({
-        componentRunId: cr.id,
-        componentName: cr.component.name,
-        status: cr.status,
-        startedAt: cr.startedAt.toISOString(),
-        completedAt: cr.finishedAt?.toISOString(),
-        durationSeconds: cr.durationSeconds || undefined,
-        tokensUsed: cr.totalTokens || undefined,
-        // ST-27 Enhanced Metrics (ST-110: Cache metrics removed)
-        tokensInput: cr.tokensInput || undefined,
-        tokensOutput: cr.tokensOutput || undefined,
-        // ST-110: New token breakdown fields from /context command
-        tokensSystemPrompt: cr.tokensSystemPrompt || undefined,
-        tokensSystemTools: cr.tokensSystemTools || undefined,
-        tokensMcpTools: cr.tokensMcpTools || undefined,
-        tokensMemoryFiles: cr.tokensMemoryFiles || undefined,
-        tokensMessages: cr.tokensMessages || undefined,
-        // Quality & Behavior
-        userPrompts: cr.userPrompts || 0,
-        systemIterations: cr.systemIterations || 1,
-        humanInterventions: cr.humanInterventions || 0,
-        errorRate: cr.errorRate || undefined,
-        successRate: cr.successRate || undefined,
-        // Code Impact
-        linesAdded: cr.linesAdded || undefined,
-        linesDeleted: cr.linesDeleted || undefined,
-        linesModified: cr.linesModified || undefined,
-        locGenerated: cr.locGenerated || undefined,
-        testsAdded: cr.testsAdded || undefined,
-        filesModified: cr.filesModified || [],
-        // Cost & Performance
-        cost: cr.cost ? Number(cr.cost) : undefined,
-        costBreakdown: cr.costBreakdown || undefined,
-        tokensPerSecond: cr.tokensPerSecond || undefined,
-        timeToFirstToken: cr.timeToFirstToken || undefined,
-        modelId: cr.modelId || undefined,
-        temperature: cr.temperature || undefined,
-        // Tool Usage
-        toolBreakdown: cr.toolBreakdown || undefined,
-        // Artifacts & Content
-        artifacts: Array.isArray(cr.artifacts) ? cr.artifacts : [],
-        inputData: cr.inputData || undefined,
-        outputData: cr.outputData || undefined,
-      })),
+      componentRuns: workflowRun.componentRuns.map((cr) => {
+        // Type-guard costBreakdown from Prisma JsonValue
+        const costBreakdown = cr.costBreakdown;
+        const typedCostBreakdown =
+          costBreakdown &&
+          typeof costBreakdown === 'object' &&
+          !Array.isArray(costBreakdown)
+            ? {
+                input: typeof costBreakdown.input === 'number' ? costBreakdown.input : undefined,
+                output: typeof costBreakdown.output === 'number' ? costBreakdown.output : undefined,
+                cacheCreation: typeof costBreakdown.cacheCreation === 'number' ? costBreakdown.cacheCreation : undefined,
+                cacheRead: typeof costBreakdown.cacheRead === 'number' ? costBreakdown.cacheRead : undefined,
+              }
+            : undefined;
+
+        // Type-guard toolBreakdown from Prisma JsonValue
+        const toolBreakdown = cr.toolBreakdown;
+        const typedToolBreakdown =
+          toolBreakdown &&
+          typeof toolBreakdown === 'object' &&
+          !Array.isArray(toolBreakdown)
+            ? (toolBreakdown as Record<string, number>)
+            : undefined;
+
+        // Type-guard artifacts from Prisma JsonValue
+        const artifacts = cr.artifacts;
+        const typedArtifacts: Array<{
+          id: string;
+          definitionKey: string;
+          content?: string;
+          version?: number;
+        }> = Array.isArray(artifacts)
+          ? artifacts
+              .filter((a) => typeof a === 'object' && a !== null)
+              .map((a) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const artifact = a as any; // Artifact structure from JsonValue
+                return {
+                  id: typeof artifact.id === 'string' ? artifact.id : '',
+                  definitionKey: typeof artifact.definitionKey === 'string' ? artifact.definitionKey : '',
+                  content: typeof artifact.content === 'string' ? artifact.content : undefined,
+                  version: typeof artifact.version === 'number' ? artifact.version : undefined,
+                };
+              })
+          : [];
+
+        // Type-guard inputData and outputData from Prisma JsonValue
+        const inputData = cr.inputData;
+        const typedInputData =
+          inputData &&
+          typeof inputData === 'object' &&
+          !Array.isArray(inputData)
+            ? (inputData as Record<string, unknown>)
+            : undefined;
+
+        const outputData = cr.outputData;
+        const typedOutputData =
+          outputData &&
+          typeof outputData === 'object' &&
+          !Array.isArray(outputData)
+            ? (outputData as Record<string, unknown>)
+            : undefined;
+
+        return {
+          componentRunId: cr.id,
+          componentName: cr.component.name,
+          status: cr.status,
+          startedAt: cr.startedAt.toISOString(),
+          completedAt: cr.finishedAt?.toISOString(),
+          durationSeconds: cr.durationSeconds || undefined,
+          tokensUsed: cr.totalTokens || undefined,
+          // ST-27 Enhanced Metrics (ST-110: Cache metrics removed)
+          tokensInput: cr.tokensInput || undefined,
+          tokensOutput: cr.tokensOutput || undefined,
+          // ST-110: New token breakdown fields from /context command
+          tokensSystemPrompt: cr.tokensSystemPrompt || undefined,
+          tokensSystemTools: cr.tokensSystemTools || undefined,
+          tokensMcpTools: cr.tokensMcpTools || undefined,
+          tokensMemoryFiles: cr.tokensMemoryFiles || undefined,
+          tokensMessages: cr.tokensMessages || undefined,
+          // Quality & Behavior
+          userPrompts: cr.userPrompts || 0,
+          systemIterations: cr.systemIterations || 1,
+          humanInterventions: cr.humanInterventions || 0,
+          errorRate: cr.errorRate || undefined,
+          successRate: cr.successRate || undefined,
+          // Code Impact
+          linesAdded: cr.linesAdded || undefined,
+          linesDeleted: cr.linesDeleted || undefined,
+          linesModified: cr.linesModified || undefined,
+          locGenerated: cr.locGenerated || undefined,
+          testsAdded: cr.testsAdded || undefined,
+          filesModified: cr.filesModified || [],
+          // Cost & Performance
+          cost: cr.cost ? Number(cr.cost) : undefined,
+          costBreakdown: typedCostBreakdown,
+          tokensPerSecond: cr.tokensPerSecond || undefined,
+          timeToFirstToken: cr.timeToFirstToken || undefined,
+          modelId: cr.modelId || undefined,
+          temperature: cr.temperature || undefined,
+          // Tool Usage
+          toolBreakdown: typedToolBreakdown,
+          // Artifacts & Content
+          artifacts: typedArtifacts,
+          inputData: typedInputData,
+          outputData: typedOutputData,
+        };
+      }),
     };
   }
 
@@ -469,9 +533,18 @@ export class WorkflowStateService {
    * List workflow runs for a project
    */
   async listWorkflowRuns(projectId: string, options?: { limit?: number; offset?: number; status?: string }) {
-    const where: { projectId: string; status?: string } = { projectId };
+    // Build where clause with proper Prisma typing
+    const where: {
+      projectId: string;
+      status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+    } = { projectId };
+
     if (options?.status) {
-      where.status = options.status;
+      // Cast to RunStatus enum values
+      const validStatuses = ['pending', 'running', 'completed', 'failed', 'cancelled'];
+      if (validStatuses.includes(options.status)) {
+        where.status = options.status as 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+      }
     }
 
     const [runs, total] = await Promise.all([

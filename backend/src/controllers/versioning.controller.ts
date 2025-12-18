@@ -9,6 +9,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { Component, Workflow } from '@prisma/client';
 import {
   CreateVersionDto,
   CompareVersionsQueryDto,
@@ -21,7 +22,6 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ChecksumService } from '../services/checksum.service';
 import { VersioningService, VersionNode } from '../services/versioning.service';
-import { Component, Workflow } from '@prisma/client';
 
 @Controller('versioning')
 export class VersioningController {
@@ -57,11 +57,11 @@ export class VersioningController {
       return versions;
     };
 
-    const allVersionIds = flattenTree(tree).map(v => v.id);
+    const allVersionIds = flattenTree(tree).map((v: VersionNode) => v.id);
 
     // Fetch full component data for each version
     const versions = await Promise.all(
-      allVersionIds.map(async (versionId) => {
+      allVersionIds.map(async (versionId: string) => {
         const component = await this.prisma.component.findUnique({
           where: { id: versionId },
         });

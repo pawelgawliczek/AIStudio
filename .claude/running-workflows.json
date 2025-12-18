@@ -1,5 +1,5 @@
 {
-  "currentRunId": "73945c42-cafe-468d-96f9-375ca78f3f04",
+  "currentRunId": null,
   "sessions": {
     "f88514e1-deec-4bd5-902d-0fac9f4cdaa4": {
       "masterTranscripts": [
@@ -308,60 +308,6 @@
       "startedAt": "2025-12-18T08:34:38Z",
       "endedAt": "2025-12-18T08:38:40Z",
       "endReason": "clear"
-    },
-    "c3be28c4-e9db-4869-ba38-5c3b869fdddc": {
-      "runId": "73945c42-cafe-468d-96f9-375ca78f3f04",
-      "workflowId": "df9bf06d-38c5-4fa8-9c7d-b60d0bdfc122",
-      "storyId": "ae0e0295-4c34-4e1f-99e4-91ebf60911a5",
-      "storyKey": "ST-283",
-      "startedAt": "2025-12-18T14:02:01Z",
-      "spawnedAgentTranscripts": [
-        {
-          "agentId": "a09c8e3",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a09c8e3.jsonl",
-          "spawnedAt": "2025-12-18T14:02:36Z"
-        },
-        {
-          "agentId": "a0708f9",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a0708f9.jsonl",
-          "spawnedAt": "2025-12-18T14:13:16Z"
-        },
-        {
-          "agentId": "acc501f",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-acc501f.jsonl",
-          "spawnedAt": "2025-12-18T14:14:53Z"
-        },
-        {
-          "agentId": "a008b78",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a008b78.jsonl",
-          "spawnedAt": "2025-12-18T14:15:56Z"
-        },
-        {
-          "agentId": "ae99d58",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ae99d58.jsonl",
-          "spawnedAt": "2025-12-18T14:31:59Z"
-        },
-        {
-          "agentId": "affb433",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-affb433.jsonl",
-          "spawnedAt": "2025-12-18T14:34:10Z"
-        },
-        {
-          "agentId": "a918beb",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a918beb.jsonl",
-          "spawnedAt": "2025-12-18T14:37:12Z"
-        },
-        {
-          "agentId": "a687ffc",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a687ffc.jsonl",
-          "spawnedAt": "2025-12-18T14:42:35Z"
-        },
-        {
-          "agentId": "af6789d",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-af6789d.jsonl",
-          "spawnedAt": "2025-12-18T14:45:37Z"
-        }
-      ]
     }
   }
 }

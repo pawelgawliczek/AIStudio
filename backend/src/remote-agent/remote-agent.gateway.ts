@@ -9,8 +9,8 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
-import * as jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
+import * as jwt from 'jsonwebtoken';
 import { Server, Socket } from 'socket.io';
 import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';

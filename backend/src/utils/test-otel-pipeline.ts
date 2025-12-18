@@ -4,7 +4,7 @@
  *
  * Run: npx ts-node backend/src/utils/test-otel-pipeline.ts
  */
-// @ts-expect-error - node-fetch types not needed for this test utility
+// @ts-expect-error - node-fetch types not installed for this utility script
 import fetch from 'node-fetch';
 
 const OTEL_COLLECTOR_URL = 'http://localhost:4318/v1/logs';
@@ -14,7 +14,8 @@ interface TestResult {
   test: string;
   success: boolean;
   message: string;
-  data?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any; // Response data can be any shape from different endpoints
 }
 
 async function runTests(): Promise<TestResult[]> {
@@ -57,11 +58,12 @@ async function runTests(): Promise<TestResult[]> {
       message: response.ok ? 'Event ingested successfully' : `Failed: ${response.statusText}`,
       data,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     results.push({
       test: 'Direct Backend API',
       success: false,
-      message: `Error: ${error.message}`,
+      message: `Error: ${message}`,
     });
   }
 
@@ -124,11 +126,12 @@ async function runTests(): Promise<TestResult[]> {
         : `Failed: ${response.statusText}`,
       data: responseText || '(empty response)',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     results.push({
       test: 'OTEL Collector OTLP',
       success: false,
-      message: `Error: ${error.message}`,
+      message: `Error: ${message}`,
     });
   }
 
@@ -178,11 +181,12 @@ async function runTests(): Promise<TestResult[]> {
       message: response.ok ? `Batch of ${batchEvents.length} events ingested` : `Failed: ${response.statusText}`,
       data,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     results.push({
       test: 'Batch Ingestion',
       success: false,
-      message: `Error: ${error.message}`,
+      message: `Error: ${message}`,
     });
   }
 

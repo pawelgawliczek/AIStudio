@@ -40,7 +40,11 @@ export class MetricsAggregatorProcessor {
         where: { id: storyId },
         include: {
           runs: true,
-          commits: true,
+          commits: {
+            include: {
+              files: true, // Include CommitFile to access locAdded/locDeleted
+            },
+          },
           subtasks: true,
         },
       });
@@ -54,11 +58,14 @@ export class MetricsAggregatorProcessor {
       const totalTokensOutput = story.runs.reduce((sum: number, run) => sum + (run.tokensOutput || 0), 0);
       const totalTokens = totalTokensInput + totalTokensOutput;
 
-      // Calculate total LOC from commits
-      const totalLOC = story.commits.reduce(
-        (sum: number, commit) => sum + (commit.linesAdded || 0) + Math.abs(commit.linesDeleted || 0),
-        0,
-      );
+      // Calculate total LOC from commits via CommitFile relation
+      const totalLOC = story.commits.reduce((sum: number, commit) => {
+        const commitLOC = commit.files.reduce(
+          (fileSum: number, file) => fileSum + file.locAdded + Math.abs(file.locDeleted),
+          0
+        );
+        return sum + commitLOC;
+      }, 0);
 
       // Calculate total iterations (number of runs)
       const totalIterations = story.runs.length;
@@ -135,7 +142,11 @@ export class MetricsAggregatorProcessor {
         },
         include: {
           runs: true,
-          commits: true,
+          commits: {
+            include: {
+              files: true, // Include CommitFile to access locAdded/locDeleted
+            },
+          },
         },
       });
 
@@ -242,7 +253,11 @@ export class MetricsAggregatorProcessor {
         },
         include: {
           runs: true,
-          commits: true,
+          commits: {
+            include: {
+              files: true, // Include CommitFile to access locAdded/locDeleted
+            },
+          },
         },
         orderBy: {
           updatedAt: 'asc',
