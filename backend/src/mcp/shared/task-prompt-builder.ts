@@ -186,7 +186,7 @@ export async function formatArtifactInstructions(
           definitionId: access.definitionId,
           storyId,
         },
-        orderBy: { version: 'desc' },
+        orderBy: { currentVersion: 'desc' },
       });
 
       if (artifact) {
@@ -212,7 +212,7 @@ export async function formatArtifactInstructions(
           definitionId: access.definitionId,
           storyId,
         },
-        orderBy: { version: 'desc' },
+        orderBy: { currentVersion: 'desc' },
       });
 
       if (artifact) {
@@ -238,7 +238,7 @@ export async function formatArtifactInstructions(
           definitionId: access.definitionId,
           storyId,
         },
-        orderBy: { version: 'desc' },
+        orderBy: { currentVersion: 'desc' },
       });
 
       if (artifact) {
@@ -307,18 +307,28 @@ export async function buildTaskPrompt(
   // 3. Previous component outputs
   const previousRuns = await prisma.componentRun.findMany({
     where: {
-      runId,
+      workflowRunId: runId,
       status: 'completed', // Only completed runs
     },
     orderBy: { startedAt: 'asc' },
     select: {
       id: true,
-      componentName: true,
       componentSummary: true,
+      component: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 
-  const previousOutputsSection = formatPreviousOutputs(previousRuns);
+  const previousOutputsSection = formatPreviousOutputs(
+    previousRuns.map(run => ({
+      id: run.id,
+      componentName: run.component?.name ?? 'Unknown Component',
+      componentSummary: run.componentSummary,
+    }))
+  );
   if (previousOutputsSection) {
     sections.push(previousOutputsSection);
   }
