@@ -13,7 +13,7 @@ import {
   PaginatedResponse,
 } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
-import { formatArtifact } from './upload_artifact';
+import { formatArtifact } from './create_artifact';
 
 export const tool: Tool = {
   name: 'list_artifacts',

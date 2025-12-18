@@ -10,7 +10,7 @@ import {
   ValidationError,
 } from '../../types';
 import { validateRequired, handlePrismaError } from '../../utils';
-import { handler as uploadArtifactHandler } from '../artifacts/upload_artifact';
+import { handler as uploadArtifactHandler } from '../artifacts/create_artifact';
 
 export const tool: Tool = {
   name: 'save_artifact_changes',

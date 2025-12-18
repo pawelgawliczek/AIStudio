@@ -1,8 +1,9 @@
 /**
- * Upload Artifact From File Tool (ST-177)
- * Uploads artifact content directly from a file on the laptop
+ * Upload Artifact From Markdown File Tool (ST-307)
+ * Uploads text/markdown artifact content from a file on the laptop with redaction
  *
- * This tool reads files via RemoteRunner (laptop agent) and uploads to the database.
+ * This tool reads text/markdown files via RemoteRunner (laptop agent), applies
+ * sensitive data redaction, and uploads to the database.
  * Security: File path validation, quota enforcement, sensitive data redaction.
  */
 
@@ -18,12 +19,12 @@ import { validateRequired } from '../../utils';
 import { redactSensitiveData } from '../../utils/content-security';
 import { validateArtifactQuota } from '../../utils/quota-validation';
 import { RemoteRunner } from '../../utils/remote-runner';
-import { handler as uploadArtifact } from './upload_artifact';
+import { handler as createArtifact } from './create_artifact';
 
 export const tool: Tool = {
-  name: 'upload_artifact_from_file',
+  name: 'upload_artifact_from_md_file',
   description:
-    'Upload artifact content from a file on the laptop. Reads file via remote agent, applies security redaction, and uploads to database. Enforces quota limits (10MB per run, 100MB per project).',
+    'Upload text/markdown artifact content from a file on the laptop. Reads file via remote agent, applies security redaction for sensitive data (API keys, emails, etc.), and uploads to database. For binary files (images, PDFs), use upload_artifact_from_binary_file instead.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -59,9 +60,9 @@ export const tool: Tool = {
 export const metadata = {
   category: 'artifacts',
   domain: 'story_runner',
-  tags: ['artifact', 'upload', 'file', 'remote', 'laptop'],
+  tags: ['artifact', 'upload', 'file', 'remote', 'laptop', 'markdown', 'text'],
   version: '1.0.0',
-  since: 'ST-177',
+  since: 'ST-307',
 };
 
 interface ReadFileResult {
@@ -144,13 +145,13 @@ export async function handler(
   // Log warning if redaction occurred
   if (redactionApplied) {
     console.warn(
-      `[upload_artifact_from_file] Redacted ${redactionCount} sensitive data pattern(s) ` +
+      `[upload_artifact_from_md_file] Redacted ${redactionCount} sensitive data pattern(s) ` +
         `from file ${params.filePath}. Patterns: ${patterns.join(', ')}`,
     );
   }
 
-  // 9. Call existing upload_artifact handler with redacted content
-  const artifact = await uploadArtifact(prisma, {
+  // 9. Call existing create_artifact handler with redacted content
+  const artifact = await createArtifact(prisma, {
     definitionId: params.definitionId,
     definitionKey: params.definitionKey,
     workflowRunId: params.workflowRunId,

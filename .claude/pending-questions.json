@@ -3090,3 +3090,81 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-18T16:31:22Z",
+  "session_id": "787a9c16-1703-480a-b644-2519ec9d1029",
+  "run_id": "9a68b8c8-d7bb-4aad-9406-454c97847bfc",
+  "questions": [
+    {
+      "question": "Do you approve proceeding with implementation of ST-305?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve",
+          "description": "Proceed with implementation as planned"
+        },
+        {
+          "label": "Approve with changes",
+          "description": "Proceed but with modifications to the plan"
+        },
+        {
+          "label": "Reject",
+          "description": "Stop workflow and revisit the plan"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T16:43:29Z",
+  "session_id": "88e10089-83bf-40a1-b026-fdedb51a0ca6",
+  "run_id": "f9154cf3-9fd5-4c59-b292-6325959d459a",
+  "questions": [
+    {
+      "question": "Approve the implementation plan to proceed with testing and implementation?",
+      "header": "Approval",
+      "options": [
+        {
+          "label": "Approve and continue",
+          "description": "Proceed with testing and implementation phases"
+        },
+        {
+          "label": "Review THE_PLAN first",
+          "description": "I want to read the full plan artifact before approving"
+        },
+        {
+          "label": "Reject and stop",
+          "description": "Stop the workflow, need changes to the plan"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-18T17:01:25Z",
+  "session_id": "787a9c16-1703-480a-b644-2519ec9d1029",
+  "run_id": "9a68b8c8-d7bb-4aad-9406-454c97847bfc",
+  "questions": [
+    {
+      "question": "Implementation blocked by workflow enforcement hooks. Fix 5 (Prisma timeout) completed, but Fixes 1-4 (TypeScript files) couldn't be applied. How should we proceed?",
+      "header": "Blocked",
+      "options": [
+        {
+          "label": "Cancel workflow, apply manually",
+          "description": "Stop workflow, I'll apply the remaining fixes directly without enforcement"
+        },
+        {
+          "label": "Disable enforcement, re-run",
+          "description": "Temporarily disable hooks and spawn a new Developer agent"
+        },
+        {
+          "label": "Continue with partial",
+          "description": "Proceed to code review with only Fix 5 completed"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

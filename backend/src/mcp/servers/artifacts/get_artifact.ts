@@ -13,7 +13,7 @@ import {
   ValidationError,
 } from '../../types';
 import { handlePrismaError } from '../../utils';
-import { formatArtifact } from './upload_artifact';
+import { formatArtifact } from './create_artifact';
 
 export const tool: Tool = {
   name: 'get_artifact',

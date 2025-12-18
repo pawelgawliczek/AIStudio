@@ -160,6 +160,8 @@ export async function handler(prisma: PrismaClient, params: {
       agentId: result.agentId,
     };
   } catch (error) {
+    clearTimeout(timeoutId);
+
     // If HTTP call fails, provide helpful error message
     const errorMessage = error instanceof Error ? error.message : String(error);
 
