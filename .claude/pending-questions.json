@@ -2758,3 +2758,29 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-18T07:43:27Z",
+  "session_id": "4fd80981-6a13-4686-ba22-f9b95badb233",
+  "run_id": "ff5831f3-ba6a-4244-852c-0e5126dedf6e",
+  "questions": [
+    {
+      "question": "Ready to push ep-12/main and deploy?",
+      "header": "Deploy",
+      "options": [
+        {
+          "label": "Push and deploy",
+          "description": "Push branch, merge to main, deploy to production"
+        },
+        {
+          "label": "Push only",
+          "description": "Push branch but don't deploy yet"
+        },
+        {
+          "label": "Review commits first",
+          "description": "Show diff before pushing"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

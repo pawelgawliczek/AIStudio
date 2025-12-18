@@ -1,8 +1,8 @@
 {
   "sessions": {
-    "fccf7c75-c301-4da2-8c3d-53dcfda1e83c": {
+    "4fd80981-6a13-4686-ba22-f9b95badb233": {
       "workflowActive": true,
-      "runId": "193bb24d-08f2-4437-b1bb-5e108917921e",
+      "runId": "a5de7651-d1f5-4b79-aad0-b1b4fa6cc494",
       "currentState": {
         "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
         "name": "implementation",
@@ -12,7 +12,20 @@
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T07:12:18Z"
+      "updatedAt": "2025-12-18T08:35:08Z"
+    },
+    "fbc469ca-a500-4cd7-9397-0eb3162a6cc0": {
+      "workflowActive": true,
+      "runId": "dbaedf4c-0065-4004-a73a-e22f8fec1db7",
+      "currentState": {
+        "id": "bea1aca2-d756-4cd6-9c14-ac3e5c95fdca",
+        "name": "exploration",
+        "componentName": "Native Explorer",
+        "allowedSubagentTypes": [
+          "Explore"
+        ]
+      },
+      "updatedAt": "2025-12-18T08:42:05Z"
     }
   }
 }
