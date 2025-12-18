@@ -68,6 +68,10 @@ export const tool: Tool = {
         type: 'string',
         description: 'Framework UUID to assign this story to',
       },
+      epicId: {
+        type: 'string',
+        description: 'Epic UUID to assign this story to (use null to unassign)',
+      },
       contextExploration: {
         type: 'string',
         description: '@deprecated Use Artifact system instead (ST-152)',
@@ -134,6 +138,17 @@ export async function handler(
       }
     }
 
+    // Verify epic exists if provided (null is allowed to unassign)
+    if (params.epicId !== undefined && params.epicId !== null) {
+      const epic = await prisma.epic.findUnique({
+        where: { id: params.epicId },
+      });
+
+      if (!epic) {
+        throw new NotFoundError('Epic', params.epicId);
+      }
+    }
+
     // Build update data object (only include provided fields)
     const updateData: any = {};
 
@@ -157,6 +172,8 @@ export async function handler(
       updateData.technicalComplexity = params.technicalComplexity;
     if (params.assignedFrameworkId !== undefined)
       updateData.assignedFrameworkId = params.assignedFrameworkId;
+    if (params.epicId !== undefined)
+      updateData.epicId = params.epicId;
 
     // Workflow component analysis fields (DEPRECATED - ST-152)
     const deprecatedFieldsUsed: string[] = [];

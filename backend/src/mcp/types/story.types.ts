@@ -47,6 +47,7 @@ export interface UpdateStoryParams {
   businessComplexity?: number;
   technicalComplexity?: number;
   assignedFrameworkId?: string;
+  epicId?: string | null; // Epic UUID to assign (null to unassign)
   contextExploration?: string;
   baAnalysis?: string;
   designerAnalysis?: string;
