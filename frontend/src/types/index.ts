@@ -31,10 +31,9 @@ export interface Project {
 
 // Epic types
 export enum EpicStatus {
-  planning = 'planning',
-  in_progress = 'in_progress',
-  completed = 'completed',
-  on_hold = 'on_hold',
+  open = 'open',
+  closed = 'closed',
+  cancelled = 'cancelled',
 }
 
 export interface Epic {

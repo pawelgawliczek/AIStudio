@@ -20,7 +20,7 @@ import { StoryDetailDrawer } from '../components/StoryDetailDrawer';
 import { useProject } from '../context/ProjectContext';
 import { storiesApi, epicsApi } from '../services/api';
 import { useWebSocket, useStoryEvents, useEpicEvents } from '../services/websocket.service';
-import { Story, Epic, StoryStatus, StoryType, PlanningOverview } from '../types';
+import { Story, Epic, StoryStatus, StoryType, PlanningOverview, EpicStatus } from '../types';
 
 type ViewMode = 'grouped' | 'flat';
 type SortOption = 'priority-high' | 'priority-low' | 'created-new' | 'created-old' | 'updated' | 'title-az' | 'title-za';
@@ -39,6 +39,7 @@ export function EpicPlanningView() {
   const statusFilter = searchParams.get('status')?.split(',') || [];
   const typeFilter = searchParams.get('type')?.split(',') || [];
   const epicFilter = searchParams.get('epic')?.split(',') || [];
+  const epicStatusFilter = searchParams.get('epicStatus') || 'open'; // Default to open only
   const searchQuery = searchParams.get('search') || '';
   const editStoryKey = searchParams.get('editStory') || null;
 
@@ -170,6 +171,11 @@ export function EpicPlanningView() {
     let epics = [...planningData.epics];
     let unassignedStories = [...planningData.unassignedStories];
 
+    // Filter epics by status (default: show only open)
+    if (epicStatusFilter !== 'all') {
+      epics = epics.filter(epic => epic.status === epicStatusFilter);
+    }
+
     // Apply filters
     const filterStories = (stories: Story[]) => {
       return stories.filter(story => {
@@ -248,7 +254,7 @@ export function EpicPlanningView() {
     unassignedStories = sortStories(unassignedStories);
 
     return { epics, unassignedStories };
-  }, [planningData, statusFilter, typeFilter, epicFilter, searchQuery, sortOption, hideCompletedItems]);
+  }, [planningData, statusFilter, typeFilter, epicFilter, epicStatusFilter, searchQuery, sortOption, hideCompletedItems]);
 
   // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -465,7 +471,7 @@ export function EpicPlanningView() {
   }
 
   const hasActiveFilters = statusFilter.length > 0 || typeFilter.length > 0 ||
-                          epicFilter.length > 0 || searchQuery;
+                          epicFilter.length > 0 || epicStatusFilter !== 'open' || searchQuery;
 
   return (
     <DndContext
@@ -519,6 +525,26 @@ export function EpicPlanningView() {
                 <option value="title-za">Title: Z-A</option>
               </select>
 
+              {/* Epic Status Filter */}
+              <select
+                value={epicStatusFilter}
+                onChange={(e) => {
+                  const newParams = new URLSearchParams(searchParams);
+                  if (e.target.value === 'open') {
+                    newParams.delete('epicStatus'); // Default, don't need in URL
+                  } else {
+                    newParams.set('epicStatus', e.target.value);
+                  }
+                  setSearchParams(newParams);
+                }}
+                className="px-4 py-2 bg-card border border-border rounded-lg text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="open">Open Epics</option>
+                <option value="closed">Closed Epics</option>
+                <option value="cancelled">Cancelled Epics</option>
+                <option value="all">All Epics</option>
+              </select>
+
               {/* Show/Hide Completed Toggle */}
               <button
                 onClick={toggleHideCompletedItems}
@@ -559,6 +585,15 @@ export function EpicPlanningView() {
               {epicFilter.length > 0 && (
                 <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded">
                   Epic: {epicFilter.length} selected
+                </span>
+              )}
+              {epicStatusFilter !== 'open' && (
+                <span className={`px-2 py-1 rounded ${
+                  epicStatusFilter === 'all' ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300' :
+                  epicStatusFilter === 'closed' ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' :
+                  'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200'
+                }`}>
+                  Epic Status: {epicStatusFilter}
                 </span>
               )}
               {searchQuery && (

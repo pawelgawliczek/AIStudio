@@ -94,7 +94,15 @@ export function EpicGroup({ epic, stories: propStories, onEpicClick, onStoryClic
                   </div>
                   <div className="flex items-center gap-4 mt-1 text-sm text-muted">
                     <span>Priority: {epic.priority}</span>
-                    <span className="capitalize">{epic.status.replace('_', ' ')}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      epic.status === 'open'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                        : epic.status === 'closed'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    }`}>
+                      {epic.status}
+                    </span>
                     <span>{allStories.length} {allStories.length === 1 ? 'Story' : 'Stories'}</span>
                     <span>Complete: {getCompletion()}%</span>
                     {hideCompletedItems && hiddenCompletedCount > 0 && (
