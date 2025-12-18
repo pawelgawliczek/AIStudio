@@ -18,7 +18,7 @@ export interface ComponentData {
   id: string;
   name: string;
   executionType: string;
-  config?: Record<string, unknown>;
+  config?: Record<string, unknown> | unknown;  // Accepts Prisma JsonValue
   tools?: string[];
   inputInstructions?: string | null;
   operationInstructions?: string | null;
