@@ -14,8 +14,9 @@ COPY shared/package*.json ./shared/
 # Install all dependencies (including devDependencies for build)
 # ST-115: BuildKit cache mount for faster subsequent builds
 # Using npm install instead of npm ci since lock files are not committed
+# ST-291: Use legacy-peer-deps for NestJS 11 to handle peer dependency resolution
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --include=dev
+    npm install --include=dev --legacy-peer-deps
 
 # Copy source code
 COPY backend ./backend
