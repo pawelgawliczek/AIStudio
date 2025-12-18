@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import OpenAI from 'openai';
 import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,14 +10,23 @@ import {
   UseCaseResponse,
 } from './dto';
 import { normalizeArea, findSimilarAreas, SimilarAreaMatch } from './taxonomy.util';
+import { UseCasesCrudService } from './services/use-cases-crud.service';
+import { UseCasesSearchService } from './services/use-cases-search.service';
 
+/**
+ * ST-284: Refactored Use Cases Service (Facade)
+ * Delegates to specialized sub-services for maintainability
+ */
 @Injectable()
 export class UseCasesService {
   private readonly logger = new Logger(UseCasesService.name);
   private openai: OpenAI | null = null;
 
-  constructor(private prisma: PrismaService) {
-    // Initialize OpenAI client if API key is provided
+  constructor(
+    private prisma: PrismaService,
+    private crudService: UseCasesCrudService,
+    private searchService: UseCasesSearchService,
+  ) {
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
@@ -33,716 +41,71 @@ export class UseCasesService {
    * Create a new use case with initial version
    */
   async create(dto: CreateUseCaseDto, createdById?: string): Promise<UseCaseResponse> {
-    // Check if project exists
-    const project = await this.prisma.project.findUnique({
-      where: { id: dto.projectId },
-    });
-
-    if (!project) {
-      throw new NotFoundException(`Project with ID ${dto.projectId} not found`);
-    }
-
-    // ST-207: Validate and normalize area against taxonomy
-    let normalizedArea: string | undefined;
-    if (dto.area) {
-      normalizedArea = await this.validateAndNormalizeArea(
-        dto.projectId,
-        dto.area,
-        dto.autoAddArea
-      );
-    }
-
-    // Check if key is unique within project
-    const existing = await this.prisma.useCase.findUnique({
-      where: {
-        projectId_key: {
-          projectId: dto.projectId,
-          key: dto.key,
-        },
-      },
-    });
-
-    if (existing) {
-      throw new BadRequestException(
-        `Use case with key ${dto.key} already exists in project ${dto.projectId}`,
-      );
-    }
-
-    // Generate embedding if OpenAI is available
-    let embedding: number[] | null = null;
-    if (this.openai) {
-      try {
-        embedding = await this.generateEmbedding(dto.content);
-      } catch (error) {
-        this.logger.error(`Failed to generate embedding: ${getErrorMessage(error)}`);
-        // Continue without embedding - it can be generated later by background worker
-      }
-    }
-
-    // Use the createdById from dto if not provided as parameter (backward compatibility)
-    const userId = createdById || dto.createdById;
-
-    // Create use case with initial version in a transaction
-    const useCase = await this.prisma.$transaction(async (tx) => {
-      const newUseCase = await tx.useCase.create({
-        data: {
-          projectId: dto.projectId,
-          key: dto.key,
-          title: dto.title,
-          area: normalizedArea,
-        },
-      });
-
-      // Create version with embedding using raw SQL since Prisma doesn't support Unsupported type
-      await tx.$executeRaw`
-        INSERT INTO use_case_versions (id, use_case_id, version, summary, content, embedding, created_by)
-        VALUES (
-          uuid_generate_v4(),
-          ${newUseCase.id}::uuid,
-          1,
-          ${dto.summary},
-          ${dto.content},
-          ${embedding ? `[${embedding.join(',')}]` : null}::vector,
-          ${userId}::uuid
-        )
-      `;
-
-      return newUseCase;
-    });
-
-    return this.findOne(useCase.id);
+    return this.crudService.create(
+      dto,
+      createdById,
+      this.openai,
+      this.validateAndNormalizeArea.bind(this)
+    );
   }
 
   /**
    * Find all use cases with optional filters
    */
   async findAll(projectId?: string, area?: string): Promise<UseCaseResponse[]> {
-    const where: Prisma.UseCaseWhereInput = {};
-
-    if (projectId) {
-      where.projectId = projectId;
-    }
-
-    if (area) {
-      where.area = area;
-    }
-
-    const useCases = await this.prisma.useCase.findMany({
-      where,
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 1,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        storyLinks: {
-          include: {
-            story: {
-              select: {
-                id: true,
-                key: true,
-                title: true,
-                status: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    return useCases.map((uc) => ({
-      id: uc.id,
-      projectId: uc.projectId,
-      key: uc.key,
-      title: uc.title,
-      area: uc.area ?? undefined,
-      createdAt: uc.createdAt,
-      updatedAt: uc.updatedAt,
-      latestVersion: uc.versions[0]
-        ? {
-            id: uc.versions[0].id,
-            version: uc.versions[0].version,
-            summary: uc.versions[0].summary ?? undefined,
-            content: uc.versions[0].content,
-            createdAt: uc.versions[0].createdAt,
-            createdBy: uc.versions[0].createdBy,
-            linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
-            linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
-          }
-        : undefined,
-      storyLinks: uc.storyLinks.map((link) => ({
-        storyId: link.storyId,
-        relation: link.relation,
-        story: link.story,
-      })),
-    }));
+    return this.crudService.findAll(projectId, area);
   }
 
   /**
    * Find a single use case by ID
    */
   async findOne(id: string): Promise<UseCaseResponse> {
-    const useCase = await this.prisma.useCase.findUnique({
-      where: { id },
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        storyLinks: {
-          include: {
-            story: {
-              select: {
-                id: true,
-                key: true,
-                title: true,
-                status: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!useCase) {
-      throw new NotFoundException(`Use case with ID ${id} not found`);
-    }
-
-    return {
-      id: useCase.id,
-      projectId: useCase.projectId,
-      key: useCase.key,
-      title: useCase.title,
-      area: useCase.area ?? undefined,
-      createdAt: useCase.createdAt,
-      updatedAt: useCase.updatedAt,
-      latestVersion: useCase.versions[0]
-        ? {
-            id: useCase.versions[0].id,
-            version: useCase.versions[0].version,
-            summary: useCase.versions[0].summary ?? undefined,
-            content: useCase.versions[0].content,
-            createdAt: useCase.versions[0].createdAt,
-            createdBy: useCase.versions[0].createdBy,
-            linkedStoryId: useCase.versions[0].linkedStoryId ?? undefined,
-            linkedDefectId: useCase.versions[0].linkedDefectId ?? undefined,
-          }
-        : undefined,
-      versions: useCase.versions.map((v) => ({
-        id: v.id,
-        version: v.version,
-        summary: v.summary ?? undefined,
-        content: v.content,
-        createdAt: v.createdAt,
-        createdBy: v.createdBy,
-        linkedStoryId: v.linkedStoryId ?? undefined,
-        linkedDefectId: v.linkedDefectId ?? undefined,
-      })),
-      storyLinks: useCase.storyLinks.map((link) => ({
-        storyId: link.storyId,
-        relation: link.relation,
-        story: link.story,
-      })),
-    };
+    return this.crudService.findOne(id);
   }
 
   /**
    * Update a use case (creates a new version)
    */
   async update(id: string, dto: UpdateUseCaseDto, createdById?: string): Promise<UseCaseResponse> {
-    const useCase = await this.prisma.useCase.findUnique({
-      where: { id },
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 1,
-        },
-      },
-    });
-
-    if (!useCase) {
-      throw new NotFoundException(`Use case with ID ${id} not found`);
-    }
-
-    // ST-207: Validate and normalize area if being updated
-    let normalizedArea: string | undefined;
-    if (dto.area !== undefined) {
-      normalizedArea = await this.validateAndNormalizeArea(
-        useCase.projectId,
-        dto.area,
-        dto.autoAddArea
-      );
-    }
-
-    // Generate embedding if content is updated and OpenAI is available
-    let embedding: number[] | null = null;
-    if (dto.content && this.openai) {
-      try {
-        embedding = await this.generateEmbedding(dto.content);
-      } catch (error) {
-        this.logger.error(`Failed to generate embedding: ${getErrorMessage(error)}`);
-      }
-    }
-
-    // Update use case and create new version
-    const latestVersion = useCase.versions[0];
-    const newVersion = latestVersion ? latestVersion.version + 1 : 1;
-
-    await this.prisma.$transaction(async (tx) => {
-      // Update use case metadata
-      await tx.useCase.update({
-        where: { id },
-        data: {
-          title: dto.title ?? undefined,
-          area: normalizedArea ?? undefined,
-        },
-      });
-
-      // Create new version if content changed
-      if (dto.content || dto.summary) {
-        const summary = dto.summary ?? latestVersion?.summary;
-        const content = dto.content ?? latestVersion?.content;
-
-        // Use raw SQL for embedding field
-        await tx.$executeRaw`
-          INSERT INTO use_case_versions (id, use_case_id, version, summary, content, embedding, created_by)
-          VALUES (
-            uuid_generate_v4(),
-            ${id}::uuid,
-            ${newVersion},
-            ${summary},
-            ${content},
-            ${embedding ? `[${embedding.join(',')}]` : null}::vector,
-            ${createdById}::uuid
-          )
-        `;
-      }
-    });
-
-    return this.findOne(id);
+    return this.crudService.update(
+      id,
+      dto,
+      createdById,
+      this.openai,
+      this.validateAndNormalizeArea.bind(this)
+    );
   }
 
   /**
    * Delete a use case
    */
   async remove(id: string): Promise<void> {
-    const useCase = await this.prisma.useCase.findUnique({
-      where: { id },
-    });
-
-    if (!useCase) {
-      throw new NotFoundException(`Use case with ID ${id} not found`);
-    }
-
-    await this.prisma.useCase.delete({
-      where: { id },
-    });
+    return this.crudService.remove(id);
   }
 
   /**
-   * Search use cases with component/area/story/epic filtering (AI-friendly)
-   * Provides deterministic, predictable results for AI agents
+   * Search use cases with component/area/story/epic filtering
    */
   async search(dto: SearchUseCasesDto): Promise<UseCaseResponse[]> {
-    const where: Prisma.UseCaseWhereInput = {
-      projectId: dto.projectId,
-    };
-
-    // Filter by area (single)
-    if (dto.area) {
-      where.area = dto.area;
-    }
-
-    // Filter by areas (multiple OR)
-    if (dto.areas && dto.areas.length > 0) {
-      where.area = { in: dto.areas };
-    }
-
-    // Filter by story (use cases linked to this story)
-    if (dto.storyId) {
-      where.storyLinks = {
-        some: {
-          storyId: dto.storyId,
-        },
-      };
-    }
-
-    // Filter by epic (use cases linked to stories in this epic)
-    if (dto.epicId) {
-      where.storyLinks = {
-        some: {
-          story: {
-            epicId: dto.epicId,
-          },
-        },
-      };
-    }
-
-    // Text search across key, title, area
-    if (dto.query) {
-      where.OR = [
-        { key: { contains: dto.query, mode: 'insensitive' } },
-        { title: { contains: dto.query, mode: 'insensitive' } },
-        { area: { contains: dto.query, mode: 'insensitive' } },
-      ];
-    }
-
-    const useCases = await this.prisma.useCase.findMany({
-      where,
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 1,
-          include: {
-            createdBy: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        },
-        storyLinks: {
-          include: {
-            story: {
-              select: {
-                id: true,
-                key: true,
-                title: true,
-                status: true,
-              },
-            },
-          },
-        },
-      },
-      skip: dto.offset || 0,
-      take: dto.limit || 20,
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    return useCases.map((uc) => ({
-      id: uc.id,
-      projectId: uc.projectId,
-      key: uc.key,
-      title: uc.title,
-      area: uc.area ?? undefined,
-      createdAt: uc.createdAt,
-      updatedAt: uc.updatedAt,
-      latestVersion: uc.versions[0]
-        ? {
-            id: uc.versions[0].id,
-            version: uc.versions[0].version,
-            summary: uc.versions[0].summary ?? undefined,
-            content: uc.versions[0].content,
-            createdAt: uc.versions[0].createdAt,
-            createdBy: uc.versions[0].createdBy,
-            linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
-            linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
-          }
-        : undefined,
-      storyLinks: uc.storyLinks.map((link) => ({
-        storyId: link.storyId,
-        relation: link.relation,
-        story: link.story,
-      })),
-    }));
-  }
-
-  /**
-   * Semantic search using vector similarity
-   */
-  private async searchSemantic(dto: SearchUseCasesDto & { minSimilarity?: number }): Promise<UseCaseResponse[]> {
-    if (!this.openai) {
-      throw new BadRequestException('Semantic search is not available (OpenAI API key not configured)');
-    }
-
-    if (!dto.query) {
-      throw new BadRequestException('Query is required for semantic search');
-    }
-
-    // Generate embedding for query
-    const queryEmbedding = await this.generateEmbedding(dto.query);
-
-    const minSimilarity = dto.minSimilarity || 0.7;
-    const limit = dto.limit || 20;
-
-    // Use raw SQL for vector similarity search
-    // Note: Prisma doesn't support pgvector operations natively yet
-    const results = await this.prisma.$queryRawUnsafe<any[]>(`
-      SELECT
-        uc.id,
-        uc.project_id as "projectId",
-        uc.key,
-        uc.title,
-        uc.area,
-        uc.created_at as "createdAt",
-        uc.updated_at as "updatedAt",
-        1 - (ucv.embedding <=> $1::vector) as similarity
-      FROM use_cases uc
-      INNER JOIN LATERAL (
-        SELECT embedding, version, summary, content
-        FROM use_case_versions
-        WHERE use_case_id = uc.id AND embedding IS NOT NULL
-        ORDER BY version DESC
-        LIMIT 1
-      ) ucv ON true
-      WHERE 1 - (ucv.embedding <=> $1::vector) >= $2
-      ${dto.projectId ? 'AND uc.project_id = $3' : ''}
-      ORDER BY similarity DESC
-      LIMIT $${dto.projectId ? '4' : '3'}
-    `, `[${queryEmbedding.join(',')}]`, minSimilarity, ...(dto.projectId ? [dto.projectId] : []), limit);
-
-    // Fetch full use case details for results
-    const useCaseIds = results.map((r) => r.id);
-    const useCases = await this.prisma.useCase.findMany({
-      where: { id: { in: useCaseIds } },
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 1,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        storyLinks: {
-          include: {
-            story: {
-              select: {
-                id: true,
-                key: true,
-                title: true,
-                status: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // Map results with similarity scores
-    const useCaseMap = new Map(useCases.map((uc) => [uc.id, uc]));
-
-    return results
-      .map((result) => {
-        const uc = useCaseMap.get(result.id);
-        if (!uc) return null;
-
-        return {
-          id: uc.id,
-          projectId: uc.projectId,
-          key: uc.key,
-          title: uc.title,
-          area: uc.area ?? undefined,
-          createdAt: uc.createdAt,
-          updatedAt: uc.updatedAt,
-          similarity: result.similarity,
-          latestVersion: uc.versions[0]
-            ? {
-                id: uc.versions[0].id,
-                version: uc.versions[0].version,
-                summary: uc.versions[0].summary ?? undefined,
-                content: uc.versions[0].content,
-                createdAt: uc.versions[0].createdAt,
-                createdBy: uc.versions[0].createdBy,
-                linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
-                linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
-              }
-            : undefined,
-          storyLinks: uc.storyLinks.map((link) => ({
-            storyId: link.storyId,
-            relation: link.relation,
-            story: link.story,
-          })),
-        };
-      })
-      .filter((uc): uc is NonNullable<typeof uc> => uc !== null) as UseCaseResponse[];
-  }
-
-  /**
-   * Text search using PostgreSQL full-text search
-   */
-  private async searchText(dto: SearchUseCasesDto): Promise<UseCaseResponse[]> {
-    if (!dto.query) {
-      return this.findAll(dto.projectId, dto.area);
-    }
-
-    const where: Prisma.UseCaseWhereInput = {
-      projectId: dto.projectId,
-      area: dto.area,
-      OR: [
-        { key: { contains: dto.query, mode: 'insensitive' } },
-        { title: { contains: dto.query, mode: 'insensitive' } },
-        { area: { contains: dto.query, mode: 'insensitive' } },
-      ],
-    };
-
-    const useCases = await this.prisma.useCase.findMany({
-      where,
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 1,
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        storyLinks: {
-          include: {
-            story: {
-              select: {
-                id: true,
-                key: true,
-                title: true,
-                status: true,
-              },
-            },
-          },
-        },
-      },
-      take: dto.limit || 20,
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    return useCases.map((uc) => ({
-      id: uc.id,
-      projectId: uc.projectId,
-      key: uc.key,
-      title: uc.title,
-      area: uc.area ?? undefined,
-      createdAt: uc.createdAt,
-      updatedAt: uc.updatedAt,
-      latestVersion: uc.versions[0]
-        ? {
-            id: uc.versions[0].id,
-            version: uc.versions[0].version,
-            summary: uc.versions[0].summary ?? undefined,
-            content: uc.versions[0].content,
-            createdAt: uc.versions[0].createdAt,
-            createdBy: uc.versions[0].createdBy,
-            linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
-            linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
-          }
-        : undefined,
-      storyLinks: uc.storyLinks.map((link) => ({
-        storyId: link.storyId,
-        relation: link.relation,
-        story: link.story,
-      })),
-    }));
-  }
-
-  /**
-   * Search by component filter
-   */
-  private async searchByComponent(dto: SearchUseCasesDto): Promise<UseCaseResponse[]> {
-    // Component search filters by area for now
-    // In a more advanced implementation, this would parse components from use case content
-    return this.findAll(dto.projectId, dto.area);
+    return this.searchService.search(dto);
   }
 
   /**
    * Link a use case to a story
    */
   async linkToStory(dto: LinkUseCaseToStoryDto): Promise<void> {
-    // Check if use case exists
-    const useCase = await this.prisma.useCase.findUnique({
-      where: { id: dto.useCaseId },
-    });
-
-    if (!useCase) {
-      throw new NotFoundException(`Use case with ID ${dto.useCaseId} not found`);
-    }
-
-    // Check if story exists
-    const story = await this.prisma.story.findUnique({
-      where: { id: dto.storyId },
-    });
-
-    if (!story) {
-      throw new NotFoundException(`Story with ID ${dto.storyId} not found`);
-    }
-
-    // Create or update link
-    await this.prisma.storyUseCaseLink.upsert({
-      where: {
-        storyId_useCaseId: {
-          storyId: dto.storyId,
-          useCaseId: dto.useCaseId,
-        },
-      },
-      create: {
-        storyId: dto.storyId,
-        useCaseId: dto.useCaseId,
-        relation: dto.relation,
-      },
-      update: {
-        relation: dto.relation,
-      },
-    });
+    return this.searchService.linkToStory(dto);
   }
 
   /**
    * Unlink a use case from a story
    */
   async unlinkFromStory(useCaseId: string, storyId: string): Promise<void> {
-    await this.prisma.storyUseCaseLink.delete({
-      where: {
-        storyId_useCaseId: {
-          storyId,
-          useCaseId,
-        },
-      },
-    });
+    return this.searchService.unlinkFromStory(useCaseId, storyId);
   }
 
   /**
-   * Generate embedding for text using OpenAI
-   */
-  private async generateEmbedding(text: string): Promise<number[]> {
-    if (!this.openai) {
-      throw new Error('OpenAI client not initialized');
-    }
-
-    const response = await this.openai.embeddings.create({
-      model: 'text-embedding-ada-002',
-      input: text,
-    });
-
-    return response.data[0].embedding;
-  }
-
-  /**
-   * Find related use cases for a story (AI-friendly)
-   * Returns use cases that are:
-   * 1. Already linked to the story
-   * 2. Linked to other stories in the same epic
-   * 3. Semantically similar to the story description
+   * Find related use cases for a story
    */
   async findRelatedForStory(storyId: string, options?: {
     includeEpicUseCases?: boolean;
@@ -750,291 +113,30 @@ export class UseCasesService {
     limit?: number;
     minSimilarity?: number;
   }): Promise<UseCaseResponse[]> {
-    const {
-      includeEpicUseCases = true,
-      includeSemanticallySimilar = true,
-      limit = 10,
-      minSimilarity = 0.6,
-    } = options || {};
-
-    // Get the story details
-    const story = await this.prisma.story.findUnique({
-      where: { id: storyId },
-      include: {
-        epic: true,
-        useCaseLinks: {
-          include: {
-            useCase: {
-              include: {
-                versions: {
-                  orderBy: { version: 'desc' },
-                  take: 1,
-                  include: {
-                    createdBy: {
-                      select: { id: true, name: true, email: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!story) {
-      throw new NotFoundException(`Story with ID ${storyId} not found`);
-    }
-
-    const results: UseCaseResponse[] = [];
-    const seenIds = new Set<string>();
-
-    // 1. Use cases already linked to this story (highest priority)
-    for (const link of story.useCaseLinks) {
-      if (!seenIds.has(link.useCase.id)) {
-        seenIds.add(link.useCase.id);
-        results.push({
-          id: link.useCase.id,
-          projectId: link.useCase.projectId,
-          key: link.useCase.key,
-          title: link.useCase.title,
-          area: link.useCase.area ?? undefined,
-          createdAt: link.useCase.createdAt,
-          updatedAt: link.useCase.updatedAt,
-          latestVersion: link.useCase.versions[0]
-            ? {
-                id: link.useCase.versions[0].id,
-                version: link.useCase.versions[0].version,
-                summary: link.useCase.versions[0].summary ?? undefined,
-                content: link.useCase.versions[0].content,
-                createdAt: link.useCase.versions[0].createdAt,
-                createdBy: link.useCase.versions[0].createdBy,
-                linkedStoryId: link.useCase.versions[0].linkedStoryId ?? undefined,
-                linkedDefectId: link.useCase.versions[0].linkedDefectId ?? undefined,
-              }
-            : undefined,
-          similarity: 1.0, // Already linked = perfect match
-        });
-      }
-    }
-
-    // 2. Use cases from the same epic
-    if (includeEpicUseCases && story.epicId && results.length < limit) {
-      const epicUseCases = await this.prisma.useCase.findMany({
-        where: {
-          projectId: story.projectId,
-          storyLinks: {
-            some: {
-              story: {
-                epicId: story.epicId,
-                id: { not: storyId },
-              },
-            },
-          },
-        },
-        include: {
-          versions: {
-            orderBy: { version: 'desc' },
-            take: 1,
-            include: {
-              createdBy: {
-                select: { id: true, name: true, email: true },
-              },
-            },
-          },
-        },
-        take: limit - results.length,
-      });
-
-      for (const uc of epicUseCases) {
-        if (!seenIds.has(uc.id)) {
-          seenIds.add(uc.id);
-          results.push({
-            id: uc.id,
-            projectId: uc.projectId,
-            key: uc.key,
-            title: uc.title,
-            area: uc.area ?? undefined,
-            createdAt: uc.createdAt,
-            updatedAt: uc.updatedAt,
-            latestVersion: uc.versions[0]
-              ? {
-                  id: uc.versions[0].id,
-                  version: uc.versions[0].version,
-                  summary: uc.versions[0].summary ?? undefined,
-                  content: uc.versions[0].content,
-                  createdAt: uc.versions[0].createdAt,
-                  createdBy: uc.versions[0].createdBy,
-                  linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
-                  linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
-                }
-              : undefined,
-            similarity: 0.8, // Same epic = high relevance
-          });
-        }
-      }
-    }
-
-    // 3. Semantically similar use cases
-    if (includeSemanticallySimilar && this.openai && story.description && results.length < limit) {
-      try {
-        const searchQuery = `${story.title}\n\n${story.description}`;
-        const semanticResults = await this.searchSemantic({
-          projectId: story.projectId,
-          query: searchQuery,
-          limit: limit - results.length,
-        });
-
-        for (const result of semanticResults) {
-          if (!seenIds.has(result.id)) {
-            seenIds.add(result.id);
-            results.push(result);
-          }
-        }
-      } catch (error) {
-        this.logger.error(`Failed to find semantically similar use cases: ${getErrorMessage(error)}`);
-      }
-    }
-
-    return results.slice(0, limit);
+    return this.searchService.findRelatedForStory(
+      storyId,
+      options || {},
+      this.openai,
+      this.searchSemantic.bind(this),
+    );
   }
 
   /**
    * Get use case with full context for AI agents
-   * Includes all versions, linked stories, test coverage, etc.
    */
   async getWithFullContext(id: string): Promise<any> {
-    const useCase = await this.prisma.useCase.findUnique({
-      where: { id },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        },
-        versions: {
-          orderBy: { version: 'desc' },
-          include: {
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        storyLinks: {
-          include: {
-            story: {
-              select: {
-                id: true,
-                key: true,
-                title: true,
-                description: true,
-                status: true,
-                businessImpact: true,
-                businessComplexity: true,
-                technicalComplexity: true,
-              },
-            },
-          },
-        },
-        testCases: {
-          select: {
-            id: true,
-            key: true,
-            description: true,
-            testLevel: true,
-          },
-        },
-      },
-    });
-
-    if (!useCase) {
-      throw new NotFoundException(`Use case with ID ${id} not found`);
-    }
-
-    return {
-      ...useCase,
-      versionCount: useCase.versions.length,
-      linkedStoriesCount: useCase.storyLinks.length,
-      testCoverageCount: useCase.testCases.length,
-      latestVersion: useCase.versions[0],
-      changelog: useCase.versions.map((v, idx) => ({
-        version: v.version,
-        createdAt: v.createdAt,
-        createdBy: v.createdBy.name,
-        linkedStoryId: v.linkedStoryId,
-        linkedDefectId: v.linkedDefectId,
-        isLatest: idx === 0,
-      })),
-    };
+    return this.searchService.getWithFullContext(id);
   }
 
   /**
-   * Batch get use cases by IDs (AI-friendly for bulk operations)
+   * Batch get use cases by IDs
    */
   async findManyByIds(ids: string[]): Promise<UseCaseResponse[]> {
-    const useCases = await this.prisma.useCase.findMany({
-      where: {
-        id: { in: ids },
-      },
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 1,
-          include: {
-            createdBy: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        },
-        storyLinks: {
-          include: {
-            story: {
-              select: {
-                id: true,
-                key: true,
-                title: true,
-                status: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return useCases.map((uc): UseCaseResponse => ({
-      id: uc.id,
-      projectId: uc.projectId,
-      key: uc.key,
-      title: uc.title,
-      area: uc.area ?? undefined,
-      createdAt: uc.createdAt,
-      updatedAt: uc.updatedAt,
-      latestVersion: uc.versions[0] ? {
-        id: uc.versions[0].id,
-        version: uc.versions[0].version,
-        summary: uc.versions[0].summary ?? undefined,
-        content: uc.versions[0].content ?? undefined,
-        createdAt: uc.versions[0].createdAt,
-        createdBy: uc.versions[0].createdBy ?? undefined,
-        linkedStoryId: uc.versions[0].linkedStoryId ?? undefined,
-        linkedDefectId: uc.versions[0].linkedDefectId ?? undefined,
-      } : undefined,
-      storyLinks: uc.storyLinks.map((link) => ({
-        storyId: link.storyId,
-        relation: link.relation,
-        story: link.story,
-      })),
-    }));
+    return this.crudService.findManyByIds(ids);
   }
 
   /**
-   * Regenerate embeddings for all use cases (for background worker)
+   * Regenerate embeddings for all use cases
    */
   async regenerateAllEmbeddings(): Promise<void> {
     if (!this.openai) {
@@ -1042,7 +144,6 @@ export class UseCasesService {
       return;
     }
 
-    // Query all versions without embedding using raw SQL since Prisma doesn't support Unsupported type in queries
     const versions = await this.prisma.$queryRaw<Array<{ id: string; content: string }>>`
       SELECT id, content
       FROM use_case_versions
@@ -1054,7 +155,6 @@ export class UseCasesService {
     for (const version of versions) {
       try {
         const embedding = await this.generateEmbedding(version.content);
-        // Use raw SQL to update embedding since Prisma doesn't support Unsupported type in updates
         await this.prisma.$executeRaw`
           UPDATE use_case_versions
           SET embedding = ${`[${embedding.join(',')}]`}::vector
@@ -1071,7 +171,6 @@ export class UseCasesService {
 
   /**
    * ST-207: Validate area against project taxonomy
-   * Returns true if area exists in taxonomy (after normalization), false otherwise
    */
   async validateArea(projectId: string, area: string): Promise<boolean> {
     const project = await this.prisma.project.findUnique({
@@ -1086,7 +185,6 @@ export class UseCasesService {
     const taxonomy = (project.taxonomy as string[]) || [];
     const normalizedArea = normalizeArea(area);
 
-    // Check for exact match (case-insensitive)
     return taxonomy.some(
       (t) => normalizeArea(t).toLowerCase() === normalizedArea.toLowerCase()
     );
@@ -1094,7 +192,6 @@ export class UseCasesService {
 
   /**
    * ST-207: Get similar areas for suggestions
-   * Returns areas with Levenshtein distance <= 3, sorted by similarity
    */
   async getSimilarAreas(projectId: string, area: string): Promise<SimilarAreaMatch[]> {
     const project = await this.prisma.project.findUnique({
@@ -1112,7 +209,6 @@ export class UseCasesService {
 
   /**
    * ST-207: Bulk update use case areas when taxonomy area is renamed
-   * Returns the number of use cases updated
    */
   async bulkUpdateArea(
     projectId: string,
@@ -1137,25 +233,46 @@ export class UseCasesService {
   }
 
   /**
-   * ST-207: Private helper to validate and normalize area
-   * Throws BadRequestException if area is invalid
-   * Auto-adds to taxonomy if autoAddArea is true
-   * Returns normalized area name
+   * Generate embedding for text using OpenAI
+   */
+  private async generateEmbedding(text: string): Promise<number[]> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized');
+    }
+
+    const response = await this.openai.embeddings.create({
+      model: 'text-embedding-ada-002',
+      input: text,
+    });
+
+    return response.data[0].embedding;
+  }
+
+  /**
+   * Semantic search using vector similarity
+   */
+  private async searchSemantic(dto: SearchUseCasesDto & { minSimilarity?: number }): Promise<UseCaseResponse[]> {
+    return this.searchService.searchSemantic(
+      dto,
+      this.openai,
+      this.generateEmbedding.bind(this)
+    );
+  }
+
+  /**
+   * Private helper to validate and normalize area
    */
   private async validateAndNormalizeArea(
     projectId: string,
     area: string,
     autoAddArea?: boolean
   ): Promise<string> {
-    // Normalize the area first
     const normalizedArea = normalizeArea(area);
 
-    // Handle empty area
     if (!normalizedArea) {
       throw new BadRequestException('Area name cannot be empty');
     }
 
-    // Get project with taxonomy
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       select: { taxonomy: true },
@@ -1167,19 +284,15 @@ export class UseCasesService {
 
     const taxonomy = (project.taxonomy as string[]) || [];
 
-    // Check for exact match (case-insensitive after normalization)
     const exactMatch = taxonomy.find(
       (t) => normalizeArea(t).toLowerCase() === normalizedArea.toLowerCase()
     );
 
     if (exactMatch) {
-      // Return the exact match from taxonomy to preserve original casing
       return exactMatch;
     }
 
-    // No exact match - check if we should auto-add or suggest alternatives
     if (autoAddArea) {
-      // Add the new area to taxonomy
       const updatedTaxonomy = [...taxonomy, normalizedArea];
       await this.prisma.project.update({
         where: { id: projectId },
@@ -1188,11 +301,9 @@ export class UseCasesService {
       return normalizedArea;
     }
 
-    // Find similar areas for suggestions
     const suggestions = findSimilarAreas(area, taxonomy);
 
     if (suggestions.length > 0) {
-      // Area is similar to existing areas - suggest alternatives
       const error: any = new BadRequestException(
         `Area '${normalizedArea}' is not in the taxonomy. Did you mean one of these similar areas? Use autoAddArea: true to add new areas.`
       );
@@ -1203,7 +314,6 @@ export class UseCasesService {
       throw error;
     }
 
-    // No similar areas found - just reject
     throw new BadRequestException(
       `Area '${normalizedArea}' is not in the taxonomy. Use autoAddArea: true to add new areas.`
     );

@@ -92,7 +92,11 @@ export class RemoteRunner {
     options: ExecuteOptions = {},
   ): Promise<RemoteRunnerResult<T>> {
     const startTime = Date.now();
-    const { requestedBy = 'mcp-tool' } = options;
+    const { timeout = 30000, requestedBy = 'mcp-tool' } = options;
+
+    // Create AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
       // Call the remote-agent execute endpoint with authentication
@@ -107,6 +111,7 @@ export class RemoteRunner {
           params,
           requestedBy,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -136,6 +141,17 @@ export class RemoteRunner {
         },
       };
     } catch (error) {
+      // Handle AbortError (timeout)
+      if (error instanceof Error && error.name === 'AbortError') {
+        const fallbackCommand = this.buildFallbackCommand(scriptName, params);
+        return {
+          executed: false,
+          success: false,
+          fallbackCommand,
+          error: `Request timed out after ${timeout}ms`,
+        };
+      }
+
       // Network error or agent unreachable - return fallback
       const fallbackCommand = this.buildFallbackCommand(scriptName, params);
 
@@ -145,6 +161,8 @@ export class RemoteRunner {
         fallbackCommand,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

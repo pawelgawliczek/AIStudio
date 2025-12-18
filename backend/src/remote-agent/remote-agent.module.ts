@@ -5,6 +5,9 @@ import { setRemoteExecutionService } from '../mcp/servers/git/git_utils';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TelemetryModule } from '../telemetry/telemetry.module';
 import { WebSocketModule } from '../websocket/websocket.module';
+import { ClaudeCodeHandler } from './handlers/claude-code.handler';
+import { GitJobHandler } from './handlers/git-job.handler';
+import { TranscriptHandler } from './handlers/transcript.handler';
 import { OrphanDetectorService } from './orphan-detector.service';
 import { RemoteAgentController } from './remote-agent.controller';
 import { RemoteAgentGateway } from './remote-agent.gateway';
@@ -48,6 +51,9 @@ import { TranscriptRegistrationService } from './transcript-registration.service
     StreamEventService,
     OrphanDetectorService,
     TranscriptRegistrationService,
+    ClaudeCodeHandler,
+    GitJobHandler,
+    TranscriptHandler,
   ],
   exports: [
     RemoteExecutionService,

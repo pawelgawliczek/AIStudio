@@ -114,6 +114,10 @@ export async function handler(prisma: PrismaClient, params: {
   // The REST endpoint triggers laptop orchestrator via RunnerControlService
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
 
+  // Create AbortController for timeout handling (60s timeout)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+
   try {
     const response = await fetch(`${backendUrl}/api/runner/${runId}/start`, {
       method: 'POST',
@@ -125,12 +129,16 @@ export async function handler(prisma: PrismaClient, params: {
         storyId,
         triggeredBy,
       }),
+      signal: controller.signal,
     });
 
     if (!response.ok) {
+      clearTimeout(timeoutId);
       const errorText = await response.text();
       throw new Error(`Backend API error (${response.status}): ${errorText}`);
     }
+
+    clearTimeout(timeoutId);
 
     const result = await response.json() as {
       success: boolean;

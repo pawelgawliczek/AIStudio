@@ -93,7 +93,7 @@ export class McpHttpClient {
         Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-      timeout: 30000, // 30 second timeout
+      timeout: 120000, // 120 second timeout
     });
 
     this.log('Client initialized', { baseUrl: this.baseUrl });

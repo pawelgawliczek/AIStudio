@@ -15,7 +15,7 @@ import {
 import { validateRequired, handlePrismaError } from '../../utils';
 
 export const tool: Tool = {
-  name: 'upload_artifact',
+  name: 'create_artifact',
   description: 'Create or update story-scoped artifact. Provide storyId OR workflowRunId (derives storyId).',
   inputSchema: {
     type: 'object',
@@ -373,6 +373,6 @@ export async function handler(
     if (error.name === 'MCPError') {
       throw error;
     }
-    throw handlePrismaError(error, 'upload_artifact');
+    throw handlePrismaError(error, 'create_artifact');
   }
 }
