@@ -157,6 +157,15 @@ export class RemoteExecutionService {
       },
     });
 
+    // ST-287: Log job submission
+    const jobType = this.deriveJobType(scriptName, params);
+    this.logger.log('Remote job submitted', {
+      jobId: job.id,
+      jobType,
+      agentId: agent.id,
+      targetPath: this.sanitizeTargetPath(scriptName, params),
+    });
+
     // Emit job to agent via WebSocket
     try {
       await this.gateway.emitJobToAgent(agent.id, {
@@ -176,11 +185,30 @@ export class RemoteExecutionService {
 
       // Wait for result with timeout
       const timeout = getScriptTimeout(scriptName);
+      const startTime = Date.now();
       const result = await this.waitForResult(job.id, timeout);
+
+      // ST-287: Log job completion
+      this.logger.log('Remote job completed', {
+        jobId: job.id,
+        jobType,
+        agentId: agent.id,
+        durationMs: Date.now() - startTime,
+        status: 'success',
+      });
 
       return result;
     } catch (error) {
-      this.logger.error(`Remote execution failed: ${error.message}`);
+      const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
+
+      // ST-287: Log job failure/timeout
+      this.logger.error(`Remote execution ${errorStatus}`, {
+        jobId: job.id,
+        jobType,
+        agentId: agent.id,
+        status: errorStatus,
+        error: error.message,
+      });
 
       // Update job status
       await this.prisma.remoteJob.update({
@@ -229,13 +257,21 @@ export class RemoteExecutionService {
     }
 
     // Timeout exceeded
-    await this.prisma.remoteJob.update({
+    const job = await this.prisma.remoteJob.update({
       where: { id: jobId },
       data: {
         status: 'timeout',
         error: 'Execution timeout exceeded',
         completedAt: new Date(),
       },
+    });
+
+    // ST-287: Log timeout
+    this.logger.warn('Remote job timeout', {
+      jobId,
+      jobType: this.deriveJobType(job.script, job.params as string[]),
+      agentId: job.agentId || 'unknown',
+      timeoutMs: timeout,
     });
 
     throw new Error(`Job timed out after ${timeout}ms`);
@@ -377,6 +413,14 @@ export class RemoteExecutionService {
       },
     });
 
+    // ST-287: Log Claude Code job submission
+    this.logger.log('Remote job submitted', {
+      jobId: job.id,
+      jobType: 'claude-agent',
+      agentId: agent.id,
+      targetPath: `component:${request.componentId}`,
+    });
+
     // Update ComponentRun with job tracking (skip for orchestrator jobs without componentRunId)
     if (componentRunId) {
       await this.prisma.componentRun.update({
@@ -441,11 +485,30 @@ export class RemoteExecutionService {
 
       // Wait for result with timeout
       const timeout = getCapabilityTimeout('claude-code');
+      const startTime = Date.now();
       const result = await this.waitForClaudeCodeResult(job.id, timeout);
+
+      // ST-287: Log Claude Code job completion
+      this.logger.log('Remote job completed', {
+        jobId: job.id,
+        jobType: 'claude-agent',
+        agentId: agent.id,
+        durationMs: Date.now() - startTime,
+        status: result.success ? 'success' : 'failed',
+      });
 
       return result;
     } catch (error) {
-      this.logger.error(`Claude Code execution failed: ${error.message}`);
+      const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
+
+      // ST-287: Log Claude Code job failure/timeout
+      this.logger.error(`Claude Code execution ${errorStatus}`, {
+        jobId: job.id,
+        jobType: 'claude-agent',
+        agentId: agent.id,
+        status: errorStatus,
+        error: error.message,
+      });
 
       // Update job status
       await this.prisma.remoteJob.update({
@@ -631,7 +694,7 @@ export class RemoteExecutionService {
     }
 
     // Timeout exceeded
-    await this.prisma.remoteJob.update({
+    const job = await this.prisma.remoteJob.update({
       where: { id: jobId },
       data: {
         status: 'timeout',
@@ -640,10 +703,18 @@ export class RemoteExecutionService {
       },
     });
 
+    // ST-287: Log Claude Code timeout
+    this.logger.warn('Remote job timeout', {
+      jobId,
+      jobType: 'claude-agent',
+      agentId: job.agentId || 'unknown',
+      timeoutMs: timeout,
+    });
+
     return {
       success: false,
       jobId,
-      agentId: '',
+      agentId: job.agentId || '',
       error: `Execution timed out after ${timeout / 1000 / 60} minutes`,
     };
   }
@@ -819,6 +890,14 @@ export class RemoteExecutionService {
       },
     });
 
+    // ST-287: Log git job submission
+    this.logger.log('Remote job submitted', {
+      jobId: job.id,
+      jobType: 'git-execute',
+      agentId: agent.id,
+      targetPath: `git ${operation}`,
+    });
+
     // Emit job to agent via WebSocket
     try {
       await this.gateway.emitGitJob(agent.id, {
@@ -839,11 +918,30 @@ export class RemoteExecutionService {
 
       // Wait for result with timeout
       const timeout = request.timeout || getGitOperationTimeout(operation);
+      const startTime = Date.now();
       const result = await this.waitForGitResult(job.id, timeout);
+
+      // ST-287: Log git job completion
+      this.logger.log('Remote job completed', {
+        jobId: job.id,
+        jobType: 'git-execute',
+        agentId: agent.id,
+        durationMs: Date.now() - startTime,
+        status: result.success ? 'success' : 'failed',
+      });
 
       return result;
     } catch (error) {
-      this.logger.error(`Git execution failed: ${error.message}`);
+      const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
+
+      // ST-287: Log git job failure/timeout
+      this.logger.error(`Git execution ${errorStatus}`, {
+        jobId: job.id,
+        jobType: 'git-execute',
+        agentId: agent.id,
+        status: errorStatus,
+        error: error.message,
+      });
 
       // Update job status
       await this.prisma.remoteJob.update({
@@ -929,7 +1027,7 @@ export class RemoteExecutionService {
     }
 
     // Timeout exceeded
-    await this.prisma.remoteJob.update({
+    const job = await this.prisma.remoteJob.update({
       where: { id: jobId },
       data: {
         status: 'timeout',
@@ -938,10 +1036,18 @@ export class RemoteExecutionService {
       },
     });
 
+    // ST-287: Log git timeout
+    this.logger.warn('Remote job timeout', {
+      jobId,
+      jobType: 'git-execute',
+      agentId: job.agentId || 'unknown',
+      timeoutMs: timeout,
+    });
+
     return {
       success: false,
       jobId,
-      agentId: '',
+      agentId: job.agentId || '',
       error: `Execution timed out after ${timeout / 1000} seconds`,
     };
   }
@@ -951,5 +1057,47 @@ export class RemoteExecutionService {
    */
   async getGitExecuteAgents(): Promise<any[]> {
     return this.findGitExecuteAgents();
+  }
+
+  // ===========================================================================
+  // ST-287: Observability Helper Methods
+  // ===========================================================================
+
+  /**
+   * Derive job type from script name and params
+   */
+  private deriveJobType(scriptName: string, params: any): string {
+    if (scriptName === 'claude-code') {
+      return 'claude-agent';
+    }
+    if (scriptName.startsWith('git-')) {
+      return 'git-execute';
+    }
+    if (scriptName.includes('read-file') || params?.includes?.('read-file')) {
+      return 'read-file';
+    }
+    if (scriptName.includes('exec-command') || params?.includes?.('exec-command')) {
+      return 'exec-command';
+    }
+    if (scriptName.includes('workflow-tracker')) {
+      return 'workflow-tracker';
+    }
+    return 'other';
+  }
+
+  /**
+   * Sanitize target path for logging (remove sensitive info)
+   */
+  private sanitizeTargetPath(scriptName: string, params: any): string {
+    if (Array.isArray(params) && params.length > 0) {
+      // For file paths, just show the filename
+      const firstParam = params[0];
+      if (typeof firstParam === 'string' && firstParam.includes('/')) {
+        const parts = firstParam.split('/');
+        return parts[parts.length - 1];
+      }
+      return firstParam;
+    }
+    return scriptName;
   }
 }
