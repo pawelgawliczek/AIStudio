@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
+import { getErrorMessage } from '../../common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../constants';
 import { SkottAnalyzer } from './skott-analyzer';
@@ -1063,7 +1064,7 @@ export class CodeAnalysisProcessor {
 
       return { coverageMap, totalCoverage };
     } catch (error) {
-      this.logger.debug(`No coverage data found: ${error.message}`);
+      this.logger.debug(`No coverage data found: ${getErrorMessage(error)}`);
       return { coverageMap, totalCoverage };
     }
   }

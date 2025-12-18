@@ -143,14 +143,15 @@ export async function handler(prisma: PrismaClient, params: any) {
 
 // Helper function to calculate coverage stats
 function calculateCoverageStats(testCases: any[]) {
-  const byLevel = {
+  type TestLevel = 'unit' | 'integration' | 'e2e';
+  const byLevel: Record<TestLevel, { testCount: number; implemented: number; coverage: number; avgCoverage: number }> = {
     unit: { testCount: 0, implemented: 0, coverage: 0, avgCoverage: 0 },
     integration: { testCount: 0, implemented: 0, coverage: 0, avgCoverage: 0 },
     e2e: { testCount: 0, implemented: 0, coverage: 0, avgCoverage: 0 }
   };
 
   testCases.forEach(tc => {
-    const level = tc.testLevel;
+    const level = tc.testLevel as TestLevel;
     const levelStats = byLevel[level];
 
     if (levelStats) {
@@ -171,7 +172,8 @@ function calculateCoverageStats(testCases: any[]) {
   });
 
   // Calculate averages and coverage percentages
-  Object.keys(byLevel).forEach(level => {
+  Object.keys(byLevel).forEach(levelKey => {
+    const level = levelKey as TestLevel;
     const stats = byLevel[level];
     if (stats.implemented > 0) {
       stats.avgCoverage = stats.avgCoverage / stats.implemented;

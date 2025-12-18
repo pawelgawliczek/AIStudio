@@ -311,7 +311,7 @@ export class TestCasesService {
       testCases: testCases.map(tc => ({
         ...tc,
         latestExecution: tc.executions[0] || null,
-        executions: undefined // Remove executions array from response
+        executions: undefined as any // Remove executions array from response
       }))
     };
   }
@@ -395,14 +395,15 @@ export class TestCasesService {
    * Weighted formula: unit 30%, integration 30%, e2e 40%
    */
   private calculateCoverageStats(testCases: any[]) {
-    const byLevel = {
+    type TestLevel = 'unit' | 'integration' | 'e2e';
+    const byLevel: Record<TestLevel, { testCount: number; implemented: number; coverage: number; avgCoverage: number }> = {
       unit: { testCount: 0, implemented: 0, coverage: 0, avgCoverage: 0 },
       integration: { testCount: 0, implemented: 0, coverage: 0, avgCoverage: 0 },
       e2e: { testCount: 0, implemented: 0, coverage: 0, avgCoverage: 0 }
     };
 
     testCases.forEach(tc => {
-      const level = tc.testLevel;
+      const level = tc.testLevel as TestLevel;
       const levelStats = byLevel[level];
 
       if (levelStats) {
@@ -423,7 +424,8 @@ export class TestCasesService {
     });
 
     // Calculate averages and coverage percentages
-    Object.keys(byLevel).forEach(level => {
+    Object.keys(byLevel).forEach(levelKey => {
+      const level = levelKey as TestLevel;
       const stats = byLevel[level];
       if (stats.implemented > 0) {
         stats.avgCoverage = stats.avgCoverage / stats.implemented;

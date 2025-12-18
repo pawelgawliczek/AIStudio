@@ -274,7 +274,7 @@ export async function handler(prisma: PrismaClient, params: any) {
                   // In summaryMode, exclude content but provide metadata
                   artifactData = {
                     id: artifact.id,
-                    content: null,
+                    content: null as any,
                     contentType: artifact.contentType,
                     size: artifact.size,
                     currentVersion: artifact.currentVersion,

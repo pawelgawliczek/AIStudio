@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Injectable, NotFoundException, ConflictException , Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { glob } from 'glob';
+import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WorkersService } from '../workers/workers.service';
 import {
@@ -157,7 +158,7 @@ export class CodeMetricsService {
       coverage: m.testCoverage || 0,
       loc: m.linesOfCode,
       lastModified: m.lastModified,
-      lastStoryKey: undefined,
+      lastStoryKey: undefined as string | undefined,
       criticalIssues: m.criticalIssues || 0,
     }));
   }
@@ -874,7 +875,7 @@ export class CodeMetricsService {
       return await this.getTestSummaryFromCoverage(projectId);
     } catch (error) {
       // If coverage file doesn't exist, return default values gracefully
-      this.logger.log(`No coverage data available for project ${projectId}: ${error.message}`);
+      this.logger.log(`No coverage data available for project ${projectId}: ${getErrorMessage(error)}`);
       return {
         totalTests: 0,
         passing: 0,
@@ -943,8 +944,8 @@ export class CodeMetricsService {
             testCoverage: file.testCoverage,
             riskScore: file.riskScore,
           },
-          previous: null,
-          changes: null,
+          previous: null as any,
+          changes: null as any,
         })),
       };
     }

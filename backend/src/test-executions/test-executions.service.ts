@@ -249,7 +249,7 @@ export class TestExecutionsService {
           successRate: 0,
           avgDuration: 0,
           avgCoverage: 0,
-          lastExecution: null
+          lastExecution: null as any
         }
       };
     }

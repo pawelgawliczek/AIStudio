@@ -1,6 +1,7 @@
 import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import type { Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto } from './dto';
 
@@ -28,7 +29,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'User successfully logged in' })
   @ApiResponse({ status: 401, description: 'Unauthorized - invalid credentials' })
-  async login(@Request() req) {
+  async login(@Request() req: ExpressRequest & { user: any }) {
     return this.authService.login(req.user);
   }
 
@@ -39,7 +40,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout the current user' })
   @ApiResponse({ status: 200, description: 'User successfully logged out' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async logout(@Request() req) {
+  async logout(@Request() req: ExpressRequest & { user: any }) {
     return this.authService.logout(req.user.userId);
   }
 
@@ -49,7 +50,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiResponse({ status: 200, description: 'Tokens successfully refreshed' })
   @ApiResponse({ status: 403, description: 'Forbidden - invalid refresh token' })
-  async refreshTokens(@Request() req, @Body() refreshTokenDto: RefreshTokenDto) {
+  async refreshTokens(@Request() req: ExpressRequest & { user: any }, @Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshTokens(req.user.userId, req.user.refreshToken);
   }
 }

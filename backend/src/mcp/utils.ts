@@ -12,7 +12,7 @@ import {
   EpicResponse,
   StoryResponse,
   WorkflowStateResponse,
-} from './types';
+} from './types/';
 
 /**
  * Format project for MCP response

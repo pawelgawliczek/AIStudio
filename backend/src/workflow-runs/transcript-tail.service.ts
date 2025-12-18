@@ -17,6 +17,7 @@ import * as fs from 'fs/promises';
 import * as readline from 'readline';
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import * as chokidar from 'chokidar';
+import { getErrorMessage, getErrorStack } from '../common';
 import { redactSensitiveData } from '../mcp/utils/content-security';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import { Traced } from '../telemetry/traced.decorator';
@@ -111,8 +112,8 @@ export class TranscriptTailService implements OnModuleDestroy {
       );
     } catch (error) {
       this.logger.error(
-        `Failed to start tailing: ${error.message}`,
-        error.stack,
+        `Failed to start tailing: ${getErrorMessage(error)}`,
+        getErrorStack(error),
       );
       throw error;
     }
@@ -143,8 +144,8 @@ export class TranscriptTailService implements OnModuleDestroy {
       );
     } catch (error) {
       this.logger.error(
-        `Error stopping tailing for ${componentRunId}: ${error.message}`,
-        error.stack,
+        `Error stopping tailing for ${componentRunId}: ${getErrorMessage(error)}`,
+        getErrorStack(error),
       );
     }
   }
@@ -227,8 +228,8 @@ export class TranscriptTailService implements OnModuleDestroy {
       }
     } catch (error) {
       this.logger.error(
-        `Error handling file change for ${componentRunId}: ${error.message}`,
-        error.stack,
+        `Error handling file change for ${componentRunId}: ${getErrorMessage(error)}`,
+        getErrorStack(error),
       );
     }
   }
@@ -305,7 +306,7 @@ export class TranscriptTailService implements OnModuleDestroy {
    */
   private handleWatcherError(componentRunId: string, error: Error): void {
     this.logger.error(
-      `Watcher error for ${componentRunId}: ${error.message}`,
+      `Watcher error for ${componentRunId}: ${getErrorMessage(error)}`,
       error.stack,
     );
 

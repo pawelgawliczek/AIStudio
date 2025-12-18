@@ -22,7 +22,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { ValidationError } from '../../types.js';
+import { ValidationError } from '../../types/index.js';
 import { validateRequired } from '../../utils.js';
 
 const execAsync = promisify(exec);

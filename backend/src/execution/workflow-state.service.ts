@@ -430,7 +430,7 @@ export class WorkflowStateService {
         startedAt: cr.startedAt.toISOString(),
         completedAt: cr.finishedAt?.toISOString(),
       })),
-      remainingComponents: [],
+      remainingComponents: [] as any,
       aggregatedMetrics: {
         // ST-240: Calculate totalTokens from component runs instead of reading DB field
         // The DB field (workflowRun.totalTokens) is often not updated when components complete

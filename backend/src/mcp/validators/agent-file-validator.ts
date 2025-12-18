@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { getErrorMessage } from '../../common';
 
 export interface ValidationError {
   file: string;
@@ -50,7 +51,7 @@ export class AgentFileValidator {
     } catch (error) {
       errors.push({
         file: filePath,
-        error: `Failed to validate file: ${error.message}`,
+        error: `Failed to validate file: ${getErrorMessage(error)}`,
         severity: 'error',
       });
     }

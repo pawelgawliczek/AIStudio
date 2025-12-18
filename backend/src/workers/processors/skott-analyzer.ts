@@ -20,6 +20,7 @@
  */
 
 import { Logger } from '@nestjs/common';
+import { getErrorMessage } from '../../common';
 
 /**
  * Result of analyzing a single file's dependencies
@@ -96,7 +97,7 @@ export class SkottAnalyzer {
         couplingScore: 'low',
       };
     } catch (error) {
-      this.logger.warn(`Failed to parse ${filePath}: ${error.message}`);
+      this.logger.warn(`Failed to parse ${filePath}: ${getErrorMessage(error)}`);
 
       // Graceful degradation - return empty arrays instead of crashing
       return {

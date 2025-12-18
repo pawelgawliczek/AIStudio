@@ -741,7 +741,7 @@ async function buildNoActiveRunResponse(prisma: PrismaClient, storyIdentifier: s
 
   return {
     success: true,
-    runId: null,
+    runId: null as any,
     noActiveRun: true,
 
     // Story context
@@ -759,14 +759,14 @@ async function buildNoActiveRunResponse(prisma: PrismaClient, storyIdentifier: s
     } : null,
 
     // Current state is null - no run exists
-    currentState: null,
+    currentState: null as any,
 
     // No progress yet
     progress: {
       stateIndex: 0,
       totalStates: 0,
-      completedStates: [],
-      skippedStates: [],
+      completedStates: [] as any,
+      skippedStates: [] as any,
       percentComplete: 0,
     },
 
@@ -789,9 +789,9 @@ async function buildNoActiveRunResponse(prisma: PrismaClient, storyIdentifier: s
     // Flags
     status: 'none',
     isPaused: false,
-    pauseReason: null,
+    pauseReason: null as any,
     requiresApproval: false,
-    resourceUsage: null,
+    resourceUsage: null as any,
 
     message: `No active workflow run found for ${story.key}. Follow the workflowSequence to start a new run: 1) List available teams, 2) Start a team run, 3) Get current step.`,
   };

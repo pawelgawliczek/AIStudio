@@ -7,7 +7,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { ValidationError } from '../types';
+import { ValidationError } from '../types/';
 
 // Quota limits
 const MAX_PER_RUN_SIZE = 10 * 1024 * 1024; // 10MB

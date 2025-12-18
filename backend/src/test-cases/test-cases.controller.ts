@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import type { Request as ExpressRequest } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -37,7 +38,7 @@ export class TestCasesController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Project or use case not found' })
   @ApiResponse({ status: 409, description: 'Test case key already exists' })
-  async create(@Body() dto: CreateTestCaseDto, @Request() req): Promise<TestCaseResponseDto> {
+  async create(@Body() dto: CreateTestCaseDto, @Request() req: ExpressRequest & { user: any }): Promise<TestCaseResponseDto> {
     return this.testCasesService.create(dto, req.user.sub);
   }
 

@@ -10,6 +10,7 @@ import { useComponentFilters } from '../hooks/useComponentFilters';
 import { componentsService } from '../services/components.service';
 import { versioningService } from '../services/versioning.service';
 import { workflowsService } from '../services/workflows.service';
+import { WorkflowComponent } from '../types';
 import { terminology } from '../utils/terminology';
 
 export function AgentLibraryView() {
@@ -231,7 +232,7 @@ export function AgentLibraryView() {
           {filteredComponents.map((component) => (
             <AgentCard
               key={component.id}
-              component={component}
+              component={component as WorkflowComponent}
               versionsCount={versionCounts[component.id] || 1}
             />
           ))}

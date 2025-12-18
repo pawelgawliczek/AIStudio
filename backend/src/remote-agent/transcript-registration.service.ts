@@ -12,6 +12,7 @@ import { createReadStream } from 'fs';
 import * as fs from 'fs/promises';
 import * as readline from 'readline';
 import { Injectable, Logger } from '@nestjs/common';
+import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface TranscriptDetectedPayload {
@@ -78,7 +79,7 @@ export class TranscriptRegistrationService {
         await this.storeUnassignedTranscript(metadata, payload);
       }
     } catch (error) {
-      this.logger.error(`Failed to handle transcript detection: ${error.message}`, error.stack);
+      this.logger.error(`Failed to handle transcript detection: ${getErrorMessage(error)}`, getErrorStack(error));
     }
   }
 
@@ -97,7 +98,7 @@ export class TranscriptRegistrationService {
         cwd: parsed.cwd,
       };
     } catch (error) {
-      this.logger.warn(`Failed to parse transcript metadata: ${error.message}`);
+      this.logger.warn(`Failed to parse transcript metadata: ${getErrorMessage(error)}`);
       return null;
     }
   }

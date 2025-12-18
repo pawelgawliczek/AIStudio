@@ -13,6 +13,7 @@
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -69,7 +70,7 @@ export class OrphanDetectorService implements OnModuleInit {
       }
     } catch (error) {
       this.consecutiveFailures++;
-      this.logger.error(`Orphan detection failed: ${error.message}`);
+      this.logger.error(`Orphan detection failed: ${getErrorMessage(error)}`);
 
       if (this.consecutiveFailures >= this.MAX_FAILURES) {
         this.circuitOpen = true;

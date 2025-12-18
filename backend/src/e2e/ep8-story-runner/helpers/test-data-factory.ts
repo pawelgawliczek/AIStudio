@@ -113,7 +113,7 @@ export function createTestArtifactDefinitionParams(workflowId: string) {
     type: 'markdown' as const,
     description: 'Test architecture document artifact',
     isMandatory: false,
-    schema: null,
+    schema: null as any,
   };
 }
 

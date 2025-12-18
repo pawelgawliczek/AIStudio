@@ -169,7 +169,8 @@ export enum ComponentStatus {
   PLANNING = 'planning',
 }
 
-export interface Component {
+// Base Component interface (for layer/story component assignments)
+export interface BaseComponent {
   id: string;
   projectId: string;
   name: string;
@@ -199,6 +200,25 @@ export interface Component {
     storyComponents: number;
     useCases: number;
     testCases: number;
+  };
+}
+
+// Extended Component interface includes workflow properties from Prisma model
+export interface Component extends BaseComponent {
+  inputInstructions?: string;
+  operationInstructions?: string;
+  outputInstructions?: string;
+  config?: ExecutionConfig;
+  tools?: string[];
+  tags?: string[];
+  onFailure?: 'stop' | 'skip' | 'retry' | 'pause';
+  version?: string;
+  active?: boolean;
+  usageStats?: {
+    totalRuns: number;
+    avgRuntime: number;
+    avgCost: number;
+    successRate: number;
   };
 }
 
@@ -761,6 +781,10 @@ export interface UpdateWorkflowComponentDto {
   active?: boolean;
   version?: string;
 }
+
+// Type aliases for backward compatibility
+export type CreateComponentDto = CreateWorkflowComponentDto;
+export type UpdateComponentDto = UpdateWorkflowComponentDto;
 
 // Coordinator types removed - workflows now link directly to components (ST-164)
 

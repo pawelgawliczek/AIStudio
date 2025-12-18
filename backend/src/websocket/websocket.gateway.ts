@@ -12,6 +12,7 @@ import {
 } from '@nestjs/websockets';
 import { validate } from 'class-validator';
 import { Server, Socket } from 'socket.io';
+import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RemoteAgentGateway } from '../remote-agent/remote-agent.gateway';
 import { TelemetryService } from '../telemetry/telemetry.service';
@@ -89,7 +90,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
 
       this.logger.log(`Client ${client.id} authenticated as user: ${payload.sub}`);
     } catch (error) {
-      this.logger.warn(`Client ${client.id} rejected: Invalid token - ${error.message}`);
+      this.logger.warn(`Client ${client.id} rejected: Invalid token - ${getErrorMessage(error)}`);
       client.disconnect();
     }
   }
@@ -535,7 +536,7 @@ export class AppWebSocketGateway implements OnGatewayConnection, OnGatewayDiscon
       if (error instanceof WsException) {
         throw error;
       }
-      this.logger.error(`Error subscribing to transcript: ${error.message}`, error.stack);
+      this.logger.error(`Error subscribing to transcript: ${getErrorMessage(error)}`, getErrorStack(error));
       throw new WsException('Failed to subscribe to transcript');
     }
   }

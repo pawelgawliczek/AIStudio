@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 // import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 // import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getErrorMessage, getErrorStack } from '../common';
 
 export interface UploadArtifactOptions {
   key: string;
@@ -65,8 +66,8 @@ export class S3Service {
         uploaded: true,
       };
     } catch (error) {
-      this.logger.error(`Failed to upload artifact to S3: ${error.message}`, error.stack);
-      throw new Error(`S3 upload failed: ${error.message}`);
+      this.logger.error(`Failed to upload artifact to S3: ${getErrorMessage(error)}`, getErrorStack(error));
+      throw new Error(`S3 upload failed: ${getErrorMessage(error)}`);
     }
   }
 
@@ -93,8 +94,8 @@ export class S3Service {
       // Temporary: return placeholder URL
       return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${s3Key}`;
     } catch (error) {
-      this.logger.error(`Failed to generate presigned URL: ${error.message}`, error.stack);
-      throw new Error(`Failed to generate download URL: ${error.message}`);
+      this.logger.error(`Failed to generate presigned URL: ${getErrorMessage(error)}`, getErrorStack(error));
+      throw new Error(`Failed to generate download URL: ${getErrorMessage(error)}`);
     }
   }
 
@@ -117,8 +118,8 @@ export class S3Service {
 
       this.logger.log(`Artifact deleted from S3: ${s3Key}`);
     } catch (error) {
-      this.logger.error(`Failed to delete artifact from S3: ${error.message}`, error.stack);
-      throw new Error(`S3 delete failed: ${error.message}`);
+      this.logger.error(`Failed to delete artifact from S3: ${getErrorMessage(error)}`, getErrorStack(error));
+      throw new Error(`S3 delete failed: ${getErrorMessage(error)}`);
     }
   }
 

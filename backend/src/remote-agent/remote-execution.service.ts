@@ -1,6 +1,7 @@
 import { createHmac } from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
+import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   isScriptApproved,
@@ -199,7 +200,8 @@ export class RemoteExecutionService {
 
       return result;
     } catch (error) {
-      const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
+      const errorMsg = getErrorMessage(error);
+      const errorStatus = errorMsg.includes('timed out') ? 'timeout' : 'failed';
 
       // ST-287: Log job failure/timeout with JSON for Loki parsing
       this.logger.error(`Remote execution ${errorStatus} ${JSON.stringify({
@@ -207,7 +209,7 @@ export class RemoteExecutionService {
         jobType,
         agentId: agent.id,
         status: errorStatus,
-        error: error.message,
+        error: errorMsg,
       })}`);
 
       // Update job status
@@ -215,7 +217,7 @@ export class RemoteExecutionService {
         where: { id: job.id },
         data: {
           status: 'failed',
-          error: error.message,
+          error: errorMsg,
           completedAt: new Date(),
         },
       });
@@ -499,7 +501,8 @@ export class RemoteExecutionService {
 
       return result;
     } catch (error) {
-      const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
+      const errorMsg = getErrorMessage(error);
+      const errorStatus = errorMsg.includes('timed out') ? 'timeout' : 'failed';
 
       // ST-287: Log Claude Code job failure/timeout with JSON for Loki parsing
       this.logger.error(`Claude Code execution ${errorStatus} ${JSON.stringify({
@@ -507,7 +510,7 @@ export class RemoteExecutionService {
         jobType: 'claude-agent',
         agentId: agent.id,
         status: errorStatus,
-        error: error.message,
+        error: errorMsg,
       })}`);
 
       // Update job status
@@ -515,7 +518,7 @@ export class RemoteExecutionService {
         where: { id: job.id },
         data: {
           status: 'failed',
-          error: error.message,
+          error: errorMsg,
           completedAt: new Date(),
         },
       });
@@ -932,7 +935,8 @@ export class RemoteExecutionService {
 
       return result;
     } catch (error) {
-      const errorStatus = error.message.includes('timed out') ? 'timeout' : 'failed';
+      const errorMsg = getErrorMessage(error);
+      const errorStatus = errorMsg.includes('timed out') ? 'timeout' : 'failed';
 
       // ST-287: Log git job failure/timeout with JSON for Loki parsing
       this.logger.error(`Git execution ${errorStatus} ${JSON.stringify({
@@ -940,7 +944,7 @@ export class RemoteExecutionService {
         jobType: 'git-execute',
         agentId: agent.id,
         status: errorStatus,
-        error: error.message,
+        error: errorMsg,
       })}`);
 
       // Update job status
@@ -948,7 +952,7 @@ export class RemoteExecutionService {
         where: { id: job.id },
         data: {
           status: 'failed',
-          error: error.message,
+          error: errorMsg,
           completedAt: new Date(),
         },
       });

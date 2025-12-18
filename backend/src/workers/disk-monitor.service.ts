@@ -23,6 +23,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Decimal } from '@prisma/client/runtime/library';
+import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WorkersService } from './workers.service';
 
@@ -189,8 +190,8 @@ export class DiskMonitorService implements OnModuleInit {
       this.totalCheckDuration += duration;
 
       this.logger.error(
-        `Disk check failed (attempt ${this.consecutiveFailures}/${this.circuitBreakerThreshold}): ${error.message}`,
-        error.stack
+        `Disk check failed (attempt ${this.consecutiveFailures}/${this.circuitBreakerThreshold}): ${getErrorMessage(error)}`,
+        getErrorStack(error)
       );
 
       // Send critical alert if circuit breaker about to trip
@@ -200,7 +201,7 @@ export class DiskMonitorService implements OnModuleInit {
             type: 'disk-monitor-error',
             priority: 1,
             message: `Disk monitor failing: ${this.consecutiveFailures} consecutive failures`,
-            error: error.message,
+            error: getErrorMessage(error),
           });
         } catch (notifError) {
           this.logger.error(`Failed to send error notification: ${(notifError as Error).message}`);
@@ -265,7 +266,7 @@ export class DiskMonitorService implements OnModuleInit {
           storyKey: wt.story.key,
           branchName: wt.branchName,
           worktreePath: wt.worktreePath,
-          diskUsageMB: null, // Will be calculated on-demand by MCP tool
+          diskUsageMB: null as number | null, // Will be calculated on-demand by MCP tool
           lastUpdated: wt.updatedAt,
           daysStale,
         };
@@ -377,7 +378,7 @@ export class DiskMonitorService implements OnModuleInit {
         `${alertType.toUpperCase()} alert sent: ${availableSpaceGB}GB available (threshold: ${thresholdGB}GB)`
       );
     } catch (error) {
-      this.logger.error(`Failed to enqueue alert notification: ${error.message}`);
+      this.logger.error(`Failed to enqueue alert notification: ${getErrorMessage(error)}`);
     }
   }
 
@@ -464,7 +465,7 @@ export class DiskMonitorService implements OnModuleInit {
 
       this.logger.log(`Weekly report generated: ${report.id}`);
     } catch (error) {
-      this.logger.error(`Failed to generate weekly report: ${error.message}`, error.stack);
+      this.logger.error(`Failed to generate weekly report: ${getErrorMessage(error)}`, getErrorStack(error));
     }
   }
 

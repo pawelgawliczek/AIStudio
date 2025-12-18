@@ -178,7 +178,7 @@ export class RunsService {
       `,
     ]);
 
-    const durationSeconds = totalDuration?.[0]?.total_seconds || 0;
+    const durationSeconds = (totalDuration as any)?.[0]?.total_seconds || 0;
 
     return {
       totalRuns,

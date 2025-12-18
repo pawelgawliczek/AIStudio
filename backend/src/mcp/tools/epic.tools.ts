@@ -10,7 +10,7 @@ import {
   PaginatedResponse,
   NotFoundError,
   ValidationError,
-} from '../types';
+} from '../types/';
 import {
   formatEpic,
   generateNextKey,

@@ -22,6 +22,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { getErrorMessage } from '../../common';
 
 /**
  * Rate limit configuration for all dimensions
@@ -45,7 +46,7 @@ export const RATE_LIMITS = {
     '/initialize': { ttl: 60, limit: 20 },    // Moderate (doubled from 10)
     '/list-tools': { ttl: 60, limit: 120 },   // Cheap (doubled from 60)
     '/heartbeat': { ttl: 60, limit: 240 },    // Very cheap (doubled from 120)
-  },
+  } as Record<string, { ttl: number; limit: number }>,
 
   // Global (protect infrastructure)
   global: {
@@ -113,7 +114,7 @@ export class McpRateLimitGuard implements CanActivate {
         throw error;
       }
 
-      this.logger.warn(`Rate limiting failed (Redis error): ${error.message}`);
+      this.logger.warn(`Rate limiting failed (Redis error): ${getErrorMessage(error)}`);
       return true;
     }
   }

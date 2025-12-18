@@ -3,7 +3,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { ValidationError, NotFoundError } from '../types';
+import { ValidationError, NotFoundError } from '../types/';
 import {
   bootstrapProject,
   createProject,

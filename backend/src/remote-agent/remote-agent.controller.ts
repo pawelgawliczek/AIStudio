@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, Logger, Headers, UnauthorizedException } from '@nestjs/common';
+import { getErrorMessage } from '../common';
 import { RemoteAgentGateway } from './remote-agent.gateway';
 import { RemoteExecutionService } from './remote-execution.service';
 
@@ -93,8 +94,8 @@ export class RemoteAgentController {
       );
       return { success: true, result };
     } catch (error) {
-      this.logger.error(`Execution failed: ${error.message}`);
-      return { success: false, error: error.message };
+      this.logger.error(`Execution failed: ${getErrorMessage(error)}`);
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -130,8 +131,8 @@ export class RemoteAgentController {
       });
       return result;
     } catch (error) {
-      this.logger.error(`Git execution failed: ${error.message}`);
-      return { success: false, error: error.message };
+      this.logger.error(`Git execution failed: ${getErrorMessage(error)}`);
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
@@ -179,8 +180,8 @@ export class RemoteAgentController {
 
       return { success: true };
     } catch (error) {
-      this.logger.error(`[ST-160] Failed to send answer: ${error.message}`);
-      return { success: false, error: error.message };
+      this.logger.error(`[ST-160] Failed to send answer: ${getErrorMessage(error)}`);
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 

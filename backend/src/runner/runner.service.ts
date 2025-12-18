@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { Prisma, RunStatus } from '@prisma/client';
+import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RemoteExecutionService } from '../remote-agent/remote-execution.service';
 
@@ -362,8 +363,8 @@ export class RunnerService {
 
       return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: `Invalid transcript type: ${dto.type}` };
     } catch (error) {
-      this.logger.error(`[ST-189] Failed to register transcript: ${error.message}`, error.stack);
-      return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: error.message };
+      this.logger.error(`[ST-189] Failed to register transcript: ${getErrorMessage(error)}`, getErrorStack(error));
+      return { success: false, type: dto.type, transcriptPath: dto.transcriptPath, error: getErrorMessage(error) };
     }
   }
 
@@ -514,7 +515,7 @@ export class RunnerService {
         agentId: successResult.agentId,
       };
     } catch (error) {
-      this.logger.error(`[ST-195] Failed to launch Laptop Orchestrator: ${error.message}`, error.stack);
+      this.logger.error(`[ST-195] Failed to launch Laptop Orchestrator: ${getErrorMessage(error)}`, getErrorStack(error));
 
       // Update run status to failed
       await this.prisma.workflowRun.update({
@@ -530,7 +531,7 @@ export class RunnerService {
         runId,
         workflowId,
         storyId,
-        message: `Failed to launch Laptop Orchestrator: ${error.message}`,
+        message: `Failed to launch Laptop Orchestrator: ${getErrorMessage(error)}`,
       };
     }
   }

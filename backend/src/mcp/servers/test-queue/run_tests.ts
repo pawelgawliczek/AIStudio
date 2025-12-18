@@ -9,7 +9,7 @@ import {
   MigrationInfo,
   ValidationError,
   NotFoundError,
-} from '../../types.js';
+} from '../../types/index.js';
 import { validateRequired } from '../../utils.js';
 
 // ============================================================================

@@ -7,7 +7,7 @@ import {
   NotFoundError,
   ValidationError,
   DatabaseError,
-} from '../types';
+} from '../types/';
 import {
   formatError,
 } from '../utils';

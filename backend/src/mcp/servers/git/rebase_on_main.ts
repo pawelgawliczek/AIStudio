@@ -13,7 +13,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import {
   NotFoundError,
   ValidationError,
-} from '../../types.js';
+} from '../../types/index.js';
 import {
   validateRequired,
   handlePrismaError,

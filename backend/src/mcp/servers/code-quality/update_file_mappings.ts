@@ -1,6 +1,6 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient, MappingSource } from '@prisma/client';
-import { ToolMetadata } from '../../types.js';
+import { ToolMetadata } from '../../types/index.js';
 
 export const tool: Tool = {
   name: 'update_file_mappings',

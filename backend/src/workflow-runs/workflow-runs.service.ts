@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { RunStatus } from '@prisma/client';
+import { getErrorMessage } from '../common';
 import { WorkflowStateService } from '../execution/workflow-state.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseComponentSummary } from '../types/component-summary.types';
@@ -453,7 +454,7 @@ export class WorkflowRunsService {
     try {
       return await this.workflowStateService.getWorkflowRunStatus(id);
     } catch (error) {
-      throw new NotFoundException(error.message);
+      throw new NotFoundException(getErrorMessage(error));
     }
   }
 
@@ -472,7 +473,7 @@ export class WorkflowRunsService {
 
       return artifacts;
     } catch (error) {
-      throw new NotFoundException(error.message);
+      throw new NotFoundException(getErrorMessage(error));
     }
   }
 
@@ -484,7 +485,7 @@ export class WorkflowRunsService {
     try {
       return await this.workflowStateService.getArtifactAccess(id);
     } catch (error) {
-      throw new NotFoundException(error.message);
+      throw new NotFoundException(getErrorMessage(error));
     }
   }
 
@@ -495,7 +496,7 @@ export class WorkflowRunsService {
     try {
       return await this.workflowStateService.getWorkflowContext(id);
     } catch (error) {
-      throw new NotFoundException(error.message);
+      throw new NotFoundException(getErrorMessage(error));
     }
   }
 

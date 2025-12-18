@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import type { Request as ExpressRequest } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -39,7 +40,7 @@ export class UseCasesController {
   @ApiResponse({ status: 201, description: 'Use case created successfully', type: UseCaseResponse })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 404, description: 'Project not found' })
-  async create(@Request() req, @Body() createUseCaseDto: CreateUseCaseDto): Promise<UseCaseResponse> {
+  async create(@Request() req: ExpressRequest & { user: any }, @Body() createUseCaseDto: CreateUseCaseDto): Promise<UseCaseResponse> {
     return this.useCasesService.create(createUseCaseDto, req.user.userId);
   }
 
@@ -80,7 +81,7 @@ export class UseCasesController {
   @ApiResponse({ status: 200, description: 'Use case updated successfully', type: UseCaseResponse })
   @ApiResponse({ status: 404, description: 'Use case not found' })
   async update(
-    @Request() req,
+    @Request() req: ExpressRequest & { user: any },
     @Param('id') id: string,
     @Body() updateUseCaseDto: UpdateUseCaseDto,
   ): Promise<UseCaseResponse> {

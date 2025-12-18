@@ -1,5 +1,5 @@
 {
-  "currentRunId": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
+  "currentRunId": "f40cbbd6-0d71-414e-bce7-d68d6f1950c8",
   "sessions": {
     "f88514e1-deec-4bd5-902d-0fac9f4cdaa4": {
       "masterTranscripts": [
@@ -301,53 +301,6 @@
       "storyKey": "ST-TEST-1",
       "startedAt": "2025-12-18T06:20:12Z"
     },
-    "4fd80981-6a13-4686-ba22-f9b95badb233": {
-      "runId": "a5de7651-d1f5-4b79-aad0-b1b4fa6cc494",
-      "workflowId": "df9bf06d-38c5-4fa8-9c7d-b60d0bdfc122",
-      "storyId": "5e9dcf9e-3606-4a65-b3c4-c5dd2a097090",
-      "storyKey": "ST-282",
-      "startedAt": "2025-12-18T08:04:00Z",
-      "spawnedAgentTranscripts": [
-        {
-          "agentId": "a3a8df0",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a3a8df0.jsonl",
-          "spawnedAt": "2025-12-18T08:22:11Z"
-        },
-        {
-          "agentId": "a2f75e0",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a2f75e0.jsonl",
-          "spawnedAt": "2025-12-18T08:42:36Z"
-        },
-        {
-          "agentId": "ad58f60",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ad58f60.jsonl",
-          "spawnedAt": "2025-12-18T08:45:03Z"
-        },
-        {
-          "agentId": "ad75d89",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ad75d89.jsonl",
-          "spawnedAt": "2025-12-18T08:50:34Z"
-        },
-        {
-          "agentId": "ac37096",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ac37096.jsonl",
-          "spawnedAt": "2025-12-18T11:57:50Z"
-        },
-        {
-          "agentId": "a8190bb",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a8190bb.jsonl",
-          "spawnedAt": "2025-12-18T12:07:22Z"
-        },
-        {
-          "agentId": "aa10b23",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-aa10b23.jsonl",
-          "spawnedAt": "2025-12-18T12:08:57Z"
-        }
-      ],
-      "masterTranscripts": [
-        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/4fd80981-6a13-4686-ba22-f9b95badb233.jsonl"
-      ]
-    },
     "fccf7c75-c301-4da2-8c3d-53dcfda1e83c": {
       "masterTranscripts": [
         "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/fccf7c75-c301-4da2-8c3d-53dcfda1e83c.jsonl"
@@ -356,40 +309,45 @@
       "endedAt": "2025-12-18T08:38:40Z",
       "endReason": "clear"
     },
-    "8bcd429e-1ade-4440-810c-aa659e88cb2f": {
+    "c3be28c4-e9db-4869-ba38-5c3b869fdddc": {
       "masterTranscripts": [
-        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/8bcd429e-1ade-4440-810c-aa659e88cb2f.jsonl"
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/c3be28c4-e9db-4869-ba38-5c3b869fdddc.jsonl"
       ],
-      "startedAt": "2025-12-18T10:28:46Z",
-      "runId": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
-      "workflowId": "afeee150-c813-4854-a7ab-8c6224d73db4",
-      "storyId": "f63f84b6-a8b0-4a21-8954-24ff38abbb57",
-      "storyKey": "ST-289",
+      "startedAt": "2025-12-18T12:24:49Z",
+      "runId": "f40cbbd6-0d71-414e-bce7-d68d6f1950c8",
+      "workflowId": "947507c7-2abc-4a10-a0b9-8255d074ebae",
+      "storyId": "ae0e0295-4c34-4e1f-99e4-91ebf60911a5",
+      "storyKey": "ST-283",
       "spawnedAgentTranscripts": [
         {
-          "agentId": "a5564c7",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a5564c7.jsonl",
-          "spawnedAt": "2025-12-18T11:01:00Z"
+          "agentId": "ae3cafa",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ae3cafa.jsonl",
+          "spawnedAt": "2025-12-18T12:29:29Z"
         },
         {
-          "agentId": "a9c730c",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a9c730c.jsonl",
-          "spawnedAt": "2025-12-18T11:07:40Z"
+          "agentId": "a4cdef7",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a4cdef7.jsonl",
+          "spawnedAt": "2025-12-18T12:33:35Z"
         },
         {
-          "agentId": "aab0e0d",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-aab0e0d.jsonl",
-          "spawnedAt": "2025-12-18T11:13:34Z"
+          "agentId": "a0db42f",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a0db42f.jsonl",
+          "spawnedAt": "2025-12-18T12:39:15Z"
         },
         {
-          "agentId": "ac6668d",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ac6668d.jsonl",
-          "spawnedAt": "2025-12-18T11:20:15Z"
+          "agentId": "a12149d",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a12149d.jsonl",
+          "spawnedAt": "2025-12-18T13:01:49Z"
         },
         {
-          "agentId": "a0fc9e9",
-          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a0fc9e9.jsonl",
-          "spawnedAt": "2025-12-18T12:00:52Z"
+          "agentId": "aa7c822",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-aa7c822.jsonl",
+          "spawnedAt": "2025-12-18T13:31:34Z"
+        },
+        {
+          "agentId": "ae03ec9",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ae03ec9.jsonl",
+          "spawnedAt": "2025-12-18T13:53:17Z"
         }
       ]
     }

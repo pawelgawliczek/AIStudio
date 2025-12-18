@@ -138,7 +138,7 @@ export async function handler(prisma: PrismaClient, params: {
         name: currentState.name,
         order: currentState.order,
       },
-      nextState: null,
+      nextState: null as any,
       willPauseAt: 'completion',
       message: `Stepping through final state: ${currentState.name}${resolved.story ? ` (${resolved.story.key})` : ''}. Run will complete after this state.`,
       note: 'Use get_runner_status to monitor progress.',

@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import { ValidationError } from '../../types.js';
+import { ValidationError } from '../../types/index.js';
 
 // ============================================================================
 // Constants and Configuration

@@ -326,7 +326,7 @@ export async function handler(prisma: PrismaClient, params: any) {
   // This enables unified tracking of orchestrator metrics in the same table as components
   // Note: orchestratorComponentRun is no longer created as coordinatorId field was removed
   // Orchestrator metrics are now tracked differently (ST-164)
-  const orchestratorComponentRun = null;
+  const orchestratorComponentRun: any = null;
 
   // ST-99: Get component REFERENCES only (not full instructions)
   // Agents pull their own instructions via get_component_instructions({ componentId })

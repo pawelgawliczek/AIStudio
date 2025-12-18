@@ -32,7 +32,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { SafeMigrationService } from '../../../services/safe-migration.service.js';
-import { ValidationError, NotFoundError } from '../../types.js';
+import { ValidationError, NotFoundError } from '../../types/index.js';
 import { validateRequired } from '../../utils.js';
 
 // ============================================================================

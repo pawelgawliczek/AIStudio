@@ -260,7 +260,7 @@ export class MetadataAggregationService {
       totalFilesModified: filesModified.length,
       totalCommits: commits.length,
       implementedBy: developerRuns.map((r) => r.component.name),
-      implementationNotes: developerRuns[0]?.metadata?.['implementationNotes'] as string,
+      implementationNotes: (developerRuns[0]?.metadata as any)?.['implementationNotes'] as string,
     };
   }
 

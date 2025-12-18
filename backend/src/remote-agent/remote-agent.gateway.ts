@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import * as jwt from 'jsonwebtoken';
 import { Server, Socket } from 'socket.io';
+import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
@@ -229,7 +230,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           }
         }
       } catch (error) {
-        this.logger.error(`Failed to mark agent offline: ${error.message}`);
+        this.logger.error(`Failed to mark agent offline: ${getErrorMessage(error)}`);
         span.recordException(error as Error);
         throw error;
       }
@@ -345,7 +346,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         agentId: agent.id,
       });
     } catch (error) {
-      this.logger.error(`Agent registration failed: ${error.message}`);
+      this.logger.error(`Agent registration failed: ${getErrorMessage(error)}`);
       client.emit('agent:error', { error: 'Registration failed' });
       client.disconnect();
     }
@@ -386,7 +387,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           data: { lastSeenAt: new Date() },
         });
       } catch (error) {
-        this.logger.error(`Heartbeat update failed: ${error.message}`);
+        this.logger.error(`Heartbeat update failed: ${getErrorMessage(error)}`);
         span.recordException(error as Error);
         throw error;
       }
@@ -434,7 +435,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
       client.emit('agent:ack', { jobId, received: true });
     } catch (error) {
-      this.logger.error(`Failed to update job result: ${error.message}`);
+      this.logger.error(`Failed to update job result: ${getErrorMessage(error)}`);
       client.emit('agent:error', { error: 'Failed to update job' });
     }
   }
@@ -755,7 +756,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
             data: { status: 'paused' },
           });
         } catch (error: any) {
-          this.logger.error(`[ST-160] Failed to create AgentQuestion: ${error.message}`);
+          this.logger.error(`[ST-160] Failed to create AgentQuestion: ${getErrorMessage(error)}`);
         }
       }
     }
@@ -911,7 +912,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
           );
         } catch (uploadError) {
           this.logger.warn(
-            `Failed to upload transcript for componentRun ${job.componentRunId}: ${uploadError.message}`,
+            `Failed to upload transcript for componentRun ${job.componentRunId}: ${getErrorMessage(uploadError)}`,
           );
           // Don't fail the job completion if transcript upload fails
         }
@@ -929,7 +930,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
       client.emit('agent:ack', { jobId: data.jobId, received: true });
     } catch (error) {
-      this.logger.error(`Failed to update job completion: ${error.message}`);
+      this.logger.error(`Failed to update job completion: ${getErrorMessage(error)}`);
       client.emit('agent:error', { error: 'Failed to update job' });
     }
   }
@@ -1108,7 +1109,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         decoded.agentId === agentId
       );
     } catch (error) {
-      this.logger.warn(`Job token validation failed: ${error.message}`);
+      this.logger.warn(`Job token validation failed: ${getErrorMessage(error)}`);
       return false;
     }
   }
@@ -1184,7 +1185,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
       client.emit('agent:ack', { jobId: data.jobId, received: true });
     } catch (error) {
-      this.logger.error(`Failed to update git job result: ${error.message}`);
+      this.logger.error(`Failed to update git job result: ${getErrorMessage(error)}`);
       client.emit('agent:error', { error: 'Failed to update job' });
     }
   }
@@ -1265,7 +1266,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
         })),
       });
     } catch (error: any) {
-      this.logger.error(`[ST-160] Failed to fetch session history: ${error.message}`);
+      this.logger.error(`[ST-160] Failed to fetch session history: ${getErrorMessage(error)}`);
     }
 
     client.emit('session:subscribed', {
@@ -1629,12 +1630,12 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
               success: true,
             });
           } catch (error) {
-            this.logger.error(`[ST-170] Failed to handle transcript detection: ${error.message}`, error.stack);
+            this.logger.error(`[ST-170] Failed to handle transcript detection: ${getErrorMessage(error)}`, getErrorStack(error));
 
             client.emit('agent:transcript_detected_ack', {
               agentId: data.agentId,
               success: false,
-              error: error.message,
+              error: getErrorMessage(error),
             });
           }
         }));

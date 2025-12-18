@@ -132,7 +132,7 @@ async function handleList(
       return {
         success: true,
         action: 'list',
-        approvals: [],
+        approvals: [] as any,
         pagination: {
           page,
           pageSize,

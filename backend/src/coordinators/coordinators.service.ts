@@ -282,7 +282,7 @@ export class CoordinatorsService {
   private mapToResponseDto(coordinator: any): CoordinatorResponseDto {
     // Extract coordinator-specific fields from config
     const config = coordinator.config || {};
-    const domain = config.domain || coordinator.tags.find(t => !['coordinator', 'orchestrator'].includes(t));
+    const domain = config.domain || coordinator.tags.find((t: string) => !['coordinator', 'orchestrator'].includes(t));
     const decisionStrategy = config.decisionStrategy;
     const componentIds = config.componentIds || [];
     const flowDiagram = config.flowDiagram;

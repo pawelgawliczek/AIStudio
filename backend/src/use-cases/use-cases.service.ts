@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import OpenAI from 'openai';
+import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateUseCaseDto,
@@ -73,7 +74,7 @@ export class UseCasesService {
       try {
         embedding = await this.generateEmbedding(dto.content);
       } catch (error) {
-        this.logger.error(`Failed to generate embedding: ${error.message}`);
+        this.logger.error(`Failed to generate embedding: ${getErrorMessage(error)}`);
         // Continue without embedding - it can be generated later by background worker
       }
     }
@@ -296,7 +297,7 @@ export class UseCasesService {
       try {
         embedding = await this.generateEmbedding(dto.content);
       } catch (error) {
-        this.logger.error(`Failed to generate embedding: ${error.message}`);
+        this.logger.error(`Failed to generate embedding: ${getErrorMessage(error)}`);
       }
     }
 
@@ -885,7 +886,7 @@ export class UseCasesService {
           }
         }
       } catch (error) {
-        this.logger.error(`Failed to find semantically similar use cases: ${error.message}`);
+        this.logger.error(`Failed to find semantically similar use cases: ${getErrorMessage(error)}`);
       }
     }
 
@@ -1055,7 +1056,7 @@ export class UseCasesService {
         `;
         this.logger.log(`Generated embedding for use case version ${version.id}`);
       } catch (error) {
-        this.logger.error(`Failed to generate embedding for version ${version.id}: ${error.message}`);
+        this.logger.error(`Failed to generate embedding for version ${version.id}: ${getErrorMessage(error)}`);
       }
     }
 

@@ -171,7 +171,7 @@ export async function handler(
 
     // ST-103: Store auto-diff in workflow metadata
     if (autoDiff) {
-      const currentMetadata = (newWorkflow.metadata as any) || {};
+      const currentMetadata = ((newWorkflow as any).metadata as any) || {};
       await prisma.workflow.update({
         where: { id: newWorkflow.id },
         data: {
@@ -197,7 +197,7 @@ export async function handler(
       changeDescription: newWorkflow.changeDescription,
       instructionsChecksum: newWorkflow.instructionsChecksum,
       configChecksum: newWorkflow.configChecksum,
-      triggerConfig: newWorkflow.triggerConfig,
+      triggerConfig: (newWorkflow as any).triggerConfig,
       active: newWorkflow.active,
       isDeprecated: newWorkflow.isDeprecated,
       createdAt: newWorkflow.createdAt.toISOString(),

@@ -46,7 +46,7 @@ export class ToolLoader {
 
       for (const cat of categories) {
         const categoryPath = path.join(categoriesPath, cat);
-        const stat = await fs.stat(categoryPath).catch(() => null);
+        const stat = await fs.stat(categoryPath).catch((): null => null);
 
         if (!stat?.isDirectory()) continue;
 

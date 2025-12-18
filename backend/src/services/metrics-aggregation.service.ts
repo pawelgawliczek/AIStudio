@@ -401,7 +401,7 @@ export class MetricsAggregationService {
     const projectedCost = totalCost + (avgCostPerStory * storiesWithoutRuns);
 
     // Budget calculation (would need to be stored in Epic model)
-    const budget = null; // TODO: Add budget field to Epic model
+    const budget: number | null = null; // TODO: Add budget field to Epic model
     const budgetUtilization = budget ? (totalCost / budget) * 100 : null;
 
     return {

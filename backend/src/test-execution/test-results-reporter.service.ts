@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
+import { getErrorMessage, getErrorStack } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TestCasesService } from '../test-cases/test-cases.service';
 import { TestExecutionsService } from '../test-executions/test-executions.service';
@@ -206,8 +207,8 @@ export class TestResultsReporterService {
       return execution;
     } catch (error) {
       this.logger.error(
-        `Failed to report test execution: ${error.message}`,
-        error.stack,
+        `Failed to report test execution: ${getErrorMessage(error)}`,
+        getErrorStack(error),
       );
       throw error;
     }
