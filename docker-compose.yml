@@ -69,7 +69,8 @@ services:
     environment:
       NODE_ENV: production
       # ST-267: Increased pool from 20 to 50 for bulk operation resilience
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/vibestudio?schema=public&connection_limit=50
+      # ST-305: Added statement_timeout=30000 (30s) to prevent long-running queries
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/vibestudio?schema=public&connection_limit=50&statement_timeout=30000
       REDIS_URL: redis://redis:6379
       PORT: 3000
       # HOST path for transcript tracking (where Claude Code runs, not Docker path)
