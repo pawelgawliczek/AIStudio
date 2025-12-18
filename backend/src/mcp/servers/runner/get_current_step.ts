@@ -457,7 +457,19 @@ export async function handler(prisma: PrismaClient, params: {
             componentName,
             tools: componentTools,
           },
-          notes: `⚠️ MUST use Task tool - DO NOT do the work yourself! You are the orchestrator. Use Task({ subagent_type: "${subagentType}", model: "${componentModel}", prompt: <agentConfig.prompt> }). The spawned agent does the actual work. Capture the agent's output for the next step.
+          notes: `⚠️ MUST use Task tool - DO NOT do the work yourself! You are the orchestrator.
+
+Execute:
+\`\`\`
+Task({
+  subagent_type: "${subagentType}",
+  model: "${componentModel}",
+  prompt: <agentConfig.prompt VERBATIM>
+})
+\`\`\`
+
+DO NOT add exploration findings, story context, or any other modifications to the prompt.
+The workflow system provides complete context - pass agentConfig.prompt EXACTLY as provided.
 
 Agent tracking is AUTOMATIC - advance_step handles record_agent_start/complete internally.`,
         });

@@ -81,7 +81,17 @@ Uses **components** (not coordinators). Orchestrator spawns component agents (PM
 
 ### Agent Spawning (ST-304)
 
-When entering agent phase, `advance_step` and `get_current_step` return `instructions.spawnAgent` with ready-to-use Task parameters (`subagent_type`, `model`, `prompt`) - use these directly without modification.
+When `advance_step` or `get_current_step` returns `instructions.spawnAgent`, execute Task with EXACT parameters:
+
+```typescript
+Task({
+  subagent_type: instructions.spawnAgent.task.subagent_type,
+  model: instructions.spawnAgent.task.model,
+  prompt: instructions.spawnAgent.task.prompt  // VERBATIM - NO MODIFICATIONS
+})
+```
+
+**DO NOT** rewrite, enhance, or "improve" the prompt. The workflow system provides complete context.
 
 ### Workflow Execution Rules (MANDATORY)
 

@@ -144,11 +144,23 @@ export async function buildAgentInstructions(
     );
 
     // When spawnAgent is successfully built, only return that (not redundant raw component fields)
+    // ST-304: Format as ready-to-execute code block with actual values
     return {
       type: 'agent_spawn',
       content: `Spawn the ${componentName} agent.`,
       spawnAgent: {
-        instruction: "Use the Task tool to spawn this agent. Pass the prompt EXACTLY as provided - do not modify it.",
+        instruction: `Execute this Task call with the prompt below VERBATIM:
+
+\`\`\`
+Task({
+  subagent_type: "${subagentType}",
+  model: "${componentModel}",
+  prompt: <see task.prompt below>
+})
+\`\`\`
+
+DO NOT add exploration findings, story context, or any other modifications to the prompt.
+The workflow system provides complete context - pass it EXACTLY as provided.`,
         task: {
           subagent_type: subagentType,
           model: componentModel,
