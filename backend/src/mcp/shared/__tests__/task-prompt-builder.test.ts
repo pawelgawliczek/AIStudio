@@ -410,7 +410,7 @@ describe('task-prompt-builder', () => {
       const previousRuns = [
         {
           id: 'run-1',
-          componentName: 'Context Explorer',
+          component: { name: 'Context Explorer' },
           componentSummary: JSON.stringify({
             version: '1.0',
             status: 'success',
@@ -548,13 +548,13 @@ describe('task-prompt-builder', () => {
       const allRuns = [
         {
           id: 'run-1',
-          componentName: 'Explorer',
+          component: { name: 'Explorer' },
           componentSummary: 'completed',
           status: 'completed',
         },
         {
           id: 'run-2',
-          componentName: 'Architect',
+          component: { name: 'Architect' },
           componentSummary: null,
           status: 'running',
         },
