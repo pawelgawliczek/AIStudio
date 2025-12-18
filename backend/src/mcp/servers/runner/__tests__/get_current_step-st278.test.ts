@@ -348,9 +348,10 @@ describe('get_current_step - Orchestrator-Driven Commits (ST-278)', () => {
       );
 
       expect(commitStep).toBeDefined();
+      // ST-289: cwd uses placeholder that gets resolved at runtime
       expect(commitStep.parameters).toEqual(
         expect.objectContaining({
-          cwd: expect.stringMatching(/worktrees|AIStudio/),
+          cwd: '{{WORKTREE_PATH}}',
         })
       );
     });
