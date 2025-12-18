@@ -25,6 +25,11 @@ import {
 import { resolveRunId } from '../../shared/resolve-identifiers';
 import { deriveSubagentType, buildTaskPrompt } from '../../shared/task-prompt-builder';
 import { RemoteRunner } from '../../utils/remote-runner';
+import {
+  buildPhaseInstructions,
+  buildCommitInstruction,
+  buildEnforcementData,
+} from './advance_step.helpers';
 
 export const tool: Tool = {
   name: 'advance_step',

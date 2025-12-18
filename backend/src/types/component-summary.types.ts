@@ -5,6 +5,14 @@
  * Replaces free-form text with a standardized format for better agent handoffs.
  */
 
+import {
+  detectStatusFromOutput,
+  extractKeyOutputs,
+  extractErrors,
+  extractArtifacts,
+  cleanupEmptyArrays,
+} from './component-summary.helpers';
+
 export type ComponentSummaryStatus = 'success' | 'partial' | 'blocked' | 'failed';
 
 export interface ComponentSummaryStructured {
@@ -73,96 +81,51 @@ export function generateStructuredSummary(
   componentName: string,
   status?: ComponentSummaryStatus,
 ): ComponentSummaryStructured {
+  // Initialize summary with defaults
   const summary: ComponentSummaryStructured = {
     version: '1.0',
     status: status || 'success',
     summary: '',
-    keyOutputs: [],
-    nextAgentHints: [],
-    artifactsProduced: [],
-    errors: [],
   };
 
   // Generate summary text
   if (!output || Object.keys(output).length === 0) {
     summary.summary = `${componentName} completed execution.`;
   } else {
-    // Detect status from output first (before generating summary text)
+    // Use helper to detect status from output
+    summary.status = detectStatusFromOutput(output, summary.status);
+
+    // Generate summary text based on output status
     const outputStatus = output.status || output.result;
     if (typeof outputStatus === 'string') {
-      // Detect specific status values
-      if (outputStatus === 'partial' || outputStatus.includes('partial')) {
-        summary.status = 'partial';
-      } else if (outputStatus === 'blocked' || outputStatus.includes('blocked')) {
-        summary.status = 'blocked';
-      }
       summary.summary = `${componentName} ${outputStatus}.`;
     } else {
       summary.summary = `${componentName} completed.`;
     }
 
-    // Extract key outputs
-    const keyOutputs: string[] = [];
-
-    // Check for file modifications
-    if (Array.isArray(output.files) && output.files.length > 0) {
-      keyOutputs.push(`Modified ${output.files.length} file(s)`);
-    }
-    if (Array.isArray(output.filesModified) && output.filesModified.length > 0) {
-      keyOutputs.push(`Modified ${output.filesModified.length} file(s)`);
+    // Use helpers to extract structured data
+    const keyOutputs = extractKeyOutputs(output);
+    if (keyOutputs.length > 0) {
+      summary.keyOutputs = keyOutputs;
     }
 
-    // Check for summary/changes field
-    const outputSummary = output.summary || output.changes || output.description;
-    if (typeof outputSummary === 'string' && outputSummary.length > 0) {
-      // Truncate long summaries
-      const truncated =
-        outputSummary.length > 100 ? outputSummary.substring(0, 100) + '...' : outputSummary;
-      keyOutputs.push(truncated);
-    }
-
-    // Check for error count
-    if (typeof output.errorCount === 'number' && output.errorCount > 0) {
-      keyOutputs.push(`Found ${output.errorCount} error(s)`);
-    }
-
-    summary.keyOutputs = keyOutputs.slice(0, 5); // Max 5 items
-
-    // Extract errors if present
-    const errors: string[] = [];
-    if (output.errors && Array.isArray(output.errors)) {
-      errors.push(...(output.errors as string[]).map(e => String(e)));
-    }
-    if (output.error && typeof output.error === 'string') {
-      errors.push(output.error);
-    }
-    summary.errors = errors.slice(0, 3); // Max 3 items
-
-    // Detect failure from errors
+    const errors = extractErrors(output);
     if (errors.length > 0) {
-      summary.status = 'failed';
+      summary.errors = errors;
+      // Update status to failed if errors present
+      if (summary.status === 'success') {
+        summary.status = 'failed';
+      }
     }
 
-    // Extract artifacts produced (check multiple field names)
-    if (output.artifactsCreated && Array.isArray(output.artifactsCreated)) {
-      summary.artifactsProduced = (output.artifactsCreated as string[]).map(a => String(a));
-    } else if (output.artifactsProduced && Array.isArray(output.artifactsProduced)) {
-      summary.artifactsProduced = (output.artifactsProduced as string[]).map(a => String(a));
-    } else if (output.artifacts && Array.isArray(output.artifacts)) {
-      summary.artifactsProduced = (output.artifacts as string[]).map(a => String(a));
+    const artifacts = extractArtifacts(output);
+    if (artifacts.length > 0) {
+      summary.artifactsProduced = artifacts;
     }
 
     // Extract recommendations as nextAgentHints
     if (output.recommendations && Array.isArray(output.recommendations)) {
       summary.nextAgentHints = (output.recommendations as string[]).slice(0, 3).map(r => String(r));
-    }
-
-    // Detect failure indicators
-    if (output.success === false || output.failed === true) {
-      summary.status = 'failed';
-      if (!summary.errors || summary.errors.length === 0) {
-        summary.errors = ['Execution had issues.'];
-      }
     }
   }
 
@@ -171,19 +134,8 @@ export function generateStructuredSummary(
     summary.summary = summary.summary.substring(0, 197) + '...';
   }
 
-  // Remove empty arrays
-  if (summary.keyOutputs && summary.keyOutputs.length === 0) {
-    delete summary.keyOutputs;
-  }
-  if (summary.nextAgentHints && summary.nextAgentHints.length === 0) {
-    delete summary.nextAgentHints;
-  }
-  if (summary.artifactsProduced && summary.artifactsProduced.length === 0) {
-    delete summary.artifactsProduced;
-  }
-  if (summary.errors && summary.errors.length === 0) {
-    delete summary.errors;
-  }
+  // Use helper to remove empty arrays
+  cleanupEmptyArrays(summary);
 
   return summary;
 }

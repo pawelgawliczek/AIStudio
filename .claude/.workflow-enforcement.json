@@ -6,25 +6,23 @@
       "currentState": {
         "id": "3b20a175-5c13-42a2-b725-3a93330b8e41",
         "name": "implementation",
-        "phase": "agent",
+        "phase": "post",
         "componentName": "Developer",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
+        "allowedSubagentTypes": null
       },
-      "updatedAt": "2025-12-18T15:43:49Z"
+      "updatedAt": "2025-12-18T15:58:49Z"
     },
     "28c561fb-88a8-42f0-9eaa-49ed07c15965": {
       "workflowActive": true,
       "runId": "ba2f090a-7e1d-47ad-be92-43b74279cb24",
       "currentState": {
-        "name": "implementation",
-        "componentName": "Developer",
+        "name": "testing",
+        "componentName": "Tester",
         "allowedSubagentTypes": [
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T15:51:23Z"
+      "updatedAt": "2025-12-18T15:57:27Z"
     }
   }
 }

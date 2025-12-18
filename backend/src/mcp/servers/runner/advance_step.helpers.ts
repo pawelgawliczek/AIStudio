@@ -5,7 +5,7 @@
  * Helper functions extracted from buildAdvanceResponse to reduce complexity.
  */
 
-interface WorkflowStateData {
+export interface WorkflowStateData {
   id: string;
   name: string;
   order: number;
@@ -15,7 +15,7 @@ interface WorkflowStateData {
   component?: ComponentData | null;
 }
 
-interface ComponentData {
+export interface ComponentData {
   id: string;
   name: string;
   executionType: string;
@@ -26,9 +26,15 @@ interface ComponentData {
   outputInstructions?: string | null;
 }
 
-interface StoryData {
+export interface StoryData {
   key: string;
   title: string;
+}
+
+interface RunnerCheckpoint {
+  currentPhase?: 'pre' | 'agent' | 'post';
+  completedStates?: string[];
+  skippedStates?: string[];
 }
 
 /**
