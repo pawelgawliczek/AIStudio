@@ -197,11 +197,28 @@ export async function formatArtifactInstructions(
     }
   }
 
-  // Read-only artifacts
-  if (read.length > 0) {
+  // Read-only artifacts AND write artifacts that already exist (should read before updating)
+  // Collect write artifacts that exist to include in READ section
+  const writeArtifactsToRead: Array<{ access: (typeof write)[0]; artifact: { id: string } }> = [];
+  for (const access of write) {
+    const artifact = await prisma.artifact.findFirst({
+      where: {
+        definitionId: access.definitionId,
+        storyId,
+      },
+      orderBy: { currentVersion: 'desc' },
+      select: { id: true },
+    });
+    if (artifact) {
+      writeArtifactsToRead.push({ access, artifact });
+    }
+  }
+
+  if (read.length > 0 || writeArtifactsToRead.length > 0) {
     sections.push('### Artifacts to READ\n');
     sections.push('These artifacts are available for reference.\n\n');
 
+    // Read-only artifacts
     for (const access of read) {
       const def = access.definition!;
       sections.push(`**${def.key}** (${def.name})\n`);
@@ -220,6 +237,14 @@ export async function formatArtifactInstructions(
       } else {
         sections.push(`⚠️ Artifact not yet created.\n\n`);
       }
+    }
+
+    // Write artifacts that exist - read before updating
+    for (const { access } of writeArtifactsToRead) {
+      const def = access.definition!;
+      sections.push(`**${def.key}** (${def.name}) - READ BEFORE UPDATING\n`);
+      sections.push(`${def.description}\n\n`);
+      sections.push(`Read with: \`get_artifact({ storyId: "${storyId}", definitionKey: "${def.key}", includeContent: true })\`\n\n`);
     }
   }
 
