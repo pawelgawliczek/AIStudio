@@ -25,8 +25,8 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
 
 // Security constants
 const ALLOWED_BASE_DIR = path.resolve(os.homedir(), '.claude', 'projects');

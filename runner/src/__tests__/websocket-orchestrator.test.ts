@@ -5,8 +5,8 @@
  * These tests WILL FAIL until implementation is complete.
  */
 
-import { WebSocketOrchestrator } from '../websocket-orchestrator';
 import { io, Socket } from 'socket.io-client';
+import { WebSocketOrchestrator } from '../websocket-orchestrator';
 
 // Mock socket.io-client
 jest.mock('socket.io-client');

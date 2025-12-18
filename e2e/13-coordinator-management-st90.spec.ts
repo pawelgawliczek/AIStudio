@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, TEST_USERS, ApiHelper } from './utils';
 import { CoordinatorLibraryPage } from './page-objects/CoordinatorLibraryPage';
+import { login, logout, TEST_USERS, ApiHelper } from './utils';
 
 /**
  * E2E Tests for Coordinator Management (ST-90)
@@ -22,8 +22,8 @@ test.describe('Coordinator Management (ST-90)', () => {
   let api: ApiHelper;
   let projectId: string;
   let coordinatorPage: CoordinatorLibraryPage;
-  let createdCoordinatorIds: string[] = [];
-  let createdComponentIds: string[] = [];
+  const createdCoordinatorIds: string[] = [];
+  const createdComponentIds: string[] = [];
 
   test.beforeAll(async ({ request }) => {
     // Login as admin for coordinator management

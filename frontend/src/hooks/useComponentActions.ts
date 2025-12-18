@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { componentsService } from '../services/components.service';
-import { Component } from '../types';
+import { WorkflowComponent } from '../types';
 
 export interface ComponentActionsReturn {
   handleDelete: (id: string) => Promise<void>;
-  handleToggleActive: (component: Component) => Promise<void>;
-  handleEdit: (component: Component, callback: (component: Component) => void) => void;
+  handleToggleActive: (component: WorkflowComponent) => Promise<void>;
+  handleEdit: (component: WorkflowComponent, callback: (component: WorkflowComponent) => void) => void;
   isDeleting: boolean;
   isTogglingActive: boolean;
 }
@@ -44,14 +44,14 @@ export function useComponentActions(
     }
   };
 
-  const handleToggleActive = async (component: Component) => {
+  const handleToggleActive = async (component: WorkflowComponent) => {
     await toggleActiveMutation.mutateAsync({
       id: component.id,
       active: component.active,
     });
   };
 
-  const handleEdit = (component: Component, callback: (component: Component) => void) => {
+  const handleEdit = (component: WorkflowComponent, callback: (component: WorkflowComponent) => void) => {
     callback(component);
   };
 

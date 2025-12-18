@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { componentsService } from '../services/components.service';
-import { Component, CreateComponentDto, ExecutionConfig } from '../types';
+import { WorkflowComponent, CreateWorkflowComponentDto, ExecutionConfig } from '../types';
 import { terminology } from '../utils/terminology';
 import { MarkdownEditor } from './MarkdownEditor';
 
@@ -10,7 +10,7 @@ interface CreateComponentModalProps {
   onClose: () => void;
   onSuccess: () => void;
   projectId: string;
-  editingComponent?: Component | null;
+  editingComponent?: WorkflowComponent | null;
 }
 
 const defaultConfig: ExecutionConfig = {
@@ -24,7 +24,7 @@ const defaultConfig: ExecutionConfig = {
 };
 
 export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, editingComponent }: CreateComponentModalProps) {
-  const [formData, setFormData] = useState<CreateComponentDto>({
+  const [formData, setFormData] = useState<CreateWorkflowComponentDto>({
     name: '',
     description: '',
     inputInstructions: '',
@@ -78,7 +78,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
   }, [editingComponent, isOpen]);
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateComponentDto) => componentsService.create(projectId, data),
+    mutationFn: (data: CreateWorkflowComponentDto) => componentsService.create(projectId, data),
     onSuccess: () => {
       console.log('[CreateComponentModal] createMutation.onSuccess fired');
       onSuccess();
@@ -89,7 +89,7 @@ export function CreateComponentModal({ isOpen, onClose, onSuccess, projectId, ed
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreateComponentDto) => componentsService.update(projectId, editingComponent!.id, data),
+    mutationFn: (data: CreateWorkflowComponentDto) => componentsService.update(projectId, editingComponent!.id, data),
     onSuccess: () => {
       console.log('[CreateComponentModal] updateMutation.onSuccess fired');
       onSuccess();

@@ -4,8 +4,8 @@
  * Shows which files are linked to which stories and epics
  */
 
-import { PrismaClient } from '@prisma/client';
 import { writeFileSync } from 'fs';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 

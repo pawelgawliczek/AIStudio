@@ -6,9 +6,9 @@
  * Backend handles all registration and upload logic.
  */
 
-import * as path from 'path';
-import * as os from 'os';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import * as chokidar from 'chokidar';
 import { Socket } from 'socket.io-client';
 import { Logger } from './logger';

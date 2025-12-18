@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
-import { login, TEST_USERS } from './utils/auth.helper';
 import { ComponentLibraryPage } from './page-objects/ComponentLibraryPage';
+import { login, TEST_USERS } from './utils/auth.helper';
 
 test('Debug form values before submit', async ({ page }) => {
   await login(page, TEST_USERS.admin);

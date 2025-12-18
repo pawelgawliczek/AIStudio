@@ -19,9 +19,9 @@
  * The fix now uses snapshot.avgCoverage which contains the correct value.
  */
 
-import { test, expect, Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { test, expect, Page } from '@playwright/test';
 
 const TEST_PROJECT_ID = '345a29ee-d6ab-477d-8079-c5dda0844d77';
 const BASE_URL = 'https://vibestudio.example.com';

@@ -1,16 +1,16 @@
 import { io, Socket } from 'socket.io-client';
-import { AgentConfig } from './config';
-import { executeScript } from './scripts';
 import {
   ClaudeCodeExecutor,
   ClaudeCodeJobPayload,
   ExecutionResult,
 } from './claude-code-executor';
+import { AgentConfig } from './config';
 import { executeGitCommand, checkGitAvailable, GitExecutionResult } from './git-executor';
-import { TranscriptWatcher } from './transcript-watcher';
-import { TranscriptTailer, TailRequest } from './transcript-tailer';
-import { WakeDetector } from './wake-detector';
 import { Logger } from './logger';
+import { executeScript } from './scripts';
+import { TranscriptTailer, TailRequest } from './transcript-tailer';
+import { TranscriptWatcher } from './transcript-watcher';
+import { WakeDetector } from './wake-detector';
 
 /**
  * ST-153: Git job payload from server

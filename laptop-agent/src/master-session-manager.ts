@@ -6,9 +6,9 @@
  */
 
 import { spawn, ChildProcess } from 'child_process';
-import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { generateNonce, validateNonce, sanitizeError } from './security/sanitization';
 
 export interface MasterSessionConfig {
@@ -114,7 +114,7 @@ export class MasterSessionManager {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      let transcriptPath = `/tmp/claude-transcript-${sessionId}.jsonl`; // Default
+      const transcriptPath = `/tmp/claude-transcript-${sessionId}.jsonl`; // Default
 
       // Handle process errors
       const errorHandler = (error: Error) => {
@@ -185,7 +185,7 @@ export class MasterSessionManager {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      let transcriptPath = `/tmp/claude-transcript-${config.sessionId}.jsonl`; // Default
+      const transcriptPath = `/tmp/claude-transcript-${config.sessionId}.jsonl`; // Default
 
       // Handle process errors
       const errorHandler = (error: Error) => {

@@ -9,9 +9,9 @@
  * Purpose: Identify where coverage percentage mismatch occurs
  */
 
-import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { test, expect } from '@playwright/test';
 
 const TEST_PROJECT_ID = '345a29ee-d6ab-477d-8079-c5dda0844d77';
 const BASE_URL = 'https://vibestudio.example.com';

@@ -37,8 +37,8 @@ test.describe.serial('ST-190: Real Transcript E2E with REST API', () => {
 
   // Test context for tracking created resources
   // Story is pre-existing (ST-191), we only create workflow runs
-  let storyId: string = TEST_STORY_ID;
-  let storyKey: string = TEST_STORY_KEY;
+  const storyId: string = TEST_STORY_ID;
+  const storyKey: string = TEST_STORY_KEY;
   let runId: string;
   let testSessionId: string;
   let testTranscriptPath: string;

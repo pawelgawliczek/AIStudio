@@ -1,5 +1,6 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import * as ReactRouterDom from 'react-router-dom';
 import { onSessionExpired } from '../../services/api.client';
 import authService from '../../services/auth.service';
 import { AuthProvider, useAuth } from '../AuthContext';
@@ -579,7 +580,7 @@ describe('AuthContext - ST-11 Session Management', () => {
     it('should handle session expiration while on protected deep link', async () => {
       const mockLocation = { pathname: '/story/ST-123', search: '?tab=details' };
 
-      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue(mockLocation);
+      jest.spyOn(ReactRouterDom, 'useLocation').mockReturnValue(mockLocation);
 
       let sessionExpiredCallback: ((path?: string) => void) | null = null;
 

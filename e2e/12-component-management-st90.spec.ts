@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, TEST_USERS, ApiHelper } from './utils';
 import { ComponentLibraryPage } from './page-objects/ComponentLibraryPage';
+import { login, logout, TEST_USERS, ApiHelper } from './utils';
 
 /**
  * E2E Tests for Component Management (ST-90)
@@ -21,7 +21,7 @@ test.describe('Component Management (ST-90)', () => {
   let api: ApiHelper;
   let projectId: string;
   let componentPage: ComponentLibraryPage;
-  let createdComponentIds: string[] = [];
+  const createdComponentIds: string[] = [];
 
   test.beforeAll(async ({ request }) => {
     // Login as admin for component management

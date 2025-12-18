@@ -14,20 +14,15 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Mock socket
+import { useWebSocket } from '../../services/websocket.service';
+import { useTranscriptStream } from '../useTranscriptStream';
 let mockSocket: any;
-
 // Mock the websocket service module
 vi.mock('../../services/websocket.service', () => {
   return {
     useWebSocket: vi.fn(),
   };
 });
-
-// Import after mock setup
-import { useWebSocket } from '../../services/websocket.service';
-import { useTranscriptStream } from '../useTranscriptStream';
 
 describe('useTranscriptStream', () => {
   beforeEach(() => {

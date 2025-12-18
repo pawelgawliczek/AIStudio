@@ -5,11 +5,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { useState, Fragment } from 'react';
 import { analyticsService, type TimeRange } from '../services/analytics.service';
 import { versioningService, type ComponentVersion } from '../services/versioning.service';
-import { Component } from '../types';
+import { WorkflowComponent } from '../types';
 import { VersionComparisonModal } from './VersionComparisonModal';
 
 interface ComponentDetailModalProps {
-  component: Component;
+  component: WorkflowComponent;
   isOpen: boolean;
   onClose: () => void;
   onEdit: () => void;

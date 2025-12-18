@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, TEST_USERS, ApiHelper } from './utils';
 import { WorkflowWizardPage } from './page-objects/WorkflowWizardPage';
+import { login, logout, TEST_USERS, ApiHelper } from './utils';
 
 /**
  * E2E Tests for Workflow Creation Wizard (ST-90)
@@ -24,9 +24,9 @@ test.describe('Workflow Creation Wizard (ST-90)', () => {
   let api: ApiHelper;
   let projectId: string;
   let workflowPage: WorkflowWizardPage;
-  let createdWorkflowIds: string[] = [];
-  let createdComponentIds: string[] = [];
-  let createdCoordinatorIds: string[] = [];
+  const createdWorkflowIds: string[] = [];
+  const createdComponentIds: string[] = [];
+  const createdCoordinatorIds: string[] = [];
 
   test.beforeAll(async ({ request }) => {
     // Login as admin for workflow management

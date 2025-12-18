@@ -7,10 +7,10 @@
  * - Remote Loki shipping for centralized investigation
  */
 
-import * as winston from 'winston';
-import * as path from 'path';
-import * as os from 'os';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import LokiTransport from 'winston-loki';
 

@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +17,7 @@ async function importCoverage() {
     const coverage = (data as any).lines?.pct || 0;
     
     // Convert /opt/stack/AIStudio/backend/src/... to backend/src/...
-    let relativePath = filePath
+    const relativePath = filePath
       .replace('/opt/stack/AIStudio/', '')
       .replace(/^backend\//, 'backend/');  // Ensure backend/ prefix
 

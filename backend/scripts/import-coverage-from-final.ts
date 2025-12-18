@@ -3,9 +3,9 @@
  * Import Test Coverage from coverage-final.json
  */
 
-import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -37,7 +37,7 @@ async function importCoverage(projectId: string) {
     console.log(`📈 Processing coverage for project: ${project.name}`);
 
     let updatedCount = 0;
-    let totalCoverage = { statements: 0, branches: 0, functions: 0, lines: 0, fileCount: 0 };
+    const totalCoverage = { statements: 0, branches: 0, functions: 0, lines: 0, fileCount: 0 };
 
     // Process each file
     for (const [absolutePath, fileCoverage] of Object.entries(coverageData)) {

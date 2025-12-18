@@ -3,8 +3,8 @@
  */
 
 import { ResourceManager, ResourceViolation } from '../../resources/resource-manager';
-import { ResourceLimits } from '../../types/config';
 import { ResourceUsage } from '../../types/checkpoint';
+import { ResourceLimits } from '../../types/config';
 
 describe('ResourceManager', () => {
   describe('Constructor', () => {

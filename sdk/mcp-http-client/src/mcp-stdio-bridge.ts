@@ -20,9 +20,9 @@
  *   VIBESTUDIO_DEBUG - Enable debug logging (1 or true)
  */
 
+import * as readline from 'readline';
 import { McpHttpClient } from './client';
 import { ConnectionState } from './types';
-import * as readline from 'readline';
 
 // Configuration
 const API_KEY_FROM_ARG = process.argv.find(a => a.startsWith('--api-key='))?.split('=')[1];

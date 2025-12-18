@@ -706,7 +706,8 @@ export interface SubtaskConfig {
   assignee: 'agent' | 'human';
 }
 
-export interface Component {
+// Workflow Component - agent execution component in team workflows
+export interface WorkflowComponent {
   id: string;
   projectId: string;
   name: string;
@@ -731,7 +732,7 @@ export interface Component {
   };
 }
 
-export interface CreateComponentDto {
+export interface CreateWorkflowComponentDto {
   name: string;
   description?: string;
   inputInstructions: string;
@@ -746,7 +747,7 @@ export interface CreateComponentDto {
   version?: string;
 }
 
-export interface UpdateComponentDto {
+export interface UpdateWorkflowComponentDto {
   name?: string;
   description?: string;
   inputInstructions?: string;

@@ -4,9 +4,9 @@
  * Tests the delete story button feature on the production environment
  */
 
-import { chromium } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import { chromium } from 'playwright';
 
 const PRODUCTION_URL = 'https://vibestudio.example.com';
 const TEST_EMAIL = 'admin@aistudio.local';

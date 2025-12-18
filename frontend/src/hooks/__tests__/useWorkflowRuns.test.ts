@@ -1,14 +1,12 @@
+import { useQuery } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkflowRun } from '../../types/workflow-tracking';
 import { useWorkflowRuns } from '../useWorkflowRuns';
-
 // Mock react-query
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
 }));
-
-import { useQuery } from '@tanstack/react-query';
 
 const mockRun: WorkflowRun = {
   id: 'run-1',

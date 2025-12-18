@@ -104,7 +104,7 @@ export function AgentLibraryView() {
     if (filters.selectedWorkflowFilter !== 'all') {
       // Note: Workflow filtering by component IDs may need to be reimplemented
       // based on new workflow structure without coordinators
-      filtered = filtered;
+      // TODO: Implement workflow filtering when workflow structure is updated
     }
 
     return filtered;

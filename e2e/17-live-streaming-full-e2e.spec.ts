@@ -21,10 +21,10 @@
  * 4. Verify browser shows streaming content
  */
 
-import { test, expect, Page } from '@playwright/test';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import { test, expect, Page } from '@playwright/test';
 import { v4 as uuidv4 } from 'uuid';
 import { ApiHelper } from './utils/api.helper';
 

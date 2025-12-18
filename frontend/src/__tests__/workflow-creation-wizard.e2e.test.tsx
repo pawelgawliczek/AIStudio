@@ -28,7 +28,6 @@ import type { AxiosInstance } from 'axios';
 import React from 'react';
 import { vi } from 'vitest';
 import { WorkflowCreationWizard } from '../components/workflow-wizard/WorkflowCreationWizard';
-
 // Mock API client
 vi.mock('../services/api.client', () => ({
   apiClient: {
@@ -36,7 +35,6 @@ vi.mock('../services/api.client', () => ({
     post: vi.fn(),
   } as unknown as AxiosInstance,
 }));
-
 // Import the mocked client
 import { apiClient } from '../services/api.client';
 const mockedApiClient = apiClient as unknown as {

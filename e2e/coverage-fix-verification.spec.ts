@@ -16,9 +16,9 @@
  * The fix implemented proper coverage calculation from coverage.json files.
  */
 
-import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { test, expect } from '@playwright/test';
 
 const TEST_PROJECT_ID = '345a29ee-d6ab-477d-8079-c5dda0844d77';
 const API_BASE_URL = 'https://vibestudio.example.com/api';

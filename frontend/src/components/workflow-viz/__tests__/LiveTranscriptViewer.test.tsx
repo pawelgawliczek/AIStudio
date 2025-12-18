@@ -13,17 +13,14 @@
  * @see ST-176: Real-Time Agent Transcript Streaming in Web GUI
  */
 
+import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import '@testing-library/jest-dom';
-
-// Mock dependencies
+import LiveTranscriptViewer from '../LiveTranscriptViewer';
 const mockUseTranscriptStream = vi.fn();
-
 vi.mock('../../../hooks/useTranscriptStream', () => ({
   useTranscriptStream: () => mockUseTranscriptStream(),
 }));
-
 // Mock react-window for virtualization
 vi.mock('react-window', () => ({
   FixedSizeList: ({ children, itemCount }: any) => (
@@ -34,14 +31,10 @@ vi.mock('react-window', () => ({
     </div>
   ),
 }));
-
 // Mock syntax highlighter
 vi.mock('react-syntax-highlighter', () => ({
   Prism: ({ children }: any) => <pre data-testid="syntax-highlighter">{children}</pre>,
 }));
-
-// Import after mocks
-import LiveTranscriptViewer from '../LiveTranscriptViewer';
 
 describe('LiveTranscriptViewer', () => {
   const defaultProps = {

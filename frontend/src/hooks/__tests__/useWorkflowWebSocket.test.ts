@@ -1,7 +1,8 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { wsService, useWebSocket } from '../../services/websocket.service';
 import { WorkflowRunUpdate } from '../../types/workflow-tracking';
-
+import { useWorkflowWebSocket } from '../useWorkflowWebSocket';
 // Create mock socket
 let mockSocket: any;
 let mockWsService: any;
@@ -18,10 +19,6 @@ vi.mock('../../services/websocket.service', () => {
     useWebSocket: vi.fn(),
   };
 });
-
-// Import after mock setup
-import { useWorkflowWebSocket } from '../useWorkflowWebSocket';
-import { wsService, useWebSocket } from '../../services/websocket.service';
 
 describe('useWorkflowWebSocket', () => {
   beforeEach(() => {

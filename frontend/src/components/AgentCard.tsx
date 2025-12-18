@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Component } from '../types';
+import { WorkflowComponent } from '../types';
 import { VersionBadge } from './VersionBadge';
 
 interface AgentCardProps {
-  component: Component;
+  component: WorkflowComponent;
   versionsCount?: number;
 }
 

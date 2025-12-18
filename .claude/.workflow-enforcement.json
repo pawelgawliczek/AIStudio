@@ -1,30 +1,16 @@
 {
   "sessions": {
-    "4fd80981-6a13-4686-ba22-f9b95badb233": {
-      "workflowActive": true,
-      "runId": "a5de7651-d1f5-4b79-aad0-b1b4fa6cc494",
-      "currentState": {
-        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
-        "name": "testing",
-        "phase": "agent",
-        "componentName": "Tester",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
-      },
-      "updatedAt": "2025-12-18T08:43:15Z"
-    },
     "8bcd429e-1ade-4440-810c-aa659e88cb2f": {
       "workflowActive": true,
       "runId": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
       "currentState": {
-        "name": "code-review",
-        "componentName": "Reviewer",
+        "name": "playwright-verification",
+        "componentName": "Playwright Verifier",
         "allowedSubagentTypes": [
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T11:14:32Z"
+      "updatedAt": "2025-12-18T12:01:12Z"
     }
   }
 }

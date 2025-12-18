@@ -40,10 +40,10 @@
  * - 'meta': System metadata entries (not counted as turns)
  */
 
-import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
-import * as path from 'path';
+import * as fs from 'fs/promises';
 import * as os from 'os';
+import * as path from 'path';
 import * as readline from 'readline';
 
 export interface TranscriptRecord {

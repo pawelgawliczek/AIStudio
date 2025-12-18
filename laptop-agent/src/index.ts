@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { loadConfig, saveConfig } from './config';
-import { RemoteAgent } from './agent';
-import { initializeLogger, shutdownLogger, Logger, getLogDir } from './logger';
 import * as dotenv from 'dotenv';
+import { RemoteAgent } from './agent';
+import { loadConfig, saveConfig } from './config';
+import { initializeLogger, shutdownLogger, Logger, getLogDir } from './logger';
 
 // Load .env file if present
 dotenv.config();

@@ -4,6 +4,11 @@
  */
 
 import { EventEmitter } from 'events';
+import { v4 as uuidv4 } from 'uuid';
+import { BackendClient, Breakpoint, BreakpointContext, ApprovalRequest } from './api/backend-client';
+import { CheckpointService } from './checkpoint/checkpoint-service';
+import { ResourceManager } from './resources/resource-manager';
+import { ResponseHandler } from './state-machine/response-handler';
 import {
   RunnerConfig,
   RunnerCheckpoint,
@@ -19,11 +24,6 @@ import {
   TurnCounts,
 } from './types';
 import { WebSocketOrchestrator } from './websocket-orchestrator';
-import { CheckpointService } from './checkpoint/checkpoint-service';
-import { ResourceManager } from './resources/resource-manager';
-import { BackendClient, Breakpoint, BreakpointContext, ApprovalRequest } from './api/backend-client';
-import { ResponseHandler } from './state-machine/response-handler';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Runner state machine states

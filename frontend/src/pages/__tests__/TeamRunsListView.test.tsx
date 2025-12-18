@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { TeamRunsListView } from '../TeamRunsListView';
 import { vi } from 'vitest';
-
+import { useProject } from '../../context/ProjectContext';
+import { workflowRunsService } from '../../services/workflow-runs.service';
+import { TeamRunsListView } from '../TeamRunsListView';
 // Mock the workflow runs service
 vi.mock('../../services/workflow-runs.service', () => ({
   workflowRunsService: {
@@ -28,9 +29,6 @@ vi.mock('../../context/AuthContext', () => ({
   useAuth: vi.fn(),
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
-
-import { useProject } from '../../context/ProjectContext';
-import { workflowRunsService } from '../../services/workflow-runs.service';
 
 const mockProject = {
   id: 'project-1',

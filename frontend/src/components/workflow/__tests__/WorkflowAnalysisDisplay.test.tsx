@@ -6,7 +6,7 @@ import { WorkflowAnalysisDisplay } from '../WorkflowAnalysisDisplay';
 // Mock AnalysisSection to simplify testing
 vi.mock('../AnalysisSection', () => ({
   AnalysisSection: ({ title, content, icon, timestamp }: any) => (
-    <div data-testid={`analysis-section-${title.toLowerCase().replace(/[\s\/]/g, '-')}`}>
+    <div data-testid={`analysis-section-${title.toLowerCase().replace(/[\s/]/g, '-')}`}>
       <div data-testid="section-title">{title}</div>
       {icon && <div data-testid="section-icon">Icon</div>}
       {content && <div data-testid="section-content">{content}</div>}

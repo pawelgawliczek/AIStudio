@@ -1,24 +1,20 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MultiRunStatusBar } from '../MultiRunStatusBar';
+import { useWorkflowRuns } from '../../../hooks/useWorkflowRuns';
+import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
+import { useWorkflowWebSocket } from '../../../hooks/useWorkflowWebSocket';
 import { WorkflowRun } from '../../../types/workflow-tracking';
-
+import { MultiRunStatusBar } from '../MultiRunStatusBar';
 // Mock hooks
 vi.mock('../../../hooks/useWorkflowRuns', () => ({
   useWorkflowRuns: vi.fn(),
 }));
-
 vi.mock('../../../hooks/useWorkflowWebSocket', () => ({
   useWorkflowWebSocket: vi.fn(),
 }));
-
 vi.mock('../../../hooks/useWorkflowSettings', () => ({
   useWorkflowSettings: vi.fn(),
 }));
-
-import { useWorkflowRuns } from '../../../hooks/useWorkflowRuns';
-import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
-import { useWorkflowWebSocket } from '../../../hooks/useWorkflowWebSocket';
 
 const mockRun: WorkflowRun = {
   id: 'run-1',

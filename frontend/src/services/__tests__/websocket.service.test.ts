@@ -1,6 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-
+import { io } from 'socket.io-client';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  wsService,
+  useWebSocket,
+  useStoryEvents,
+  useEpicEvents,
+  useSubtaskEvents,
+  useWorkflowRunEvents,
+} from '../websocket.service';
 // Mock localStorage
 const mockLocalStorage = {
   getItem: vi.fn(),
@@ -16,15 +24,6 @@ let mockSocket: any;
 vi.mock('socket.io-client', () => ({
   io: vi.fn(),
 }));
-
-import { io } from 'socket.io-client';
-import {
-  wsService,
-  useWebSocket,
-  useStoryEvents,
-  useEpicEvents,
-  useSubtaskEvents,
-} from '../websocket.service';
 
 describe('WebSocketService', () => {
   beforeEach(() => {
