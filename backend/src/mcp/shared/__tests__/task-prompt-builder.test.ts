@@ -433,10 +433,6 @@ describe('task-prompt-builder', () => {
 
       const result = await buildTaskPrompt(mockPrisma, mockState, 'run-1', 'story-1');
 
-      // Should include pre-execution context
-      expect(result).toContain('## Context');
-      expect(result).toContain('Ensure you have access to the codebase');
-
       // Should include component instructions
       expect(result).toContain('## Input');
       expect(result).toContain('Read the story description and requirements');
@@ -479,6 +475,7 @@ describe('task-prompt-builder', () => {
 
       const stateNoInstructions = {
         ...mockState,
+        preExecutionInstructions: null,
         component: componentNoInstructions,
       };
 
@@ -487,9 +484,10 @@ describe('task-prompt-builder', () => {
 
       const result = await buildTaskPrompt(mockPrisma, stateNoInstructions, 'run-1', 'story-1');
 
-      // Should still build a valid prompt, just without those sections
+      // With no component instructions and no preExecutionInstructions, result should be empty or minimal
       expect(result).toBeDefined();
-      expect(result.length).toBeGreaterThan(0);
+      // Result may be empty string or contain only whitespace when no content sections exist
+      expect(typeof result).toBe('string');
     });
 
     it('should handle no previous component runs', async () => {
@@ -522,22 +520,19 @@ describe('task-prompt-builder', () => {
 
       const result = await buildTaskPrompt(mockPrisma, mockState, 'run-1', 'story-1');
 
-      // Expected order:
-      // 1. Context (pre-execution)
-      // 2. Input
-      // 3. Task
-      // 4. Output
-      // 5. Previous outputs
-      // 6. Artifact instructions
+      // Expected order (after ST-309 removed preExecutionInstructions):
+      // 1. Input
+      // 2. Task
+      // 3. Output
+      // 4. Previous outputs
+      // 5. Artifact instructions
 
-      const contextIndex = result.indexOf('## Context');
       const inputIndex = result.indexOf('## Input');
       const taskIndex = result.indexOf('## Task');
       const outputIndex = result.indexOf('## Output');
       const previousIndex = result.indexOf('## Previous Component Outputs');
       const artifactIndex = result.indexOf('## Artifact Instructions');
 
-      expect(contextIndex).toBeLessThan(inputIndex);
       expect(inputIndex).toBeLessThan(taskIndex);
       expect(taskIndex).toBeLessThan(outputIndex);
       expect(outputIndex).toBeLessThan(previousIndex);
@@ -643,8 +638,6 @@ describe('task-prompt-builder', () => {
 
       const prompt = await buildTaskPrompt(mockPrisma, explorerState, 'run-1', 'story-1');
 
-      expect(prompt).toContain('## Context');
-      expect(prompt).toContain('Ensure codebase access');
       expect(prompt).toContain('THE_PLAN');
       expect(prompt).toContain('CRITICAL');
     });
