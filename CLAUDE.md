@@ -79,6 +79,10 @@ Uses **components** (not coordinators). Orchestrator spawns component agents (PM
 | MasterSession | `get_current_step` → `advance_step` loop | Interactive development |
 | Docker Runner | `start_runner` | Autonomous/background execution |
 
+### Agent Spawning (ST-304)
+
+When entering agent phase, `advance_step` and `get_current_step` return `instructions.spawnAgent` with ready-to-use Task parameters (`subagent_type`, `model`, `prompt`) - use these directly without modification.
+
 ### Workflow Execution Rules (MANDATORY)
 
 **You are the ORCHESTRATOR, not the implementer.** When executing workflows:
