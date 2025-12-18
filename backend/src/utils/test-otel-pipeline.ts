@@ -4,7 +4,6 @@
  *
  * Run: npx ts-node backend/src/utils/test-otel-pipeline.ts
  */
-// @ts-expect-error - node-fetch types not installed for this utility script
 import fetch from 'node-fetch';
 
 const OTEL_COLLECTOR_URL = 'http://localhost:4318/v1/logs';
