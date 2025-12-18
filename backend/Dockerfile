@@ -53,8 +53,9 @@ COPY shared/package*.json ./shared/
 # Install production dependencies only (rebuild native modules for Alpine)
 # ST-115: BuildKit cache mount for faster subsequent builds
 # Using npm install instead of npm ci since lock files are not committed
+# ST-291: Use legacy-peer-deps for NestJS 11 to handle peer dependency resolution
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --omit=dev --ignore-scripts && npm rebuild bcrypt --build-from-source
+    npm install --omit=dev --ignore-scripts --legacy-peer-deps && npm rebuild bcrypt --build-from-source
 
 # Copy built files from builder stage
 COPY --from=builder /app/backend/dist ./backend/dist
