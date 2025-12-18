@@ -19,6 +19,15 @@ describe('get_current_step MCP Tool', () => {
         findFirst: jest.fn(),
         findUnique: jest.fn(),
       },
+      componentRun: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      artifactAccess: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      artifact: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     } as any;
   });
 

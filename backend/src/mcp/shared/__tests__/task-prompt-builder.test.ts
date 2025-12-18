@@ -11,12 +11,14 @@
 
 import { PrismaClient } from '@prisma/client';
 import { ComponentSummaryStructured } from '../../../types/component-summary.types';
+/* eslint-disable import/no-unresolved */
 import {
   deriveSubagentType,
   buildTaskPrompt,
   formatPreviousOutputs,
   formatArtifactInstructions,
 } from '../task-prompt-builder';
+/* eslint-enable import/no-unresolved */
 
 describe('task-prompt-builder', () => {
   let mockPrisma: jest.Mocked<PrismaClient>;

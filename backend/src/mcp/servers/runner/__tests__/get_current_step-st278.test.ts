@@ -24,6 +24,15 @@ describe('get_current_step - Orchestrator-Driven Commits (ST-278)', () => {
         findFirst: jest.fn(),
         findUnique: jest.fn(),
       },
+      componentRun: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      artifactAccess: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      artifact: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     } as any;
   });
 

@@ -26,6 +26,7 @@ import {
   CompleteAgentResult,
 } from '../../shared/agent-tracking';
 import { resolveRunId } from '../../shared/resolve-identifiers';
+import { deriveSubagentType } from '../../shared/task-prompt-builder';
 import { RemoteRunner } from '../../utils/remote-runner';
 
 export const tool: Tool = {
@@ -142,6 +143,7 @@ export async function handler(prisma: PrismaClient, params: {
                 select: {
                   id: true,
                   name: true,
+                  executionType: true,
                 },
               },
             },
@@ -629,13 +631,15 @@ function buildAdvanceResponse(
           const config = (currentState.component.config as Record<string, unknown>) || {};
           const componentModel = (config.modelId as string) || 'claude-sonnet-4-20250514';
           const componentTools = (currentState.component.tools as string[]) || [];
-
-          // ST-273: Derive allowed subagent types from component name
-          // "Explorer" → ["Explore"], others → ["general-purpose"]
           const componentName = currentState.component.name;
-          const allowedSubagentTypes = componentName.toLowerCase().includes('explorer')
-            ? ['Explore']
-            : ['general-purpose'];
+          const executionType = currentState.component.executionType || 'custom';
+
+          // ST-289: Derive subagent type using centralized function
+          const subagentType = deriveSubagentType(executionType, componentName);
+
+          // ST-273: Derive allowed subagent types for enforcement
+          // Map derived subagent type to enforcement array
+          const allowedSubagentTypes = [subagentType];
 
           instructions = {
             type: 'agent_spawn',

@@ -20,6 +20,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
 import { resolveRunId, resolveStory, ResolvedStory } from '../../shared/resolve-identifiers';
+import { buildTaskPrompt, deriveSubagentType } from '../../shared/task-prompt-builder';
 
 export const tool: Tool = {
   name: 'get_current_step',
@@ -163,6 +164,7 @@ export async function handler(prisma: PrismaClient, params: {
                   name: true,
                   tools: true,
                   config: true,
+                  executionType: true,
                   inputInstructions: true,
                   operationInstructions: true,
                   outputInstructions: true,
@@ -399,19 +401,23 @@ export async function handler(prisma: PrismaClient, params: {
         const componentName = currentState.component.name;
         const componentTools = (currentState.component.tools as string[]) || [];
         const componentModel = (config.modelId as string) || 'claude-sonnet-4-20250514';
+        const executionType = currentState.component.executionType || 'custom';
 
-        // Build agent prompt from component instructions
-        const agentPrompt = [
-          currentState.component.inputInstructions ? `## Input\n${currentState.component.inputInstructions}` : '',
-          currentState.component.operationInstructions ? `## Task\n${currentState.component.operationInstructions}` : '',
-          currentState.component.outputInstructions ? `## Output\n${currentState.component.outputInstructions}` : '',
-        ].filter(Boolean).join('\n\n');
+        // ST-289: Build agent prompt using centralized builder
+        // Includes component instructions, previous outputs, and artifact access
+        const agentPrompt = await buildTaskPrompt(
+          prisma,
+          currentState,
+          runId,
+          run.story?.id || ''
+        );
 
-        // ST-273: Derive allowed subagent types from component name
-        // "Explorer" → ["Explore"], others → ["general-purpose"]
-        const allowedSubagentTypes = componentName.toLowerCase().includes('explorer')
-          ? ['Explore']
-          : ['general-purpose'];
+        // ST-289: Derive subagent type using centralized function
+        const subagentType = deriveSubagentType(executionType, componentName);
+
+        // ST-273: Derive allowed subagent types for enforcement
+        // Map derived subagent type to enforcement array
+        const allowedSubagentTypes = [subagentType];
 
         instructions = {
           type: 'agent_spawn',
@@ -443,14 +449,14 @@ export async function handler(prisma: PrismaClient, params: {
           type: 'agent_spawn',
           description: `Spawn ${componentName} agent via Task tool`,
           agentConfig: {
-            subagentType: 'general-purpose',
+            subagentType,
             model: componentModel,
             prompt: agentPrompt,
             componentId,
             componentName,
             tools: componentTools,
           },
-          notes: `⚠️ MUST use Task tool - DO NOT do the work yourself! You are the orchestrator. Use Task({ subagent_type: "general-purpose", model: "${componentModel}", prompt: <agentConfig.prompt> }). The spawned agent does the actual work. Capture the agent's output for the next step.
+          notes: `⚠️ MUST use Task tool - DO NOT do the work yourself! You are the orchestrator. Use Task({ subagent_type: "${subagentType}", model: "${componentModel}", prompt: <agentConfig.prompt> }). The spawned agent does the actual work. Capture the agent's output for the next step.
 
 Agent tracking is AUTOMATIC - advance_step handles record_agent_start/complete internally.`,
         });
@@ -517,7 +523,7 @@ Status meanings:
 
         nextAction = {
           tool: 'Task',
-          parameters: { subagent_type: 'general-purpose', model: componentModel },
+          parameters: { subagent_type: subagentType, model: componentModel },
           hint: 'Spawn the agent via Task tool. advance_step handles tracking automatically.',
         };
       }
