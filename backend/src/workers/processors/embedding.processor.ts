@@ -60,7 +60,7 @@ export class EmbeddingProcessor {
       await this.prisma.useCase.update({
         where: { id: useCaseId },
         data: {
-          // @ts-ignore - pgvector type
+          // @ts-expect-error - pgvector type not in Prisma schema
           embedding: embedding,
           embeddingUpdatedAt: new Date(),
         },

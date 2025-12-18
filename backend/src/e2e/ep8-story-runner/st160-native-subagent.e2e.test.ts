@@ -10,23 +10,18 @@
  * @note Run from laptop with agent online for full test coverage
  * @note Uses real MCP commands and Claude Code CLI
  */
-
 import { PrismaClient } from '@prisma/client';
 import { io, Socket } from 'socket.io-client';
-
 // MCP Handler Imports - Core setup
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as updateComponent } from '../../mcp/servers/components/update_component';
 import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
-
 // MCP Handler Imports - Remote Agents
-
 // MCP Handler Imports - Execution
 import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';
 import { handler as recordComponentStart } from '../../mcp/servers/execution/record_component_start';
 import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';
 import { handler as createProject } from '../../mcp/servers/projects/create_project';
-
 // MCP Handler Imports - Questions (ST-160)
 import { handler as answerQuestion } from '../../mcp/servers/questions/answer_question';
 import { handler as getPendingQuestions } from '../../mcp/servers/questions/get_pending_questions';

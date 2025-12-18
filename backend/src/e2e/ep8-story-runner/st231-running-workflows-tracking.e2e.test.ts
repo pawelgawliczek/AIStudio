@@ -15,7 +15,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-
 // Import MCP tool handlers
 import { handler as startTeamRun } from '../../mcp/servers/execution/start_workflow_run';
 import { handler as createProject } from '../../mcp/servers/projects/create_project';

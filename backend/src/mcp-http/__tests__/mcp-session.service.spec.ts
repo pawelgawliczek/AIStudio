@@ -189,7 +189,9 @@ describe('McpSessionService Security (Tasks 1.4, 1.4a)', () => {
 
       try {
         await service.validateSessionBinding('sess-123', attackRequest as any);
-      } catch {}
+      } catch {
+        // Expected to throw for session hijacking attempt
+      }
 
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining('Session hijacking attempt detected')
@@ -270,9 +272,9 @@ describe('McpSessionService Security (Tasks 1.4, 1.4a)', () => {
         protocolVersion: 'mcp/1.0',
         clientInfo: 'test-client',
         capabilities: [],
-        // @ts-ignore - Testing runtime behavior
+        // @ts-expect-error - Testing runtime behavior
         maliciousProperty: 'should-be-stripped',
-        // @ts-ignore
+        // @ts-expect-error - Testing prototype pollution
         __proto__: { polluted: true },
       };
 

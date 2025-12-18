@@ -127,6 +127,7 @@ describe('AuthService - Session Management', () => {
 
   describe('ST-11: Token refresh flow', () => {
     it('should successfully refresh tokens', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const bcrypt = require('bcrypt');
       const mockAccessToken = 'new-access-token';
       const mockRefreshToken = 'new-refresh-token';
@@ -153,6 +154,7 @@ describe('AuthService - Session Management', () => {
     });
 
     it('should reject refresh with invalid token', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const bcrypt = require('bcrypt');
 
       jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({
@@ -197,6 +199,7 @@ describe('AuthService - Session Management', () => {
 
   describe('validateUser', () => {
     it('should validate user with correct credentials', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const bcrypt = require('bcrypt');
 
       jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(mockUser);
@@ -215,6 +218,7 @@ describe('AuthService - Session Management', () => {
     });
 
     it('should throw UnauthorizedException with invalid credentials', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const bcrypt = require('bcrypt');
 
       jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(mockUser);

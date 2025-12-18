@@ -281,6 +281,7 @@ export class McpSessionService {
     }
 
     // Check for null bytes, control characters, script tags
+    // eslint-disable-next-line no-control-regex
     if (/[\x00<>$`]/.test(clientInfo)) {
       throw new BadRequestException('Invalid client info format');
     }

@@ -212,6 +212,7 @@ describe('TranscriptTailService - File I/O Tracing (TDD)', () => {
       (fs.stat as jest.Mock).mockResolvedValue({ size: 2048 });
 
       // Mock readline interface for readNewLines
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const readline = require('readline');
       (readline.createInterface as jest.Mock).mockImplementation(() => ({
         on: jest.fn().mockImplementation(function(this: any, event: string, handler: (line?: string) => void) {
@@ -257,6 +258,7 @@ describe('TranscriptTailService - File I/O Tracing (TDD)', () => {
       ];
 
       // Mock readline interface
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const readline = require('readline');
       (readline.createInterface as jest.Mock).mockImplementation(() => ({
         on: jest.fn().mockImplementation(function(this: any, event: string, handler: (line?: string) => void) {
@@ -326,6 +328,7 @@ describe('TranscriptTailService - File I/O Tracing (TDD)', () => {
       );
 
       // Mock readline interface
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const readline = require('readline');
       (readline.createInterface as jest.Mock).mockImplementation(() => ({
         on: jest.fn().mockImplementation(function(this: any, event: string, handler: (line?: string) => void) {
@@ -435,6 +438,7 @@ describe('TranscriptTailService - File I/O Tracing (TDD)', () => {
       (fs.stat as jest.Mock).mockResolvedValue({ size: 2048 });
 
       // Mock readline interface
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const readline = require('readline');
       (readline.createInterface as jest.Mock).mockImplementation(() => ({
         on: jest.fn().mockImplementation(function(this: any, event: string, handler: (line?: string) => void) {
@@ -491,6 +495,7 @@ describe('TranscriptTailService - File I/O Tracing (TDD)', () => {
       const mockLines = Array(100).fill(0).map((_, i) => `line ${i}`);
 
       // Mock readline interface
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const readline = require('readline');
       (readline.createInterface as jest.Mock).mockImplementation(() => ({
         on: jest.fn().mockImplementation(function(this: any, event: string, handler: (line?: string) => void) {
@@ -551,6 +556,7 @@ describe('TranscriptTailService - File I/O Tracing (TDD)', () => {
       (fs.stat as jest.Mock).mockResolvedValue({ size: 2048 });
 
       // Mock readline interface
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const readline = require('readline');
       (readline.createInterface as jest.Mock).mockImplementation(() => ({
         on: jest.fn().mockImplementation(function(this: any, event: string, handler: (line?: string) => void) {

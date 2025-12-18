@@ -11,11 +11,8 @@
  *
  * @see ST-176: Real-Time Agent Transcript Streaming in Web GUI
  */
-
-import { Logger } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-
-// Mock dependencies
+// eslint-disable-next-line import/order
+import { Test, TestingModule} from '@nestjs/testing';
 const mockChokidar = {
   watch: jest.fn(),
 };

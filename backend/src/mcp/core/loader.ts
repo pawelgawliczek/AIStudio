@@ -11,7 +11,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export interface ToolModule {
   tool: Tool;
-  handler: Function;
+  handler: (...args: any[]) => any;
   metadata?: {
     category: string;
     domain: string;
@@ -68,6 +68,7 @@ export class ToolLoader {
             tools.push(module);
             // Check if alias tool was also cached
             const modulePath = toolPath.replace(/\.ts$/, '.js');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
             const rawModule = require(modulePath);
             if (rawModule.aliasTool) {
               const aliasPath = `${toolPath}#${rawModule.aliasTool.name}`;
@@ -102,6 +103,7 @@ export class ToolLoader {
       // Clear require cache to ensure fresh load in development
       const modulePath = filePath.replace(/\.ts$/, '.js');
       delete require.cache[require.resolve(modulePath)];
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const module = require(modulePath);
 
       if (!module.tool || !module.handler) {

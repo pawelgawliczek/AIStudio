@@ -11,13 +11,9 @@
  *
  * @see ST-176: Real-Time Agent Transcript Streaming in Web GUI
  */
-
-import { Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+// eslint-disable-next-line import/order
 import { WsException } from '@nestjs/websockets';
-
-// Mock Socket
 const createMockSocket = (userId: string = 'user-123') => ({
   id: 'socket-123',
   data: {
@@ -369,7 +365,9 @@ describe('WebSocketGateway - Transcript Streaming (ST-176)', () => {
 
       try {
         await gateway.handleTranscriptSubscribe(mockSocket, { componentRunId });
-      } catch {}
+      } catch {
+        // Expected to throw for access denied
+      }
 
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.stringContaining('Access denied')

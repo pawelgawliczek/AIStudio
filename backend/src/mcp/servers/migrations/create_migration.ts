@@ -98,7 +98,7 @@ export async function handleCreateMigration(
     });
 
     // Parse output to find migration path
-    const migrationPathMatch = stdout.match(/migrations\/(\d+_[^\/\s]+)/);
+    const migrationPathMatch = stdout.match(/migrations\/(\d+_[^/\s]+)/);
     const migrationName = migrationPathMatch ? migrationPathMatch[1] : sanitizedName;
     const migrationPath = `/opt/stack/AIStudio/backend/prisma/migrations/${migrationName}`;
 

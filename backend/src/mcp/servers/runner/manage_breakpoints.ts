@@ -96,9 +96,6 @@ export async function handler(prisma: PrismaClient, params: {
   const { action } = params;
 
   // Resolve story/runId (except when clearing by breakpointId only)
-  let runId: string;
-  let storyInfo: { key: string; title: string } | undefined;
-
   if (params.breakpointId && action === 'clear' && !params.story && !params.runId) {
     // Special case: clearing by breakpointId doesn't need run resolution
     return handleClearByBreakpointId(prisma, params.breakpointId);
@@ -112,8 +109,8 @@ export async function handler(prisma: PrismaClient, params: {
     story: params.story,
     runId: params.runId,
   });
-  runId = resolved.id;
-  storyInfo = resolved.story ? {
+  const runId = resolved.id;
+  const storyInfo = resolved.story ? {
     key: resolved.story.key,
     title: resolved.story.title,
   } : undefined;

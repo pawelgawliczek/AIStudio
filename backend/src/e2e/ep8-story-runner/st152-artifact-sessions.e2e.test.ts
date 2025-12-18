@@ -14,9 +14,7 @@
  *   mcp__vibestudio__open_artifact_session(...)
  *   mcp__vibestudio__save_artifact_changes(...)
  */
-
 import { PrismaClient } from '@prisma/client';
-
 // MCP Handler Imports - Setup
 import { handler as closeArtifactSession } from '../../mcp/servers/artifact-sessions/close_artifact_session';
 import { handler as openArtifactSession } from '../../mcp/servers/artifact-sessions/open_artifact_session';
@@ -33,11 +31,8 @@ import { handler as getOnlineAgents } from '../../mcp/servers/remote-agent/get_o
 import { handler as createStory } from '../../mcp/servers/stories/create_story';
 import { handler as createWorkflowState } from '../../mcp/servers/workflow-states/create_workflow_state';
 import { handler as createWorkflow } from '../../mcp/servers/workflows/create_workflow';
-
 // MCP Handler Imports - Artifacts
-
 // MCP Handler Imports - Artifact Sessions (ST-152)
-
 // MCP Handler Imports - Remote Agents
 import { TEST_CONFIG, testName } from './config/test-config';
 import { createE2EWorkflowRunParams } from './helpers/test-data-factory';

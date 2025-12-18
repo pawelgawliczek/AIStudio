@@ -569,12 +569,13 @@ export class MetricsAggregationService {
         return `${d.toISOString().slice(0, 13)}:00`;
       case 'day':
         return d.toISOString().slice(0, 10);
-      case 'week':
+      case 'week': {
         // Get week number
         const firstDayOfYear = new Date(d.getFullYear(), 0, 1);
         const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000;
         const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
         return `${d.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+      }
       default:
         return d.toISOString().slice(0, 10);
     }

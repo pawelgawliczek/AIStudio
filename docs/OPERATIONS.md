@@ -1,12 +1,12 @@
 # Operations
 
-**Version:** 1.0
-**Last Updated:** 2025-12-17
-**Epic:** ST-279
+**Version:** 1.1
+**Last Updated:** 2025-12-18
+**Epic:** ST-279, ST-288
 
 ## Overview
 
-Operations documentation covers deployment, infrastructure, and maintenance procedures for the AI Studio system. The system runs on Docker Compose with PostgreSQL, backend (NestJS), frontend (Next.js), and supporting services (Loki, Promtail).
+Operations documentation covers deployment, infrastructure, and maintenance procedures for the AI Studio system. The system runs on Docker Compose with PostgreSQL, backend (NestJS), frontend (Next.js), and observability services (Grafana, Loki, Tempo, Alloy).
 
 ## Architecture
 
@@ -26,12 +26,22 @@ Operations documentation covers deployment, infrastructure, and maintenance proc
 │  │  - pg_trgm   │  │  - WebSocket │  │              │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 │                                                              │
-│  ┌──────────────┐  ┌──────────────┐                        │
-│  │     Loki     │  │   Promtail   │                        │
-│  │  (Port 3100) │  │              │                        │
-│  │              │  │              │                        │
-│  │  - Log store │  │  - Log ship  │                        │
-│  └──────────────┘  └──────────────┘                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │     Loki     │  │    Tempo     │  │   Grafana    │      │
+│  │  (Port 3100) │  │  (Port 3200) │  │  (Port 3030) │      │
+│  │              │  │              │  │              │      │
+│  │  - Log store │  │  - Traces    │  │ - Dashboards │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│        ^                  ^                                 │
+│        │                  │                                 │
+│        └──────────────────┴──────────────────┐             │
+│                                              │              │
+│  ┌──────────────────────────────────────────▼─────┐        │
+│  │              Alloy (v1.5.0)                    │        │
+│  │       (Unified Telemetry Collector)            │        │
+│  │  - Replaces Promtail v2.9.3                    │        │
+│  │  - Collects logs, metrics, traces              │        │
+│  └───────────────────────────────────────────────┘        │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -240,8 +250,10 @@ services:
   postgres:       # Main database
   backend:        # NestJS API + MCP server
   frontend:       # Next.js web app
-  loki:           # Log aggregation
-  promtail:       # Log shipping
+  loki:           # Log aggregation (v3.3.0)
+  tempo:          # Distributed tracing (v2.9.0)
+  grafana:        # Observability dashboards (v12.3.0)
+  alloy:          # Unified telemetry collector (v1.5.0, replaces Promtail v2.9.3)
 ```
 
 **Common commands:**
@@ -259,6 +271,45 @@ docker compose restart backend
 # Check resource usage
 docker stats
 ```
+
+### Observability Stack
+
+**Stack Overview (ST-288 - Upgraded 2025-12-18):**
+
+| Service | Version | Purpose |
+|---------|---------|---------|
+| **Grafana** | 12.3.0 | Visualization and dashboards |
+| **Loki** | 3.3.0 | Log aggregation with TSDB schema |
+| **Tempo** | 2.9.0 | Distributed tracing backend |
+| **Alloy** | 1.5.0 | Unified telemetry collector (replaces Promtail) |
+
+**Key Changes:**
+- Alloy v1.5.0 replaces Promtail v2.9.3 as unified collector for logs, metrics, and traces
+- Loki upgraded to v3.3.0 with new TSDB schema (boltdb-shipper kept for backward compatibility)
+- Tempo upgraded to v2.9.0 with improved search features (query_frontend enabled)
+- Grafana upgraded to v12.3.0 with enhanced log panel support
+
+**Accessing Observability Stack:**
+
+```bash
+# SSH tunnel to Grafana (port 3030)
+ssh -L 3030:localhost:3030 hostinger
+
+# Access dashboards
+# URL: http://localhost:3030
+# Credentials: admin / admin (or GRAFANA_ADMIN_PASSWORD)
+```
+
+**Query Endpoints:**
+
+| Service | Endpoint | Port |
+|---------|----------|------|
+| Loki | http://loki:3100 | 3100 |
+| Tempo | http://tempo:3200 | 3200 |
+| Alloy | http://alloy:9090 | 9090 |
+| Grafana | http://grafana:3030 | 3030 |
+
+See `observability/README.md` for detailed instrumentation and query examples.
 
 ### Environment Variables
 
@@ -463,6 +514,14 @@ openssl x509 -in /etc/ssl/certs/aistudio.crt -noout -dates
 - ST-279: Living Documentation System
 
 ## Changelog
+
+### Version 1.1 (2025-12-18)
+- Added Observability Stack section (ST-288) with current service versions
+- Updated architecture diagram to include Tempo, Grafana, and Alloy
+- Updated service list with versions: Grafana 12.3.0, Loki 3.3.0, Tempo 2.9.0, Alloy v1.5.0
+- Documented Alloy as replacement for Promtail with unified telemetry collection
+- Added Observability Stack table with versions and purposes
+- Added query endpoints reference for observability services
 
 ### Version 1.0 (2025-12-17)
 - Initial documentation created for ST-279

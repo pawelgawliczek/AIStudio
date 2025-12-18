@@ -40,6 +40,7 @@ export class DocsController {
     }
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs');
       const files = fs.readdirSync(docsDir)
         .filter((file: string) => file.endsWith('.md'))

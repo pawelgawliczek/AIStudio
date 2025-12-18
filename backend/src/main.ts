@@ -4,7 +4,6 @@ import * as nodeCrypto from 'crypto';
 if (!globalThis.crypto) {
   (globalThis as any).crypto = nodeCrypto;
 }
-
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -22,7 +21,7 @@ registerTelemetryShutdownHandlers();
 
 async function bootstrap() {
   // Fix BigInt serialization issue
-  // @ts-ignore
+  // @ts-expect-error - Adding toJSON to BigInt prototype
   BigInt.prototype.toJSON = function () {
     return this.toString();
   };

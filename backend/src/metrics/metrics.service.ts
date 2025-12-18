@@ -422,10 +422,11 @@ export class MetricsService {
         case TimeGranularity.DAILY:
           key = date.toISOString().split('T')[0];
           break;
-        case TimeGranularity.WEEKLY:
+        case TimeGranularity.WEEKLY: {
           const weekNumber = this.getWeekNumber(date);
           key = `${date.getFullYear()}-W${weekNumber}`;
           break;
+        }
         case TimeGranularity.MONTHLY:
           key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
           break;

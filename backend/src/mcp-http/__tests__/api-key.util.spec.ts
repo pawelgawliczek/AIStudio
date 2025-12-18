@@ -145,7 +145,9 @@ describe('API Key Cryptography (Task 2.2a - CRITICAL)', () => {
       const start2 = Date.now();
       try {
         await validateApiKey('proj_abc123_wrongkey987654321', mockPrisma as any);
-      } catch {}
+      } catch {
+        // Expected to throw, ignore for timing test
+      }
       const time2 = Date.now() - start2;
 
       // Timing difference should be minimal (bcrypt.compare is constant-time)

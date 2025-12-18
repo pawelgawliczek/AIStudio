@@ -3,17 +3,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WebSocketModule } from '../websocket/websocket.module';
-
 // Constants
 import { QUEUE_NAMES } from './constants';
-
 // Processors
 import { CodeAnalysisProcessor } from './processors/code-analysis.processor';
 import { EmbeddingProcessor } from './processors/embedding.processor';
 import { MetricsAggregatorProcessor } from './processors/metrics-aggregator.processor';
 import { NotificationProcessor } from './processors/notification.processor';
 import { TestAnalyzerProcessor } from './processors/test-analyzer.processor';
-
 // Services
 import { WorkersService } from './workers.service';
 

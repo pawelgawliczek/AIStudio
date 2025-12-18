@@ -73,6 +73,7 @@ export interface RunBackupResponse {
 function isRunningInDocker(): boolean {
   try {
     // Check for Docker-specific files
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const fs = require('fs');
     return fs.existsSync('/.dockerenv') ||
            (fs.existsSync('/proc/1/cgroup') &&
@@ -220,6 +221,7 @@ async function runScriptBackup(environment: 'production' | 'development'): Promi
   console.log(`[run_backup] Script completed in ${duration}s`);
 
   // Parse output (strip ANSI codes)
+  // eslint-disable-next-line no-control-regex
   const output = (stdout + stderr).replace(/\x1b\[[0-9;]*m/g, '');
 
   const filenameMatch = output.match(/Backup File:\s*([^\s]+\.sql\.gz)/);

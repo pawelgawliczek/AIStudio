@@ -389,6 +389,7 @@ function test() {
       const loadCoverageData = (processor as any).loadCoverageData.bind(processor);
 
       // Mock fs
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       jest.spyOn(require('fs').promises, 'readFile').mockImplementation(async (path: string) => {
         if (path.includes('coverage-summary.json')) {
           return JSON.stringify({

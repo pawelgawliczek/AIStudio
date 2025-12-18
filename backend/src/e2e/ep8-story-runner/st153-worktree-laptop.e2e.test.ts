@@ -14,13 +14,11 @@
  * - User must have write permissions in worktree directory
  * - For MCP-orchestrated tests: laptop agent must be online
  */
-
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
-
 // MCP Handler Imports
 import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
 import { handler as gitCreateWorktree } from '../../mcp/servers/git/git_create_worktree';

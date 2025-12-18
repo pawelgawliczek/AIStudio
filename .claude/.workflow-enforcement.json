@@ -14,19 +14,17 @@
       },
       "updatedAt": "2025-12-18T08:43:15Z"
     },
-    "fbc469ca-a500-4cd7-9397-0eb3162a6cc0": {
+    "8bcd429e-1ade-4440-810c-aa659e88cb2f": {
       "workflowActive": true,
-      "runId": "dbaedf4c-0065-4004-a73a-e22f8fec1db7",
+      "runId": "5d4db8f8-62aa-43ce-91ba-dbf8fec2faec",
       "currentState": {
-        "id": "206d1990-2ff8-43f7-9e06-7ec5cca73486",
-        "name": "planning",
-        "phase": "agent",
-        "componentName": "Native Planner",
+        "name": "testing",
+        "componentName": "Tester",
         "allowedSubagentTypes": [
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-18T08:45:45Z"
+      "updatedAt": "2025-12-18T11:02:43Z"
     }
   }
 }

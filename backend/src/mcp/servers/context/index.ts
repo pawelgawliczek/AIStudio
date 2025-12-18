@@ -6,10 +6,8 @@
  * Provides tools for managing session context, eliminating the need to pass
  * common parameters (like projectId) to every tool call.
  */
-
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-
 // Import tools
 import * as getContextTool from './get_context';
 import * as setContextTool from './set_context';

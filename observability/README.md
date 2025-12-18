@@ -2,12 +2,14 @@
 
 Distributed tracing and log aggregation infrastructure for AIStudio.
 
+**Version:** 2.0 (Upgraded 2025-12-18 - ST-288)
+
 ## Components
 
-- **Grafana Tempo** - Distributed tracing backend (OTLP receiver)
-- **Grafana Loki** - Log aggregation system
-- **Promtail** - Log collection agent
-- **Grafana** - Visualization and dashboards
+- **Grafana** (v12.3.0) - Visualization and dashboards
+- **Grafana Tempo** (v2.9.0) - Distributed tracing backend with improved search
+- **Grafana Loki** (v3.3.0) - Log aggregation with TSDB schema
+- **Alloy** (v1.5.0) - Unified telemetry collector (replaces Promtail v2.9.3)
 
 ## Quick Start
 
@@ -69,23 +71,25 @@ Backend (OpenTelemetry SDK)
   |
   | OTLP/HTTP (port 4318)
   v
-Tempo (trace storage)
+Tempo v2.9.0 (trace storage + search)
   ^
   | TraceQL queries
   |
-Grafana (UI)
+Grafana v12.3.0 (UI)
   ^
   | LogQL queries
   |
-Loki (log storage)
+Loki v3.3.0 (log storage + TSDB schema)
   ^
   | JSON logs
   |
-Promtail (log collector)
-  ^
-  | Docker container logs
+Alloy v1.5.0 (unified telemetry collector)
+  ^  ^  ^
+  |  |  | - Logs
+  |  |  - Metrics (Prometheus-compatible)
+  |  - Traces (OTLP)
   |
-Docker Engine
+Docker Engine (container logs + metrics)
 ```
 
 ### Ports (Localhost Only)
@@ -240,6 +244,49 @@ The telemetry service automatically redacts sensitive fields:
 
 Values are replaced with `[REDACTED]`.
 
+## Alloy Migration (v1.5.0)
+
+**Alloy replaces Promtail as the unified telemetry collector** (ST-288, Upgraded 2025-12-18)
+
+### Why Alloy?
+
+- **Unified telemetry**: Single agent collects logs, metrics, and traces (replaces separate agents)
+- **Flexible pipelines**: Powerful component-based configuration
+- **Better integration**: Native support for all Grafana products
+- **Resource efficient**: Reduced overhead compared to multiple collectors
+
+### Configuration
+
+Alloy configuration is located at `observability/alloy/alloy.yaml`
+
+Key pipeline components:
+- **Docker logs receiver**: Collects container logs via Docker Engine API
+- **Loki exporter**: Sends logs to Loki with labels and trace IDs
+- **OTLP receiver**: Ingests traces from application (port 4317/gRPC, 4318/HTTP)
+- **Tempo exporter**: Forwards traces to Tempo
+
+### Monitoring Alloy Health
+
+```bash
+# Check Alloy is running
+docker compose -f observability/docker-compose.yml ps alloy
+
+# View Alloy logs
+docker compose -f observability/docker-compose.yml logs alloy
+
+# Query Alloy metrics endpoint (for advanced monitoring)
+curl http://localhost:9090/metrics
+```
+
+### Migration from Promtail
+
+**Promtail v2.9.3 is no longer used.** If upgrading from older deployments:
+
+1. Remove Promtail container: `docker compose down promtail`
+2. Verify Alloy is configured in docker-compose.yml
+3. Verify logs appear in Loki after Alloy starts
+4. Update any external references (scripts, monitoring) to use Alloy instead
+
 ## Troubleshooting
 
 ### No traces in Tempo
@@ -263,19 +310,24 @@ Values are replaced with `[REDACTED]`.
 
 ### No logs in Loki
 
-1. Check Promtail is running:
+1. Check Alloy is running:
    ```bash
-   docker compose -f observability/docker-compose.yml ps promtail
+   docker compose -f observability/docker-compose.yml ps alloy
    ```
 
-2. Check Promtail logs:
+2. Check Alloy logs:
    ```bash
-   docker compose -f observability/docker-compose.yml logs promtail
+   docker compose -f observability/docker-compose.yml logs alloy
    ```
 
 3. Verify Docker socket is mounted:
    ```bash
-   docker compose -f observability/docker-compose.yml exec promtail ls -l /var/run/docker.sock
+   docker compose -f observability/docker-compose.yml exec alloy ls -l /var/run/docker.sock
+   ```
+
+4. Verify Alloy can reach Loki:
+   ```bash
+   docker compose -f observability/docker-compose.yml exec alloy curl http://loki:3100/ready
    ```
 
 ### Grafana can't reach Tempo/Loki
@@ -323,10 +375,10 @@ docker system df -v | grep observability
 
 ✅ **Phase 1: Shared Observability Infrastructure (ST-257)**
 - Docker Compose configuration
-- Tempo configuration (7-day retention)
-- Loki configuration (7-day retention)
-- Promtail configuration (Docker log collection)
-- Grafana provisioning (auto-configured data sources)
+- Tempo configuration (7-day retention, v2.9.0)
+- Loki configuration (7-day retention, v3.3.0 with TSDB schema)
+- Alloy configuration (Docker log collection, v1.5.0 - replaces Promtail v2.9.3)
+- Grafana provisioning (auto-configured data sources, v12.3.0)
 
 ✅ **Phase 2: Backend Telemetry Module (ST-257)**
 - TelemetryModule (Global NestJS module)

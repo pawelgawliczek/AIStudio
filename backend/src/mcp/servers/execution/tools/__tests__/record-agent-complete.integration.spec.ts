@@ -9,10 +9,12 @@
  *
  * @see ST-176: Real-Time Agent Transcript Streaming in Web GUI
  */
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../../../prisma/prisma.service';
-
+import { AppWebSocketGateway } from '../../../../../websocket/websocket.gateway';
+import { TranscriptTailService } from '../../../../../workflow-runs/transcript-tail.service';
+// eslint-disable-next-line import/no-unresolved
+import { RecordAgentCompleteTool } from '../record-agent-complete.tool';
 // Mock dependencies
 const mockTranscriptTailService = {
   startTailing: jest.fn(),
@@ -33,11 +35,6 @@ const mockPrisma = {
     findUnique: jest.fn(),
   },
 };
-
-// Import after mocks
-import { AppWebSocketGateway } from '../../../../../websocket/websocket.gateway';
-import { TranscriptTailService } from '../../../../../workflow-runs/transcript-tail.service';
-import { RecordAgentCompleteTool } from '../record-agent-complete.tool';
 
 describe('RecordAgentCompleteTool - Transcript Tailing Integration (ST-176)', () => {
   let tool: RecordAgentCompleteTool;

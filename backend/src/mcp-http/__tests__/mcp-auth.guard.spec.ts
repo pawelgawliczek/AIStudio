@@ -318,7 +318,9 @@ describe('McpAuthGuard Security (Tasks 2.3, 2.7)', () => {
       const start2 = Date.now();
       try {
         await guard.canActivate(mockContext);
-      } catch {}
+      } catch {
+        // Expected to throw, ignore for timing test
+      }
       const time2 = Date.now() - start2;
 
       // Timing should be similar (bcrypt.compare is constant-time)
@@ -347,7 +349,9 @@ describe('McpAuthGuard Security (Tasks 2.3, 2.7)', () => {
 
       try {
         await guard.canActivate(mockContext);
-      } catch {}
+      } catch {
+        // Expected to throw for failed auth
+      }
 
       expect(mockRequest.user.apiKey).toBeUndefined();
     });
@@ -374,7 +378,9 @@ describe('McpAuthGuard Security (Tasks 2.3, 2.7)', () => {
 
       try {
         await guard.canActivate(mockContext);
-      } catch {}
+      } catch {
+        // Expected to throw for lockout
+      }
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('locked out after 5 failed attempts')
@@ -388,7 +394,9 @@ describe('McpAuthGuard Security (Tasks 2.3, 2.7)', () => {
 
       try {
         await guard.canActivate(mockContext);
-      } catch {}
+      } catch {
+        // Expected to throw for lockout
+      }
 
       expect(mockLogger.warn).toHaveBeenCalled();
     });

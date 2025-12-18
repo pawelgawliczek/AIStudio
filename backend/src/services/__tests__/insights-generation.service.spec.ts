@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+// eslint-disable-next-line import/no-unresolved
 import { InsightsGenerationService } from '../insights-generation.service';
 
 /**

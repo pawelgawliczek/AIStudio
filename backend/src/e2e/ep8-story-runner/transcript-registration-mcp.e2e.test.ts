@@ -10,11 +10,9 @@
  * IMPORTANT: These tests run against the production database!
  * Test data is cleaned up after each run.
  */
-
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import WebSocket from 'ws';
-
 // Import MCP tool handlers directly
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as getWorkflowRunResults } from '../../mcp/servers/execution/get_workflow_run_results';

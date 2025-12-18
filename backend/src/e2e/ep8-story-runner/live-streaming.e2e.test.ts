@@ -14,10 +14,8 @@
  * 6. Transcript upload on completion
  * 7. Consistency between modes
  */
-
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-
 // Import MCP tool handlers
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as recordAgentComplete } from '../../mcp/servers/execution/record_component_complete';

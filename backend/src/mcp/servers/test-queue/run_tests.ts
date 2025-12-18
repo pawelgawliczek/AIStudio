@@ -183,6 +183,36 @@ function parseJestOutput(stdout: string, stderr: string): {
 }
 
 /**
+ * Helper function to traverse Playwright test suites and count results
+ */
+function traverseSuite(
+  suite: any,
+  counters: { total: number; passed: number; failed: number; skipped: number },
+  failedNames: string[]
+) {
+  if (suite.specs) {
+    for (const spec of suite.specs) {
+      counters.total++;
+      if (spec.ok) {
+        counters.passed++;
+      } else {
+        counters.failed++;
+        failedNames.push(spec.title || 'Unknown test');
+      }
+      // Check for skipped tests
+      if (spec.tests && spec.tests.some((t: any) => t.status === 'skipped')) {
+        counters.skipped++;
+      }
+    }
+  }
+  if (suite.suites) {
+    for (const childSuite of suite.suites) {
+      traverseSuite(childSuite, counters, failedNames);
+    }
+  }
+}
+
+/**
  * Parse Playwright output to extract test counts and failed test names
  * Tries JSON format first, falls back to text parsing
  */
@@ -200,46 +230,20 @@ function parsePlaywrightOutput(stdout: string, stderr: string): {
       const result = JSON.parse(jsonMatch[0]);
       const failedTestNames: string[] = [];
 
-      let totalTests = 0;
-      let passedTests = 0;
-      let failedTests = 0;
-      let skippedTests = 0;
+      const counters = { total: 0, passed: 0, failed: 0, skipped: 0 };
 
       // Traverse suites to count tests
-      function traverseSuite(suite: any) {
-        if (suite.specs) {
-          for (const spec of suite.specs) {
-            totalTests++;
-            if (spec.ok) {
-              passedTests++;
-            } else {
-              failedTests++;
-              failedTestNames.push(spec.title || 'Unknown test');
-            }
-            // Check for skipped tests
-            if (spec.tests && spec.tests.some((t: any) => t.status === 'skipped')) {
-              skippedTests++;
-            }
-          }
-        }
-        if (suite.suites) {
-          for (const childSuite of suite.suites) {
-            traverseSuite(childSuite);
-          }
-        }
-      }
-
       if (result.suites) {
         for (const suite of result.suites) {
-          traverseSuite(suite);
+          traverseSuite(suite, counters, failedTestNames);
         }
       }
 
       return {
-        totalTests,
-        passedTests,
-        failedTests,
-        skippedTests,
+        totalTests: counters.total,
+        passedTests: counters.passed,
+        failedTests: counters.failed,
+        skippedTests: counters.skipped,
         failedTestNames,
       };
     }

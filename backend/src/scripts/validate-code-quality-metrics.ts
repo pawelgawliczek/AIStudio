@@ -167,7 +167,7 @@ class ManualMetricsCalculator {
    */
   calculateCyclomaticComplexity(content: string): number {
     const decisionPoints = (
-      content.match(/\b(if|else|for|while|case|catch)\b|\&\&|\|\||\?/g) || []
+      content.match(/\b(if|else|for|while|case|catch)\b|&&|\|\||\?/g) || []
     ).length;
     return decisionPoints + 1;
   }

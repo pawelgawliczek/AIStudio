@@ -355,7 +355,7 @@ export class CodeAnalysisProcessor {
   ): Promise<ComplexityMetrics> {
     // Simplified cyclomatic complexity calculation
     // Count decision points: if, else, for, while, case, catch, &&, ||, ?
-    const decisionPoints = (content.match(/\b(if|else|for|while|case|catch)\b|\&\&|\|\||\?/g) || []).length;
+    const decisionPoints = (content.match(/\b(if|else|for|while|case|catch)\b|&&|\|\||\?/g) || []).length;
     const cyclomatic = decisionPoints + 1;
 
     // Simplified cognitive complexity (nesting depth weighted)
@@ -937,7 +937,9 @@ export class CodeAnalysisProcessor {
     let totalCoverage = 0;
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs').promises;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const path = require('path');
 
       // Try common coverage file locations (try coverage-final.json first as it's always generated)

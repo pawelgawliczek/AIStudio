@@ -2810,3 +2810,63 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-18T10:42:04Z",
+  "session_id": "8bcd429e-1ade-4440-810c-aa659e88cb2f",
+  "run_id": "d8269713-e614-499f-93b3-ce7f79b11ffa",
+  "questions": [
+    {
+      "question": "Should the Task agent prompt include context from previous components (outputs from earlier workflow states)?",
+      "header": "Context",
+      "options": [
+        {
+          "label": "Yes, inject previous outputs",
+          "description": "Task prompt includes previous component outputs as context for continuity"
+        },
+        {
+          "label": "No, instructions only",
+          "description": "Task prompt only contains the component's 3-part instructions (input/operation/output)"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Where should agent instructions be sourced from for Task spawning?",
+      "header": "Source",
+      "options": [
+        {
+          "label": "Component model only",
+          "description": "Instructions from Component.inputInstructions/operationInstructions/outputInstructions"
+        },
+        {
+          "label": "Component + workflow state",
+          "description": "Also include WorkflowState.preExecutionInstructions as preamble"
+        },
+        {
+          "label": "Call get_component_context",
+          "description": "Have advance_step/get_current_step call get_component_context internally to get full context bundle"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should the subagent_type be determined for Task spawning?",
+      "header": "Subagent type",
+      "options": [
+        {
+          "label": "From Component.executionType (Recommended)",
+          "description": "Use the executionType field: native_explore→Explore, native_plan→Plan, native_general/custom→general-purpose"
+        },
+        {
+          "label": "From component name pattern",
+          "description": "Current behavior: if name contains 'explorer'→Explore, else general-purpose"
+        },
+        {
+          "label": "New field on Component",
+          "description": "Add explicit 'subagentType' field to Component model"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

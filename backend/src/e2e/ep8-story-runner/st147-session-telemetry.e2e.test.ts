@@ -25,6 +25,7 @@
 import { PrismaClient } from '@prisma/client';
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
+// eslint-disable-next-line import/no-unresolved
 import { handler as getTranscriptMetrics } from '../../mcp/servers/execution/get_transcript_metrics';
 import { handler as getWorkflowRunResults } from '../../mcp/servers/execution/get_workflow_run_results';
 import { handler as recordComponentComplete } from '../../mcp/servers/execution/record_component_complete';

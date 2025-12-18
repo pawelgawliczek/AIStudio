@@ -9,10 +9,8 @@
  * These tests verify the complete transcript streaming pipeline works correctly
  * after the ST-195 fixes.
  */
-
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-
 // Import MCP tool handlers
 import { handler as createComponent } from '../../mcp/servers/components/create_component';
 import { handler as startWorkflowRun } from '../../mcp/servers/execution/start_workflow_run';

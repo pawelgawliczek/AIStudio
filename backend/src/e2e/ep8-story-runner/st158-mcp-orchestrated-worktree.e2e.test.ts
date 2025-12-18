@@ -23,7 +23,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
-
 // MCP Handler Imports
 import { handler as createEpic } from '../../mcp/servers/epics/create_epic';
 import { handler as checkForConflicts } from '../../mcp/servers/git/check_for_conflicts';
@@ -35,6 +34,7 @@ import { handler as rebaseOnMain } from '../../mcp/servers/git/rebase_on_main';
 import { handler as createProject } from '../../mcp/servers/projects/create_project';
 import { handler as getAgentCapabilities } from '../../mcp/servers/remote-agent/get_agent_capabilities';
 import { handler as createStory } from '../../mcp/servers/stories/create_story';
+// eslint-disable-next-line import/order
 import { TEST_CONFIG, testName } from './config/test-config';
 import { TestContext, createTestContext } from './helpers/test-context';
 import {
@@ -42,8 +42,6 @@ import {
   createTestEpicParams,
   createTestStoryParams,
 } from './helpers/test-data-factory';
-
-// Prisma client
 const prisma = new PrismaClient();
 
 // KVM API configuration for agent queries
@@ -273,6 +271,7 @@ type TargetConfig = {
 };
 
 // Detect if running on KVM (presence of /opt/stack directory indicates KVM server)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const IS_KVM_ENVIRONMENT = require('fs').existsSync('/opt/stack/AIStudio');
 
 const TEST_TARGETS: TargetConfig[] = [
