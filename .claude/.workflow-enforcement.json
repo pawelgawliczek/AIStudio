@@ -1,3 +1,30 @@
 {
-  "sessions": {}
+  "sessions": {
+    "d91a8c8c-7e90-45f2-9fff-1a36783a2ed9": {
+      "workflowActive": true,
+      "runId": "28fc2fdf-0cd4-46df-8c21-8303346f6962",
+      "currentState": {
+        "id": "3b20a175-5c13-42a2-b725-3a93330b8e41",
+        "name": "implementation",
+        "phase": "agent",
+        "componentName": "Developer",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-18T15:43:49Z"
+    },
+    "28c561fb-88a8-42f0-9eaa-49ed07c15965": {
+      "workflowActive": true,
+      "runId": "ba2f090a-7e1d-47ad-be92-43b74279cb24",
+      "currentState": {
+        "name": "implementation",
+        "componentName": "Developer",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-18T15:51:23Z"
+    }
+  }
 }

@@ -15,18 +15,15 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { ComponentSummaryStructured } from '../../../types/component-summary.types';
 import {
   startAgentTracking,
   completeAgentTracking,
   generateStructuredSummary,
-  serializeComponentSummary,
-  StartAgentResult,
-  CompleteAgentResult,
 } from '../../shared/agent-tracking';
 import { resolveRunId } from '../../shared/resolve-identifiers';
-import { deriveSubagentType } from '../../shared/task-prompt-builder';
+import { deriveSubagentType, buildTaskPrompt } from '../../shared/task-prompt-builder';
 import { RemoteRunner } from '../../utils/remote-runner';
 
 export const tool: Tool = {
@@ -183,9 +180,7 @@ export async function handler(prisma: PrismaClient, params: {
 
   // Initialize checkpoint if not exists
   // ST-216: Track initialization to call startAgentTracking for first state
-  let isInitialization = false;
   if (!checkpoint.currentStateId) {
-    isInitialization = true;
     const firstState = run.workflow.states[0];
     if (!firstState) {
       throw new Error('Workflow has no states defined.');
@@ -267,7 +262,7 @@ export async function handler(prisma: PrismaClient, params: {
     // Save checkpoint
     await saveCheckpoint(prisma, runId, checkpoint, metadata);
 
-    return buildAdvanceResponse(run, checkpoint, targetState, null, false, null, true);
+    return buildAdvanceResponse(prisma, run, checkpoint, targetState, null, false, null, true, run.story?.id);
   }
 
   // Normal advancement
@@ -530,7 +525,7 @@ export async function handler(prisma: PrismaClient, params: {
   // Get the next state object
   const nextStateObj = run.workflow.states.find(s => s.id === nextStateId) || null;
 
-  return buildAdvanceResponse(run, checkpoint, nextStateObj, previousState, workflowComplete, agentTrackingResult, agentWasSuccessful);
+  return buildAdvanceResponse(prisma, run, checkpoint, nextStateObj, previousState, workflowComplete, agentTrackingResult, agentWasSuccessful, run.story?.id);
 }
 
 async function saveCheckpoint(
@@ -595,7 +590,8 @@ interface WorkflowRunData {
   };
 }
 
-function buildAdvanceResponse(
+async function buildAdvanceResponse(
+  prisma: PrismaClient,
   run: WorkflowRunData,
   checkpoint: Partial<RunnerCheckpoint>,
   currentState: WorkflowStateData | null,
@@ -603,6 +599,7 @@ function buildAdvanceResponse(
   workflowComplete = false,
   agentTracking: AgentTrackingResult | null = null,
   agentWasSuccessful = true,
+  storyId?: string,
 ) {
   const totalStates = run.workflow.states.length;
   const completedCount = checkpoint.completedStates?.length || 0;
@@ -684,24 +681,68 @@ function buildAdvanceResponse(
           // Map derived subagent type to enforcement array
           const allowedSubagentTypes = [subagentType];
 
-          instructions = {
-            type: 'agent_spawn',
-            content: `Spawn the ${currentState.component.name} agent with model: ${componentModel}`,
-            component: {
-              id: currentState.component.id,
-              name: currentState.component.name,
-              model: componentModel,
-              tools: componentTools,
-              inputInstructions: currentState.component.inputInstructions || undefined,
-              operationInstructions: currentState.component.operationInstructions || undefined,
-              outputInstructions: currentState.component.outputInstructions || undefined,
-            },
-            // ST-273: Enforcement data for hooks
-            enforcement: {
-              allowedSubagentTypes,
-              requiredComponentName: componentName,
-            },
-          };
+          // ST-304: Build ready-to-use agent prompt if storyId is available
+          if (storyId && currentState.id && currentState.component) {
+            const stateForPrompt = {
+              id: currentState.id,
+              preExecutionInstructions: currentState.preExecutionInstructions,
+              component: {
+                id: currentState.component.id,
+                name: currentState.component.name,
+                inputInstructions: currentState.component.inputInstructions ?? null,
+                operationInstructions: currentState.component.operationInstructions ?? null,
+                outputInstructions: currentState.component.outputInstructions ?? null,
+              },
+            };
+
+            const agentPrompt = await buildTaskPrompt(
+              prisma,
+              stateForPrompt,
+              run.id,
+              storyId
+            );
+
+            // When spawnAgent is successfully built, only return that (not redundant raw component fields)
+            instructions = {
+              type: 'agent_spawn',
+              content: `Spawn the ${componentName} agent.`,
+              spawnAgent: {
+                instruction: "Use the Task tool to spawn this agent. Pass the prompt EXACTLY as provided - do not modify it.",
+                task: {
+                  subagent_type: subagentType,
+                  model: componentModel,
+                  prompt: agentPrompt,
+                },
+                componentName,
+                componentId: currentState.component.id,
+              },
+              // ST-273: Enforcement data for hooks
+              enforcement: {
+                allowedSubagentTypes,
+                requiredComponentName: componentName,
+              },
+            };
+          } else {
+            // Fallback: Keep old structure with raw component fields if we can't build spawnAgent
+            instructions = {
+              type: 'agent_spawn',
+              content: `Spawn the ${currentState.component.name} agent with model: ${componentModel}`,
+              component: {
+                id: currentState.component.id,
+                name: currentState.component.name,
+                model: componentModel,
+                tools: componentTools,
+                inputInstructions: currentState.component.inputInstructions || undefined,
+                operationInstructions: currentState.component.operationInstructions || undefined,
+                outputInstructions: currentState.component.outputInstructions || undefined,
+              },
+              // ST-273: Enforcement data for hooks
+              enforcement: {
+                allowedSubagentTypes,
+                requiredComponentName: componentName,
+              },
+            };
+          }
         }
         nextAction = {
           tool: 'advance_step',
