@@ -116,3 +116,45 @@ export interface GitResultEvent {
   exitCode?: number;
   error?: string;
 }
+
+/**
+ * ST-323: Upload batch and ACK types
+ */
+
+/**
+ * Individual item in upload batch
+ */
+export interface UploadBatchItem {
+  queueId: number;
+  workflowRunId: string;
+  componentRunId: string;
+  transcriptPath: string;
+  content: string;
+  sequenceNumber: number;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Batch upload payload from laptop agent
+ */
+export interface UploadBatchPayload {
+  agentId: string;
+  items: UploadBatchItem[];
+}
+
+/**
+ * Individual ACK item
+ */
+export interface ItemAckPayload {
+  success: boolean;
+  id: number;
+  isDuplicate?: boolean;
+  error?: string;
+}
+
+/**
+ * Batch ACK response to laptop agent
+ */
+export interface UploadAckPayload {
+  ids: number[];
+}

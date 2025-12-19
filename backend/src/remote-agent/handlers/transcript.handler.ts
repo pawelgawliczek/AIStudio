@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { getErrorMessage, getErrorStack } from '../../common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TranscriptRegistrationService } from '../transcript-registration.service';
-import { TranscriptDetectionPayload } from '../types';
+import { TranscriptDetectionPayload, UploadBatchItem, ItemAckPayload } from '../types';
 import { uploadAgentTranscript as uploadAgentTranscriptUtil } from './transcript.utils';
 
 /**
@@ -369,5 +370,118 @@ export class TranscriptHandler {
       transcriptPath,
       agentId,
     );
+  }
+
+  /**
+   * ST-323: Handle individual transcript upload with ACK callback
+   * Used by upload:batch handler to process each item
+   */
+  async handleTranscriptUpload(
+    item: UploadBatchItem,
+    callback: (ack: ItemAckPayload) => void,
+  ): Promise<void> {
+    const { queueId, workflowRunId, componentRunId, transcriptPath, content, sequenceNumber, metadata } = item;
+
+    try {
+      // Find the workflow run
+      const workflowRun = await this.prisma.workflowRun.findUnique({
+        where: { id: workflowRunId },
+      });
+
+      if (!workflowRun) {
+        this.logger.error(`[ST-323] WorkflowRun ${workflowRunId} not found`);
+        callback({ success: false, id: queueId, error: 'WorkflowRun not found' });
+        return;
+      }
+
+      if (!workflowRun.storyId) {
+        this.logger.error(`[ST-323] WorkflowRun ${workflowRunId} has no storyId`);
+        callback({ success: false, id: queueId, error: 'WorkflowRun has no storyId' });
+        return;
+      }
+
+      // Find the component run
+      const componentRun = await this.prisma.componentRun.findUnique({
+        where: { id: componentRunId },
+        include: { component: true },
+      });
+
+      if (!componentRun) {
+        this.logger.error(`[ST-323] ComponentRun ${componentRunId} not found`);
+        callback({ success: false, id: queueId, error: 'ComponentRun not found' });
+        return;
+      }
+
+      // Find the TRANSCRIPT artifact definition
+      const transcriptDef = await this.prisma.artifactDefinition.findFirst({
+        where: {
+          workflowId: workflowRun.workflowId,
+          key: 'TRANSCRIPT',
+        },
+      });
+
+      if (!transcriptDef) {
+        this.logger.warn(`[ST-323] No TRANSCRIPT artifact definition for workflow ${workflowRun.workflowId}`);
+        callback({ success: false, id: queueId, error: 'No TRANSCRIPT artifact definition' });
+        return;
+      }
+
+      // Check if artifact already exists for this content (duplicate detection)
+      const existingArtifact = await this.prisma.artifact.findFirst({
+        where: {
+          definitionId: transcriptDef.id,
+          storyId: workflowRun.storyId,
+          workflowRunId,
+          content,
+        },
+      });
+
+      if (existingArtifact) {
+        this.logger.log(`[ST-323] Duplicate transcript content detected for queueId ${queueId}`);
+        callback({ success: true, id: queueId, isDuplicate: true });
+        return;
+      }
+
+      // Create the artifact
+      const artifact = await this.prisma.artifact.create({
+        data: {
+          definitionId: transcriptDef.id,
+          storyId: workflowRun.storyId,
+          workflowRunId,
+          lastUpdatedRunId: workflowRunId,
+          content,
+          contentType: 'application/x-jsonlines',
+          contentPreview: content.substring(0, 500),
+          size: Buffer.byteLength(content, 'utf8'),
+          currentVersion: 1,
+          createdByComponentId: componentRun.componentId,
+        },
+      });
+
+      // Update component run metadata
+      const existingMetadata = (componentRun.metadata as Record<string, unknown>) || {};
+      await this.prisma.componentRun.update({
+        where: { id: componentRunId },
+        data: {
+          metadata: {
+            ...existingMetadata,
+            transcriptArtifactId: artifact.id,
+            transcriptPath,
+            sequenceNumber,
+            uploadMetadata: metadata || {},
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      this.logger.log(
+        `[ST-323] Transcript uploaded successfully. Queue ID: ${queueId}, Artifact ID: ${artifact.id}, Size: ${artifact.size} bytes`,
+      );
+
+      // Send success ACK
+      callback({ success: true, id: queueId });
+    } catch (error) {
+      this.logger.error(`[ST-323] Failed to upload transcript for queueId ${queueId}: ${getErrorMessage(error)}`, getErrorStack(error));
+      callback({ success: false, id: queueId, error: getErrorMessage(error) });
+    }
   }
 }
