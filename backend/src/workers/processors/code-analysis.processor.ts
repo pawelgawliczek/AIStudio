@@ -222,15 +222,29 @@ export class CodeAnalysisProcessor {
    * Now includes test files (.test., .spec.) for complete codebase analysis
    */
   private isSourceFile(filePath: string): boolean {
-    const extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs', '.sql', '.json'];
-    return extensions.some((ext) => filePath.endsWith(ext)) &&
-           !filePath.includes('node_modules/') &&
-           !filePath.includes('dist/') &&
-           !filePath.includes('build/') &&
-           !filePath.includes('coverage/') &&
-           !filePath.includes('package.json') &&
-           !filePath.includes('package-lock.json') &&
-           !filePath.includes('tsconfig.json');
+    // Remove .json from extensions - config files should not be analyzed
+    const extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs', '.sql'];
+
+    // Config file patterns to exclude
+    const configPatterns = [
+      'node_modules/',
+      'dist/',
+      'build/',
+      'coverage/',
+      '.json',           // Exclude ALL .json files (config files)
+      '.config.js',      // jest.config.js, webpack.config.js, etc.
+      '.config.ts',      // vitest.config.ts, vite.config.ts, etc.
+      '.eslintrc.',      // .eslintrc.js, .eslintrc.json
+      '.prettierrc.',    // .prettierrc.js, .prettierrc.json
+    ];
+
+    // Check if file has valid extension
+    const hasValidExtension = extensions.some((ext) => filePath.endsWith(ext));
+
+    // Check if file matches any exclusion pattern
+    const isExcluded = configPatterns.some((pattern) => filePath.includes(pattern));
+
+    return hasValidExtension && !isExcluded;
   }
 
   /**
@@ -635,9 +649,33 @@ export class CodeAnalysisProcessor {
       },
     });
 
-    // Calculate overall health score (0-100)
-    const maintainability = stats._avg.maintainabilityIndex || 0;
-    const complexityPenalty = Math.min(20, (stats._avg.cyclomaticComplexity || 0) - 10);
+    // Bug C Fix: Calculate LOC-weighted metrics instead of simple averages
+    // Fetch all files to calculate LOC-weighted maintainability and complexity
+    const allFiles = await this.prisma.codeMetrics.findMany({
+      where: { projectId },
+      select: {
+        linesOfCode: true,
+        maintainabilityIndex: true,
+        cyclomaticComplexity: true,
+      },
+    });
+
+    // Calculate LOC-weighted maintainability: sum(LOC * maintainability) / sum(LOC)
+    const totalLOC = stats._sum.linesOfCode || 1; // Avoid division by zero
+    const weightedMaintainability = allFiles.reduce(
+      (sum, file) => sum + (file.linesOfCode * file.maintainabilityIndex),
+      0
+    ) / totalLOC;
+
+    // Calculate LOC-weighted complexity: sum(LOC * complexity) / sum(LOC)
+    const weightedComplexity = allFiles.reduce(
+      (sum, file) => sum + (file.linesOfCode * file.cyclomaticComplexity),
+      0
+    ) / totalLOC;
+
+    // Calculate overall health score (0-100) using LOC-weighted metrics
+    const maintainability = weightedMaintainability;
+    const complexityPenalty = Math.min(20, weightedComplexity - 10);
     const smellPenalty = Math.min(20, (stats._sum.codeSmellCount || 0) / 10);
 
     const healthScore = Math.max(
@@ -996,21 +1034,30 @@ export class CodeAnalysisProcessor {
               const functions = (fileData.f as Record<string, number>) || {};
 
               const stmtTotal = Object.keys(statements).length;
-              const stmtCovered = Object.values(statements).filter((v) => v > 0).length;
-              const stmtPercent = stmtTotal > 0 ? (stmtCovered / stmtTotal) * 100 : 100;
-
               const branchTotal = Object.keys(branches).length;
-              let branchCovered = 0;
-              for (const branchArray of Object.values(branches)) {
-                if (Array.isArray(branchArray)) {
-                  branchCovered += branchArray.filter((v) => v > 0).length;
-                }
-              }
-              const branchPercent = branchTotal > 0 ? (branchCovered / (branchTotal * 2)) * 100 : 100;
-
               const funcTotal = Object.keys(functions).length;
+
+              // Bug B.2 Fix: Skip files with zero coverage instrumentation
+              // These are typically interface-only files or files not instrumented
+              const hasCoverage = stmtTotal > 0 || branchTotal > 0 || funcTotal > 0;
+              if (!hasCoverage) {
+                continue; // Skip this file entirely - no coverage data
+              }
+
+              // Calculate statement coverage
+              const stmtCovered = Object.values(statements).filter((v) => v > 0).length;
+              const stmtPercent = (stmtCovered / stmtTotal) * 100;
+
+              // Bug B.1 Fix: Branch coverage = (branches with both paths taken) / (total branches)
+              // Industry standard: A branch is "covered" only if BOTH true and false paths are exercised
+              const branchesFullyCovered = Object.values(branches).filter(
+                (arr) => Array.isArray(arr) && arr[0] > 0 && arr[1] > 0
+              ).length;
+              const branchPercent = branchTotal > 0 ? (branchesFullyCovered / branchTotal) * 100 : 100;
+
+              // Calculate function coverage
               const funcCovered = Object.values(functions).filter((v) => v > 0).length;
-              const funcPercent = funcTotal > 0 ? (funcCovered / funcTotal) * 100 : 100;
+              const funcPercent = (funcCovered / funcTotal) * 100;
 
               // Average of statement, branch, and function coverage
               coverage = Math.round((stmtPercent + branchPercent + funcPercent) / 3);

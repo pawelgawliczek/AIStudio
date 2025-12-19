@@ -405,7 +405,7 @@ function test() {
         throw new Error('File not found');
       });
 
-      const coverageMap = await loadCoverageData('/opt/stack/AIStudio');
+      const { coverageMap } = await loadCoverageData('/opt/stack/AIStudio');
 
       expect(coverageMap.get('backend/src/auth/auth.service.ts')).toBe(100);
       expect(coverageMap.get('backend/src/users/users.service.ts')).toBe(75);
