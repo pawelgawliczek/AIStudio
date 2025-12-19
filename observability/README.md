@@ -441,3 +441,37 @@ Access Grafana at http://localhost:3030 (after SSH tunnel: `ssh -L 3030:localhos
 **Variables:**
 - `$workflow_run_id` - Filter by specific workflow run
 - `$story_id` - Filter by specific story
+
+### 4. MCP Tool Performance (`04-mcp-tool-performance.json`)
+- MCP tool execution duration timeseries
+- Tool success/error rates
+- Tool usage distribution
+- Performance by tool category
+
+### 5. Error Investigation (`05-error-investigation.json`)
+- Error rate trends
+- Error logs by category
+- Stack traces and error details
+- Error correlation with traces
+
+### 6. Database Connections (`06-database-connections.json`)
+- Active database connection count
+- Connection pool utilization
+- Query performance metrics
+- Long-running queries
+
+### 7. Remote Execution Monitoring (`07-remote-execution-monitoring.json`)
+- Remote agent job execution status
+- Job queue depth and throughput
+- Agent resource utilization
+- Execution success/failure rates
+
+### 8. Upload Pipeline Monitoring (`08-upload-pipeline-monitoring.json`)
+- Queue status: pending, sent (awaiting ACK), and ACKed item counts
+- Upload success rate (5-minute window)
+- Stuck items (not ACKed in 30s)
+- Agent connection status
+- Queue depth trends over time
+- Upload distribution by type (artifact vs transcript)
+- Error rate and ACK latency heatmap
+- Transcript line flow and recent errors
