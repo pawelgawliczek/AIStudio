@@ -325,6 +325,14 @@ export class TranscriptTailer {
           timestamp: new Date().toISOString(),
         };
 
+        // Log the queued lines
+        this.logger.debug('Lines queued', {
+          runId: session.runId,
+          sessionIndex: session.sessionIndex,
+          lineCount: linesWithSeq.length,
+          sequenceRange: `${linesWithSeq[0]?.sequenceNumber}-${linesWithSeq[linesWithSeq.length - 1]?.sequenceNumber}`,
+        });
+
         // Use UploadManager for guaranteed delivery if available
         if (this.uploadManager) {
           this.uploadManager.queueUpload('transcript_line', payload).catch((err: unknown) => {

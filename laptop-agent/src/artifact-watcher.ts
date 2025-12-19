@@ -11,6 +11,7 @@
  * - Handles both new files and changes
  */
 
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as chokidar from 'chokidar';
@@ -140,7 +141,17 @@ export class ArtifactWatcher {
 
       // Mark as processed to prevent duplicate uploads during initial scan
       this.processedFiles.add(filePath);
-      this.logger.info('Artifact queued for upload', { storyKey, artifactKey, filePath });
+
+      // Calculate content hash for logging
+      const contentHash = crypto.createHash('sha256').update(content).digest('hex').substring(0, 8);
+
+      this.logger.info('Artifact queued for upload', {
+        storyKey,
+        artifactKey,
+        filePath,
+        sizeBytes: content.length,
+        contentHash,
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to queue artifact', { filePath, error: message });

@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import Database from 'better-sqlite3';
+import { Logger } from './logger';
 import {
   QueueItem,
   QueueStatus,
@@ -46,6 +47,7 @@ interface DbQueueItem {
  * UploadQueue class
  */
 export class UploadQueue {
+  private readonly logger = new Logger('UploadQueue');
   private db: Database.Database;
   private dbPath: string;
   private config: Required<QueueConfig>;
@@ -186,6 +188,11 @@ export class UploadQueue {
     const stats = await this.getStats();
     const activeCount = stats.total - stats.acked;
     if (activeCount >= this.config.maxItems) {
+      this.logger.error('Queue overflow', {
+        maxItems: this.config.maxItems,
+        currentStats: stats,
+        attemptedType: input.type,
+      });
       throw new QueueFullError(this.config.maxItems);
     }
 
@@ -196,9 +203,14 @@ export class UploadQueue {
     const duplicate = this.db.prepare(`
       SELECT id FROM upload_queue
       WHERE contentHash = ? AND status != 'acked'
-    `).get(contentHash);
+    `).get(contentHash) as { id: number } | undefined;
 
     if (duplicate) {
+      this.logger.debug('Duplicate content rejected', {
+        contentHash: contentHash.substring(0, 8),
+        existingItemId: duplicate.id,
+        type: input.type,
+      });
       throw new Error('Duplicate content already in queue');
     }
 
@@ -423,6 +435,15 @@ export class UploadQueue {
   }
 
   async markFailed(id: number, errorMessage: string): Promise<void> {
+    const item = await this.getItem(id);
+    if (item) {
+      this.logger.error('Item marked as failed', {
+        id,
+        type: item.type,
+        errorMessage,
+      });
+    }
+
     this.db.prepare(`
       UPDATE upload_queue
       SET status = 'failed', errorMessage = ?

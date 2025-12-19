@@ -39,6 +39,8 @@ export class UploadManager {
 
   private flushTimer: NodeJS.Timeout | null = null;
   private cleanupTimer: NodeJS.Timeout | null = null;
+  private stuckItemTimer: NodeJS.Timeout | null = null;
+  private statsTimer: NodeJS.Timeout | null = null;
   private isConnected: boolean = false;
   private isFlushing: boolean = false;
 
@@ -63,6 +65,12 @@ export class UploadManager {
 
     // Start cleanup loop
     this.startCleanupLoop();
+
+    // Start stuck item monitor
+    this.startStuckItemMonitor();
+
+    // Start stats logging
+    this.startStatsLogging();
 
     this.logger.info('UploadManager initialized', {
       flushIntervalMs: this.flushIntervalMs,
@@ -308,6 +316,74 @@ export class UploadManager {
   }
 
   /**
+   * Start stuck item monitor
+   * Requeues items that have been in 'sent' state for too long
+   */
+  private startStuckItemMonitor(): void {
+    this.stuckItemTimer = setInterval(async () => {
+      try {
+        const stats = await this.queue.getStats();
+        if (stats.sent > 0) {
+          const requeued = await this.queue.requeueStuckItems({
+            timeoutSeconds: 30,
+            maxRetries: 5,
+          });
+          if (requeued > 0) {
+            this.logger.warn('Requeued stuck items', {
+              count: requeued,
+              previousSentCount: stats.sent,
+            });
+          }
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error('Stuck item monitor failed', { error: message });
+      }
+    }, 30000); // Every 30 seconds
+  }
+
+  /**
+   * Start periodic stats logging
+   * Logs queue statistics every 60 seconds for monitoring
+   */
+  private startStatsLogging(): void {
+    this.statsTimer = setInterval(async () => {
+      try {
+        const stats = await this.queue.getStats({ includeTypes: true });
+        this.logger.info('Queue stats', {
+          pending: stats.pending,
+          sent: stats.sent,
+          acked: stats.acked,
+          total: stats.total,
+          byType: stats.byType,
+        });
+      } catch (error: unknown) {
+        // Silent - stats logging shouldn't crash
+      }
+    }, 60000); // Every 60 seconds
+  }
+
+  /**
+   * Stop stuck item monitor
+   */
+  private stopStuckItemMonitor(): void {
+    if (this.stuckItemTimer) {
+      clearInterval(this.stuckItemTimer);
+      this.stuckItemTimer = null;
+    }
+  }
+
+  /**
+   * Stop stats logging timer
+   */
+  private stopStatsLogging(): void {
+    if (this.statsTimer) {
+      clearInterval(this.statsTimer);
+      this.statsTimer = null;
+    }
+  }
+
+  /**
    * Stop the manager and cleanup
    */
   async stop(): Promise<void> {
@@ -323,6 +399,9 @@ export class UploadManager {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
     }
+
+    this.stopStuckItemMonitor();
+    this.stopStatsLogging();
 
     // Close queue
     await this.queue.close();
