@@ -18,13 +18,11 @@
       "currentState": {
         "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
         "name": "testing",
-        "phase": "agent",
+        "phase": "post",
         "componentName": "Tester",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
+        "allowedSubagentTypes": null
       },
-      "updatedAt": "2025-12-19T10:16:39Z"
+      "updatedAt": "2025-12-19T10:30:39Z"
     }
   }
 }
