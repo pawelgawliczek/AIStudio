@@ -1,0 +1,206 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: upload_pipeline_alerts
+    folder: AIStudio
+    interval: 1m
+    rules:
+      - uid: upload_queue_overflow
+        title: Upload Queue Overflow
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'last_over_time({app="laptop-agent"} |= "Queue stats" | json | unwrap pending [5m])'
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    params:
+                      - 8000
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  type: query
+              refId: C
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          description: 'Upload queue has {{ $values.B.Value }} pending items, exceeding the critical threshold of 8000. This may indicate upload bottleneck or agent disconnection.'
+          summary: 'Critical: Upload queue overflow detected'
+        labels:
+          severity: critical
+          component: upload-pipeline
+        isPaused: false
+
+      - uid: upload_stuck_items
+        title: Upload Stuck Items Detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'last_over_time({app="laptop-agent"} |= "Queue stats" | json | unwrap sent [5m])'
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    params:
+                      - 100
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  type: query
+              refId: C
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: '{{ $values.B.Value }} items have been in "sent" state (awaiting ACK) for more than 5 minutes. This indicates items are not being acknowledged by the backend.'
+          summary: 'Warning: Items stuck awaiting ACK'
+        labels:
+          severity: warning
+          component: upload-pipeline
+        isPaused: false
+
+      - uid: upload_high_error_rate
+        title: High Upload Error Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'sum(count_over_time({app="laptop-agent"} |= "Failed to" [5m]))'
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'sum(count_over_time({app="laptop-agent"} |~ "queued for upload|Item marked as acked" [5m]))'
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: '(A / (B or 1)) * 100 > 5'
+              refId: C
+        noDataState: NoData
+        execErrState: Error
+        for: 3m
+        annotations:
+          description: 'Upload error rate has exceeded 5% in the last 5 minutes. Check the Recent Errors panel in the dashboard for details.'
+          summary: 'Warning: High upload error rate detected'
+        labels:
+          severity: warning
+          component: upload-pipeline
+        isPaused: false
+
+      - uid: upload_agent_disconnected
+        title: Upload Agent Disconnected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({app="laptop-agent"} |= "Queue stats" [2m])'
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  type: query
+              refId: C
+        noDataState: Alerting
+        execErrState: Error
+        for: 2m
+        annotations:
+          description: 'No queue stats heartbeat detected in the last 2 minutes. The laptop agent may be disconnected or crashed.'
+          summary: 'Critical: Upload agent disconnected'
+        labels:
+          severity: critical
+          component: upload-pipeline
+        isPaused: false
