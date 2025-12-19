@@ -26,6 +26,7 @@ async function testUploadAckFlow(): Promise<boolean> {
     let batchAck: any = null;
     let connected = false;
     let registered = false;
+    let agentId: string | null = null;
 
     socket.on('connect', async () => {
       console.log('  ✅ Connected to WebSocket');
@@ -42,36 +43,33 @@ async function testUploadAckFlow(): Promise<boolean> {
       });
     });
 
-    socket.on('agent:registered', () => {
+    socket.on('agent:registered', (data: any) => {
       console.log('  ✅ Registered successfully');
+      console.log(`  🆔 Agent ID: ${data.agentId}`);
       registered = true;
+      agentId = data.agentId;
 
       console.log('\n📤 Sending upload:batch with test data...');
 
       // Test 1: Send batch with fake workflow run (should get error ACK)
       const batch = {
+        agentId: data.agentId, // ST-323: Add agentId at top level
         items: [
           {
-            id: 9001,
-            type: 'transcript:upload',
-            payload: {
-              workflowRunId: '00000000-0000-0000-0000-000000000000', // Fake ID
-              componentRunId: '00000000-0000-0000-0000-000000000001',
-              transcriptPath: '/tmp/test-st323.jsonl',
-              content: JSON.stringify({ test: true, timestamp: Date.now() }),
-              agentId: 'st323-e2e-test'
-            }
+            queueId: 9001,
+            workflowRunId: '00000000-0000-0000-0000-000000000000', // Fake ID
+            componentRunId: '00000000-0000-0000-0000-000000000001',
+            transcriptPath: '/tmp/test-st323.jsonl',
+            content: JSON.stringify({ test: true, timestamp: Date.now() }),
+            sequenceNumber: 1,
           },
           {
-            id: 9002,
-            type: 'transcript:upload',
-            payload: {
-              workflowRunId: '00000000-0000-0000-0000-000000000000',
-              componentRunId: '00000000-0000-0000-0000-000000000001',
-              transcriptPath: '/tmp/test-st323-2.jsonl',
-              content: JSON.stringify({ test: true, timestamp: Date.now() + 1 }),
-              agentId: 'st323-e2e-test'
-            }
+            queueId: 9002,
+            workflowRunId: '00000000-0000-0000-0000-000000000000',
+            componentRunId: '00000000-0000-0000-0000-000000000001',
+            transcriptPath: '/tmp/test-st323-2.jsonl',
+            content: JSON.stringify({ test: true, timestamp: Date.now() + 1 }),
+            sequenceNumber: 2,
           }
         ]
       };

@@ -10,8 +10,8 @@
  */
 
 import { Logger } from '@nestjs/common';
-import { Job } from 'bull';
 import { PrismaClient } from '@prisma/client';
+import { Job } from 'bull';
 import { TestAnalyzerProcessor } from '../test-analyzer.processor';
 
 describe('TestAnalyzerProcessor', () => {

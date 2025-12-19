@@ -4,9 +4,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { handler } from '../record_component_complete';
 import { ValidationError } from '../../../types';
 import { RemoteRunner } from '../../../utils/remote-runner';
+import { handler } from '../record_component_complete';
 
 // Mock dependencies
 jest.mock('../../../utils/remote-runner');

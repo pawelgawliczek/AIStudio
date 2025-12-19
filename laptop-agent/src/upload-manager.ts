@@ -18,6 +18,7 @@ import { UploadQueue, QueueStats } from './upload-queue';
 
 export interface UploadManagerOptions {
   socket: Socket;
+  agentId: string;
   dbPath?: string;
   flushIntervalMs?: number;
   batchSize?: number;
@@ -30,6 +31,7 @@ export interface UploadManagerOptions {
 export class UploadManager {
   private readonly logger = new Logger('UploadManager');
   private readonly socket: Socket;
+  private readonly agentId: string;
   private readonly queue: UploadQueue;
   private readonly flushIntervalMs: number;
   private readonly batchSize: number;
@@ -42,6 +44,7 @@ export class UploadManager {
 
   constructor(options: UploadManagerOptions) {
     this.socket = options.socket;
+    this.agentId = options.agentId;
     this.flushIntervalMs = options.flushIntervalMs ?? 500;
     this.batchSize = options.batchSize ?? 50;
     this.cleanupIntervalHours = options.cleanupIntervalHours ?? 24;
@@ -87,7 +90,15 @@ export class UploadManager {
       this.isConnected = false;
     });
 
-    // Handle acknowledgements from server
+    // Handle individual item acknowledgements from server
+    this.socket.on('upload:ack:item', (data: { success: boolean; id: number; isDuplicate?: boolean; error?: string }) => {
+      this.handleItemAcknowledgement(data).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error('Failed to handle item acknowledgement', { error: message });
+      });
+    });
+
+    // Handle batch acknowledgements from server
     this.socket.on('upload:ack', (data: { ids: number[] }) => {
       this.handleAcknowledgement(data.ids).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
@@ -152,12 +163,13 @@ export class UploadManager {
 
       this.logger.info('Flushing items', { count: items.length });
 
-      // Emit items to server
+      // Emit items to server with correct payload structure
+      // Backend expects: { agentId, items: [{ queueId, workflowRunId, componentRunId, ... }] }
       this.socket.emit('upload:batch', {
+        agentId: this.agentId,
         items: items.map(item => ({
-          id: item.id,
-          type: item.type,
-          payload: item.payload,
+          queueId: item.id,
+          ...item.payload,
         })),
       });
 
@@ -177,7 +189,35 @@ export class UploadManager {
   }
 
   /**
-   * Handle acknowledgement from server
+   * Handle individual item acknowledgement from server
+   * ST-323: Process individual ACKs and mark items as acked regardless of success/failure
+   */
+  private async handleItemAcknowledgement(data: { success: boolean; id: number; isDuplicate?: boolean; error?: string }): Promise<void> {
+    this.logger.info('Received item acknowledgement', { id: data.id, success: data.success, isDuplicate: data.isDuplicate, error: data.error });
+
+    try {
+      // Mark item as acked regardless of success/failure to prevent infinite retries
+      await this.queue.markAcked(data.id);
+      this.logger.info('Item marked as acked', { id: data.id });
+
+      // ST-322: Emit queue:acked event for UI
+      this.socket.emit('queue:acked', {
+        ids: [data.id],
+        count: 1,
+        timestamp: Date.now(),
+      });
+
+      // ST-322: Emit queue:stats event for monitoring
+      const stats = await this.queue.getStats({ includeTypes: true });
+      this.socket.emit('queue:stats', stats);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error('Failed to mark item as acked', { id: data.id, error: message });
+    }
+  }
+
+  /**
+   * Handle batch acknowledgement from server
    * ST-322: Emit queue:acked and queue:stats events for UI
    */
   private async handleAcknowledgement(ids: number[]): Promise<void> {
@@ -185,7 +225,7 @@ export class UploadManager {
       return;
     }
 
-    this.logger.info('Received acknowledgement', { count: ids.length });
+    this.logger.info('Received batch acknowledgement', { count: ids.length });
 
     try {
       const count = await this.queue.markAckedBatch(ids);

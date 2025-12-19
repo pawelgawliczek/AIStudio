@@ -12,12 +12,12 @@
 import { NotFoundException, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Request, Response } from 'express';
-import { McpHttpController } from '../mcp-http.controller';
-import { McpHttpGateway } from '../mcp-http.gateway';
-import { McpSessionService } from '../mcp-session.service';
 import { McpAuthGuard } from '../guards/mcp-auth.guard';
 import { McpRateLimitGuard } from '../guards/mcp-rate-limit.guard';
 import { ResponseSigningInterceptor } from '../interceptors/response-signing.interceptor';
+import { McpHttpController } from '../mcp-http.controller';
+import { McpHttpGateway } from '../mcp-http.gateway';
+import { McpSessionService } from '../mcp-session.service';
 
 describe('McpHttpController', () => {
   let controller: McpHttpController;

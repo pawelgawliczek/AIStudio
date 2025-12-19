@@ -73,7 +73,7 @@ describe('UploadManager', () => {
 
   describe('Initialization', () => {
     it('should create UploadManager with default options', () => {
-      manager = new UploadManager({ socket: mockSocket });
+      manager = new UploadManager({ socket: mockSocket, agentId: 'test-agent-id' });
 
       expect(manager).toBeDefined();
     });
@@ -81,6 +81,7 @@ describe('UploadManager', () => {
     it('should create UploadQueue with provided dbPath', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -91,6 +92,7 @@ describe('UploadManager', () => {
     it('should use custom flush interval', () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 1000,
       });
@@ -101,6 +103,7 @@ describe('UploadManager', () => {
     it('should use custom batch size', () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         batchSize: 100,
       });
@@ -111,6 +114,7 @@ describe('UploadManager', () => {
     it('should use custom cleanup interval', () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         cleanupIntervalHours: 48,
       });
@@ -121,6 +125,7 @@ describe('UploadManager', () => {
     it('should setup socket event handlers on init', () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -132,6 +137,7 @@ describe('UploadManager', () => {
     it('should start flush loop on init', () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -143,6 +149,7 @@ describe('UploadManager', () => {
     it('should start cleanup loop on init', () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -155,6 +162,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -166,6 +174,7 @@ describe('UploadManager', () => {
     beforeEach(() => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
     });
@@ -234,6 +243,7 @@ describe('UploadManager', () => {
 
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
         });
 
@@ -266,6 +276,7 @@ describe('UploadManager', () => {
 
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
         });
 
@@ -285,6 +296,7 @@ describe('UploadManager', () => {
       it('should handle flush errors on reconnect gracefully', async () => {
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
         });
 
@@ -308,6 +320,7 @@ describe('UploadManager', () => {
 
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
         });
 
@@ -329,6 +342,7 @@ describe('UploadManager', () => {
 
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
           flushIntervalMs: 100,
         });
@@ -358,6 +372,7 @@ describe('UploadManager', () => {
 
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
         });
 
@@ -385,6 +400,7 @@ describe('UploadManager', () => {
       it('should handle empty acknowledgement array', async () => {
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
         });
 
@@ -399,6 +415,7 @@ describe('UploadManager', () => {
       it('should handle acknowledgement errors gracefully', async () => {
         manager = new UploadManager({
           socket: mockSocket,
+          agentId: 'test-agent-id',
           dbPath: testDbPath,
         });
 
@@ -418,6 +435,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 100,
       });
@@ -430,11 +448,11 @@ describe('UploadManager', () => {
       expect(mockSocket.emit).toHaveBeenCalledWith(
         'upload:batch',
         expect.objectContaining({
+          agentId: 'test-agent-id',
           items: expect.arrayContaining([
             expect.objectContaining({
-              id: expect.any(Number),
-              type: 'test',
-              payload: { id: 1 },
+              queueId: expect.any(Number),
+              id: 1,
             }),
           ]),
         })
@@ -446,6 +464,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
         batchSize: 2,
@@ -479,6 +498,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -497,6 +517,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -513,6 +534,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -532,6 +554,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 100,
       });
@@ -555,6 +578,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -567,6 +591,7 @@ describe('UploadManager', () => {
       // Create new manager with same db (simulate error scenario)
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -580,6 +605,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -591,17 +617,16 @@ describe('UploadManager', () => {
 
       await jest.advanceTimersByTimeAsync(600);
 
+      // Verify payload structure matches backend expectations
       expect(mockSocket.emit).toHaveBeenCalledWith(
         'upload:batch',
         expect.objectContaining({
+          agentId: 'test-agent-id',
           items: expect.arrayContaining([
             expect.objectContaining({
-              id: expect.any(Number),
-              type: 'artifact:upload',
-              payload: expect.objectContaining({
-                storyId: 'ST-123',
-                content: 'Test',
-              }),
+              queueId: expect.any(Number),
+              storyId: 'ST-123',
+              content: 'Test',
             }),
           ]),
         })
@@ -613,6 +638,7 @@ describe('UploadManager', () => {
     it('should run cleanup on startup', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -625,6 +651,7 @@ describe('UploadManager', () => {
     it('should run cleanup on interval', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         cleanupIntervalHours: 1,
       });
@@ -639,6 +666,7 @@ describe('UploadManager', () => {
     it('should use custom cleanup interval', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         cleanupIntervalHours: 48,
       });
@@ -650,6 +678,7 @@ describe('UploadManager', () => {
     it('should handle cleanup errors gracefully', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         cleanupIntervalHours: 1,
       });
@@ -669,6 +698,7 @@ describe('UploadManager', () => {
     beforeEach(() => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
     });
@@ -704,6 +734,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 100,
       });
@@ -724,6 +755,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -745,6 +777,7 @@ describe('UploadManager', () => {
     it('should stop cleanup loop', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -757,6 +790,7 @@ describe('UploadManager', () => {
     it('should close queue', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -769,6 +803,7 @@ describe('UploadManager', () => {
     it('should be idempotent', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -789,6 +824,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -804,6 +840,7 @@ describe('UploadManager', () => {
     it('should handle database errors during queue', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -819,6 +856,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -848,6 +886,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -884,6 +923,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -913,6 +953,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
         batchSize: 3,
@@ -943,6 +984,7 @@ describe('UploadManager', () => {
     it('should persist queue across manager restarts', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -954,6 +996,7 @@ describe('UploadManager', () => {
       // Create new manager with same database
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -966,6 +1009,7 @@ describe('UploadManager', () => {
     it('should handle high volume of queue operations', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -985,6 +1029,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 100,
       });
@@ -1009,6 +1054,7 @@ describe('UploadManager', () => {
     it('should handle empty queue stats request', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -1027,6 +1073,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 500,
       });
@@ -1052,6 +1099,7 @@ describe('UploadManager', () => {
 
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         flushIntervalMs: 0,
       });
@@ -1071,6 +1119,7 @@ describe('UploadManager', () => {
       // This is an edge case - batch size 0 should be handled
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
         batchSize: 0,
       });
@@ -1088,6 +1137,7 @@ describe('UploadManager', () => {
     it('should not expose internal queue implementation', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
@@ -1105,6 +1155,7 @@ describe('UploadManager', () => {
     it('should handle malicious payloads safely', async () => {
       manager = new UploadManager({
         socket: mockSocket,
+        agentId: 'test-agent-id',
         dbPath: testDbPath,
       });
 
