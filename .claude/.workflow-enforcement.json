@@ -1,30 +1,28 @@
 {
   "sessions": {
-    "ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7": {
-      "workflowActive": true,
-      "runId": "0c730c67-12bd-4a07-ad48-a06a3385de4a",
-      "currentState": {
-        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
-        "name": "testing",
-        "phase": "agent",
-        "componentName": "Tester",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
-      },
-      "updatedAt": "2025-12-19T10:48:15Z"
-    },
     "a345b8e6-269c-442f-8503-72de03ab7a1e": {
       "workflowActive": true,
       "runId": "692dfb3c-2942-4642-87af-b156e7f19e35",
       "currentState": {
-        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
-        "name": "testing",
-        "phase": "post",
-        "componentName": "Tester",
+        "id": "04e7bd5b-84cb-454b-b43e-1b850f1b0d83",
+        "name": "playwright-verification",
+        "phase": "pre",
+        "componentName": "Playwright Verifier",
         "allowedSubagentTypes": null
       },
-      "updatedAt": "2025-12-19T10:30:39Z"
+      "updatedAt": "2025-12-19T10:51:12Z"
+    },
+    "f9af8ad4-2512-40b7-83cd-469b7d7d6486": {
+      "workflowActive": true,
+      "runId": "00a4c6d5-7856-4427-a347-6afe05ad6790",
+      "currentState": {
+        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
+        "name": "implementation",
+        "phase": "post",
+        "componentName": "Developer",
+        "allowedSubagentTypes": null
+      },
+      "updatedAt": "2025-12-19T11:06:52Z"
     }
   }
 }

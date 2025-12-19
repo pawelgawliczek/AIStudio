@@ -2,7 +2,12 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
+import { TelemetryService } from '../../telemetry/telemetry.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
+import { ArtifactHandler } from '../handlers/artifact.handler';
+import { ClaudeCodeHandler } from '../handlers/claude-code.handler';
+import { GitJobHandler } from '../handlers/git-job.handler';
+import { TranscriptHandler } from '../handlers/transcript.handler';
 import { RemoteAgentGateway } from '../remote-agent.gateway';
 import { StreamEventService } from '../stream-event.service';
 import { TranscriptRegistrationService } from '../transcript-registration.service';
@@ -56,11 +61,52 @@ describe('RemoteAgentGateway', () => {
     },
   };
 
+  const mockTelemetryService = {
+    withSpan: jest.fn((name, fn) => fn({ setAttribute: jest.fn(), recordException: jest.fn() })),
+  };
+
+  const mockArtifactHandler = {
+    setFrontendServer: jest.fn(),
+    handleArtifactUpload: jest.fn(),
+  };
+
+  const mockClaudeCodeHandler = {
+    emitClaudeCodeJob: jest.fn(),
+    handleClaudeCodeProgress: jest.fn(),
+    handleClaudeCodeComplete: jest.fn(),
+    handleClaudeCodePaused: jest.fn(),
+    handleResumeAvailable: jest.fn(),
+    emitAnswerToAgent: jest.fn(),
+  };
+
+  const mockGitJobHandler = {
+    emitGitJob: jest.fn(),
+    handleGitResult: jest.fn(),
+  };
+
+  const mockTranscriptHandler = {
+    setFrontendServer: jest.fn(),
+    handleTranscriptDetected: jest.fn(),
+    handleTranscriptUpload: jest.fn(),
+    handleMasterTranscriptSubscribe: jest.fn(),
+    handleMasterTranscriptUnsubscribe: jest.fn(),
+    handleTranscriptStreamingStarted: jest.fn(),
+    handleTranscriptLines: jest.fn(),
+    handleTranscriptBatch: jest.fn(),
+    handleTranscriptError: jest.fn(),
+    handleTranscriptStreamingStopped: jest.fn(),
+    forwardTailRequestToAgent: jest.fn(),
+    forwardStopTailToAgent: jest.fn(),
+  };
+
   const createMockSocket = (customData: Partial<Socket['data']> = {}): Partial<Socket> => ({
     id: 'socket-123',
     data: {
       ...customData,
     },
+    handshake: {
+      address: '127.0.0.1',
+    } as any,
     emit: jest.fn(),
     disconnect: jest.fn(),
   });
@@ -98,8 +144,28 @@ describe('RemoteAgentGateway', () => {
           useValue: mockTranscriptRegistrationService,
         },
         {
+          provide: TelemetryService,
+          useValue: mockTelemetryService,
+        },
+        {
           provide: AppWebSocketGateway,
           useValue: mockAppWebSocketGateway,
+        },
+        {
+          provide: ArtifactHandler,
+          useValue: mockArtifactHandler,
+        },
+        {
+          provide: ClaudeCodeHandler,
+          useValue: mockClaudeCodeHandler,
+        },
+        {
+          provide: GitJobHandler,
+          useValue: mockGitJobHandler,
+        },
+        {
+          provide: TranscriptHandler,
+          useValue: mockTranscriptHandler,
         },
       ],
     }).compile();

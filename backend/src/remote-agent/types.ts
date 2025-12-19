@@ -158,3 +158,21 @@ export interface ItemAckPayload {
 export interface UploadAckPayload {
   ids: number[];
 }
+
+/**
+ * ST-326: Artifact upload types
+ */
+export interface ArtifactUploadItem {
+  queueId: number;
+  storyKey: string;
+  artifactKey: string;
+  filePath: string;
+  content: string;
+  contentType: string;
+  timestamp: number;
+}
+
+export interface ArtifactUploadBatchPayload {
+  agentId: string;
+  items: ArtifactUploadItem[];
+}

@@ -15,6 +15,7 @@ import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
+import { ArtifactHandler } from './handlers/artifact.handler';
 import { ClaudeCodeHandler } from './handlers/claude-code.handler';
 import { GitJobHandler } from './handlers/git-job.handler';
 import { TranscriptHandler } from './handlers/transcript.handler';
@@ -34,6 +35,7 @@ import { StreamEventService } from './stream-event.service';
 import { TranscriptRegistrationService } from './transcript-registration.service';
 import {
   AgentJob,
+  ArtifactUploadBatchPayload,
   ClaudeCodeJobPayload,
   ClaudeCodeProgressEvent,
   ClaudeCodeCompleteEvent,
@@ -82,6 +84,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     private readonly telemetry: TelemetryService,
     @Inject(forwardRef(() => AppWebSocketGateway))
     private readonly appWebSocketGateway: AppWebSocketGateway,
+    private readonly artifactHandler: ArtifactHandler,
     private readonly claudeCodeHandler: ClaudeCodeHandler,
     private readonly gitJobHandler: GitJobHandler,
     @Inject(forwardRef(() => TranscriptHandler))
@@ -101,11 +104,12 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
   /**
    * ST-284: Initialize handlers after gateway is ready
-   * Inject frontend server reference to TranscriptHandler to avoid circular dependency
+   * ST-326: Inject frontend server reference to handlers to avoid circular dependency
    */
   afterInit(): void {
+    this.artifactHandler.setFrontendServer(this.appWebSocketGateway.server);
     this.transcriptHandler.setFrontendServer(this.appWebSocketGateway.server);
-    this.logger.log('[ST-284] Gateway initialized, frontend server injected into TranscriptHandler');
+    this.logger.log('[ST-284] Gateway initialized, frontend server injected into handlers');
   }
 
   /**
@@ -550,5 +554,52 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     client.emit('upload:ack', batchAck);
 
     this.logger.log(`[ST-323] Batch upload complete: ${successfulIds.length}/${items.length} items uploaded`);
+  }
+
+  // ===========================================================================
+  // ST-326: Artifact Upload Handler with ACK callbacks
+  // ===========================================================================
+
+  /**
+   * ST-326: Handle batch upload of artifact items from laptop agent
+   * Processes items sequentially and sends individual ACK callbacks for each item
+   * Also sends a batch ACK with all successfully processed IDs
+   */
+  @SubscribeMessage('artifact:upload')
+  async handleArtifactUpload(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: ArtifactUploadBatchPayload,
+  ): Promise<void> {
+    const { agentId, items } = data;
+    const { agentId: clientAgentId } = client.data;
+
+    // Verify agent ID matches
+    if (clientAgentId !== agentId) {
+      this.logger.error(`[ST-326] Agent ID mismatch: client=${clientAgentId}, payload=${agentId}`);
+      return;
+    }
+
+    this.logger.log(`[ST-326] Processing artifact upload batch: ${items.length} items from agent ${agentId}`);
+
+    const successfulIds: number[] = [];
+
+    // Process each item sequentially with individual ACK callbacks
+    for (const item of items) {
+      await this.artifactHandler.handleArtifactUpload(item, (ack) => {
+        // Send individual ACK via callback pattern
+        client.emit('upload:ack:item', ack);
+
+        // Track successful uploads for batch ACK
+        if (ack.success && !ack.isDuplicate) {
+          successfulIds.push(ack.id);
+        }
+      });
+    }
+
+    // Send batch ACK with all successful IDs
+    const batchAck: UploadAckPayload = { ids: successfulIds };
+    client.emit('upload:ack', batchAck);
+
+    this.logger.log(`[ST-326] Artifact batch upload complete: ${successfulIds.length}/${items.length} items uploaded`);
   }
 }

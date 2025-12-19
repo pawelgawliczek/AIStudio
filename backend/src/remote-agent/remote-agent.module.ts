@@ -5,6 +5,7 @@ import { setRemoteExecutionService } from '../mcp/servers/git/git_utils';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TelemetryModule } from '../telemetry/telemetry.module';
 import { WebSocketModule } from '../websocket/websocket.module';
+import { ArtifactHandler } from './handlers/artifact.handler';
 import { ClaudeCodeHandler } from './handlers/claude-code.handler';
 import { GitJobHandler } from './handlers/git-job.handler';
 import { TranscriptHandler } from './handlers/transcript.handler';
@@ -51,6 +52,7 @@ import { TranscriptRegistrationService } from './transcript-registration.service
     StreamEventService,
     OrphanDetectorService,
     TranscriptRegistrationService,
+    ArtifactHandler, // ST-326: Add artifact upload handler
     ClaudeCodeHandler,
     GitJobHandler,
     TranscriptHandler,
