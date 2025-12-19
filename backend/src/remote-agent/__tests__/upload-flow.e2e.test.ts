@@ -105,6 +105,7 @@ describe('Upload Flow E2E', () => {
       id: 'socket-e2e-123',
       emit: jest.fn((event: string, data: unknown) => {
         emittedEvents.push({ event, data });
+        return true;
       }),
       data: { agentId: 'test-agent-e2e' },
       join: jest.fn(),
@@ -121,8 +122,7 @@ describe('Upload Flow E2E', () => {
     // Create test project
     const project = await prisma.project.create({
       data: {
-        name: 'E2E Test Project',
-        key: 'E2E',
+        name: 'E2E Test Project Upload Flow',
         description: 'Test project for E2E upload tests',
       },
     });
@@ -130,10 +130,12 @@ describe('Upload Flow E2E', () => {
     // Create test story
     const story = await prisma.story.create({
       data: {
-        title: 'E2E Test Story',
+        key: 'E2E-UPL-1',
+        title: 'E2E Test Story Upload',
         projectId: project.id,
         type: 'feature',
-        status: 'impl',
+        status: 'implementation',
+        createdById: '00000000-0000-0000-0000-000000000001', // System user
       },
     });
     testStoryId = story.id;
@@ -143,8 +145,7 @@ describe('Upload Flow E2E', () => {
       data: {
         name: 'E2E Test Workflow',
         projectId: project.id,
-        triggerType: 'manual',
-        isActive: true,
+        triggerConfig: { type: 'manual' },
       },
     });
     testWorkflowId = workflow.id;
@@ -164,12 +165,13 @@ describe('Upload Flow E2E', () => {
     // Create test component
     const component = await prisma.component.create({
       data: {
-        workflowId: workflow.id,
+        projectId: project.id,
         name: 'E2E Test Component',
-        type: 'coordinator',
-        model: 'claude-sonnet-4-20250514',
-        instructions: 'Test instructions',
-        order: 1,
+        inputInstructions: 'Test input',
+        operationInstructions: 'Test operation',
+        outputInstructions: 'Test output',
+        config: { modelId: 'claude-sonnet-4-20250514' },
+        tools: [],
       },
     });
     testComponentId = component.id;
@@ -177,11 +179,12 @@ describe('Upload Flow E2E', () => {
     // Create workflow run
     const workflowRun = await prisma.workflowRun.create({
       data: {
+        projectId: project.id,
         workflowId: workflow.id,
         storyId: story.id,
         status: 'running',
         triggeredBy: 'e2e-test',
-        context: {} as Prisma.InputJsonValue,
+        startedAt: new Date(),
       },
     });
     testWorkflowRunId = workflowRun.id;
@@ -207,7 +210,7 @@ describe('Upload Flow E2E', () => {
     await prisma.artifactDefinition.deleteMany({ where: { id: testArtifactDefId } });
     await prisma.workflow.deleteMany({ where: { id: testWorkflowId } });
     await prisma.story.deleteMany({ where: { id: testStoryId } });
-    await prisma.project.deleteMany({ where: { key: 'E2E' } });
+    await prisma.project.deleteMany({ where: { name: 'E2E Test Project Upload Flow' } });
   }
 
   describe('Complete Upload Flow', () => {
