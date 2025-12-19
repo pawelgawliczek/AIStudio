@@ -509,20 +509,15 @@ Cache Read Tokens: 50
         componentId: 'comp-123',
       });
 
-      expect(mockPrisma.workflowRun.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            totalTokensInput: 3000,
-            totalTokensOutput: 1500,
-            totalTokens: 4500,
-            estimatedCost: 0.15,
-            durationSeconds: 180,
-            totalTurns: 13,
-            totalManualPrompts: 10,
-            totalLocGenerated: 270, // (100-10) + (200-20)
-          }),
-        })
-      );
+      const updateCall = mockPrisma.workflowRun.update.mock.calls[0][0];
+      expect(updateCall.data.totalTokensInput).toBe(3000);
+      expect(updateCall.data.totalTokensOutput).toBe(1500);
+      expect(updateCall.data.totalTokens).toBe(4500);
+      expect(updateCall.data.estimatedCost).toBeCloseTo(0.15, 10);
+      expect(updateCall.data.durationSeconds).toBe(180);
+      expect(updateCall.data.totalTurns).toBe(13);
+      expect(updateCall.data.totalManualPrompts).toBe(10);
+      expect(updateCall.data.totalLocGenerated).toBe(270); // (100-10) + (200-20)
     });
 
     it('should calculate average prompts per component', async () => {

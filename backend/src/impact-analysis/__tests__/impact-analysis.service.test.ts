@@ -5,15 +5,9 @@
 
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { MappingSource } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ImpactAnalysisService } from '../impact-analysis.service';
-
-// Use enum values directly as strings
-const MappingSource = {
-  COMMIT_DERIVED: 'COMMIT_DERIVED',
-  MANUAL: 'MANUAL',
-  AI_INFERRED: 'AI_INFERRED',
-} as const;
 
 describe('ImpactAnalysisService', () => {
   let service: ImpactAnalysisService;

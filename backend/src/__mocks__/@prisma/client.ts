@@ -84,6 +84,12 @@ export const TestQueueStatus = {
   skipped: 'skipped',
 } as const;
 
+export const MappingSource = {
+  COMMIT_DERIVED: 'COMMIT_DERIVED',
+  MANUAL: 'MANUAL',
+  AI_INFERRED: 'AI_INFERRED',
+} as const;
+
 // Type definitions for mock
 interface MockPrismaModel {
   findUnique: jest.Mock;
