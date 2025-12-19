@@ -762,32 +762,49 @@ export class CodeAnalysisProcessor {
       };
     },
     healthScore: number,
-    avgCoverage?: number,
+    weightedCoverage: number,
+    weightedMaintainability: number,
+    weightedComplexity: number,
   ): Promise<void> {
     try {
-      // Calculate tech debt ratio from maintainability index
-      const techDebtRatio = 100 - (stats._avg.maintainabilityIndex || 0);
+      // Calculate tech debt ratio from LOC-weighted maintainability
+      const techDebtRatio = 100 - weightedMaintainability;
 
-      // ST-37 Issue #1: Use provided coverage (from total in coverage file) if available
-      const coverageValue = avgCoverage !== undefined ? avgCoverage : (stats._avg.testCoverage || 0);
+      // Bug 3 Fix: Create date-only key for unique constraint (YYYY-MM-DD)
+      const now = new Date();
+      const dateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      // Create snapshot with current date/time
-      await this.prisma.codeMetricsSnapshot.create({
-        data: {
+      // Bug 3 Fix: Use upsert to prevent multiple snapshots per day
+      await this.prisma.codeMetricsSnapshot.upsert({
+        where: {
+          projectId_snapshotDate: {
+            projectId,
+            snapshotDate: dateOnly,
+          },
+        },
+        create: {
           projectId,
-          snapshotDate: new Date(),
+          snapshotDate: dateOnly,
           totalFiles: stats._count.filePath || 0,
           totalLOC: stats._sum.linesOfCode || 0,
-          avgComplexity: stats._avg.cyclomaticComplexity || 0,
-          avgCoverage: coverageValue,
+          avgComplexity: weightedComplexity,
+          avgCoverage: weightedCoverage,
+          healthScore,
+          techDebtRatio,
+        },
+        update: {
+          totalFiles: stats._count.filePath || 0,
+          totalLOC: stats._sum.linesOfCode || 0,
+          avgComplexity: weightedComplexity,
+          avgCoverage: weightedCoverage,
           healthScore,
           techDebtRatio,
         },
       });
 
-      this.logger.log(`Created code metrics snapshot for project ${projectId}`);
+      this.logger.log(`Created/updated code metrics snapshot for project ${projectId} (date: ${dateOnly.toISOString().split('T')[0]})`);
     } catch (error) {
-      // Log error but don't fail the analysis if snapshot creation fails
+      // Log error but don.t fail the analysis if snapshot creation fails
       this.logger.error(`Failed to create code metrics snapshot for project ${projectId}:`, error);
     }
   }
