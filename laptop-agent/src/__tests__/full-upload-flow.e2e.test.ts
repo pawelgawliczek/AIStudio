@@ -156,20 +156,17 @@ describe('Full Upload Flow E2E', () => {
     expect(stats1.acked).toBe(0);
     console.log(`  ✅ Item queued (pending: ${stats1.pending})`);
 
-    // Step 2: Wait for flush (automatic via UploadManager)
-    console.log('  ⏳ Step 2: Waiting for flush...');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Step 2: Wait for flush and ACK (automatic via UploadManager)
+    // Note: Production backend responds very fast, so item may already be acked
+    console.log('  ⏳ Step 2: Waiting for flush and ACK...');
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
-    // Verify item was sent
+    // Verify item was processed (sent or already acked due to fast backend response)
     const stats2 = await uploadQueue.getStats();
     expect(stats2.pending).toBe(0);
-    expect(stats2.sent).toBe(1);
-    expect(stats2.acked).toBe(0);
-    console.log(`  ✅ Item sent (sent: ${stats2.sent})`);
-
-    // Step 3: Wait for ACK from backend
-    console.log('  ⏳ Step 3: Waiting for ACK...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Item is either sent (waiting for ACK) or already acked (fast response)
+    expect(stats2.sent + stats2.acked).toBeGreaterThan(0);
+    console.log(`  ✅ Item processed (sent: ${stats2.sent}, acked: ${stats2.acked})`);
 
     // Verify we received individual ACK (even if it's an error ACK)
     expect(receivedItemAcks.length).toBeGreaterThan(0);
@@ -203,6 +200,11 @@ describe('Full Upload Flow E2E', () => {
 
   it('should handle multiple items in a single batch', async () => {
     console.log('\n🧪 Test: Batch processing');
+
+    // Get initial acked count (items from previous tests persist in queue)
+    const initialStats = await uploadQueue.getStats();
+    const initialAcked = initialStats.acked;
+    console.log(`  📊 Initial state: acked=${initialAcked}`);
 
     // Setup: Track ACKs
     const itemAcks: Array<{ success: boolean; id: number }> = [];
@@ -256,10 +258,10 @@ describe('Full Upload Flow E2E', () => {
     expect(batchAcks.length).toBeGreaterThan(0);
     console.log(`  ✅ Received batch ACK`);
 
-    // Verify queue cleared
+    // Verify queue cleared (check relative to initial count since queue persists)
     const stats2 = await uploadQueue.getStats();
-    expect(stats2.acked).toBe(3);
-    console.log(`  ✅ All items marked as acked`);
+    expect(stats2.acked).toBe(initialAcked + 3);
+    console.log(`  ✅ All items marked as acked (acked: ${stats2.acked}, added: ${stats2.acked - initialAcked})`);
 
     // Cleanup listeners
     socket.off('upload:ack:item', itemAckHandler);
