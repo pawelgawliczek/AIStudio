@@ -168,8 +168,8 @@ export class UploadManager {
       this.socket.emit('upload:batch', {
         agentId: this.agentId,
         items: items.map(item => ({
-          queueId: item.id,
           ...item.payload,
+          queueId: item.id, // Override any queueId in payload with actual queue ID
         })),
       });
 

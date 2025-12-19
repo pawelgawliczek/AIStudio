@@ -105,18 +105,24 @@ export class CodeMetricsService {
     let coverageGenerated = false;
 
     // Bug 5 Fix: Optionally run tests with coverage before analysis
-    if (options?.runCoverage && project.localPath) {
+    // ST-359: Use mounted project path, not /app (which lacks dev dependencies)
+    const PROJECT_ROOT = process.env.PROJECT_PATH || '/opt/stack/AIStudio';
+    if (options?.runCoverage) {
       try {
-        this.logger.log(`Running tests with coverage for project ${projectId} before analysis...`);
-        
+        this.logger.log(`Running tests with coverage for project ${projectId} at ${PROJECT_ROOT}...`);
+
         // Execute test command with coverage
         const { exec } = require('child_process');
         const { promisify } = require('util');
         const execAsync = promisify(exec);
-        
-        // Run tests with coverage (assuming Jest/npm test)
-        const testCommand = 'npm run test:coverage';
-        await execAsync(`cd "${project.localPath}" && ${testCommand}`);
+
+        // Run backend tests with coverage from mounted project directory
+        // Uses the full project mount which has dev dependencies via node_modules
+        const testCommand = 'npm run test:cov --workspace=backend';
+        await execAsync(`cd "${PROJECT_ROOT}" && ${testCommand}`, {
+          timeout: 300000, // 5 min timeout
+          maxBuffer: 50 * 1024 * 1024 // 50MB buffer for test output
+        });
         
         coverageGenerated = true;
         this.logger.log(`Coverage generated successfully for project ${projectId}`);
