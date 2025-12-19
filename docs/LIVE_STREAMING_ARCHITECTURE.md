@@ -1,8 +1,8 @@
 # Live Streaming Architecture
 
-**Version:** 1.3
-**Last Updated:** 2025-12-17
-**Epic:** ST-220, ST-242, ST-247, ST-279
+**Version:** 1.4
+**Last Updated:** 2025-12-19
+**Epic:** ST-220, ST-242, ST-247, ST-279, ST-321
 
 ## Table of Contents
 
@@ -12,11 +12,12 @@
 4. [WebSocket Events Reference](#websocket-events-reference)
 5. [Transcript Tracking Lifecycle](#transcript-tracking-lifecycle)
 6. [TranscriptWatcher (Laptop Daemon)](#transcriptwatcher-laptop-daemon)
-7. [Agent Tracking Patterns](#agent-tracking-patterns)
-8. [Telemetry Collection](#telemetry-collection)
-9. [Frontend Components](#frontend-components)
-10. [Security](#security)
-11. [Troubleshooting Guide](#troubleshooting-guide)
+7. [UploadManager (Laptop Daemon)](#uploadmanager-laptop-daemon)
+8. [Agent Tracking Patterns](#agent-tracking-patterns)
+9. [Telemetry Collection](#telemetry-collection)
+10. [Frontend Components](#frontend-components)
+11. [Security](#security)
+12. [Troubleshooting Guide](#troubleshooting-guide)
 
 ---
 
@@ -34,9 +35,10 @@ The Live Streaming system provides real-time visibility into AI agent execution 
 ### System Components
 
 1. **Laptop Agent** (`vibestudio-agent.sh`): Runs on developer's machine, monitors transcript files
-2. **RemoteAgentGateway** (`/remote-agent` namespace): Receives events from laptop agent
-3. **AppWebSocketGateway** (`/` namespace): Broadcasts events to frontend clients
-4. **Frontend Components**: Display live transcript data in the browser
+2. **UploadManager** (ST-321): Orchestrates guaranteed delivery via persistent SQLite queue
+3. **RemoteAgentGateway** (`/remote-agent` namespace): Receives events from laptop agent
+4. **AppWebSocketGateway** (`/` namespace): Broadcasts events to frontend clients
+5. **Frontend Components**: Display live transcript data in the browser
 
 ---
 
@@ -50,14 +52,22 @@ The Live Streaming system provides real-time visibility into AI agent execution 
 │  │ Claude Code          │         │ vibestudio-agent.sh         │  │
 │  │ (Master Session)     │──writes→│ - Watch transcripts (ST-170)│  │
 │  │                      │         │ - Tail files (chokidar)     │  │
-│  │ ~/.claude/sessions/  │         │ - Send via WebSocket        │  │
+│  │ ~/.claude/sessions/  │         │ - Queue via UploadManager   │  │
 │  │   session-123.jsonl  │         └────────────┬────────────────┘  │
 │  └──────────────────────┘                      │                    │
-│                                                 │ WebSocket          │
-└─────────────────────────────────────────────────┼────────────────────┘
-                                                  │
-                                                  │ emit('transcript:lines')
-                                                  ▼
+│                                                 │                    │
+│  ┌──────────────────────────────────────────────▼─────────────────┐ │
+│  │ UploadManager (ST-321)                                         │ │
+│  │ - Persistent SQLite queue (~/.vibestudio/upload-queue.db)     │ │
+│  │ - 500ms flush loop, 50-item batches                           │ │
+│  │ - Reconnect handling (flush on connect)                       │ │
+│  │ - Daily cleanup of acked items                                │ │
+│  └────────────────────────────────┬───────────────────────────────┘ │
+│                                   │ WebSocket                       │
+└───────────────────────────────────┼─────────────────────────────────┘
+                                    │
+                                    │ emit('upload:batch')
+                                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Backend (KVM Server)                                                │
 │                                                                      │
@@ -791,6 +801,260 @@ launchctl load ~/Library/LaunchAgents/cloud.pawelgawliczek.vibestudio-agent.plis
 
 ---
 
+## UploadManager (Laptop Daemon)
+
+The UploadManager is an orchestration layer on the laptop that provides guaranteed delivery of artifacts and transcripts via a persistent SQLite queue.
+
+**Location:** `laptop-agent/src/upload-manager.ts`
+
+### Overview
+
+UploadManager wraps the UploadQueue (ST-320) and provides a high-level interface for watchers to queue items for upload. It handles the flush loop, reconnection logic, and cleanup automatically.
+
+**Key Features:**
+- **Persistent Queue**: SQLite-backed queue survives restarts and network failures
+- **Automatic Flush**: 500ms interval with 50-item batch limit
+- **Reconnect Handling**: Flushes immediately when socket reconnects
+- **Daily Cleanup**: Removes acknowledged items older than 7 days
+- **Queue Statistics**: Real-time stats on pending/sent/acked items
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Laptop (Developer Machine)                                    │
+│                                                                │
+│  ┌──────────────────┐                                         │
+│  │ TranscriptWatcher│                                         │
+│  │ ArtifactWatcher  │                                         │
+│  └────────┬─────────┘                                         │
+│           │ queueUpload(type, payload)                        │
+│           ▼                                                    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ UploadManager (ST-321)                               │    │
+│  │                                                      │    │
+│  │  Constructor:                                        │    │
+│  │   - Creates UploadQueue with dbPath                 │    │
+│  │   - Starts flush loop (500ms interval)              │    │
+│  │   - Starts cleanup loop (24h interval)              │    │
+│  │   - Sets up socket event handlers                   │    │
+│  │                                                      │    │
+│  │  Public Methods:                                     │    │
+│  │   - queueUpload(type, payload)                      │    │
+│  │   - getStats() → { pending, sent, acked, total }    │    │
+│  │   - stop() → cleanup timers and close queue         │    │
+│  │                                                      │    │
+│  │  Private Methods:                                    │    │
+│  │   - flush() → send batches to server                │    │
+│  │   - handleAcknowledgement(ids) → mark items acked   │    │
+│  │   - cleanup() → remove old acked items              │    │
+│  └──────────────────┬───────────────────────────────────┘    │
+│                     │                                         │
+│                     │ Uses                                    │
+│                     ▼                                         │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ UploadQueue (ST-320)                                 │    │
+│  │ - SQLite persistence (~/.vibestudio/upload-queue.db)│    │
+│  │ - enqueue(item)                                      │    │
+│  │ - getPendingItems(limit)                            │    │
+│  │ - markSent(id)                                       │    │
+│  │ - markAckedBatch(ids)                               │    │
+│  │ - cleanupAcked(olderThanDays)                       │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Queue Lifecycle
+
+```
+1. Watcher queues item
+   └─ uploadManager.queueUpload('artifact:upload', { storyId, content })
+      └─ UploadQueue.enqueue() → status: 'pending'
+
+2. Flush loop (every 500ms)
+   └─ UploadManager.flush()
+      ├─ UploadQueue.getPendingItems(limit: 50)
+      ├─ socket.emit('upload:batch', { items })
+      └─ UploadQueue.markSent(id) → status: 'sent'
+
+3. Server processes batch
+   └─ Server emits 'upload:ack' with processed IDs
+
+4. UploadManager receives acknowledgement
+   └─ UploadManager.handleAcknowledgement(ids)
+      └─ UploadQueue.markAckedBatch(ids) → status: 'acked'
+
+5. Daily cleanup (every 24h)
+   └─ UploadManager.cleanup()
+      └─ UploadQueue.cleanupAcked(olderThanDays: 7) → DELETE
+```
+
+### Configuration
+
+```typescript
+const uploadManager = new UploadManager({
+  socket: Socket;                    // Socket.io client
+  dbPath?: string;                   // Default: ~/.vibestudio/upload-queue.db
+  flushIntervalMs?: number;          // Default: 500ms
+  batchSize?: number;                // Default: 50 items
+  cleanupIntervalHours?: number;     // Default: 24 hours
+});
+```
+
+### WebSocket Events
+
+**Emitted to Backend:**
+
+```typescript
+// Batch upload (from flush loop)
+socket.emit('upload:batch', {
+  items: Array<{
+    id: number;                      // Queue item ID
+    type: string;                    // e.g., 'artifact:upload', 'transcript:upload'
+    payload: object;                 // Type-specific payload
+  }>;
+});
+```
+
+**Received from Backend:**
+
+```typescript
+// Acknowledgement from server
+socket.on('upload:ack', (data: { ids: number[] }) => {
+  // UploadManager marks items as acknowledged
+});
+```
+
+### Reconnection Handling
+
+UploadManager automatically handles WebSocket reconnections:
+
+```typescript
+// On disconnect
+socket.on('disconnect', () => {
+  // Flush loop continues but skips sending (isConnected = false)
+  // Items remain in queue with status 'pending' or 'sent'
+});
+
+// On reconnect
+socket.on('connect', () => {
+  // Immediately flush all pending items
+  // Items with status 'sent' are re-sent (idempotent on server)
+});
+```
+
+**Why this works:**
+- Pending items are re-sent on reconnect
+- Sent items (not yet acked) are also re-sent
+- Server handles duplicate uploads via idempotency keys or deduplication
+- No data loss during network failures
+
+### Usage Example
+
+```typescript
+// In vibestudio-agent.sh
+import { UploadManager } from './upload-manager';
+import { io } from 'socket.io-client';
+
+const socket = io('wss://api.vibestudio.ai', { /* auth */ });
+const uploadManager = new UploadManager({ socket });
+
+// Queue artifact upload
+await uploadManager.queueUpload('artifact:upload', {
+  storyId: 'ST-123',
+  definitionKey: 'ARCH_DOC',
+  content: 'Architecture document content...',
+});
+
+// Queue transcript upload
+await uploadManager.queueUpload('transcript:upload', {
+  sessionId: 'session-123',
+  lines: [/* JSONL lines */],
+});
+
+// Get queue statistics
+const stats = await uploadManager.getStats();
+console.log(stats); // { pending: 10, sent: 5, acked: 100, total: 115 }
+
+// Cleanup on shutdown
+await uploadManager.stop();
+```
+
+### Error Handling
+
+**Queue Errors:**
+- Duplicate content detection (via content hash)
+- Database errors (SQLite busy, locked)
+- Throws errors to caller
+
+**Flush Errors:**
+- Network failures during emit (silent, retries on next flush)
+- Database errors during markSent (logged, continues)
+- Socket emit errors (logged, continues)
+
+**Acknowledgement Errors:**
+- Invalid IDs in ack response (logged, continues)
+- Database errors during markAcked (logged, continues)
+
+**Cleanup Errors:**
+- Database errors during cleanup (logged, continues)
+
+### Performance Characteristics
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Flush Interval** | 500ms | Configurable via `flushIntervalMs` |
+| **Batch Size** | 50 items | Configurable via `batchSize` |
+| **Queue Throughput** | ~6,000 items/min | 50 items × 120 flushes/min |
+| **Cleanup Interval** | 24 hours | Configurable via `cleanupIntervalHours` |
+| **Retention** | 7 days | Acked items older than 7 days are deleted |
+| **Concurrent Flushes** | 1 | Prevents race conditions via `isFlushing` flag |
+
+### Troubleshooting
+
+**Problem: Items stuck in 'sent' status**
+
+**Diagnosis:**
+```bash
+# Check queue stats
+sqlite3 ~/.vibestudio/upload-queue.db "SELECT status, COUNT(*) FROM queue GROUP BY status;"
+```
+
+**Solution:**
+- Items in 'sent' status indicate server has not acknowledged them
+- Check backend logs for processing errors
+- Items will be re-sent on next reconnect
+
+**Problem: Queue growing indefinitely**
+
+**Diagnosis:**
+```bash
+# Check total queue size
+sqlite3 ~/.vibestudio/upload-queue.db "SELECT COUNT(*) FROM queue;"
+```
+
+**Solution:**
+- Verify server is sending acknowledgements (`upload:ack` events)
+- Check cleanup is running (logs should show daily cleanup)
+- Manually cleanup old items if needed:
+  ```typescript
+  await uploadManager.cleanup();
+  ```
+
+**Problem: High memory usage**
+
+**Diagnosis:**
+- Large batch size with large payloads
+- Too many pending items
+
+**Solution:**
+- Reduce `batchSize` configuration
+- Reduce payload sizes (e.g., chunk large transcripts)
+- Increase flush interval to reduce memory pressure
+
+---
+
 ## Agent Tracking Patterns
 
 ### ComponentRun Lifecycle
@@ -1207,10 +1471,22 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
 - **ST-233**: Live Streaming Architecture Simplification (relay pattern removal)
 - **ST-242**: Telemetry Metrics Fix (centralized pricing, obsolete record_agent_* tools)
 - **ST-247**: Telemetry Sync Fix (metadata path fix, cache token columns, running-workflows.json sync)
+- **ST-320**: UploadQueue Class (SQLite-backed persistent queue)
+- **ST-321**: UploadManager Orchestration (guaranteed delivery via queue)
 
 ---
 
 ## Changelog
+
+### Version 1.4 (2025-12-19)
+- **ST-321**: UploadManager Orchestration - added comprehensive documentation for guaranteed delivery system
+- Added new UploadManager (Laptop Daemon) section covering:
+  - Architecture and queue lifecycle
+  - Configuration and WebSocket events
+  - Reconnection handling and error handling
+  - Performance characteristics and troubleshooting
+- Updated architecture diagram to include UploadManager component
+- Updated Table of Contents and References
 
 ### Version 1.3 (2025-12-17)
 - **ST-279**: Living Documentation System - integrated this architecture doc into core docs

@@ -687,6 +687,7 @@ export class CodeAnalysisProcessor {
         linesOfCode: true,
         maintainabilityIndex: true,
         cyclomaticComplexity: true,
+        testCoverage: true,
       },
     });
 
@@ -703,14 +704,16 @@ export class CodeAnalysisProcessor {
       0
     ) / totalLOC;
 
-    // Calculate overall health score (0-100) using LOC-weighted metrics
-    const maintainability = weightedMaintainability;
-    const complexityPenalty = Math.min(20, weightedComplexity - 10);
-    const smellPenalty = Math.min(20, (stats._sum.codeSmellCount || 0) / 10);
+    // Bug 1 Fix: Calculate LOC-weighted coverage: sum(LOC * coverage) / sum(LOC)
+    const weightedCoverage = allFiles.reduce(
+      (sum, file) => sum + (file.linesOfCode * (file.testCoverage || 0)),
+      0
+    ) / totalLOC;
 
-    const healthScore = Math.max(
-      0,
-      Math.min(100, maintainability - complexityPenalty - smellPenalty),
+    // Bug 2 Fix: Calculate health score using the same weighted component formula as metrics.service.ts
+    const complexityScore = Math.max(0, 100 - (weightedComplexity * 5));
+    const healthScore = Math.round(
+      (complexityScore * 0.3) + (weightedMaintainability * 0.4) + (weightedCoverage * 0.3)
     );
 
     // Log comprehensive metrics
@@ -723,6 +726,7 @@ export class CodeAnalysisProcessor {
     } else {
       this.logger.log(`  - Average coverage: ${(stats._avg.testCoverage || 0).toFixed(2)}%`);
     }
+    this.logger.log(`  - LOC-weighted coverage: ${weightedCoverage.toFixed(2)}%`);
     this.logger.log(`  - Health score: ${healthScore.toFixed(1)}`);
 
     if (deltas) {
@@ -733,9 +737,8 @@ export class CodeAnalysisProcessor {
     }
 
     // ST-18: Create historical snapshot after analysis
-    // ST-37 Issue #1: Use total coverage from coverage file if available (more accurate than file-level average)
-    const coverageToStore = totalCoverage !== undefined && totalCoverage > 0 ? totalCoverage : (stats._avg.testCoverage || 0);
-    await this.createSnapshot(projectId, stats, healthScore, coverageToStore);
+    // Bug 1 Fix: Always use LOC-weighted coverage (not totalCoverage from file)
+    await this.createSnapshot(projectId, stats, healthScore, weightedCoverage, weightedMaintainability, weightedComplexity);
   }
 
   /**
