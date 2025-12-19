@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WorkersService } from '../workers/workers.service';
 import {
@@ -23,6 +23,8 @@ import { TestCoverageService } from './services/test-coverage.service';
  */
 @Injectable()
 export class CodeMetricsService {
+  private readonly logger = new Logger(CodeMetricsService.name);
+
   constructor(
     private prisma: PrismaService,
     private workersService: WorkersService,
@@ -78,11 +80,15 @@ export class CodeMetricsService {
 
   /**
    * Trigger full code analysis for project
+   * Bug 5 Fix: Add option to regenerate coverage before analysis
    */
-  async triggerAnalysis(projectId: string): Promise<{
+  async triggerAnalysis(projectId: string, options?: {
+    runCoverage?: boolean;
+  }): Promise<{
     jobId: string;
     status: string;
     message: string;
+    coverageGenerated?: boolean;
   }> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -96,12 +102,39 @@ export class CodeMetricsService {
       throw new NotFoundException('Project has no repository configured');
     }
 
+    let coverageGenerated = false;
+
+    // Bug 5 Fix: Optionally run tests with coverage before analysis
+    if (options?.runCoverage && project.localPath) {
+      try {
+        this.logger.log(`Running tests with coverage for project ${projectId} before analysis...`);
+        
+        // Execute test command with coverage
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+        
+        // Run tests with coverage (assuming Jest/npm test)
+        const testCommand = 'npm run test:coverage';
+        await execAsync(`cd "${project.localPath}" && ${testCommand}`);
+        
+        coverageGenerated = true;
+        this.logger.log(`Coverage generated successfully for project ${projectId}`);
+      } catch (error) {
+        // Log error but continue with analysis
+        this.logger.warn(`Failed to generate coverage for project ${projectId}: ${(error as Error).message}`);
+      }
+    }
+
     const job = await this.workersService.analyzeProject(projectId);
 
     return {
       jobId: String(job.id),
       status: 'queued',
-      message: 'Code analysis job started',
+      message: coverageGenerated 
+        ? 'Coverage generated and code analysis job started'
+        : 'Code analysis job started',
+      coverageGenerated,
     };
   }
 

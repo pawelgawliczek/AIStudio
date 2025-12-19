@@ -249,6 +249,7 @@ export class MetricsService {
 
   /**
    * Get comparison between current and previous analysis
+   * Bug 4 Fix: Use snapshots table for historical comparison instead of code_metrics
    */
   async getAnalysisComparison(projectId: string): Promise<{
     healthScoreChange: number;
@@ -260,15 +261,14 @@ export class MetricsService {
     qualityImprovement: boolean;
     lastAnalysis?: Date;
   }> {
-    const currentMetrics = await this.getProjectMetrics(projectId, 30);
-
-    const mostRecentMetric = await this.prisma.codeMetrics.findFirst({
+    // Get the two most recent snapshots for comparison
+    const snapshots = await this.prisma.codeMetricsSnapshot.findMany({
       where: { projectId },
-      orderBy: { lastAnalyzedAt: 'desc' },
-      select: { lastAnalyzedAt: true },
+      orderBy: { snapshotDate: 'desc' },
+      take: 2,
     });
 
-    if (!mostRecentMetric) {
+    if (snapshots.length === 0) {
       return {
         healthScoreChange: 0,
         newTests: 0,
@@ -280,22 +280,10 @@ export class MetricsService {
       };
     }
 
-    const currentAnalysisTime = mostRecentMetric.lastAnalyzedAt;
+    const currentSnapshot = snapshots[0];
 
-    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const previousAnalysisMetric = await this.prisma.codeMetrics.findFirst({
-      where: {
-        projectId,
-        lastAnalyzedAt: {
-          lt: currentAnalysisTime,
-          gte: ninetyDaysAgo,
-        },
-      },
-      orderBy: { lastAnalyzedAt: 'desc' },
-      select: { lastAnalyzedAt: true },
-    });
-
-    if (!previousAnalysisMetric) {
+    // If we don't have a previous snapshot, return zero deltas
+    if (snapshots.length < 2) {
       return {
         healthScoreChange: 0,
         newTests: 0,
@@ -304,79 +292,30 @@ export class MetricsService {
         newFiles: 0,
         deletedFiles: 0,
         qualityImprovement: false,
+        lastAnalysis: currentSnapshot.snapshotDate,
       };
     }
 
-    const previousAnalysisTime = previousAnalysisMetric.lastAnalyzedAt;
+    const previousSnapshot = snapshots[1];
 
-    const timeWindow = 5 * 60 * 1000;
-    const previousMetrics = await this.prisma.codeMetrics.findMany({
-      where: {
-        projectId,
-        lastAnalyzedAt: {
-          gte: new Date(previousAnalysisTime.getTime() - timeWindow),
-          lte: new Date(previousAnalysisTime.getTime() + timeWindow),
-        },
-      },
-    });
+    // Calculate deltas from snapshots
+    const healthScoreChange = currentSnapshot.healthScore - previousSnapshot.healthScore;
+    const coverageChange = currentSnapshot.avgCoverage - previousSnapshot.avgCoverage;
+    const complexityChange = currentSnapshot.avgComplexity - previousSnapshot.avgComplexity;
+    const fileCountChange = currentSnapshot.totalFiles - previousSnapshot.totalFiles;
 
-    if (previousMetrics.length === 0) {
-      return {
-        healthScoreChange: 0,
-        newTests: 0,
-        coverageChange: 0,
-        complexityChange: 0,
-        newFiles: 0,
-        deletedFiles: 0,
-        qualityImprovement: false,
-      };
-    }
+    // Calculate new and deleted files
+    const newFiles = fileCountChange > 0 ? fileCountChange : 0;
+    const deletedFiles = fileCountChange < 0 ? Math.abs(fileCountChange) : 0;
 
-    const prevTotalLoc = previousMetrics.reduce((sum, m) => sum + m.linesOfCode, 0);
-    const prevWeightedComplexity = previousMetrics.reduce(
-      (sum, m) => sum + (m.cyclomaticComplexity * m.linesOfCode),
-      0,
-    );
-    const prevWeightedCoverage = previousMetrics.reduce(
-      (sum, m) => sum + ((m.testCoverage || 0) * m.linesOfCode),
-      0,
-    );
-    const prevWeightedMaintainability = previousMetrics.reduce(
-      (sum, m) => sum + (m.maintainabilityIndex * m.linesOfCode),
-      0,
-    );
-
-    const prevAvgComplexity = prevTotalLoc > 0 ? prevWeightedComplexity / prevTotalLoc : 0;
-    const prevAvgCoverage = prevTotalLoc > 0 ? prevWeightedCoverage / prevTotalLoc : 0;
-    const prevAvgMaintainability = prevTotalLoc > 0 ? prevWeightedMaintainability / prevTotalLoc : 0;
-
-    const prevComplexityScore = Math.max(0, 100 - (prevAvgComplexity * 5));
-    const prevHealthScore = Math.round(
-      (prevComplexityScore * 0.3) + (prevAvgMaintainability * 0.4) + (prevAvgCoverage * 0.3)
-    );
-
-    const currentFiles = await this.prisma.codeMetrics.findMany({
-      where: { projectId },
-      select: { filePath: true },
-    });
-
-    const currentFilePaths = new Set(currentFiles.map(f => f.filePath));
-    const prevFilePaths = new Set(previousMetrics.map(f => f.filePath));
-
-    const newFiles = currentFiles.filter(f => !prevFilePaths.has(f.filePath)).length;
-    const deletedFiles = previousMetrics.filter(f => !currentFilePaths.has(f.filePath)).length;
-
+    // Calculate test count change
     const currentTestCount = await this.prisma.testCase.count({ where: { projectId } });
     const previousTestCount = await this.prisma.testCase.count({
       where: {
         projectId,
-        createdAt: { lte: previousAnalysisTime },
+        createdAt: { lte: previousSnapshot.snapshotDate },
       },
     });
-
-    const healthScoreChange = currentMetrics.healthScore.overallScore - prevHealthScore;
-    const coverageChange = currentMetrics.healthScore.coverage - prevAvgCoverage;
-    const complexityChange = currentMetrics.healthScore.complexity - prevAvgComplexity;
 
     return {
       healthScoreChange: Math.round(healthScoreChange * 10) / 10,
@@ -386,7 +325,7 @@ export class MetricsService {
       newFiles,
       deletedFiles,
       qualityImprovement: healthScoreChange > 0,
-      lastAnalysis: previousAnalysisTime,
+      lastAnalysis: previousSnapshot.snapshotDate,
     };
   }
 }
