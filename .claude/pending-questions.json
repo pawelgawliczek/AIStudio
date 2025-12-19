@@ -3168,3 +3168,254 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-19T05:14:28Z",
+  "session_id": "2d6e84c8-0829-419d-a550-f1db0c47ea6b",
+  "run_id": "b49131b2-8d9a-4568-a11a-e3ab4f9c0281",
+  "questions": [
+    {
+      "question": "How should test files be handled in LOC metrics?",
+      "header": "Test LOC",
+      "options": [
+        {
+          "label": "Separate display (Recommended)",
+          "description": "Show 'Source LOC: 80k' and 'Test LOC: 48k' separately. Tests still analyzed but not mixed with source metrics."
+        },
+        {
+          "label": "Exclude completely",
+          "description": "Remove test files from all metrics and analysis. Only analyze production source code."
+        },
+        {
+          "label": "Include in total",
+          "description": "Keep current behavior but fix other bugs. Total LOC includes everything."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What config file types should be excluded from analysis?",
+      "header": "Config files",
+      "options": [
+        {
+          "label": "All config patterns (Recommended)",
+          "description": "Exclude jest.config.*, vitest.config.*, webpack.config.*, .eslintrc.*, babel.config.*, tsconfig.*, etc."
+        },
+        {
+          "label": "Just JSON configs",
+          "description": "Remove .json from allowed extensions. Keep .js/.ts config files but they'll be analyzed as source."
+        },
+        {
+          "label": "Specific whitelist",
+          "description": "I'll provide a specific list of config files to exclude."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "For test coverage, what should happen if no coverage file exists?",
+      "header": "Coverage fallback",
+      "options": [
+        {
+          "label": "Show 0% with warning (Recommended)",
+          "description": "Display 0% coverage with a warning message: 'Run tests with --coverage to see coverage data'"
+        },
+        {
+          "label": "Hide coverage metric",
+          "description": "Don't display coverage at all if no coverage file found"
+        },
+        {
+          "label": "Use database fallback",
+          "description": "Fall back to CodeMetrics.testCoverage values even if potentially stale"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-19T05:18:56Z",
+  "session_id": "2d6e84c8-0829-419d-a550-f1db0c47ea6b",
+  "run_id": "b49131b2-8d9a-4568-a11a-e3ab4f9c0281",
+  "questions": [
+    {
+      "question": "Which workflow should we use for ST-318?",
+      "header": "Workflow",
+      "options": [
+        {
+          "label": "With Approved Plan (Recommended)",
+          "description": "Skips exploration/planning since we have THE_PLAN artifact. Goes directly to: arch-review → approval → testing → implementation → review → playwright"
+        },
+        {
+          "label": "Simplified Dev Workflow",
+          "description": "5 states: exploration → implementation → testing → playwright → docs. Best for simpler changes."
+        },
+        {
+          "label": "Standard Dev Workflow",
+          "description": "Full 9-state workflow with exploration and planning phases. Would duplicate the analysis we already did."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-19T05:40:20Z",
+  "session_id": "e1b6e203-7658-4220-a208-9deeaacc3faa",
+  "run_id": "b49131b2-8d9a-4568-a11a-e3ab4f9c0281",
+  "questions": [
+    {
+      "question": "For the menu bar app, would you prefer Electron (using menubar npm package, faster to build, consistent with existing TypeScript codebase) or native Swift (better performance, smaller footprint, more macOS-native)?",
+      "header": "Menu Bar Tech",
+      "options": [
+        {
+          "label": "Electron/menubar",
+          "description": "Faster development, reuses existing TypeScript/React patterns. ~50MB app size."
+        },
+        {
+          "label": "Native Swift",
+          "description": "Better performance, smaller size (~5MB), more native feel. Requires Swift knowledge."
+        },
+        {
+          "label": "Tauri",
+          "description": "Rust-based alternative to Electron. Smaller size, better performance than Electron."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Where should the exchange files be stored for agent-to-laptop communication?",
+      "header": "Exchange Path",
+      "options": [
+        {
+          "label": ".claude/exchange/",
+          "description": "Inside project's .claude directory. Project-scoped, gitignored."
+        },
+        {
+          "label": "~/.vibestudio/exchange/",
+          "description": "User home directory. Global scope, shared across projects."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What should we prioritize in the first implementation phase?",
+      "header": "Priority",
+      "options": [
+        {
+          "label": "Decoupling first",
+          "description": "Fix the timeout issue first. Menu bar app comes later."
+        },
+        {
+          "label": "Menu bar app first",
+          "description": "Build the UI first, then integrate the exchange mechanism."
+        },
+        {
+          "label": "Parallel tracks",
+          "description": "Work on both simultaneously in separate stories."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-19T06:18:46Z",
+  "session_id": "e1b6e203-7658-4220-a208-9deeaacc3faa",
+  "run_id": "b49131b2-8d9a-4568-a11a-e3ab4f9c0281",
+  "questions": [
+    {
+      "question": "Should stuck 'sent' items auto-retry after a timeout? (e.g., 30s without ACK → re-queue)",
+      "header": "Retry Logic",
+      "options": [
+        {
+          "label": "Yes, auto-retry after 30s",
+          "description": "Automatic retry with exponential backoff. Prevents items from being stuck forever."
+        },
+        {
+          "label": "Yes, but longer (5 min)",
+          "description": "More conservative retry to avoid flooding during outages."
+        },
+        {
+          "label": "No, manual retry only",
+          "description": "Admin must manually trigger retries. Simpler but requires intervention."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How long should TranscriptLine records be kept? This table will grow large.",
+      "header": "Retention",
+      "options": [
+        {
+          "label": "Delete when workflow completes",
+          "description": "Clean up immediately. Frontend can't view historical transcripts."
+        },
+        {
+          "label": "Keep for 7 days",
+          "description": "Balance between history and storage. Good for debugging."
+        },
+        {
+          "label": "Keep for 30 days",
+          "description": "Longer history but more storage. Better for auditing."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should ArtifactWatcher support binary files (images, diagrams)?",
+      "header": "Binary Files",
+      "options": [
+        {
+          "label": "Yes, full binary support",
+          "description": "Watch for .png, .jpg, .pdf, .svg. More complex but complete."
+        },
+        {
+          "label": "Text only for now",
+          "description": "Only .md, .json, .txt. Simpler, can add binary later."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should we evaluate Tauri instead of Electron for the menu bar app?",
+      "header": "Menu Bar Tech",
+      "options": [
+        {
+          "label": "Stick with Electron",
+          "description": "Stories already created. Faster to implement with existing React/TS skills."
+        },
+        {
+          "label": "Evaluate Tauri first",
+          "description": "~5MB vs ~100MB. Better performance. Worth a spike before committing."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-19T06:21:09Z",
+  "session_id": "e1b6e203-7658-4220-a208-9deeaacc3faa",
+  "run_id": "b49131b2-8d9a-4568-a11a-e3ab4f9c0281",
+  "questions": [
+    {
+      "question": "Should I create the additional stories and update the menu bar stories to Tauri?",
+      "header": "Next Action",
+      "options": [
+        {
+          "label": "Yes, create all",
+          "description": "Exit plan mode. Create 10 new stories + update 9 menu bar stories to Tauri."
+        },
+        {
+          "label": "Just the high priority stories",
+          "description": "Exit plan mode. Create only the 6 high priority gap stories. Keep menu bar as-is for now."
+        },
+        {
+          "label": "Done for now",
+          "description": "Exit plan mode. Analysis is documented. We'll address gaps later."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

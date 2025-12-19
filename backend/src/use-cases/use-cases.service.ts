@@ -9,9 +9,9 @@ import {
   LinkUseCaseToStoryDto,
   UseCaseResponse,
 } from './dto';
-import { normalizeArea, findSimilarAreas, SimilarAreaMatch } from './taxonomy.util';
 import { UseCasesCrudService } from './services/use-cases-crud.service';
 import { UseCasesSearchService } from './services/use-cases-search.service';
+import { normalizeArea, findSimilarAreas, SimilarAreaMatch } from './taxonomy.util';
 
 /**
  * ST-284: Refactored Use Cases Service (Facade)

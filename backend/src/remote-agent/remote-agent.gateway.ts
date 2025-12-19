@@ -15,8 +15,6 @@ import { getErrorMessage } from '../common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
-import { StreamEventService } from './stream-event.service';
-import { TranscriptRegistrationService } from './transcript-registration.service';
 import { ClaudeCodeHandler } from './handlers/claude-code.handler';
 import { GitJobHandler } from './handlers/git-job.handler';
 import { TranscriptHandler } from './handlers/transcript.handler';
@@ -32,6 +30,8 @@ import {
   handleAgentResult as handleAgentResultUtil,
   handleDisconnectLogic,
 } from './remote-agent.utils';
+import { StreamEventService } from './stream-event.service';
+import { TranscriptRegistrationService } from './transcript-registration.service';
 import {
   AgentJob,
   ClaudeCodeJobPayload,

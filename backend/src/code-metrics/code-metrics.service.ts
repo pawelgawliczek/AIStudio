@@ -12,9 +12,9 @@ import {
 } from './dto';
 import { QueryMetricsDto, GetHotspotsDto } from './dto/query-metrics.dto';
 import { RecentAnalysesResponseDto } from './dto/recent-analysis.dto';
-import { MetricsService } from './services/metrics.service';
-import { FileDetailService } from './services/file-detail.service';
 import { AnalysisService } from './services/analysis.service';
+import { FileDetailService } from './services/file-detail.service';
+import { MetricsService } from './services/metrics.service';
 import { TestCoverageService } from './services/test-coverage.service';
 
 /**

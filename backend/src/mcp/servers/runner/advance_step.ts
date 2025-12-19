@@ -24,7 +24,6 @@ import {
 } from '../../shared/agent-tracking';
 import { resolveRunId } from '../../shared/resolve-identifiers';
 import { deriveSubagentType, buildTaskPrompt } from '../../shared/task-prompt-builder';
-import { RemoteRunner } from '../../utils/remote-runner';
 import {
   buildPhaseInstructions,
   buildCommitInstruction,

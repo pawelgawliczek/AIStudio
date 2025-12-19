@@ -42,9 +42,9 @@
 import * as crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { ValidationError, NotFoundError } from '../../../types';
+import { handler as uploadArtifact } from '../create_artifact';
 import { handler as getArtifact } from '../get_artifact';
 import { handler as listArtifacts } from '../list_artifacts';
-import { handler as uploadArtifact } from '../create_artifact';
 
 // Mock Prisma
 const mockPrisma = {

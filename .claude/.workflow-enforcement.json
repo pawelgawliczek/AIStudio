@@ -1,1 +1,30 @@
-{"sessions":{}}
+{
+  "sessions": {
+    "2d6e84c8-0829-419d-a550-f1db0c47ea6b": {
+      "workflowActive": true,
+      "runId": "abf3dd1b-ca08-4c84-a0a3-c9dc143a018a",
+      "currentState": {
+        "id": "448a3025-43ec-4caa-9c9e-292f93291dd0",
+        "name": "architecture-review",
+        "phase": "agent",
+        "componentName": "Architect",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-19T05:21:17Z"
+    },
+    "abbac790-04cf-4352-9d56-9ece5462f172": {
+      "workflowActive": true,
+      "runId": "b4f01ce3-b2b7-4392-a3fc-b7bdf5776c06",
+      "currentState": {
+        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
+        "name": "implementation",
+        "phase": "post",
+        "componentName": "Developer",
+        "allowedSubagentTypes": null
+      },
+      "updatedAt": "2025-12-19T06:47:16Z"
+    }
+  }
+}

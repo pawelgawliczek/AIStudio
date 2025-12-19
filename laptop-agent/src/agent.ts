@@ -100,7 +100,7 @@ export class RemoteAgent {
       reconnectionAttempts: this.maxReconnectAttempts,
       reconnectionDelay: this.baseReconnectDelay,
       reconnectionDelayMax: 30000, // 30 seconds
-      timeout: 20000,
+      timeout: 60000, // 60s to handle longer MCP operations
     });
 
     // Setup event handlers

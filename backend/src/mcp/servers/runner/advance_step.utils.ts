@@ -7,12 +7,11 @@
 
 import { PrismaClient } from '@prisma/client';
 import { ComponentSummaryStructured } from '../../../types/component-summary.types';
-import { deriveSubagentType, buildTaskPrompt } from '../../shared/task-prompt-builder';
 import {
   completeAgentTracking,
   generateStructuredSummary,
 } from '../../shared/agent-tracking';
-import { RemoteRunner } from '../../utils/remote-runner';
+import { deriveSubagentType, buildTaskPrompt } from '../../shared/task-prompt-builder';
 
 export interface ComponentData {
   id: string;
@@ -311,96 +310,26 @@ export function handleSkipToState(
 
 /**
  * Sync spawned agent transcripts from laptop to database
- * ST-242: This ensures transcript data is available for telemetry calculation
+ * ST-332: Made no-op to eliminate RemoteRunner timeout risk in advance_step critical path
  *
- * @param prisma Prisma client
- * @param run Workflow run with metadata
- * @returns Promise that resolves when sync is complete (non-fatal failures)
+ * Historical context (ST-242): This function previously synced transcript data for telemetry.
+ * However, RemoteRunner calls introduced timeouts and blocking behavior that degraded
+ * advance_step performance. Transcript syncing is now handled by other mechanisms.
+ *
+ * @param _prisma Prisma client (unused, kept for backward compatibility)
+ * @param _run Workflow run with metadata (unused, kept for backward compatibility)
+ * @returns Promise that resolves immediately
  */
 export async function syncSpawnedAgentTranscripts(
-  prisma: PrismaClient,
-  run: {
+  _prisma: PrismaClient,
+  _run: {
     id: string;
     metadata: unknown;
   }
 ): Promise<void> {
-  const runMetadata = run.metadata as Record<string, unknown> | null;
-  try {
-    const transcriptTracking = runMetadata?._transcriptTracking as Record<string, unknown> | null;
-    const masterSessionId = transcriptTracking?.sessionId as string || (runMetadata?.masterSessionId as string) || (runMetadata?.sessionId as string);
-    const cwd = transcriptTracking?.projectPath as string || runMetadata?.cwd as string;
-
-    if (!masterSessionId || !cwd) {
-      return;
-    }
-
-    const runningWorkflowsPath = `${cwd}/.claude/running-workflows.json`;
-    const remoteRunner = new RemoteRunner();
-
-    try {
-      const readResult = await remoteRunner.execute('read-file', [
-        `--path=${runningWorkflowsPath}`,
-      ]);
-
-      if (readResult.success && readResult.result) {
-        const resultData = readResult.result as Record<string, unknown>;
-        // read-file returns { content, size, path }
-        const outputStr = typeof resultData.content === 'string'
-          ? resultData.content
-          : (typeof resultData === 'string' ? resultData : JSON.stringify(resultData));
-
-        // Parse the running-workflows.json content
-        let workflowsData: Record<string, unknown> | null = null;
-        try {
-          workflowsData = JSON.parse(outputStr) as Record<string, unknown>;
-        } catch {
-          console.warn('[advance_step] Failed to parse running-workflows.json content');
-          return;
-        }
-
-        // Extract spawned agent transcripts for this session
-        if (workflowsData) {
-          const sessions = workflowsData.sessions as Record<string, unknown> | undefined;
-          const sessionData = sessions?.[masterSessionId] as Record<string, unknown> | undefined;
-          const localTranscripts = (sessionData?.spawnedAgentTranscripts as Array<{ transcriptPath: string }>) || [];
-
-          if (localTranscripts.length > 0) {
-            // Merge with existing spawnedAgentTranscripts in DB
-            const existingTranscripts = (runMetadata?.spawnedAgentTranscripts as Array<{ transcriptPath: string }>) || [];
-            const existingPaths = new Set(existingTranscripts.map((t) => t.transcriptPath));
-
-            const newTranscripts = localTranscripts.filter(
-              (t) => !existingPaths.has(t.transcriptPath)
-            );
-
-            if (newTranscripts.length > 0) {
-              const mergedTranscripts = [...existingTranscripts, ...newTranscripts];
-
-              // Update workflow run metadata with synced transcripts
-              await prisma.workflowRun.update({
-                where: { id: run.id },
-                data: {
-                  metadata: {
-                    ...(runMetadata || {}),
-                    spawnedAgentTranscripts: mergedTranscripts,
-                  },
-                },
-              });
-
-              console.log(`[advance_step] Synced ${newTranscripts.length} spawned agent transcripts from laptop`);
-            }
-          }
-        }
-      }
-    } catch (syncError) {
-      // Non-fatal - just log and continue
-      const message = syncError instanceof Error ? syncError.message : 'Unknown error';
-      console.warn(`[advance_step] Failed to sync transcripts from laptop: ${message}`);
-    }
-  } catch (syncSetupError) {
-    const message = syncSetupError instanceof Error ? syncSetupError.message : 'Unknown error';
-    console.warn(`[advance_step] Transcript sync setup failed: ${message}`);
-  }
+  // ST-332: No-op - transcript syncing moved out of critical advance_step path
+  // This eliminates RemoteRunner timeout risk while maintaining function signature
+  return Promise.resolve();
 }
 
 /**

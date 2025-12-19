@@ -7,9 +7,9 @@
  * Security: File path validation, extension allowlist, quota enforcement, size limits.
  */
 
+import * as path from 'path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
-import * as path from 'path';
 import {
   UploadArtifactFromBinaryFileParams,
   UploadArtifactFromBinaryFileResponse,

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RecentAnalysisDto, RecentAnalysesResponseDto } from '../dto/recent-analysis.dto';
 import { FolderNodeDto, FolderMetricsDto, CoverageGapDto } from '../dto';
+import { RecentAnalysisDto, RecentAnalysesResponseDto } from '../dto/recent-analysis.dto';
 
 /**
  * ST-37, ST-18: Code Analysis Service

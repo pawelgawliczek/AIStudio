@@ -466,12 +466,22 @@ const CodeQualityDashboard: React.FC = () => {
                   </div>
                   <div className="flex-1 flex items-center justify-start">
                     <p className="text-gray-900 dark:text-white text-4xl font-bold">
-                      {metrics.projectMetrics?.totalFiles ? Math.round(metrics.projectMetrics.totalFiles * 250 / 1000) + 'k' : '128k'}
+                      {metrics.projectMetrics?.totalLoc
+                        ? (metrics.projectMetrics.totalLoc >= 1000
+                            ? Math.round(metrics.projectMetrics.totalLoc / 1000) + 'k'
+                            : metrics.projectMetrics.totalLoc)
+                        : '0'}
                     </p>
                   </div>
-                  <div className="h-8 flex items-center gap-1 text-green-500 text-sm">
-                    <ArrowUpIcon className="w-4 h-4" />
-                    <span>+1.2k</span>
+                  <div className={`h-8 flex items-center gap-1 text-sm ${
+                    (metrics.analysisComparison?.newFiles || 0) - (metrics.analysisComparison?.deletedFiles || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {(metrics.analysisComparison?.newFiles || 0) - (metrics.analysisComparison?.deletedFiles || 0) >= 0 ? (
+                      <ArrowUpIcon className="w-4 h-4" />
+                    ) : (
+                      <ArrowDownIcon className="w-4 h-4" />
+                    )}
+                    <span>{metrics.analysisComparison?.newFiles != null ? `${metrics.analysisComparison.newFiles - (metrics.analysisComparison.deletedFiles || 0) >= 0 ? '+' : ''}${metrics.analysisComparison.newFiles - (metrics.analysisComparison.deletedFiles || 0)} files` : 'No data'}</span>
                   </div>
                 </div>
 
@@ -491,7 +501,9 @@ const CodeQualityDashboard: React.FC = () => {
                     ) : (
                       <ArrowDownIcon className="w-4 h-4" />
                     )}
-                    <span>{(metrics.projectMetrics?.coverage?.weeklyChange || 2)}%</span>
+                    <span>{metrics.analysisComparison?.coverageChange != null
+                      ? `${metrics.analysisComparison.coverageChange >= 0 ? '+' : ''}${metrics.analysisComparison.coverageChange.toFixed(1)}%`
+                      : 'No data'}</span>
                   </div>
                 </div>
 
@@ -505,9 +517,17 @@ const CodeQualityDashboard: React.FC = () => {
                       {Math.round(techDebt * 100) > 999 ? (Math.round(techDebt / 10) / 10).toFixed(1) + 'k' : Math.round(techDebt * 100)}d
                     </p>
                   </div>
-                  <div className="h-8 flex items-center gap-1 text-red-500 text-sm">
-                    <ArrowDownIcon className="w-4 h-4" />
-                    <span>-3d</span>
+                  <div className={`h-8 flex items-center gap-1 text-sm ${
+                    (metrics.analysisComparison?.healthScoreChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {(metrics.analysisComparison?.healthScoreChange || 0) >= 0 ? (
+                      <ArrowUpIcon className="w-4 h-4" />
+                    ) : (
+                      <ArrowDownIcon className="w-4 h-4" />
+                    )}
+                    <span>{metrics.analysisComparison?.healthScoreChange != null
+                      ? `${metrics.analysisComparison.healthScoreChange >= 0 ? '+' : ''}${metrics.analysisComparison.healthScoreChange.toFixed(1)}`
+                      : 'No data'}</span>
                   </div>
                 </div>
 
@@ -519,8 +539,23 @@ const CodeQualityDashboard: React.FC = () => {
                   <div className="flex-1 flex items-center justify-start">
                     <p className="text-gray-900 dark:text-white text-4xl font-bold">{complexity.toFixed(1)}</p>
                   </div>
-                  <div className="h-8 flex items-center gap-1 text-yellow-500 text-sm">
-                    <span>Stable</span>
+                  <div className={`h-8 flex items-center gap-1 text-sm ${
+                    metrics.analysisComparison?.complexityChange != null
+                      ? (metrics.analysisComparison.complexityChange > 0 ? 'text-red-500' : metrics.analysisComparison.complexityChange < 0 ? 'text-green-500' : 'text-yellow-500')
+                      : 'text-gray-400'
+                  }`}>
+                    {metrics.analysisComparison?.complexityChange != null ? (
+                      <>
+                        {metrics.analysisComparison.complexityChange > 0 ? (
+                          <ArrowUpIcon className="w-4 h-4" />
+                        ) : metrics.analysisComparison.complexityChange < 0 ? (
+                          <ArrowDownIcon className="w-4 h-4" />
+                        ) : null}
+                        <span>{metrics.analysisComparison.complexityChange === 0 ? 'Stable' : `${metrics.analysisComparison.complexityChange > 0 ? '+' : ''}${metrics.analysisComparison.complexityChange.toFixed(1)}`}</span>
+                      </>
+                    ) : (
+                      <span>No data</span>
+                    )}
                   </div>
                 </div>
 
@@ -534,9 +569,8 @@ const CodeQualityDashboard: React.FC = () => {
                       {metrics.codeIssues.filter(i => i.severity === 'critical').length}
                     </p>
                   </div>
-                  <div className="h-8 flex items-center gap-1 text-red-500 text-sm">
-                    <ArrowUpIcon className="w-4 h-4" />
-                    <span>+1</span>
+                  <div className="h-8 flex items-center gap-1 text-gray-400 text-sm">
+                    <span>—</span>
                   </div>
                 </div>
               </section>
@@ -552,14 +586,14 @@ const CodeQualityDashboard: React.FC = () => {
                       <p className="text-sm text-gray-500 dark:text-[#9da6b9] mb-2">Maintainability</p>
                       <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{healthScore}/100</p>
                       <div className={`flex items-center gap-1 text-sm mb-6 ${
-                        (metrics.projectMetrics?.healthScore.weeklyChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                        (metrics.analysisComparison?.healthScoreChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
                       }`}>
-                        {(metrics.projectMetrics?.healthScore.weeklyChange || 0) >= 0 ? (
+                        {(metrics.analysisComparison?.healthScoreChange || 0) >= 0 ? (
                           <ArrowUpIcon className="w-4 h-4" />
                         ) : (
                           <ArrowDownIcon className="w-4 h-4" />
                         )}
-                        <span>+1.5% last 30 days</span>
+                        <span>{metrics.analysisComparison?.healthScoreChange != null ? `${metrics.analysisComparison.healthScoreChange >= 0 ? '+' : ''}${metrics.analysisComparison.healthScoreChange.toFixed(1)}% last 30 days` : 'No data'}</span>
                       </div>
                       <div className="h-48">
                         <TrendChart
@@ -577,14 +611,14 @@ const CodeQualityDashboard: React.FC = () => {
                       <p className="text-sm text-gray-500 dark:text-[#9da6b9] mb-2">Test Coverage</p>
                       <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{coverage.toFixed(0)}%</p>
                       <div className={`flex items-center gap-1 text-sm mb-6 ${
-                        (metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
+                        (metrics.analysisComparison?.coverageChange || 0) >= 0 ? 'text-green-500' : 'text-red-500'
                       }`}>
-                        {(metrics.projectMetrics?.coverage?.weeklyChange || 0) >= 0 ? (
+                        {(metrics.analysisComparison?.coverageChange || 0) >= 0 ? (
                           <ArrowUpIcon className="w-4 h-4" />
                         ) : (
                           <ArrowDownIcon className="w-4 h-4" />
                         )}
-                        <span>{(metrics.projectMetrics?.coverage?.weeklyChange || -0.2).toFixed(1)}% last 30 days</span>
+                        <span>{metrics.analysisComparison?.coverageChange != null ? `${metrics.analysisComparison.coverageChange >= 0 ? '+' : ''}${metrics.analysisComparison.coverageChange.toFixed(1)}% last 30 days` : 'No data'}</span>
                       </div>
                       <div className="h-48">
                         <TrendChart

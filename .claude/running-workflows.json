@@ -1,5 +1,5 @@
 {
-  "currentRunId": null,
+  "currentRunId": "b4f01ce3-b2b7-4392-a3fc-b7bdf5776c06",
   "sessions": {
     "28c561fb-88a8-42f0-9eaa-49ed07c15965": {
       "runId": "4be2ec4d-9f1b-400a-b2ac-4f20cb3a6f97",
@@ -12,6 +12,65 @@
         "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/238b57f2-bf9c-4a97-80b0-2e23bb1cf3c6.jsonl"
       ],
       "startedAt": "2025-12-18T18:18:45Z"
+    },
+    "f04e9b4d-4778-4625-a71d-99c3708e5048": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/f04e9b4d-4778-4625-a71d-99c3708e5048.jsonl"
+      ],
+      "startedAt": "2025-12-18T20:01:00Z",
+      "endedAt": "2025-12-18T20:12:58Z",
+      "endReason": "clear"
+    },
+    "882e497d-6e17-4552-a3ca-5d52b0802cfe": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/882e497d-6e17-4552-a3ca-5d52b0802cfe.jsonl"
+      ],
+      "startedAt": "2025-12-18T20:12:58Z"
+    },
+    "6d7d6fc3-b02f-4ba2-b5ce-0df19c089593": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/6d7d6fc3-b02f-4ba2-b5ce-0df19c089593.jsonl"
+      ],
+      "startedAt": "2025-12-18T20:15:40Z",
+      "endedAt": "2025-12-18T20:20:14Z",
+      "endReason": "prompt_input_exit"
+    },
+    "e1b6e203-7658-4220-a208-9deeaacc3faa": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7.jsonl",
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/e1b6e203-7658-4220-a208-9deeaacc3faa.jsonl"
+      ],
+      "startedAt": "2025-12-19T05:26:18Z"
+    },
+    "187236b8-753a-4467-8f11-0e2bb6f3b47a": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/187236b8-753a-4467-8f11-0e2bb6f3b47a.jsonl"
+      ],
+      "startedAt": "2025-12-19T05:34:49Z"
+    },
+    "ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7.jsonl",
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/e1b6e203-7658-4220-a208-9deeaacc3faa.jsonl"
+      ],
+      "startedAt": "2025-12-19T05:37:23Z"
+    },
+    "abbac790-04cf-4352-9d56-9ece5462f172": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/abbac790-04cf-4352-9d56-9ece5462f172.jsonl"
+      ],
+      "startedAt": "2025-12-19T06:36:37Z",
+      "runId": "b4f01ce3-b2b7-4392-a3fc-b7bdf5776c06",
+      "workflowId": "df9bf06d-38c5-4fa8-9c7d-b60d0bdfc122",
+      "storyId": "bdbc9b20-b3c7-4afc-b65a-f3bec047d9b3",
+      "storyKey": "ST-332",
+      "spawnedAgentTranscripts": [
+        {
+          "agentId": "af92696",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-af92696.jsonl",
+          "spawnedAt": "2025-12-19T06:47:02Z"
+        }
+      ]
     }
   }
 }

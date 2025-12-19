@@ -1,6 +1,6 @@
-import { PrismaService } from '../../prisma/prisma.service';
-import { Server } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
+import { Server } from 'socket.io';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
  * ST-168: Upload agent transcript to Artifact table
