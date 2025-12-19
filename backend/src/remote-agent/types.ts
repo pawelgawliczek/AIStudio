@@ -176,3 +176,24 @@ export interface ArtifactUploadBatchPayload {
   agentId: string;
   items: ArtifactUploadItem[];
 }
+
+/**
+ * ST-329: Transcript lines upload types
+ */
+export interface TranscriptLinesPayload {
+  queueId: number;
+  runId: string;
+  sessionIndex: number;
+  lines: Array<{ line: string; sequenceNumber: number }>;
+  isHistorical: boolean;
+  timestamp: string;
+}
+
+export interface TranscriptBatchPayload {
+  queueId: number;
+  runId: string;
+  sessionIndex: number;
+  lines: Array<{ line: string; sequenceNumber: number }>;
+  isHistorical: boolean;
+  timestamp: string;
+}

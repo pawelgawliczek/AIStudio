@@ -442,6 +442,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   async handleTranscriptLines(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: {
+      queueId: number;
       runId: string;
       sessionIndex: number;
       lines: Array<{ line: string; sequenceNumber: number }>;
@@ -456,6 +457,7 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   async handleTranscriptBatch(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: {
+      queueId: number;
       runId: string;
       sessionIndex: number;
       lines: Array<{ line: string; sequenceNumber: number }>;

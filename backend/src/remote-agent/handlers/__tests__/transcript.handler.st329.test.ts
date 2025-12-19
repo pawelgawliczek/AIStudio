@@ -10,12 +10,12 @@
  * - Continue broadcasting even if persistence fails
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { TranscriptHandler } from '../transcript.handler';
 import { TranscriptRegistrationService } from '../../transcript-registration.service';
+import { TranscriptHandler } from '../transcript.handler';
 
 describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
   let handler: TranscriptHandler;
@@ -88,7 +88,7 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
   });
 
   describe('persistTranscriptLines - Database Persistence', () => {
-    it('should persist transcript lines to database', async () => {
+    it('should persist transcript lines to database and return ACK', async () => {
       const lines = [
         { line: '{"type":"text","content":"line 1"}', sequenceNumber: 1 },
         { line: '{"type":"text","content":"line 2"}', sequenceNumber: 2 },
@@ -97,7 +97,8 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
 
       mockPrismaService.transcriptLine.createMany.mockResolvedValue({ count: 3 });
 
-      await handler.handleTranscriptLines({
+      const result = await handler.handleTranscriptLines({
+        queueId: 123,
         runId: RUN_ID,
         sessionIndex: SESSION_INDEX,
         lines,
@@ -128,6 +129,13 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
         ],
         skipDuplicates: true,
       });
+
+      // ST-329: Verify ACK response
+      expect(result).toEqual({
+        success: true,
+        queueId: 123,
+        linesCount: 3,
+      });
     });
 
     it('should use skipDuplicates to avoid errors on duplicate lines', async () => {
@@ -137,7 +145,8 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
 
       mockPrismaService.transcriptLine.createMany.mockResolvedValue({ count: 0 });
 
-      await handler.handleTranscriptLines({
+      const result = await handler.handleTranscriptLines({
+        queueId: 124,
         runId: RUN_ID,
         sessionIndex: SESSION_INDEX,
         lines,
@@ -150,10 +159,15 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
           skipDuplicates: true,
         }),
       );
+
+      // ST-329: Should still return success ACK
+      expect(result.success).toBe(true);
+      expect(result.queueId).toBe(124);
     });
 
     it('should handle empty lines array gracefully', async () => {
-      await handler.handleTranscriptLines({
+      const result = await handler.handleTranscriptLines({
+        queueId: 125,
         runId: RUN_ID,
         sessionIndex: SESSION_INDEX,
         lines: [],
@@ -163,13 +177,21 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
 
       // Should not attempt to insert empty data
       expect(mockPrismaService.transcriptLine.createMany).not.toHaveBeenCalled();
+
+      // ST-329: Should return success ACK even for empty array
+      expect(result).toEqual({
+        success: true,
+        queueId: 125,
+        linesCount: 0,
+      });
     });
 
     it('should track correct line numbers for sequential batches', async () => {
       mockPrismaService.transcriptLine.createMany.mockResolvedValue({ count: 2 });
 
       // First batch
-      await handler.handleTranscriptLines({
+      const result1 = await handler.handleTranscriptLines({
+        queueId: 200,
         runId: RUN_ID,
         sessionIndex: SESSION_INDEX,
         lines: [
@@ -181,7 +203,8 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
       });
 
       // Second batch
-      await handler.handleTranscriptLines({
+      const result2 = await handler.handleTranscriptLines({
+        queueId: 201,
         runId: RUN_ID,
         sessionIndex: SESSION_INDEX,
         lines: [
@@ -215,6 +238,12 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
           ]),
         }),
       );
+
+      // ST-329: Verify ACKs
+      expect(result1.success).toBe(true);
+      expect(result1.queueId).toBe(200);
+      expect(result2.success).toBe(true);
+      expect(result2.queueId).toBe(201);
     });
 
     it('should handle different session indices correctly', async () => {
@@ -329,8 +358,8 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
     });
   });
 
-  describe('Error Handling - Continue Broadcasting on Persistence Failure', () => {
-    it('should continue broadcasting even if persistence fails', async () => {
+  describe('Error Handling - ACK Protocol on Persistence Failure (ST-329)', () => {
+    it('should return error ACK when persistence fails (graceful error handling)', async () => {
       const lines = [{ line: 'test line', sequenceNumber: 1 }];
 
       // Simulate database error
@@ -338,7 +367,8 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
         new Error('Database connection failed'),
       );
 
-      await handler.handleTranscriptLines({
+      const result = await handler.handleTranscriptLines({
+        queueId: 500,
         runId: RUN_ID,
         sessionIndex: SESSION_INDEX,
         lines,
@@ -346,15 +376,16 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
         timestamp: new Date().toISOString(),
       });
 
-      // Should still broadcast to frontend
-      expect(mockFrontendServer.to).toHaveBeenCalledWith(`master-transcript:${RUN_ID}`);
-      expect(mockFrontendServer.emit).toHaveBeenCalledWith(
-        'master-transcript:lines',
-        expect.objectContaining({
-          runId: RUN_ID,
-          lines,
-        }),
-      );
+      // ST-329: Should return error ACK instead of throwing
+      expect(result).toEqual({
+        success: false,
+        queueId: 500,
+        error: 'Database connection failed',
+      });
+
+      // Should NOT broadcast to frontend on error
+      expect(mockFrontendServer.to).not.toHaveBeenCalled();
+      expect(mockFrontendServer.emit).not.toHaveBeenCalled();
 
       // Should log error
       expect(Logger.prototype.error).toHaveBeenCalledWith(
@@ -363,14 +394,15 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
       );
     });
 
-    it('should handle batch persistence errors gracefully', async () => {
+    it('should handle batch persistence errors gracefully with error ACK', async () => {
       const lines = [{ line: 'batch line', sequenceNumber: 1 }];
 
       mockPrismaService.transcriptLine.createMany.mockRejectedValue(
         new Error('Unique constraint violation'),
       );
 
-      await handler.handleTranscriptBatch({
+      const result = await handler.handleTranscriptBatch({
+        queueId: 501,
         runId: RUN_ID,
         sessionIndex: SESSION_INDEX,
         lines,
@@ -378,8 +410,16 @@ describe('TranscriptHandler - ST-329 Transcript Line Persistence (TDD)', () => {
         timestamp: new Date().toISOString(),
       });
 
-      // Should still broadcast
-      expect(mockFrontendServer.emit).toHaveBeenCalledWith('master-transcript:batch', expect.anything());
+      // ST-329: Should return error ACK
+      expect(result).toEqual({
+        success: false,
+        queueId: 501,
+        error: 'Unique constraint violation',
+      });
+
+      // Should NOT broadcast on error
+      expect(mockFrontendServer.to).not.toHaveBeenCalled();
+      expect(mockFrontendServer.emit).not.toHaveBeenCalled();
 
       // Should log error
       expect(Logger.prototype.error).toHaveBeenCalledWith(

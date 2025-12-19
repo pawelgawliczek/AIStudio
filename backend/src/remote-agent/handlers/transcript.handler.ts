@@ -215,63 +215,103 @@ export class TranscriptHandler {
 
   /**
    * ST-182: Handle transcript lines from laptop agent
-   * ST-329: Persist lines to TranscriptLine table
+   * ST-329: Persist lines to TranscriptLine table with ACK protocol
    */
   async handleTranscriptLines(
     data: {
+      queueId: number;
       runId: string;
       sessionIndex: number;
       lines: Array<{ line: string; sequenceNumber: number }>;
       isHistorical: boolean;
       timestamp: string;
     },
-  ): Promise<void> {
+  ): Promise<{ success: boolean; queueId: number; linesCount?: number; error?: string }> {
     // ST-329: Persist lines to database
     try {
       await this.persistTranscriptLines(data.runId, data.sessionIndex, data.lines);
+
+      // Broadcast to frontend subscribers
+      if (this.frontendServer) {
+        this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', {
+          runId: data.runId,
+          sessionIndex: data.sessionIndex,
+          lines: data.lines,
+          isHistorical: data.isHistorical,
+          timestamp: data.timestamp,
+        });
+      }
+
+      // Return ACK to laptop agent
+      return {
+        success: true,
+        queueId: data.queueId,
+        linesCount: data.lines.length,
+      };
     } catch (error) {
       this.logger.error(
         `[ST-329] Failed to persist transcript lines: ${getErrorMessage(error)}`,
         getErrorStack(error),
       );
-      // Continue with broadcast even if persistence fails
-    }
 
-    // Broadcast to frontend subscribers
-    if (this.frontendServer) {
-      this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
+      // Return error ACK - graceful error handling
+      return {
+        success: false,
+        queueId: data.queueId,
+        error: getErrorMessage(error),
+      };
     }
   }
 
   /**
    * ST-182: Handle transcript batch from laptop agent
-   * ST-329: Persist lines to TranscriptLine table
+   * ST-329: Persist lines to TranscriptLine table with ACK protocol
    */
   async handleTranscriptBatch(
     data: {
+      queueId: number;
       runId: string;
       sessionIndex: number;
       lines: Array<{ line: string; sequenceNumber: number }>;
       isHistorical: boolean;
       timestamp: string;
     },
-  ): Promise<void> {
+  ): Promise<{ success: boolean; queueId: number; linesCount?: number; error?: string }> {
     this.logger.log(`[ST-182] Batch received: runId=${data.runId}, lines=${data.lines.length}`);
 
     // ST-329: Persist lines to database
     try {
       await this.persistTranscriptLines(data.runId, data.sessionIndex, data.lines);
+
+      // Broadcast to frontend subscribers
+      if (this.frontendServer) {
+        this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', {
+          runId: data.runId,
+          sessionIndex: data.sessionIndex,
+          lines: data.lines,
+          isHistorical: data.isHistorical,
+          timestamp: data.timestamp,
+        });
+      }
+
+      // Return ACK to laptop agent
+      return {
+        success: true,
+        queueId: data.queueId,
+        linesCount: data.lines.length,
+      };
     } catch (error) {
       this.logger.error(
         `[ST-329] Failed to persist transcript batch: ${getErrorMessage(error)}`,
         getErrorStack(error),
       );
-      // Continue with broadcast even if persistence fails
-    }
 
-    // Broadcast to frontend subscribers
-    if (this.frontendServer) {
-      this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
+      // Return error ACK - graceful error handling
+      return {
+        success: false,
+        queueId: data.queueId,
+        error: getErrorMessage(error),
+      };
     }
   }
 
