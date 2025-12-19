@@ -178,6 +178,7 @@ export class UploadManager {
 
   /**
    * Handle acknowledgement from server
+   * ST-322: Emit queue:acked and queue:stats events for UI
    */
   private async handleAcknowledgement(ids: number[]): Promise<void> {
     if (ids.length === 0) {
@@ -189,6 +190,17 @@ export class UploadManager {
     try {
       const count = await this.queue.markAckedBatch(ids);
       this.logger.info('Items marked as acked', { count });
+
+      // ST-322: Emit queue:acked event for UI
+      this.socket.emit('queue:acked', {
+        ids,
+        count,
+        timestamp: Date.now(),
+      });
+
+      // ST-322: Emit queue:stats event for monitoring
+      const stats = await this.queue.getStats({ includeTypes: true });
+      this.socket.emit('queue:stats', stats);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to mark items as acked', { error: message });

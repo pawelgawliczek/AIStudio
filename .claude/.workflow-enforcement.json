@@ -28,43 +28,41 @@
     },
     "9e844872-c822-4401-bb63-d23d68113f97": {
       "workflowActive": true,
-      "runId": "7cc42438-5ccd-4b1b-9300-95b04e400298",
+      "runId": "4eb93690-26f1-4f04-b4e7-510370f09d9a",
       "currentState": {
-        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
-        "name": "testing",
-        "phase": "post",
-        "componentName": "Tester",
-        "allowedSubagentTypes": null
-      },
-      "updatedAt": "2025-12-19T07:57:28Z"
-    },
-    "ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7": {
-      "workflowActive": true,
-      "runId": "c7621c9e-acdc-4d07-a604-87ef9f20556b",
-      "currentState": {
-        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
         "name": "implementation",
-        "phase": "agent",
         "componentName": "Developer",
         "allowedSubagentTypes": [
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-19T08:00:00Z"
+      "updatedAt": "2025-12-19T08:25:52Z"
+    },
+    "ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7": {
+      "workflowActive": true,
+      "runId": "c7621c9e-acdc-4d07-a604-87ef9f20556b",
+      "currentState": {
+        "id": "04e7bd5b-84cb-454b-b43e-1b850f1b0d83",
+        "name": "playwright-verification",
+        "phase": "agent",
+        "componentName": "Playwright Verifier",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-19T08:27:10Z"
     },
     "03c60ca7-6924-4b7f-ba09-f0fd8f0be051": {
       "workflowActive": true,
       "runId": "16390136-1040-43f0-a7b9-1c6fb63aa463",
       "currentState": {
-        "id": "2b960d02-cb70-4517-9af5-02d57009541a",
-        "name": "exploration",
-        "phase": "agent",
-        "componentName": "Native Explorer",
-        "allowedSubagentTypes": [
-          "Explore"
-        ]
+        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
+        "name": "implementation",
+        "phase": "post",
+        "componentName": "Developer",
+        "allowedSubagentTypes": null
       },
-      "updatedAt": "2025-12-19T08:01:59Z"
+      "updatedAt": "2025-12-19T08:27:16Z"
     }
   }
 }

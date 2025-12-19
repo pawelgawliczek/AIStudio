@@ -40,6 +40,8 @@ describe('UploadManager', () => {
   let testDbPath: string;
 
   beforeEach(() => {
+    // Use fake timers for consistent timer testing
+    jest.useFakeTimers();
     // Create unique database for each test
     testDbPath = path.join(os.tmpdir(), `test-manager-${Date.now()}-${testCounter++}.db`);
 
@@ -67,6 +69,7 @@ describe('UploadManager', () => {
 
     jest.clearAllMocks();
   });
+    jest.useRealTimers();
 
   describe('Initialization', () => {
     it('should create UploadManager with default options', () => {
