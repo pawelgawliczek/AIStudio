@@ -16,13 +16,15 @@
       "workflowActive": true,
       "runId": "00a4c6d5-7856-4427-a347-6afe05ad6790",
       "currentState": {
-        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
-        "name": "implementation",
-        "phase": "post",
-        "componentName": "Developer",
-        "allowedSubagentTypes": null
+        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
+        "name": "testing",
+        "phase": "agent",
+        "componentName": "Tester",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
       },
-      "updatedAt": "2025-12-19T11:06:52Z"
+      "updatedAt": "2025-12-19T11:07:20Z"
     }
   }
 }

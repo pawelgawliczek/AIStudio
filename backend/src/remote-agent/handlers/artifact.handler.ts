@@ -52,6 +52,13 @@ export class ArtifactHandler {
         return;
       }
 
+      // Validate artifact key format
+      if (!/^[A-Z0-9_-]+$/i.test(artifactKey)) {
+        this.logger.error(`[ST-326] Invalid artifact key format: ${artifactKey}`);
+        callback({ success: false, id: queueId, error: `Invalid artifact key format: ${artifactKey}` });
+        return;
+      }
+
       // Find the artifact definition by key
       const artifactDefinition = await this.prisma.artifactDefinition.findFirst({
         where: {
