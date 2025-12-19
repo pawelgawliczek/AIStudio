@@ -277,6 +277,7 @@ export class RemoteAgent {
       });
 
       // ST-182: Update TranscriptTailer socket reference after reconnection
+      // ST-330: Re-initialize with UploadManager if needed
       if (this.transcriptTailer && this.socket) {
         this.transcriptTailer.updateSocket(this.socket);
       }
@@ -811,12 +812,13 @@ export class RemoteAgent {
 
   /**
    * ST-182: Handle start tail request
+   * ST-330: Pass UploadManager for guaranteed delivery
    */
   private async handleStartTail(request: TailRequest): Promise<void> {
     // Initialize tailer if not already
     if (!this.transcriptTailer && this.socket) {
-      this.transcriptTailer = new TranscriptTailer(this.socket);
-      console.log('[ST-182] TranscriptTailer initialized');
+      this.transcriptTailer = new TranscriptTailer(this.socket, this.uploadManager || undefined);
+      console.log('[ST-182] TranscriptTailer initialized with UploadManager');
     }
 
     if (!this.transcriptTailer) {

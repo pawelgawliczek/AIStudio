@@ -10,6 +10,7 @@ import * as readline from 'readline';
 import * as chokidar from 'chokidar';
 import { Socket } from 'socket.io-client';
 import { Logger } from './logger';
+import { UploadManager } from './upload-manager';
 
 export interface TailSession {
   filePath: string;
@@ -30,10 +31,12 @@ export interface TailRequest {
 export class TranscriptTailer {
   private readonly logger = new Logger('TranscriptTailer');
   private socket: Socket;
+  private uploadManager: UploadManager | null;
   private readonly sessions = new Map<string, TailSession>(); // key: `${runId}:${sessionIndex}`
 
-  constructor(socket: Socket) {
+  constructor(socket: Socket, uploadManager?: UploadManager) {
     this.socket = socket;
+    this.uploadManager = uploadManager || null;
   }
 
   /**
@@ -252,13 +255,24 @@ export class TranscriptTailer {
       rl.on('close', () => {
         // Emit lines in batches for efficiency
         if (lines.length > 0) {
-          this.socket.emit('transcript:batch', {
+          const payload = {
             runId: request.runId,
             sessionIndex: request.sessionIndex,
             lines,
             isHistorical: true,
             timestamp: new Date().toISOString(),
-          });
+          };
+
+          // Use UploadManager for guaranteed delivery if available
+          if (this.uploadManager) {
+            this.uploadManager.queueUpload('transcript_line', payload).catch((err: unknown) => {
+              const error = err instanceof Error ? err : new Error(String(err));
+              this.logger.error('Failed to queue transcript batch', { error: error.message });
+            });
+          } else {
+            // Fallback to direct socket emit
+            this.socket.emit('transcript:batch', payload);
+          }
         }
         resolve();
       });
@@ -303,13 +317,28 @@ export class TranscriptTailer {
           return { line, sequenceNumber: session.sequenceNumber };
         });
 
-        this.socket.emit('transcript:lines', {
+        const payload = {
           runId: session.runId,
           sessionIndex: session.sessionIndex,
           lines: linesWithSeq,
           isHistorical: false,
           timestamp: new Date().toISOString(),
-        });
+        };
+
+        // Use UploadManager for guaranteed delivery if available
+        if (this.uploadManager) {
+          this.uploadManager.queueUpload('transcript_line', payload).catch((err: unknown) => {
+            const error = err instanceof Error ? err : new Error(String(err));
+            this.logger.error('Failed to queue transcript lines', {
+              runId: session.runId,
+              sessionIndex: session.sessionIndex,
+              error: error.message,
+            });
+          });
+        } else {
+          // Fallback to direct socket emit
+          this.socket.emit('transcript:lines', payload);
+        }
       }
     } catch (error: any) {
       this.logger.error('Error handling file change', {
