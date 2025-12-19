@@ -1044,8 +1044,22 @@ export class CodeAnalysisProcessor {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const path = require('path');
 
+      // ST-359: Use mounted project path for coverage files since tests run there
+      // The Docker container has project mounted at /opt/stack/AIStudio with full node_modules
+      // Coverage is generated there, not in /app (which only has production build)
+      const PROJECT_ROOT = process.env.PROJECT_PATH || '/opt/stack/AIStudio';
+
       // Try common coverage file locations (try coverage-final.json first as it's always generated)
+      // Check mounted project path FIRST since that's where fresh coverage is generated
       const coveragePaths = [
+        // Mounted project path (where tests run and generate fresh coverage)
+        { path: path.join(PROJECT_ROOT, 'backend', 'coverage', 'coverage-final.json'), type: 'final' },
+        { path: path.join(PROJECT_ROOT, 'frontend', 'coverage', 'coverage-final.json'), type: 'final' },
+        { path: path.join(PROJECT_ROOT, 'coverage', 'coverage-final.json'), type: 'final' },
+        { path: path.join(PROJECT_ROOT, 'backend', 'coverage', 'coverage-summary.json'), type: 'summary' },
+        { path: path.join(PROJECT_ROOT, 'frontend', 'coverage', 'coverage-summary.json'), type: 'summary' },
+        { path: path.join(PROJECT_ROOT, 'coverage', 'coverage-summary.json'), type: 'summary' },
+        // Fallback to repoPath (Docker build path) if mounted path doesn't have coverage
         { path: path.join(repoPath, 'coverage', 'coverage-final.json'), type: 'final' },
         { path: path.join(repoPath, 'backend', 'coverage', 'coverage-final.json'), type: 'final' },
         { path: path.join(repoPath, 'frontend', 'coverage', 'coverage-final.json'), type: 'final' },
