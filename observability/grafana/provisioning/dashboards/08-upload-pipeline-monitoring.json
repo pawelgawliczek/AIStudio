@@ -92,19 +92,19 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Queue stats\" | json | line_format \"{{.pending}}\" | unwrap pending [1m]",
+          "expr": "avg_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Queue stats\" | json | unwrap pending [1m])",
           "legendFormat": "pending",
           "refId": "A"
         },
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Queue stats\" | json | line_format \"{{.sent}}\" | unwrap sent [1m]",
+          "expr": "avg_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Queue stats\" | json | unwrap sent [1m])",
           "legendFormat": "sent",
           "refId": "B"
         },
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Queue stats\" | json | line_format \"{{.acked}}\" | unwrap acked [1m]",
+          "expr": "avg_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Queue stats\" | json | unwrap acked [1m])",
           "legendFormat": "acked",
           "refId": "C"
         }
@@ -202,7 +202,8 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "count(count_over_time({app=\"laptop-agent\"} |= \"Queue stats\" [2m]) by (hostname))",
+          "expr": "sum(count_over_time({app=\"laptop-agent\"} |= \"Queue stats\" [2m])) by (hostname)",
+          "legendFormat": "{{hostname}}",
           "refId": "A"
         }
       ],
@@ -390,7 +391,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Lines queued\" [1h])",
+          "expr": "count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Processing transcript batch\" [1h])",
           "refId": "A"
         }
       ],
@@ -447,7 +448,7 @@
         },
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Lines queued\" [1h])",
+          "expr": "count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Processing transcript batch\" [1h])",
           "legendFormat": "Transcripts",
           "refId": "B"
         }
