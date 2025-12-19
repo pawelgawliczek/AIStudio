@@ -1,22 +1,8 @@
 {
   "sessions": {
-    "2d6e84c8-0829-419d-a550-f1db0c47ea6b": {
+    "33127388-49ec-409f-ac40-b18b95760685": {
       "workflowActive": true,
-      "runId": "abf3dd1b-ca08-4c84-a0a3-c9dc143a018a",
-      "currentState": {
-        "id": "448a3025-43ec-4caa-9c9e-292f93291dd0",
-        "name": "architecture-review",
-        "phase": "agent",
-        "componentName": "Architect",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
-      },
-      "updatedAt": "2025-12-19T05:21:17Z"
-    },
-    "abbac790-04cf-4352-9d56-9ece5462f172": {
-      "workflowActive": true,
-      "runId": "b4f01ce3-b2b7-4392-a3fc-b7bdf5776c06",
+      "runId": "4f95f0ff-c6b3-40a7-8b39-5c6268c3ab58",
       "currentState": {
         "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
         "name": "implementation",
@@ -24,37 +10,11 @@
         "componentName": "Developer",
         "allowedSubagentTypes": null
       },
-      "updatedAt": "2025-12-19T06:47:16Z"
-    },
-    "9e844872-c822-4401-bb63-d23d68113f97": {
-      "workflowActive": true,
-      "runId": "4eb93690-26f1-4f04-b4e7-510370f09d9a",
-      "currentState": {
-        "name": "implementation",
-        "componentName": "Developer",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
-      },
-      "updatedAt": "2025-12-19T08:25:52Z"
+      "updatedAt": "2025-12-19T09:14:11Z"
     },
     "ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7": {
       "workflowActive": true,
-      "runId": "c7621c9e-acdc-4d07-a604-87ef9f20556b",
-      "currentState": {
-        "id": "04e7bd5b-84cb-454b-b43e-1b850f1b0d83",
-        "name": "playwright-verification",
-        "phase": "agent",
-        "componentName": "Playwright Verifier",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
-      },
-      "updatedAt": "2025-12-19T08:27:10Z"
-    },
-    "03c60ca7-6924-4b7f-ba09-f0fd8f0be051": {
-      "workflowActive": true,
-      "runId": "16390136-1040-43f0-a7b9-1c6fb63aa463",
+      "runId": "0c2e548e-743a-4705-92fa-5bcf52d8ff1c",
       "currentState": {
         "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
         "name": "implementation",
@@ -62,7 +22,7 @@
         "componentName": "Developer",
         "allowedSubagentTypes": null
       },
-      "updatedAt": "2025-12-19T08:27:16Z"
+      "updatedAt": "2025-12-19T09:19:08Z"
     }
   }
 }
