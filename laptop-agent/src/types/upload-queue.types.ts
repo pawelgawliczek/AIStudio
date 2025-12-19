@@ -21,6 +21,7 @@ export type QueueItemType = 'artifact:upload' | 'transcript:upload';
 /**
  * Core queue item structure
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface QueueItem<T = any> {
   id: number;
   type: QueueItemType | string;
@@ -37,6 +38,7 @@ export interface QueueItem<T = any> {
 /**
  * Input for enqueuing new items
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface EnqueueInput<T = any> {
   type: QueueItemType | string;
   payload: T;
@@ -99,7 +101,8 @@ export interface ColumnInfo {
   name: string;
   type: string;
   notnull: boolean;
-  dflt_value: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dflt_value: any; // SQLite default values can be various types
   pk: boolean;
 }
 
