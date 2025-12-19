@@ -163,15 +163,33 @@ export class UploadManager {
 
       this.logger.info('Flushing items', { count: items.length });
 
-      // Emit items to server with correct payload structure
-      // Backend expects: { agentId, items: [{ queueId, workflowRunId, componentRunId, ... }] }
-      this.socket.emit('upload:batch', {
-        agentId: this.agentId,
-        items: items.map(item => ({
-          ...item.payload,
-          queueId: item.id, // Override any queueId in payload with actual queue ID
-        })),
-      });
+      // ST-327: Group items by type for type-based routing
+      const artifactItems = items.filter(item => item.type === 'artifact:upload');
+      const transcriptItems = items.filter(item => item.type !== 'artifact:upload');
+
+      // Send artifacts to artifact:upload endpoint
+      if (artifactItems.length > 0) {
+        this.logger.info('Sending artifact items', { count: artifactItems.length });
+        this.socket.emit('artifact:upload', {
+          agentId: this.agentId,
+          items: artifactItems.map(item => ({
+            ...item.payload,
+            queueId: item.id,
+          })),
+        });
+      }
+
+      // Send transcripts to upload:batch endpoint (existing behavior)
+      if (transcriptItems.length > 0) {
+        this.logger.info('Sending transcript items', { count: transcriptItems.length });
+        this.socket.emit('upload:batch', {
+          agentId: this.agentId,
+          items: transcriptItems.map(item => ({
+            ...item.payload,
+            queueId: item.id,
+          })),
+        });
+      }
 
       // Mark as sent
       for (const item of items) {

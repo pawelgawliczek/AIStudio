@@ -617,9 +617,9 @@ describe('UploadManager', () => {
 
       await jest.advanceTimersByTimeAsync(600);
 
-      // Verify payload structure matches backend expectations
+      // ST-327: Verify artifact uploads go to artifact:upload endpoint
       expect(mockSocket.emit).toHaveBeenCalledWith(
-        'upload:batch',
+        'artifact:upload',
         expect.objectContaining({
           agentId: 'test-agent-id',
           items: expect.arrayContaining([

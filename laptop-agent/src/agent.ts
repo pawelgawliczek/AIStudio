@@ -11,6 +11,8 @@ import { executeScript } from './scripts';
 import { TranscriptTailer, TailRequest } from './transcript-tailer';
 import { TranscriptWatcher } from './transcript-watcher';
 import { WakeDetector } from './wake-detector';
+import { ArtifactWatcher } from './artifact-watcher';
+import { UploadManager } from './upload-manager';
 
 /**
  * ST-153: Git job payload from server
@@ -67,6 +69,12 @@ export class RemoteAgent {
 
   // ST-281: Wake detector for hibernation recovery
   private wakeDetector: WakeDetector | null = null;
+
+  // ST-327: Upload manager for guaranteed delivery
+  private uploadManager: UploadManager | null = null;
+
+  // ST-327: Artifact watcher for story artifacts
+  private artifactWatcher: ArtifactWatcher | null = null;
 
   // ST-281: Logger for structured logging
   private readonly logger = new Logger('Agent');
@@ -217,10 +225,24 @@ export class RemoteAgent {
           console.log(`Agent registered successfully. ID: ${data.agentId}`);
           this.startHeartbeat();
 
+          // ST-327: Initialize UploadManager with socket and agentId
+          this.uploadManager = new UploadManager({
+            socket: this.socket!,
+            agentId: data.agentId,
+          });
+          console.log('[ST-327] UploadManager initialized');
+
           // ST-170: Start transcript watcher if capability enabled
           if (this.config.capabilities.includes('watch-transcripts')) {
             this.startTranscriptWatcher().catch((err) => {
               console.error('Failed to start transcript watcher:', err.message);
+            });
+          }
+
+          // ST-327: Start artifact watcher if UploadManager is available
+          if (this.uploadManager) {
+            this.startArtifactWatcher().catch((err) => {
+              console.error('[ST-327] Failed to start artifact watcher:', err.message);
             });
           }
 
@@ -716,6 +738,22 @@ export class RemoteAgent {
       this.transcriptTailer = null;
     }
 
+    // ST-327: Stop artifact watcher
+    if (this.artifactWatcher) {
+      this.artifactWatcher.stop().catch((err) => {
+        console.error('[ST-327] Error stopping artifact watcher:', err.message);
+      });
+      this.artifactWatcher = null;
+    }
+
+    // ST-327: Stop upload manager
+    if (this.uploadManager) {
+      this.uploadManager.stop().catch((err) => {
+        console.error('[ST-327] Error stopping upload manager:', err.message);
+      });
+      this.uploadManager = null;
+    }
+
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -746,6 +784,29 @@ export class RemoteAgent {
     await this.transcriptWatcher.start();
 
     console.log('[ST-170] Transcript watcher started successfully');
+  }
+
+  /**
+   * ST-327: Start artifact watcher daemon
+   */
+  private async startArtifactWatcher(): Promise<void> {
+    console.log('[ST-327] Starting artifact watcher...');
+
+    if (!this.uploadManager) {
+      console.error('[ST-327] Cannot start artifact watcher - UploadManager not initialized');
+      return;
+    }
+
+    // Create artifact watcher with UploadManager reference
+    this.artifactWatcher = new ArtifactWatcher({
+      uploadManager: this.uploadManager,
+      projectPath: this.config.projectPath,
+    });
+
+    // Start watching
+    await this.artifactWatcher.start();
+
+    console.log('[ST-327] Artifact watcher started successfully');
   }
 
   /**
