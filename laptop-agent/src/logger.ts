@@ -126,11 +126,9 @@ export function initializeLogger(config: LoggerConfig): winston.Logger {
     };
 
     // Add basic auth if credentials provided
+    // winston-loki expects basicAuth as 'username:password' string
     if (config.lokiUsername && config.lokiPassword) {
-      lokiOptions.basicAuth = {
-        username: config.lokiUsername,
-        password: config.lokiPassword,
-      };
+      lokiOptions.basicAuth = `${config.lokiUsername}:${config.lokiPassword}`;
     }
 
     transports.push(new LokiTransport(lokiOptions));
