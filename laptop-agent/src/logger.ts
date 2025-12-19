@@ -114,6 +114,7 @@ export function initializeLogger(config: LoggerConfig): winston.Logger {
       json: true,
       format: winston.format.json(),
       replaceTimestamp: true,
+      timeout: 30000, // 30 second timeout for slow connections
       onConnectionError: (err: Error) => {
         // Log locally but don't crash if Loki is unavailable
         console.warn('[Logger] Loki connection error:', err.message);
