@@ -116,26 +116,39 @@ export class TestCoverageService {
     }
 
     const sanitizedPath = path.normalize(project.localPath).replace(/\.\./g, '');
-    const coveragePath = path.join(sanitizedPath, 'coverage', 'coverage-summary.json');
 
-    if (!coveragePath.startsWith(sanitizedPath)) {
-      throw new ForbiddenException('Invalid coverage file path');
+    // ST-359: Try mounted project path first (where tests run and generate coverage)
+    // Fall back to project.localPath (Docker build path) if not found
+    const PROJECT_ROOT = process.env.PROJECT_PATH || '/opt/stack/AIStudio';
+
+    // Try multiple possible coverage locations
+    const possiblePaths = [
+      path.join(PROJECT_ROOT, 'backend', 'coverage', 'coverage-summary.json'),
+      path.join(PROJECT_ROOT, 'coverage', 'coverage-summary.json'),
+      path.join(sanitizedPath, 'coverage', 'coverage-summary.json'),
+      path.join(sanitizedPath, 'backend', 'coverage', 'coverage-summary.json'),
+    ];
+
+    let coverageData: string | null = null;
+    let usedPath: string = '';
+    let lastExecution: Date | undefined;
+    let coverage: any;
+
+    for (const coveragePath of possiblePaths) {
+      try {
+        coverageData = fs.readFileSync(coveragePath, 'utf-8');
+        lastExecution = fs.statSync(coveragePath).mtime;
+        usedPath = coveragePath;
+        this.logger.debug(`Loaded coverage from ${coveragePath}`);
+        break;
+      } catch {
+        // Try next path
+        continue;
+      }
     }
 
-    let coverageData: string;
-    let coverage: any;
-    let lastExecution: Date | undefined;
-
-    try {
-      coverageData = fs.readFileSync(coveragePath, 'utf-8');
-      lastExecution = fs.statSync(coveragePath).mtime;
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        throw new NotFoundException(
-          'Coverage report not found. Run tests with --coverage flag.',
-        );
-      }
-      throw error;
+    if (!coverageData) {
+      throw new NotFoundException('Coverage report not found. Run tests with --coverage flag.');
     }
 
     try {
