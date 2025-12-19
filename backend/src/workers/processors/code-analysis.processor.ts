@@ -162,6 +162,29 @@ export class CodeAnalysisProcessor {
       const deltas = await this.calculateDeltas(projectId, baseline, analysisResults);
       this.logger.log(`Delta analysis: ${deltas.filesChanged} files changed, ${deltas.locDelta} LOC delta, ${deltas.coverageDelta.toFixed(2)}% coverage delta`);
 
+      // Clean up stale records for files that are no longer source files
+      // This handles both deleted files AND files now excluded by isSourceFile filter
+      const currentFilePaths = new Set(analysisResults.map(f => f.filePath));
+      const staleRecords = await this.prisma.codeMetrics.findMany({
+        where: {
+          projectId,
+          filePath: { notIn: Array.from(currentFilePaths) }
+        },
+        select: { filePath: true, linesOfCode: true }
+      });
+
+      if (staleRecords.length > 0) {
+        const staleLOC = staleRecords.reduce((sum, r) => sum + r.linesOfCode, 0);
+        this.logger.log(`Cleaning up ${staleRecords.length} stale records (${staleLOC} LOC) - files no longer in source list`);
+
+        await this.prisma.codeMetrics.deleteMany({
+          where: {
+            projectId,
+            filePath: { notIn: Array.from(currentFilePaths) }
+          }
+        });
+      }
+
       // Update project-level metrics with delta information
       await this.updateProjectHealth(projectId, deltas, totalCoverage);
 
