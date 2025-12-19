@@ -409,7 +409,7 @@ const CodeQualityDashboard: React.FC = () => {
                   <AnalysisRefreshButton
                     isAnalyzing={polling.isAnalyzing}
                     analysisStatus={polling.analysisStatus}
-                    onRefresh={polling.startAnalysis}
+                    onRefresh={(runCoverage) => polling.startAnalysis(runCoverage)}
                   />
                 </div>
               </header>
@@ -1689,7 +1689,7 @@ const CodeQualityDashboard: React.FC = () => {
                   <AnalysisRefreshButton
                     isAnalyzing={polling.isAnalyzing}
                     analysisStatus={polling.analysisStatus}
-                    onRefresh={polling.startAnalysis}
+                    onRefresh={(runCoverage) => polling.startAnalysis(runCoverage)}
                   />
                 </div>
               </div>

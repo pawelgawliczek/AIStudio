@@ -3,14 +3,14 @@
  * Button with polling state and loading indicator
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AnalysisStatus } from '../../types/codeQualityTypes';
 import { RefreshIcon, CheckCircleIcon, ErrorIcon } from './Icons';
 
 interface AnalysisRefreshButtonProps {
   isAnalyzing: boolean;
   analysisStatus: AnalysisStatus | null;
-  onRefresh: () => void;
+  onRefresh: (runCoverage: boolean) => void;
   disabled?: boolean;
 }
 
@@ -20,6 +20,8 @@ export const AnalysisRefreshButton: React.FC<AnalysisRefreshButtonProps> = ({
   onRefresh,
   disabled,
 }) => {
+  const [runCoverage, setRunCoverage] = useState(false);
+
   const getButtonText = () => {
     if (isAnalyzing) {
       return analysisStatus?.progress
@@ -30,29 +32,43 @@ export const AnalysisRefreshButton: React.FC<AnalysisRefreshButtonProps> = ({
   };
 
   return (
-    <button
-      onClick={onRefresh}
-      disabled={disabled || isAnalyzing}
-      className={`
-        flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm
-        ${
-          disabled || isAnalyzing
-            ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
-            : 'bg-primary text-white hover:bg-primary/90 hover:shadow-md'
-        }
-      `}
-    >
-      {isAnalyzing ? (
-        <div className="flex gap-1">
-          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-        </div>
-      ) : (
-        <RefreshIcon />
-      )}
-      <span>{getButtonText()}</span>
-    </button>
+    <div className="flex items-center gap-3">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={runCoverage}
+          onChange={(e) => setRunCoverage(e.target.checked)}
+          disabled={disabled || isAnalyzing}
+          className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+        />
+        <span className="text-sm text-gray-700 dark:text-gray-300">
+          Run tests with coverage
+        </span>
+      </label>
+      <button
+        onClick={() => onRefresh(runCoverage)}
+        disabled={disabled || isAnalyzing}
+        className={`
+          flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all text-sm
+          ${
+            disabled || isAnalyzing
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
+              : 'bg-primary text-white hover:bg-primary/90 hover:shadow-md'
+          }
+        `}
+      >
+        {isAnalyzing ? (
+          <div className="flex gap-1">
+            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        ) : (
+          <RefreshIcon />
+        )}
+        <span>{getButtonText()}</span>
+      </button>
+    </div>
   );
 };
 

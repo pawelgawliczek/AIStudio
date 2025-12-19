@@ -14,7 +14,7 @@ interface UseAnalysisPollingReturn {
   analysisJobId: string | null;
   showAnalysisNotification: boolean;
   showAnalysisResultsModal: boolean;
-  startAnalysis: () => Promise<void>;
+  startAnalysis: (runCoverage?: boolean) => Promise<void>;
   dismissNotification: () => void;
   closeResultsModal: () => void;
 }
@@ -92,7 +92,7 @@ export function useAnalysisPolling(
     }
   }, [projectId, onAnalysisComplete]);
 
-  const startAnalysis = useCallback(async () => {
+  const startAnalysis = useCallback(async (runCoverage?: boolean) => {
     if (isAnalyzing || !projectId) return;
 
     setIsAnalyzing(true);
@@ -102,7 +102,7 @@ export function useAnalysisPolling(
     try {
       const response = await axios.post(
         `/code-metrics/project/${projectId}/analyze`,
-        {}
+        { runCoverage }
       );
       setAnalysisJobId(response.data.jobId);
 

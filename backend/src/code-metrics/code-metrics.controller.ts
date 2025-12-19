@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, UseGuards, HttpCode, HttpStatus, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,6 +13,7 @@ import {
   TrendDataPointDto,
   FolderNodeDto,
   CoverageGapDto,
+  TriggerAnalysisDto,
 } from './dto';
 import { QueryMetricsDto, GetHotspotsDto } from './dto/query-metrics.dto';
 import { RecentAnalysesResponseDto } from './dto/recent-analysis.dto';
@@ -102,8 +103,9 @@ export class CodeMetricsController {
   @ApiResponse({ status: 409, description: 'Analysis already running for this project' })
   async triggerAnalysis(
     @Param('projectId') projectId: string,
+    @Body() dto: TriggerAnalysisDto,
   ): Promise<{ jobId: string; status: string; message: string }> {
-    return this.codeMetricsService.triggerAnalysis(projectId);
+    return this.codeMetricsService.triggerAnalysis(projectId, { runCoverage: dto?.runCoverage });
   }
 
   @Get('project/:projectId/hierarchy')
