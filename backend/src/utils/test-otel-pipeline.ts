@@ -4,7 +4,8 @@
  *
  * Run: npx ts-node backend/src/utils/test-otel-pipeline.ts
  */
-import fetch from 'node-fetch';
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+const nodeFetch = require('node-fetch') as typeof fetch;
 
 const OTEL_COLLECTOR_URL = 'http://localhost:4318/v1/logs';
 const BACKEND_API_URL = 'http://localhost:3000/api/otel/ingest';
@@ -26,7 +27,7 @@ async function runTests(): Promise<TestResult[]> {
   // Test 1: Direct backend API
   console.log('Test 1: Direct backend API ingestion...');
   try {
-    const response = await fetch(BACKEND_API_URL, {
+    const response = await nodeFetch(BACKEND_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -110,7 +111,7 @@ async function runTests(): Promise<TestResult[]> {
       ],
     };
 
-    const response = await fetch(OTEL_COLLECTOR_URL, {
+    const response = await nodeFetch(OTEL_COLLECTOR_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(otlpPayload),
@@ -167,7 +168,7 @@ async function runTests(): Promise<TestResult[]> {
       },
     ];
 
-    const response = await fetch(`${BACKEND_API_URL}/batch`, {
+    const response = await nodeFetch(`${BACKEND_API_URL}/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(batchEvents),
