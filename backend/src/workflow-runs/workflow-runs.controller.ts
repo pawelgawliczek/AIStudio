@@ -23,6 +23,7 @@ import {
   RunStatus,
   TranscriptListResponseDto,
   TranscriptDetailResponseDto,
+  TranscriptLinesResponseDto,
 } from './dto';
 import { TranscriptsService } from './transcripts.service';
 import { WorkflowRunsService } from './workflow-runs.service';
@@ -330,6 +331,40 @@ export class WorkflowRunsController {
       artifactId,
       includeContent === 'true',
     );
+  }
+
+  @Get(':runId/transcript-lines')
+  @ApiOperation({ summary: 'Get transcript lines for a workflow run (ST-329)' })
+  @ApiParam({ name: 'projectId', description: 'Project UUID' })
+  @ApiParam({ name: 'runId', description: 'Workflow Run UUID' })
+  @ApiQuery({ name: 'sessionIndex', required: false, type: Number, description: 'Session index (default: 0)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Max lines to return' })
+  @ApiQuery({ name: 'offset', required: false, type: Number, description: 'Number of lines to skip' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transcript lines retrieved successfully',
+    type: TranscriptLinesResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Access denied to project' })
+  @ApiResponse({ status: 404, description: 'Workflow run not found' })
+  async getTranscriptLines(
+    @Param('projectId') projectId: string,
+    @Param('runId') runId: string,
+    @Req() request: any,
+    @Query('sessionIndex') sessionIndex?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<TranscriptLinesResponseDto> {
+    // Validate access
+    await this.validateProjectAccess(request.user?.userId, projectId);
+    await this.validateRunBelongsToProject(runId, projectId);
+
+    const sessionIdx = sessionIndex ? parseInt(sessionIndex, 10) : 0;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    const offsetNum = offset ? parseInt(offset, 10) : undefined;
+
+    return this.transcriptsService.getTranscriptLines(runId, sessionIdx, limitNum, offsetNum);
   }
 
   // ==========================================================================

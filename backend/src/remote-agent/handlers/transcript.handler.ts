@@ -215,6 +215,7 @@ export class TranscriptHandler {
 
   /**
    * ST-182: Handle transcript lines from laptop agent
+   * ST-329: Persist lines to TranscriptLine table
    */
   async handleTranscriptLines(
     data: {
@@ -225,6 +226,18 @@ export class TranscriptHandler {
       timestamp: string;
     },
   ): Promise<void> {
+    // ST-329: Persist lines to database
+    try {
+      await this.persistTranscriptLines(data.runId, data.sessionIndex, data.lines);
+    } catch (error) {
+      this.logger.error(
+        `[ST-329] Failed to persist transcript lines: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
+      // Continue with broadcast even if persistence fails
+    }
+
+    // Broadcast to frontend subscribers
     if (this.frontendServer) {
       this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:lines', data);
     }
@@ -232,6 +245,7 @@ export class TranscriptHandler {
 
   /**
    * ST-182: Handle transcript batch from laptop agent
+   * ST-329: Persist lines to TranscriptLine table
    */
   async handleTranscriptBatch(
     data: {
@@ -243,6 +257,19 @@ export class TranscriptHandler {
     },
   ): Promise<void> {
     this.logger.log(`[ST-182] Batch received: runId=${data.runId}, lines=${data.lines.length}`);
+
+    // ST-329: Persist lines to database
+    try {
+      await this.persistTranscriptLines(data.runId, data.sessionIndex, data.lines);
+    } catch (error) {
+      this.logger.error(
+        `[ST-329] Failed to persist transcript batch: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
+      // Continue with broadcast even if persistence fails
+    }
+
+    // Broadcast to frontend subscribers
     if (this.frontendServer) {
       this.frontendServer.to(`master-transcript:${data.runId}`).emit('master-transcript:batch', data);
     }
@@ -483,5 +510,37 @@ export class TranscriptHandler {
       this.logger.error(`[ST-323] Failed to upload transcript for queueId ${queueId}: ${getErrorMessage(error)}`, getErrorStack(error));
       callback({ success: false, id: queueId, error: getErrorMessage(error) });
     }
+  }
+
+  /**
+   * ST-329: Persist transcript lines to database
+   * Track line numbers per session and save to TranscriptLine table
+   */
+  private async persistTranscriptLines(
+    workflowRunId: string,
+    sessionIndex: number,
+    lines: Array<{ line: string; sequenceNumber: number }>,
+  ): Promise<void> {
+    if (lines.length === 0) {
+      return;
+    }
+
+    // Create TranscriptLine records
+    const transcriptLines = lines.map((item) => ({
+      workflowRunId,
+      sessionIndex,
+      lineNumber: item.sequenceNumber,
+      content: item.line,
+    }));
+
+    // Batch insert using createMany
+    await this.prisma.transcriptLine.createMany({
+      data: transcriptLines,
+      skipDuplicates: true, // Avoid errors if lines already exist
+    });
+
+    this.logger.log(
+      `[ST-329] Persisted ${lines.length} transcript lines for runId=${workflowRunId}, sessionIndex=${sessionIndex}`,
+    );
   }
 }

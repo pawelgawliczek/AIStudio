@@ -25,6 +25,8 @@ import {
   MasterTranscriptSummaryDto,
   AgentTranscriptSummaryDto,
   TranscriptDetailResponseDto,
+  TranscriptLinesResponseDto,
+  TranscriptLineDto,
 } from './dto/transcript.dto';
 
 // Quota constants (from SECURITY_REVIEW)
@@ -514,6 +516,57 @@ export class TranscriptsService {
       componentId: artifact.createdByComponentId || undefined,
       componentName: artifact.createdByComponent?.name,
       createdAt: artifact.createdAt,
+    };
+  }
+
+  /**
+   * ST-329: Get transcript lines for a workflow run
+   * Returns all persisted transcript lines for a given session
+   *
+   * @param runId - Workflow run UUID
+   * @param sessionIndex - Session index (optional, defaults to 0)
+   * @param limit - Maximum number of lines to return (optional)
+   * @param offset - Number of lines to skip (optional)
+   */
+  async getTranscriptLines(
+    runId: string,
+    sessionIndex: number = 0,
+    limit?: number,
+    offset?: number,
+  ): Promise<TranscriptLinesResponseDto> {
+    // Get total count
+    const totalLines = await this.prisma.transcriptLine.count({
+      where: {
+        workflowRunId: runId,
+        sessionIndex,
+      },
+    });
+
+    // Get lines with pagination
+    const transcriptLines = await this.prisma.transcriptLine.findMany({
+      where: {
+        workflowRunId: runId,
+        sessionIndex,
+      },
+      orderBy: {
+        lineNumber: 'asc',
+      },
+      skip: offset,
+      take: limit,
+    });
+
+    const lines: TranscriptLineDto[] = transcriptLines.map((line) => ({
+      id: line.id,
+      lineNumber: line.lineNumber,
+      content: line.content,
+      createdAt: line.createdAt,
+    }));
+
+    return {
+      workflowRunId: runId,
+      sessionIndex,
+      lines,
+      totalLines,
     };
   }
 

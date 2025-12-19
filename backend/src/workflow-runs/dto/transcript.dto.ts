@@ -101,3 +101,37 @@ export class TranscriptDetailResponseDto {
     totalTokens: number;
   };
 }
+
+/**
+ * ST-329: Single transcript line
+ */
+export class TranscriptLineDto {
+  @ApiProperty({ description: 'TranscriptLine UUID' })
+  id: string;
+
+  @ApiProperty({ description: 'Line number in the session' })
+  lineNumber: number;
+
+  @ApiProperty({ description: 'Line content' })
+  content: string;
+
+  @ApiProperty({ description: 'When line was created' })
+  createdAt: Date;
+}
+
+/**
+ * ST-329: Response for transcript lines query
+ */
+export class TranscriptLinesResponseDto {
+  @ApiProperty({ description: 'Workflow run UUID' })
+  workflowRunId: string;
+
+  @ApiProperty({ description: 'Session index' })
+  sessionIndex: number;
+
+  @ApiProperty({ type: [TranscriptLineDto], description: 'Transcript lines' })
+  lines: TranscriptLineDto[];
+
+  @ApiProperty({ description: 'Total number of lines for this session' })
+  totalLines: number;
+}
