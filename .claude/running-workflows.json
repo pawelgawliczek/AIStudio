@@ -82,8 +82,24 @@
           "agentId": "a3c1a56",
           "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a3c1a56.jsonl",
           "spawnedAt": "2025-12-19T11:11:48Z"
+        },
+        {
+          "agentId": "a3099f1",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a3099f1.jsonl",
+          "spawnedAt": "2025-12-19T11:23:49Z"
+        },
+        {
+          "agentId": "a83dd89",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a83dd89.jsonl",
+          "spawnedAt": "2025-12-19T11:26:19Z"
         }
       ]
+    },
+    "0bde3eee-d72c-4cc4-a375-d5f9c10004ff": {
+      "masterTranscripts": [
+        "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/0bde3eee-d72c-4cc4-a375-d5f9c10004ff.jsonl"
+      ],
+      "startedAt": "2025-12-19T11:18:28Z"
     }
   }
 }

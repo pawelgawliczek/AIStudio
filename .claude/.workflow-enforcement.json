@@ -12,19 +12,17 @@
       },
       "updatedAt": "2025-12-19T10:51:12Z"
     },
-    "f9af8ad4-2512-40b7-83cd-469b7d7d6486": {
+    "0bde3eee-d72c-4cc4-a375-d5f9c10004ff": {
       "workflowActive": true,
-      "runId": "00a4c6d5-7856-4427-a347-6afe05ad6790",
+      "runId": "e511ab01-f28f-4a36-9239-69ef7344447a",
       "currentState": {
-        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
-        "name": "testing",
-        "phase": "agent",
-        "componentName": "Tester",
+        "name": "implementation",
+        "componentName": "Developer",
         "allowedSubagentTypes": [
           "general-purpose"
         ]
       },
-      "updatedAt": "2025-12-19T11:07:20Z"
+      "updatedAt": "2025-12-19T11:26:58Z"
     }
   }
 }
