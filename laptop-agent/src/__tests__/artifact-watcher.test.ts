@@ -11,11 +11,11 @@
  * - Security: Path traversal, malicious filenames
  */
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { ArtifactWatcher } from '../artifact-watcher';
 import { UploadManager } from '../upload-manager';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 
 // Mock UploadManager to track queued uploads
 jest.mock('../upload-manager');
@@ -209,7 +209,7 @@ describe('ArtifactWatcher', () => {
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact', {
+      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact:upload', {
         storyKey: 'ST-325',
         artifactKey: 'THE_PLAN',
         filePath: expect.stringContaining('THE_PLAN.md'),
@@ -228,7 +228,7 @@ describe('ArtifactWatcher', () => {
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact', {
+      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact:upload', {
         storyKey: 'ST-100',
         artifactKey: 'config',
         filePath: expect.stringContaining('config.json'),
@@ -246,7 +246,7 @@ describe('ArtifactWatcher', () => {
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact', {
+      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact:upload', {
         storyKey: 'ST-200',
         artifactKey: 'notes',
         filePath: expect.stringContaining('notes.txt'),
@@ -262,12 +262,13 @@ describe('ArtifactWatcher', () => {
       const filePath = path.join(storyDir, 'TEST.md');
 
       fs.writeFileSync(filePath, 'Version 1');
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 700));
 
       const firstCallCount = mockUploadManager.queueUpload.mock.calls.length;
+      expect(firstCallCount).toBeGreaterThan(0); // Verify first upload happened
 
       fs.writeFileSync(filePath, 'Version 2');
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 700));
 
       expect(mockUploadManager.queueUpload.mock.calls.length).toBeGreaterThan(firstCallCount);
     });
@@ -337,7 +338,7 @@ describe('ArtifactWatcher', () => {
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact', {
+      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact:upload', {
         storyKey: 'ST-325',
         artifactKey: 'unicode',
         filePath: expect.stringContaining('unicode.md'),
@@ -354,7 +355,7 @@ describe('ArtifactWatcher', () => {
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact', {
+      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact:upload', {
         storyKey: 'ST-325',
         artifactKey: 'empty',
         filePath: expect.stringContaining('empty.md'),
@@ -456,7 +457,7 @@ describe('ArtifactWatcher', () => {
       await new Promise(resolve => setTimeout(resolve, 600));
 
       expect(mockUploadManager.queueUpload).toHaveBeenCalledWith(
-        'artifact',
+        'artifact:upload',
         expect.any(Object)
       );
     });
@@ -468,7 +469,7 @@ describe('ArtifactWatcher', () => {
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact', {
+      expect(mockUploadManager.queueUpload).toHaveBeenCalledWith('artifact:upload', {
         storyKey: expect.any(String),
         artifactKey: expect.any(String),
         filePath: expect.any(String),

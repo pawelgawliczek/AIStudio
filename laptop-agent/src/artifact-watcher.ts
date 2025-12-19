@@ -35,15 +35,17 @@ export class ArtifactWatcher {
   }
 
   async start(): Promise<void> {
-    // Watch the docs directory for ST-* subdirectories
-    const watchDir = path.join(this.projectPath, 'docs', 'ST-*');
+    // Watch the docs directory recursively
+    // We watch the entire docs dir because chokidar glob patterns don't dynamically
+    // pick up new directories created after the watcher starts
+    const watchDir = path.join(this.projectPath, 'docs');
 
     this.logger.info('Starting artifact watcher', { watchDir });
 
     this.watcher = chokidar.watch(watchDir, {
       persistent: true,
-      ignoreInitial: false, // Process existing files
-      depth: 2, // ST-XXX and one level of subdirectories
+      ignoreInitial: false, // Process existing files on startup
+      depth: 2, // docs/ST-XXX/files
       awaitWriteFinish: {
         stabilityThreshold: 500, // Wait 500ms for file to stabilize
         pollInterval: 100,
@@ -60,6 +62,8 @@ export class ArtifactWatcher {
 
     this.watcher.on('change', (filePath) => {
       this.logger.debug('File changed', { filePath });
+      // Remove from processedFiles to allow re-upload on change
+      this.processedFiles.delete(filePath);
       this.handleFile(filePath).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         this.logger.error('Failed to handle changed file', { filePath, error: message });
@@ -125,7 +129,7 @@ export class ArtifactWatcher {
 
     // Queue the upload via UploadManager
     try {
-      await this.uploadManager.queueUpload('artifact', {
+      await this.uploadManager.queueUpload('artifact:upload', {
         storyKey,
         artifactKey,
         filePath,
@@ -134,6 +138,7 @@ export class ArtifactWatcher {
         timestamp: Date.now(),
       });
 
+      // Mark as processed to prevent duplicate uploads during initial scan
       this.processedFiles.add(filePath);
       this.logger.info('Artifact queued for upload', { storyKey, artifactKey, filePath });
     } catch (error: unknown) {

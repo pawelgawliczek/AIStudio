@@ -77,6 +77,26 @@
           "agentId": "ac22616",
           "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ac22616.jsonl",
           "spawnedAt": "2025-12-19T10:30:27Z"
+        },
+        {
+          "agentId": "ac51bb0",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-ac51bb0.jsonl",
+          "spawnedAt": "2025-12-19T10:42:28Z"
+        },
+        {
+          "agentId": "a3b3546",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a3b3546.jsonl",
+          "spawnedAt": "2025-12-19T10:48:01Z"
+        },
+        {
+          "agentId": "af1324d",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-af1324d.jsonl",
+          "spawnedAt": "2025-12-19T10:49:19Z"
+        },
+        {
+          "agentId": "a90623a",
+          "transcriptPath": "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/agent-a90623a.jsonl",
+          "spawnedAt": "2025-12-19T10:50:45Z"
         }
       ]
     },
@@ -85,7 +105,7 @@
       "workflowId": "workflow-test-001",
       "storyId": "story-test-001",
       "storyKey": "ST-TEST-1",
-      "startedAt": "2025-12-19T10:24:16Z"
+      "startedAt": "2025-12-19T10:37:00Z"
     }
   }
 }

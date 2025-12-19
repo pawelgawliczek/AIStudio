@@ -2,15 +2,17 @@
   "sessions": {
     "ce15ed1a-195d-47af-b1b6-b1bfaa9b43e7": {
       "workflowActive": true,
-      "runId": "0c2e548e-743a-4705-92fa-5bcf52d8ff1c",
+      "runId": "0c730c67-12bd-4a07-ad48-a06a3385de4a",
       "currentState": {
-        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
-        "name": "implementation",
-        "phase": "post",
-        "componentName": "Developer",
-        "allowedSubagentTypes": null
+        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
+        "name": "testing",
+        "phase": "agent",
+        "componentName": "Tester",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
       },
-      "updatedAt": "2025-12-19T09:19:08Z"
+      "updatedAt": "2025-12-19T10:48:15Z"
     },
     "a345b8e6-269c-442f-8503-72de03ab7a1e": {
       "workflowActive": true,
