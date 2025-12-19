@@ -11,6 +11,46 @@
         "allowedSubagentTypes": null
       },
       "updatedAt": "2025-12-19T10:51:12Z"
+    },
+    "0bde3eee-d72c-4cc4-a375-d5f9c10004ff": {
+      "workflowActive": true,
+      "runId": "ca86ec45-c187-4354-9f62-51dc9c1f6a80",
+      "currentState": {
+        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
+        "name": "testing",
+        "phase": "agent",
+        "componentName": "Tester",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-19T11:37:59Z"
+    },
+    "36142908-5c6a-489c-83ad-b373ebcd2b03": {
+      "workflowActive": true,
+      "runId": "0ec35f77-e13e-4a35-b713-834adf1d1fd7",
+      "currentState": {
+        "id": "04e7bd5b-84cb-454b-b43e-1b850f1b0d83",
+        "name": "playwright-verification",
+        "phase": "agent",
+        "componentName": "Playwright Verifier",
+        "allowedSubagentTypes": [
+          "general-purpose"
+        ]
+      },
+      "updatedAt": "2025-12-19T13:52:14Z"
+    },
+    "a8badca0-bbaf-4dd7-b123-2c388b19d95f": {
+      "workflowActive": true,
+      "runId": "cef4dcc5-3a08-45c0-ade7-2d6576694bc1",
+      "currentState": {
+        "id": "66c00d34-85ba-4ecc-807e-bd94e8d09bb3",
+        "name": "testing",
+        "phase": "post",
+        "componentName": "Tester",
+        "allowedSubagentTypes": null
+      },
+      "updatedAt": "2025-12-19T13:01:40Z"
     }
   }
 }
