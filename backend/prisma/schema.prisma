@@ -814,6 +814,8 @@ model WorkflowRun {
   // ST-214: Artifact version history
   artifactVersions       ArtifactVersion[]
   artifactsLastUpdated   Artifact[]        @relation("ArtifactLastUpdatedRun")
+  // ST-328: Incremental transcript storage
+  transcriptLines        TranscriptLine[]
 
   @@index([projectId])
   @@index([workflowId])
@@ -1948,4 +1950,20 @@ model UnassignedTranscript {
   @@index([matchedAt]) // For finding unmatched transcripts
   @@index([workflowRunId])
   @@map("unassigned_transcripts")
+}
+
+// TranscriptLine - Individual lines from transcripts for incremental storage (ST-328)
+// Enables streaming transcript storage line-by-line as agents execute
+model TranscriptLine {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workflowRunId String   @map("workflow_run_id") @db.Uuid
+  sessionIndex  Int      @map("session_index")
+  lineNumber    Int      @map("line_number")
+  content       String   @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([workflowRunId, sessionIndex, lineNumber])
+  @@map("transcript_lines")
 }
