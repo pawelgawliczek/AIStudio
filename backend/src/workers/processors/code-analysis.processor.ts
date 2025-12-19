@@ -242,14 +242,14 @@ export class CodeAnalysisProcessor {
 
   /**
    * Check if file is a source file we should analyze
-   * Now includes test files (.test., .spec.) for complete codebase analysis
+   * Excludes test files (.test., .spec., __tests__/) to get accurate coverage metrics
    */
   private isSourceFile(filePath: string): boolean {
-    // Remove .json from extensions - config files should not be analyzed
+    // Valid source file extensions
     const extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs', '.sql'];
 
-    // Config file patterns to exclude
-    const configPatterns = [
+    // Patterns to exclude from metrics
+    const excludePatterns = [
       'node_modules/',
       'dist/',
       'build/',
@@ -259,13 +259,20 @@ export class CodeAnalysisProcessor {
       '.config.ts',      // vitest.config.ts, vite.config.ts, etc.
       '.eslintrc.',      // .eslintrc.js, .eslintrc.json
       '.prettierrc.',    // .prettierrc.js, .prettierrc.json
+      // Exclude test files - they shouldn't count against coverage
+      '.test.',          // *.test.ts, *.test.tsx
+      '.spec.',          // *.spec.ts, *.spec.tsx
+      '__tests__/',      // __tests__/*.ts
+      '__mocks__/',      // __mocks__/*.ts (test infrastructure)
+      '/e2e/',           // e2e test files
+      '/scripts/',       // utility scripts (not production code)
     ];
 
     // Check if file has valid extension
     const hasValidExtension = extensions.some((ext) => filePath.endsWith(ext));
 
     // Check if file matches any exclusion pattern
-    const isExcluded = configPatterns.some((pattern) => filePath.includes(pattern));
+    const isExcluded = excludePatterns.some((pattern) => filePath.includes(pattern));
 
     return hasValidExtension && !isExcluded;
   }
