@@ -59,7 +59,7 @@ export async function handler(
     });
 
     if (!workflow) {
-      throw new NotFoundError('Workflow', params.workflowId);
+      throw new NotFoundError('Workflow', params.workflowId!);
     }
 
     // Pagination
