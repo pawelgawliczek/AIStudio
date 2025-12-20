@@ -117,10 +117,13 @@ export class ArtifactMover {
       return `Invalid epic key format: ${epicKey}`;
     }
 
-    // Validate old path is a direct story directory (docs/ST-XXX)
-    const oldPathPattern = /^docs\/ST-\d+$/;
-    if (!oldPathPattern.test(oldPath)) {
-      return `Old path must be direct story directory (docs/ST-XXX): ${oldPath}`;
+    // Validate old path is a valid story directory:
+    // - docs/ST-XXX (legacy/unassigned)
+    // - docs/EP-XXX/ST-YYY (story in epic)
+    const directStoryPattern = /^docs\/ST-\d+$/;
+    const epicStoryPattern = /^docs\/EP-\d+\/ST-\d+$/;
+    if (!directStoryPattern.test(oldPath) && !epicStoryPattern.test(oldPath)) {
+      return `Old path must be story directory (docs/ST-XXX or docs/EP-XXX/ST-XXX): ${oldPath}`;
     }
 
     // Validate old path matches the story key
