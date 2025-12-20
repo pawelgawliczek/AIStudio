@@ -386,6 +386,8 @@ export class UploadManager {
           sent: stats.sent,
           acked: stats.acked,
           total: stats.total,
+          limit: stats.limit,
+          usagePercent: stats.usagePercent,
           byType: stats.byType,
         });
       } catch (error: unknown) {

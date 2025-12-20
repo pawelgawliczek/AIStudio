@@ -559,6 +559,8 @@ describe('UploadQueue', () => {
         sent: 1,
         acked: 1,
         total: 4,
+        limit: 350000,
+        usagePercent: 0, // (2 pending + 1 sent) / 350000 rounds to 0%
       });
     });
 
@@ -574,6 +576,8 @@ describe('UploadQueue', () => {
         sent: 0,
         acked: 0,
         total: 0,
+        limit: 350000,
+        usagePercent: 0,
       });
 
       emptyQueue.close();
@@ -762,11 +766,11 @@ describe('UploadQueue', () => {
       limitedQueue.close();
     });
 
-    it('should default to 10,000 items max', async () => {
+    it('should default to 350,000 items max (ST-346)', async () => {
       const defaultQueue = new UploadQueue(testDbPath);
 
-      // Should allow up to 10,000
-      expect(defaultQueue.getMaxItems()).toBe(10000);
+      // Should allow up to 350,000 (~1GB storage)
+      expect(defaultQueue.getMaxItems()).toBe(350000);
 
       defaultQueue.close();
     });

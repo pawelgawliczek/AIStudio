@@ -83,6 +83,10 @@ export interface QueueStats {
   sent: number;
   acked: number;
   total: number;
+  /** Maximum allowed items in queue (ST-346) */
+  limit: number;
+  /** Percentage of capacity used by active items (pending + sent) (ST-346) */
+  usagePercent: number;
   byType?: Record<string, number>;
 }
 

@@ -23,6 +23,8 @@ export interface AgentConfig {
   lokiUrl: string;
   lokiUsername: string;
   lokiPassword: string;
+  // Queue configuration (ST-346)
+  maxQueueSize: number;
 }
 
 const DEFAULT_CONFIG: Partial<AgentConfig> = {
@@ -43,6 +45,8 @@ const DEFAULT_CONFIG: Partial<AgentConfig> = {
   lokiUrl: 'https://vibestudio.example.com/loki',
   lokiUsername: 'vibestudio',
   lokiPassword: 'a0b961abd748e5ebe29fb074ab9f498e69ddf87028d33855',
+  // Queue configuration (ST-346)
+  maxQueueSize: 350000,
 };
 
 /**
@@ -107,6 +111,14 @@ function loadEnvConfig(): Partial<AgentConfig> {
 
   if (process.env.LOKI_PASSWORD) {
     config.lokiPassword = process.env.LOKI_PASSWORD;
+  }
+
+  // Queue configuration (ST-346)
+  if (process.env.MAX_QUEUE_SIZE) {
+    const parsed = parseInt(process.env.MAX_QUEUE_SIZE, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      config.maxQueueSize = parsed;
+    }
   }
 
   return config;

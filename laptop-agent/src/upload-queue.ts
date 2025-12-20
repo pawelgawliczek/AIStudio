@@ -56,7 +56,7 @@ export class UploadQueue {
   constructor(dbPath?: string, config?: QueueConfig) {
     // Set default config
     this.config = {
-      maxItems: config?.maxItems ?? 10000,
+      maxItems: config?.maxItems ?? 350000,
       defaultRetryTimeout: config?.defaultRetryTimeout ?? 30,
       maxRetries: config?.maxRetries ?? 5,
     };
@@ -413,6 +413,8 @@ export class UploadQueue {
       sent: 0,
       acked: 0,
       total: 0,
+      limit: this.config.maxItems,
+      usagePercent: 0,
     };
 
     for (const row of statusCounts) {
@@ -421,6 +423,10 @@ export class UploadQueue {
       if (row.status === 'acked') stats.acked = row.count;
       stats.total += row.count;
     }
+
+    // Calculate usage percentage based on active items (pending + sent)
+    const activeCount = stats.pending + stats.sent;
+    stats.usagePercent = Math.round((activeCount / this.config.maxItems) * 100);
 
     if (options?.includeTypes) {
       const typeCounts = this.db.prepare(`

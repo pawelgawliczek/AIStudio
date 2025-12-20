@@ -263,6 +263,57 @@
         "type": "loki",
         "uid": "loki"
       },
+      "description": "Percentage of queue capacity used (pending + sent items). Alert threshold: 70%",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "orange", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 4 },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "last_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Queue stats\" | json | unwrap usagePercent [5m])",
+          "refId": "A"
+        }
+      ],
+      "title": "Queue Usage %",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "description": "Items stuck awaiting ACK (requeued)",
       "fieldConfig": {
         "defaults": {
@@ -282,7 +333,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 4 },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 4 },
       "id": 5,
       "options": {
         "colorMode": "value",
@@ -328,7 +379,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 4 },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 4 },
       "id": 6,
       "options": {
         "colorMode": "value",
@@ -374,7 +425,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 4 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 4 },
       "id": 7,
       "options": {
         "colorMode": "value",

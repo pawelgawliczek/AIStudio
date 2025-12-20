@@ -6,6 +6,59 @@ groups:
     folder: AIStudio
     interval: 1m
     rules:
+      - uid: upload_queue_usage_high
+        title: Queue Capacity Usage High (ST-346)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'last_over_time({app="laptop-agent"} |= "Queue stats" | json | unwrap usagePercent [5m])'
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    params:
+                      - 70
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  type: query
+              refId: C
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: 'Upload queue is at {{ $values.B.Value }}% capacity. This indicates items are accumulating faster than they can be uploaded. Consider checking backend connectivity or network issues.'
+          summary: 'Warning: Queue capacity at {{ $values.B.Value }}%'
+        labels:
+          severity: warning
+          component: upload-pipeline
+        isPaused: false
+
       - uid: upload_queue_overflow
         title: Upload Queue Overflow
         condition: C
