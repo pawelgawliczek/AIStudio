@@ -3419,3 +3419,141 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-19T17:37:19Z",
+  "session_id": "f5c388d3-00b8-4132-921d-5895487dfe87",
+  "run_id": "13c1da95-c365-4200-a88c-18706cad2a93",
+  "questions": [
+    {
+      "question": "Should epic-level artifacts (like THE_PLAN) exist standalone without being tied to a story, or should they always be associated with a 'placeholder' story?",
+      "header": "Epic scope",
+      "options": [
+        {
+          "label": "Standalone epic artifacts",
+          "description": "Artifacts can belong ONLY to an epic (epicId set, storyId null). Used for master plans, epic-level docs."
+        },
+        {
+          "label": "Always story-linked",
+          "description": "Even epic-level docs get a placeholder story. Keeps current model simpler."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "When a story gets assigned to an epic, what should happen to its existing artifacts in docs/ST-XXX/?",
+      "header": "Migration",
+      "options": [
+        {
+          "label": "Auto-move files",
+          "description": "Automatically relocate docs/ST-XXX/* to docs/EP-XXX/ST-XXX/* when story is assigned to epic"
+        },
+        {
+          "label": "Manual migration",
+          "description": "Leave files in place, only new artifacts use new structure"
+        },
+        {
+          "label": "Symlink/reference",
+          "description": "Keep files in original location, create symlinks or DB references to new logical location"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "For the master plan artifact at epic level - do you want this to be a special ArtifactDefinition that all epics can use, or defined per-workflow?",
+      "header": "THE_PLAN",
+      "options": [
+        {
+          "label": "Global definition",
+          "description": "Single 'THE_PLAN' definition available to all epics across all workflows"
+        },
+        {
+          "label": "Per-workflow",
+          "description": "Each workflow defines its own epic-level artifact types (more flexible but more setup)"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "Should the ArtifactWatcher auto-detect and upload artifacts when you write them during Claude discussions (before workflow), or only during workflow execution?",
+      "header": "Auto-upload",
+      "options": [
+        {
+          "label": "Always watch",
+          "description": "Any file written to docs/EP-XXX/ or docs/ST-XXX/ gets uploaded immediately"
+        },
+        {
+          "label": "Workflow-only",
+          "description": "Only upload artifacts when a workflow run is active"
+        },
+        {
+          "label": "Manual trigger",
+          "description": "Add a command/tool to explicitly sync local docs to database"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-19T17:39:06Z",
+  "session_id": "f5c388d3-00b8-4132-921d-5895487dfe87",
+  "run_id": "13c1da95-c365-4200-a88c-18706cad2a93",
+  "questions": [
+    {
+      "question": "When writing docs/EP-XXX/THE_PLAN.md during a Claude discussion (no active workflow), how should we identify which PROJECT the artifact belongs to?",
+      "header": "Project context",
+      "options": [
+        {
+          "label": "Use current project",
+          "description": "Use the project from MCP context (set_context or .vibestudio config). Assumes single project per workspace."
+        },
+        {
+          "label": "Parse from EP key",
+          "description": "Lookup epic by key (EP-XXX) and derive project. Fails if epic doesn't exist yet."
+        },
+        {
+          "label": "Require epic first",
+          "description": "Epic must exist in DB before artifacts can be uploaded. You'd create epic, then write THE_PLAN."
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What's your expected workflow - create epic in VibeStudio first, then write the plan, or write the plan file first and have epic created automatically?",
+      "header": "Epic creation",
+      "options": [
+        {
+          "label": "Epic first",
+          "description": "Create epic in VibeStudio UI/API, then write docs/EP-XXX/THE_PLAN.md"
+        },
+        {
+          "label": "File first",
+          "description": "Write docs/EP-XXX/THE_PLAN.md and have system auto-create the epic if it doesn't exist"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-19T17:42:05Z",
+  "session_id": "f5c388d3-00b8-4132-921d-5895487dfe87",
+  "run_id": "13c1da95-c365-4200-a88c-18706cad2a93",
+  "questions": [
+    {
+      "question": "Does this plan look good to proceed, or do you have changes/concerns?",
+      "header": "Plan review",
+      "options": [
+        {
+          "label": "Looks good, proceed",
+          "description": "Exit plan mode and create stories in VibeStudio"
+        },
+        {
+          "label": "Needs changes",
+          "description": "I have feedback on the plan before proceeding"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

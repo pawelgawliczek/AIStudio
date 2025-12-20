@@ -18,13 +18,17 @@ const VALID_ARTIFACT_TYPES = ['markdown', 'json', 'code', 'report', 'image', 'ot
 export const tool: Tool = {
   name: 'create_artifact_definition',
   description:
-    'Define an artifact structure for a workflow. Artifacts are typed documents (markdown, json, code, etc.) that agents produce and consume during workflow execution.',
+    'Define an artifact structure for a workflow or project. Artifacts are typed documents (markdown, json, code, etc.) that agents produce and consume during workflow execution. Provide either workflowId (workflow-scoped) OR projectId (global definition).',
   inputSchema: {
     type: 'object',
     properties: {
       workflowId: {
         type: 'string',
-        description: 'Workflow UUID (required)',
+        description: 'Workflow UUID for workflow-scoped definitions (XOR with projectId)',
+      },
+      projectId: {
+        type: 'string',
+        description: 'Project UUID for global definitions like THE_PLAN (XOR with workflowId) - ST-362',
       },
       name: {
         type: 'string',
@@ -32,7 +36,7 @@ export const tool: Tool = {
       },
       key: {
         type: 'string',
-        description: 'Unique key within workflow (e.g., "ARCH_DOC"). Used for referencing.',
+        description: 'Unique key within scope (e.g., "ARCH_DOC", "THE_PLAN"). Used for referencing.',
       },
       description: {
         type: 'string',
@@ -52,7 +56,7 @@ export const tool: Tool = {
         description: 'If true, this artifact must be created for workflow to complete (default: false)',
       },
     },
-    required: ['workflowId', 'name', 'key', 'type'],
+    required: ['name', 'key', 'type'],
   },
 };
 
@@ -70,7 +74,8 @@ export function formatArtifactDefinition(
 ): ArtifactDefinitionResponse {
   const formatted: ArtifactDefinitionResponse = {
     id: definition.id,
-    workflowId: definition.workflowId,
+    workflowId: definition.workflowId || undefined,
+    projectId: definition.projectId || undefined,
     name: definition.name,
     key: definition.key,
     description: definition.description || undefined,
@@ -110,7 +115,15 @@ export async function handler(
   params: CreateArtifactDefinitionParams,
 ): Promise<ArtifactDefinitionResponse> {
   try {
-    validateRequired(params as unknown as Record<string, unknown>, ['workflowId', 'name', 'key', 'type']);
+    validateRequired(params as unknown as Record<string, unknown>, ['name', 'key', 'type']);
+
+    // ST-362: Validate XOR constraint - exactly one of workflowId OR projectId
+    if (!params.workflowId && !params.projectId) {
+      throw new ValidationError('Either workflowId or projectId must be provided');
+    }
+    if (params.workflowId && params.projectId) {
+      throw new ValidationError('Cannot provide both workflowId and projectId');
+    }
 
     // Validate type
     if (!VALID_ARTIFACT_TYPES.includes(params.type)) {
@@ -126,33 +139,54 @@ export async function handler(
       );
     }
 
-    // Verify workflow exists
-    const workflow = await prisma.workflow.findUnique({
-      where: { id: params.workflowId },
-    });
+    // Verify parent entity exists (workflow or project)
+    if (params.workflowId) {
+      const workflow = await prisma.workflow.findUnique({
+        where: { id: params.workflowId },
+      });
+      if (!workflow) {
+        throw new NotFoundError('Workflow', params.workflowId);
+      }
 
-    if (!workflow) {
-      throw new NotFoundError('Workflow', params.workflowId);
-    }
+      // Check for duplicate key in workflow
+      const existingByKey = await prisma.artifactDefinition.findFirst({
+        where: {
+          workflowId: params.workflowId,
+          key: params.key,
+        },
+      });
+      if (existingByKey) {
+        throw new ValidationError(
+          `Artifact definition with key "${params.key}" already exists in this workflow`,
+        );
+      }
+    } else if (params.projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: params.projectId },
+      });
+      if (!project) {
+        throw new NotFoundError('Project', params.projectId);
+      }
 
-    // Check for duplicate key in workflow
-    const existingByKey = await prisma.artifactDefinition.findFirst({
-      where: {
-        workflowId: params.workflowId,
-        key: params.key,
-      },
-    });
-
-    if (existingByKey) {
-      throw new ValidationError(
-        `Artifact definition with key "${params.key}" already exists in this workflow`,
-      );
+      // Check for duplicate key in project
+      const existingByKey = await prisma.artifactDefinition.findFirst({
+        where: {
+          projectId: params.projectId,
+          key: params.key,
+        },
+      });
+      if (existingByKey) {
+        throw new ValidationError(
+          `Global artifact definition with key "${params.key}" already exists in this project`,
+        );
+      }
     }
 
     // Create artifact definition
     const definition = await prisma.artifactDefinition.create({
       data: {
-        workflowId: params.workflowId,
+        workflowId: params.workflowId || undefined,
+        projectId: params.projectId || undefined,
         name: params.name,
         key: params.key.toUpperCase(), // Normalize to uppercase
         description: params.description,
@@ -163,10 +197,10 @@ export async function handler(
     });
 
     return formatArtifactDefinition(definition);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
-    throw handlePrismaError(error, 'create_artifact_definition');
+    throw handlePrismaError(error as Error, 'create_artifact_definition');
   }
 }

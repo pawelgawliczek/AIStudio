@@ -347,6 +347,40 @@ git push origin main
 tar -czf aistudio-backup-$(date +%Y%m%d).tar.gz /opt/stack/AIStudio
 ```
 
+### Upload Queue (Laptop)
+
+**EP-14: Persistent upload queue location:**
+```bash
+~/.vibestudio/upload-queue.db
+```
+
+**Check queue status:**
+```bash
+# View queue stats
+sqlite3 ~/.vibestudio/upload-queue.db "SELECT status, COUNT(*) FROM queue GROUP BY status;"
+
+# View pending items
+sqlite3 ~/.vibestudio/upload-queue.db "SELECT id, type, createdAt FROM queue WHERE status='pending' LIMIT 10;"
+```
+
+**Troubleshooting stuck uploads:**
+```bash
+# Check for items stuck in 'sent' status (waiting for ACK)
+sqlite3 ~/.vibestudio/upload-queue.db "SELECT id, type, sentAt FROM queue WHERE status='sent';"
+
+# Manually reset stuck items to pending (forces retry)
+sqlite3 ~/.vibestudio/upload-queue.db "UPDATE queue SET status='pending', sentAt=NULL WHERE status='sent' AND sentAt < datetime('now', '-5 minutes');"
+```
+
+**Monitor queue growth:**
+```bash
+# Total items in queue
+sqlite3 ~/.vibestudio/upload-queue.db "SELECT COUNT(*) FROM queue;"
+
+# Oldest pending item
+sqlite3 ~/.vibestudio/upload-queue.db "SELECT createdAt FROM queue WHERE status='pending' ORDER BY createdAt LIMIT 1;"
+```
+
 ## Monitoring
 
 ### Health Checks
@@ -514,6 +548,12 @@ openssl x509 -in /etc/ssl/certs/aistudio.crt -noout -dates
 - ST-279: Living Documentation System
 
 ## Changelog
+
+### Version 1.2 (2025-12-19)
+- **EP-14**: Added Upload Queue section for laptop-side SQLite queue
+- Documented queue location at `~/.vibestudio/upload-queue.db`
+- Added troubleshooting commands for stuck uploads and queue monitoring
+- Documented manual queue reset procedures
 
 ### Version 1.1 (2025-12-18)
 - Added Observability Stack section (ST-288) with current service versions

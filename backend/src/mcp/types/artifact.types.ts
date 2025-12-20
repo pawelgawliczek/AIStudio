@@ -16,7 +16,8 @@ export type ArtifactAccessType = 'read' | 'write' | 'required';
 // --- Artifact Definition CRUD ---
 
 export interface CreateArtifactDefinitionParams {
-  workflowId: string;
+  workflowId?: string; // ST-362: Optional - XOR with projectId
+  projectId?: string; // ST-362: For global definitions (e.g., THE_PLAN)
   name: string;
   key: string;
   description?: string;
@@ -40,12 +41,14 @@ export interface DeleteArtifactDefinitionParams {
 }
 
 export interface ListArtifactDefinitionsParams extends PaginationParams {
-  workflowId: string;
+  workflowId?: string; // ST-362: Optional - XOR with projectId
+  projectId?: string; // ST-362: List global definitions by project
 }
 
 export interface ArtifactDefinitionResponse {
   id: string;
-  workflowId: string;
+  workflowId?: string; // ST-362: Optional for global definitions
+  projectId?: string; // ST-362: For global definitions
   name: string;
   key: string;
   description?: string;
@@ -99,6 +102,7 @@ export interface UploadArtifactParams {
   definitionId?: string;
   definitionKey?: string;
   storyId?: string; // ST-214: Direct story-scoped upload
+  epicId?: string; // ST-362: Epic-scoped upload
   workflowRunId?: string; // Now optional - can derive storyId from run
   content: string;
   contentType?: string;
@@ -149,6 +153,7 @@ export interface GetArtifactParams {
   artifactId?: string;
   definitionKey?: string;
   storyId?: string; // ST-214: Story-scoped lookup
+  epicId?: string; // ST-362: Epic-scoped lookup
   workflowRunId?: string; // Backward compat - derives storyId
   version?: number; // ST-214: Fetch specific version from history
   includeContent?: boolean;
@@ -156,6 +161,7 @@ export interface GetArtifactParams {
 
 export interface ListArtifactsParams extends PaginationParams {
   storyId?: string; // ST-214: List by story
+  epicId?: string; // ST-362: List by epic
   workflowRunId?: string; // Backward compat - derives storyId
   definitionKey?: string;
   type?: ArtifactType;
@@ -166,7 +172,8 @@ export interface ListArtifactsParams extends PaginationParams {
 export interface ArtifactResponse {
   id: string;
   definitionId: string;
-  storyId: string; // ST-214: Now required
+  storyId?: string; // ST-362: Optional for epic-scoped artifacts
+  epicId?: string; // ST-362: Epic-scoped artifacts
   workflowRunId?: string; // ST-214: Now optional
   content: string;
   contentType: string;

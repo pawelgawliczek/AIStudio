@@ -26,20 +26,6 @@
       },
       "updatedAt": "2025-12-19T11:37:59Z"
     },
-    "36142908-5c6a-489c-83ad-b373ebcd2b03": {
-      "workflowActive": true,
-      "runId": "0ec35f77-e13e-4a35-b713-834adf1d1fd7",
-      "currentState": {
-        "id": "04e7bd5b-84cb-454b-b43e-1b850f1b0d83",
-        "name": "playwright-verification",
-        "phase": "agent",
-        "componentName": "Playwright Verifier",
-        "allowedSubagentTypes": [
-          "general-purpose"
-        ]
-      },
-      "updatedAt": "2025-12-19T13:52:14Z"
-    },
     "a8badca0-bbaf-4dd7-b123-2c388b19d95f": {
       "workflowActive": true,
       "runId": "cef4dcc5-3a08-45c0-ade7-2d6576694bc1",
@@ -51,6 +37,18 @@
         "allowedSubagentTypes": null
       },
       "updatedAt": "2025-12-19T13:01:40Z"
+    },
+    "f5c388d3-00b8-4132-921d-5895487dfe87": {
+      "workflowActive": true,
+      "runId": "433be132-b85e-4942-b41d-e4f3e22b882f",
+      "currentState": {
+        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
+        "name": "implementation",
+        "phase": "post",
+        "componentName": "Developer",
+        "allowedSubagentTypes": null
+      },
+      "updatedAt": "2025-12-20T03:23:06Z"
     }
   }
 }

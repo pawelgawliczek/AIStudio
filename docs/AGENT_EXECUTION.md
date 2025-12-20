@@ -35,7 +35,12 @@ Agent Execution tracks the lifecycle of component agents (PM, Explorer, Architec
 │  - Reads codebase (Grep, Glob, Read)                        │
 │  - Writes code (Edit, Write)                                 │
 │  - Executes commands (Bash)                                  │
-│  - Creates artifacts (upload_artifact)                       │
+│  - EP-14: Writes artifacts to docs/ST-XXX/*.md              │
+│                                                              │
+│  Laptop daemon watches file changes:                         │
+│  - ArtifactWatcher detects new/modified files                │
+│  - UploadManager queues uploads (guaranteed delivery)        │
+│  - Backend persists to Artifact table                        │
 └────────────────────────┬─────────────────────────────────────┘
                          │
                          │ agent completes
@@ -394,6 +399,11 @@ console.log('Expected:', expectedCost, 'Actual:', componentRun.cost);
 - ST-279: Living Documentation System
 
 ## Changelog
+
+### Version 1.1 (2025-12-19)
+- **EP-14**: Added ArtifactWatcher integration for file-based artifacts
+- **EP-14**: Documented UploadManager guaranteed delivery system
+- Updated agent execution flow with artifact persistence via file watching
 
 ### Version 1.0 (2025-12-17)
 - Initial documentation created for ST-279

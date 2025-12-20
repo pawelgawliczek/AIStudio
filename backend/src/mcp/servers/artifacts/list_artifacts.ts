@@ -17,13 +17,17 @@ import { formatArtifact } from './create_artifact';
 
 export const tool: Tool = {
   name: 'list_artifacts',
-  description: 'List artifacts by storyId or workflowRunId. Filter by definitionKey or type. Optionally include version counts.',
+  description: 'List artifacts by storyId, epicId, or workflowRunId. Filter by definitionKey or type. Optionally include version counts.',
   inputSchema: {
     type: 'object',
     properties: {
       storyId: {
         type: 'string',
-        description: 'Story UUID (provide this OR workflowRunId)',
+        description: 'Story UUID (provide this OR epicId OR workflowRunId)',
+      },
+      epicId: {
+        type: 'string',
+        description: 'Epic UUID for epic-scoped artifacts (ST-362)',
       },
       workflowRunId: {
         type: 'string',
@@ -72,54 +76,75 @@ export async function handler(
   params: ListArtifactsParams,
 ): Promise<PaginatedResponse<ArtifactResponse>> {
   try {
-    // ST-214: Resolve storyId from workflowRunId if needed
-    let storyId = params.storyId;
+    // ST-362: Support storyId OR epicId OR workflowRunId
+    let storyId: string | undefined = params.storyId;
+    let epicId: string | undefined = params.epicId;
+    let projectId: string;
+    let workflowId: string | undefined;
 
-    if (!storyId && params.workflowRunId) {
-      const workflowRun = await prisma.workflowRun.findUnique({
-        where: { id: params.workflowRunId },
+    if (params.epicId) {
+      // ST-362: Epic-scoped listing
+      const epic = await prisma.epic.findUnique({
+        where: { id: params.epicId },
       });
 
-      if (!workflowRun) {
-        throw new NotFoundError('WorkflowRun', params.workflowRunId);
+      if (!epic) {
+        throw new NotFoundError('Epic', params.epicId);
       }
 
-      if (!workflowRun.storyId) {
-        throw new ValidationError('WorkflowRun must be associated with a story');
+      epicId = epic.id;
+      projectId = epic.projectId;
+    } else {
+      // Resolve storyId from workflowRunId if needed
+      if (!storyId && params.workflowRunId) {
+        const workflowRun = await prisma.workflowRun.findUnique({
+          where: { id: params.workflowRunId },
+        });
+
+        if (!workflowRun) {
+          throw new NotFoundError('WorkflowRun', params.workflowRunId);
+        }
+
+        if (!workflowRun.storyId) {
+          throw new ValidationError('WorkflowRun must be associated with a story');
+        }
+
+        storyId = workflowRun.storyId;
       }
 
-      storyId = workflowRun.storyId;
+      if (!storyId) {
+        throw new ValidationError('Either storyId, epicId, or workflowRunId must be provided');
+      }
+
+      // Verify story exists
+      const story = await prisma.story.findUnique({
+        where: { id: storyId },
+      });
+
+      if (!story) {
+        throw new NotFoundError('Story', storyId);
+      }
+
+      projectId = story.projectId;
+      workflowId = story.assignedWorkflowId || undefined;
     }
 
-    if (!storyId) {
-      throw new ValidationError('Either storyId or workflowRunId must be provided');
-    }
-
-    // Verify story exists
-    const story = await prisma.story.findUnique({
-      where: { id: storyId },
-    });
-
-    if (!story) {
-      throw new NotFoundError('Story', storyId);
-    }
-
-    // Build where clause - ST-214: story-scoped
-    const where: any = {
-      storyId,
-    };
+    // Build where clause - ST-362: story-scoped or epic-scoped
+    const where: Record<string, unknown> = storyId
+      ? { storyId }
+      : { epicId };
 
     // Filter by definition key
     if (params.definitionKey) {
-      if (!story.assignedWorkflowId) {
-        throw new ValidationError('Story does not have an assigned workflow');
-      }
-
+      // ST-362: Find definition (workflow-scoped or global)
       const definition = await prisma.artifactDefinition.findFirst({
         where: {
-          workflowId: story.assignedWorkflowId,
-          key: params.definitionKey.toUpperCase(),
+          OR: [
+            workflowId ? { workflowId, key: params.definitionKey.toUpperCase() } : {},
+            { projectId, key: params.definitionKey.toUpperCase() },
+          ].filter((clause) => Object.keys(clause).length > 0),
         },
+        orderBy: [{ workflowId: 'desc' }],
       });
 
       if (!definition) {
@@ -195,10 +220,10 @@ export async function handler(
         hasPrev: page > 1,
       },
     };
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
-    throw handlePrismaError(error, 'list_artifacts');
+    throw handlePrismaError(error as Error, 'list_artifacts');
   }
 }

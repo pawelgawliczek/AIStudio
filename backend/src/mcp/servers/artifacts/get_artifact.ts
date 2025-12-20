@@ -17,21 +17,25 @@ import { formatArtifact } from './create_artifact';
 
 export const tool: Tool = {
   name: 'get_artifact',
-  description: 'Get artifact by ID, storyId+definitionKey, or workflowRunId+definitionKey. Optionally get specific version.',
+  description: 'Get artifact by ID, or by definitionKey + scope (storyId/epicId/workflowRunId). Optionally get specific version.',
   inputSchema: {
     type: 'object',
     properties: {
       artifactId: {
         type: 'string',
-        description: 'Artifact UUID (provide this OR definitionKey + storyId/workflowRunId)',
+        description: 'Artifact UUID (provide this OR definitionKey + scope)',
       },
       definitionKey: {
         type: 'string',
-        description: 'Artifact definition key (e.g., "ARCH_DOC"). Requires storyId or workflowRunId.',
+        description: 'Artifact definition key (e.g., "ARCH_DOC", "THE_PLAN"). Requires storyId, epicId, or workflowRunId.',
       },
       storyId: {
         type: 'string',
         description: 'Story UUID (use with definitionKey for story-scoped lookup)',
+      },
+      epicId: {
+        type: 'string',
+        description: 'Epic UUID (use with definitionKey for epic-scoped lookup) - ST-362',
       },
       workflowRunId: {
         type: 'string',
@@ -105,48 +109,68 @@ export async function handler(
           );
         }
       }
-    } else if (params.definitionKey && (params.storyId || params.workflowRunId)) {
-      // ST-214: Resolve storyId from workflowRunId if needed
-      let storyId = params.storyId;
+    } else if (params.definitionKey && (params.storyId || params.epicId || params.workflowRunId)) {
+      // ST-362: Support story-scoped, epic-scoped, or workflowRun lookup
+      let storyId: string | undefined = params.storyId;
+      const epicId: string | undefined = params.epicId;
+      let projectId: string;
+      let workflowId: string | undefined;
 
-      if (!storyId && params.workflowRunId) {
-        const workflowRun = await prisma.workflowRun.findUnique({
-          where: { id: params.workflowRunId },
+      if (params.epicId) {
+        // ST-362: Epic-scoped lookup
+        const epic = await prisma.epic.findUnique({
+          where: { id: params.epicId },
         });
 
-        if (!workflowRun) {
-          throw new NotFoundError('WorkflowRun', params.workflowRunId);
+        if (!epic) {
+          throw new NotFoundError('Epic', params.epicId);
         }
 
-        if (!workflowRun.storyId) {
-          throw new ValidationError('WorkflowRun must be associated with a story');
+        projectId = epic.projectId;
+      } else {
+        // Resolve storyId from workflowRunId if needed
+        if (!storyId && params.workflowRunId) {
+          const workflowRun = await prisma.workflowRun.findUnique({
+            where: { id: params.workflowRunId },
+          });
+
+          if (!workflowRun) {
+            throw new NotFoundError('WorkflowRun', params.workflowRunId);
+          }
+
+          if (!workflowRun.storyId) {
+            throw new ValidationError('WorkflowRun must be associated with a story');
+          }
+
+          storyId = workflowRun.storyId;
         }
 
-        storyId = workflowRun.storyId;
+        if (!storyId) {
+          throw new ValidationError('Could not resolve storyId');
+        }
+
+        // Get story to find project
+        const story = await prisma.story.findUnique({
+          where: { id: storyId },
+        });
+
+        if (!story) {
+          throw new NotFoundError('Story', storyId);
+        }
+
+        projectId = story.projectId;
+        workflowId = story.assignedWorkflowId || undefined;
       }
 
-      if (!storyId) {
-        throw new ValidationError('Could not resolve storyId');
-      }
-
-      // Get story to find workflow
-      const story = await prisma.story.findUnique({
-        where: { id: storyId },
-      });
-
-      if (!story) {
-        throw new NotFoundError('Story', storyId);
-      }
-
-      if (!story.assignedWorkflowId) {
-        throw new ValidationError('Story does not have an assigned workflow');
-      }
-
+      // ST-362: Find definition (workflow-scoped or global)
       const definition = await prisma.artifactDefinition.findFirst({
         where: {
-          workflowId: story.assignedWorkflowId,
-          key: params.definitionKey.toUpperCase(),
+          OR: [
+            workflowId ? { workflowId, key: params.definitionKey.toUpperCase() } : {},
+            { projectId, key: params.definitionKey.toUpperCase() },
+          ].filter((clause) => Object.keys(clause).length > 0),
         },
+        orderBy: [{ workflowId: 'desc' }], // Prefer workflow-scoped
       });
 
       if (!definition) {
@@ -156,24 +180,27 @@ export async function handler(
         );
       }
 
-      // ST-214: Story-scoped lookup
+      // ST-362: Lookup artifact (story-scoped or epic-scoped)
+      const whereClause = storyId
+        ? { definitionId: definition.id, storyId }
+        : { definitionId: definition.id, epicId };
+
       artifact = await prisma.artifact.findFirst({
-        where: {
-          definitionId: definition.id,
-          storyId,
-        },
+        where: whereClause,
         include: {
           definition: true,
           createdByComponent: true,
           workflowRun: true,
           story: true,
+          epic: true,
         },
       });
 
       if (!artifact) {
+        const scope = storyId ? `story=${storyId}` : `epic=${epicId}`;
         throw new NotFoundError(
           'Artifact',
-          `key=${params.definitionKey} in story=${storyId}`,
+          `key=${params.definitionKey} in ${scope}`,
         );
       }
 
@@ -197,7 +224,7 @@ export async function handler(
       }
     } else {
       throw new ValidationError(
-        'Either artifactId or (definitionKey + storyId/workflowRunId) must be provided',
+        'Either artifactId or (definitionKey + storyId/epicId/workflowRunId) must be provided',
       );
     }
 
@@ -252,10 +279,10 @@ export async function handler(
     }
 
     return response;
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
-    throw handlePrismaError(error, 'get_artifact');
+    throw handlePrismaError(error as Error, 'get_artifact');
   }
 }

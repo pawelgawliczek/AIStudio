@@ -16,13 +16,17 @@ import { validateRequired, handlePrismaError } from '../../utils';
 
 export const tool: Tool = {
   name: 'create_artifact',
-  description: 'Create or update story-scoped artifact. Provide storyId OR workflowRunId (derives storyId).',
+  description: 'Create or update story-scoped or epic-scoped artifact. Provide storyId OR epicId OR workflowRunId.',
   inputSchema: {
     type: 'object',
     properties: {
       storyId: {
         type: 'string',
-        description: 'Story UUID - direct story-scoped upload (ST-214). Use this OR workflowRunId.',
+        description: 'Story UUID - direct story-scoped upload (ST-214). Use this OR epicId OR workflowRunId.',
+      },
+      epicId: {
+        type: 'string',
+        description: 'Epic UUID - epic-scoped upload (ST-362). Use this OR storyId OR workflowRunId.',
       },
       definitionId: {
         type: 'string',
@@ -34,7 +38,7 @@ export const tool: Tool = {
       },
       workflowRunId: {
         type: 'string',
-        description: 'Workflow Run UUID - derives storyId from run. Use this OR storyId.',
+        description: 'Workflow Run UUID - derives storyId from run. Use this OR storyId OR epicId.',
       },
       content: {
         type: 'string',
@@ -74,7 +78,8 @@ export function formatArtifact(artifact: any): ArtifactResponse {
   return {
     id: artifact.id,
     definitionId: artifact.definitionId,
-    storyId: artifact.storyId,
+    storyId: artifact.storyId || undefined,
+    epicId: artifact.epicId || undefined,
     workflowRunId: artifact.workflowRunId || undefined,
     lastUpdatedRunId: artifact.lastUpdatedRunId || undefined,
     content: artifact.content,
@@ -117,12 +122,18 @@ export async function handler(
   try {
     validateRequired(params as unknown as Record<string, unknown>, ['content']);
 
-    // ST-214: Support direct storyId OR workflowRunId
-    if (!params.storyId && !params.workflowRunId) {
-      throw new ValidationError('Either storyId or workflowRunId must be provided');
+    // ST-362: Support storyId OR epicId OR workflowRunId (XOR constraint)
+    const scopeCount = [params.storyId, params.epicId, params.workflowRunId].filter(Boolean).length;
+    if (scopeCount === 0) {
+      throw new ValidationError('Either storyId, epicId, or workflowRunId must be provided');
+    }
+    if (scopeCount > 1 && !(params.storyId && params.workflowRunId)) {
+      // Allow storyId + workflowRunId together (validation below), but not other combinations
+      throw new ValidationError('Cannot provide multiple scope parameters (only storyId+workflowRunId allowed)');
     }
 
-    let storyId: string;
+    let storyId: string | undefined;
+    let epicId: string | undefined;
     let workflowId: string | null = null;
     let projectId: string;
     const workflowRunId: string | undefined = params.workflowRunId;
@@ -151,6 +162,19 @@ export async function handler(
         }
         workflowId = run?.workflowId || null;
       }
+    } else if (params.epicId) {
+      // ST-362: Epic-scoped upload
+      const epic = await prisma.epic.findUnique({
+        where: { id: params.epicId },
+        include: { project: true },
+      });
+
+      if (!epic) {
+        throw new NotFoundError('Epic', params.epicId);
+      }
+
+      epicId = epic.id;
+      projectId = epic.projectId;
     } else {
       // Derive storyId from workflowRunId (original behavior)
       const workflowRun = await prisma.workflowRun.findUnique({
@@ -178,13 +202,22 @@ export async function handler(
     let definitionId = params.definitionId;
 
     if (!definitionId && params.definitionKey) {
-      // ST-214: When no workflowId, find definition from any workflow in the project
+      // ST-362: Support global definitions (projectId) and workflow-scoped definitions
+      // Priority order: workflow-scoped > project-scoped (global)
       const whereClause = workflowId
         ? { workflowId, key: params.definitionKey.toUpperCase() }
-        : { workflow: { projectId }, key: params.definitionKey.toUpperCase() };
+        : {
+            OR: [
+              { workflow: { projectId }, key: params.definitionKey.toUpperCase() },
+              { projectId, key: params.definitionKey.toUpperCase() }, // ST-362: Global definitions
+            ],
+          };
 
       const definition = await prisma.artifactDefinition.findFirst({
         where: whereClause,
+        orderBy: [
+          { workflowId: 'desc' }, // Prefer workflow-scoped over global
+        ],
       });
 
       if (!definition) {
@@ -208,17 +241,18 @@ export async function handler(
     // Verify definition exists
     const definition = await prisma.artifactDefinition.findUnique({
       where: { id: definitionId },
-      include: { workflow: true },
+      include: { workflow: true, project: true },
     });
 
     if (!definition) {
       throw new NotFoundError('ArtifactDefinition', definitionId);
     }
 
-    // ST-214: Verify definition belongs to same project
-    if (definition.workflow.projectId !== projectId) {
+    // ST-362: Verify definition belongs to same project (workflow-scoped or global)
+    const defProjectId = definition.workflow?.projectId || definition.projectId;
+    if (defProjectId !== projectId) {
       throw new ValidationError(
-        'Artifact definition must belong to the same project as the story',
+        'Artifact definition must belong to the same project as the story/epic',
       );
     }
 
@@ -246,12 +280,13 @@ export async function handler(
     const size = Buffer.byteLength(params.content, 'utf8');
     const contentHash = calculateSHA256(params.content);
 
-    // ST-214: Check story-scoped artifact existence
+    // ST-362: Check artifact existence (story-scoped or epic-scoped)
+    const whereClause = storyId
+      ? { definitionId, storyId }
+      : { definitionId, epicId };
+
     const existingArtifact = await prisma.artifact.findFirst({
-      where: {
-        definitionId,
-        storyId,
-      },
+      where: whereClause,
       include: {
         versions: {
           orderBy: { version: 'desc' },
@@ -265,30 +300,33 @@ export async function handler(
       return formatArtifact(existingArtifact);
     }
 
-    // ST-214: Quota checks before creating new version
-    if (!existingArtifact) {
-      const storyArtifactCount = await prisma.artifact.count({
+    // ST-362: Quota checks before creating new version (only for story-scoped)
+    if (storyId) {
+      if (!existingArtifact) {
+        const storyArtifactCount = await prisma.artifact.count({
+          where: { storyId },
+        });
+
+        if (storyArtifactCount >= MAX_ARTIFACTS_PER_STORY) {
+          throw new ValidationError(
+            `Story has reached maximum of ${MAX_ARTIFACTS_PER_STORY} artifacts`,
+          );
+        }
+      }
+
+      const storyTotalSize = await prisma.artifact.aggregate({
         where: { storyId },
+        _sum: { size: true },
       });
 
-      if (storyArtifactCount >= MAX_ARTIFACTS_PER_STORY) {
+      const currentTotalSize = storyTotalSize._sum.size || 0;
+      if (currentTotalSize + size > MAX_TOTAL_SIZE_PER_STORY) {
         throw new ValidationError(
-          `Story has reached maximum of ${MAX_ARTIFACTS_PER_STORY} artifacts`,
+          `Story would exceed maximum total size of ${MAX_TOTAL_SIZE_PER_STORY} bytes`,
         );
       }
     }
-
-    const storyTotalSize = await prisma.artifact.aggregate({
-      where: { storyId },
-      _sum: { size: true },
-    });
-
-    const currentTotalSize = storyTotalSize._sum.size || 0;
-    if (currentTotalSize + size > MAX_TOTAL_SIZE_PER_STORY) {
-      throw new ValidationError(
-        `Story would exceed maximum total size of ${MAX_TOTAL_SIZE_PER_STORY} bytes`,
-      );
-    }
+    // TODO: Add epic-level quotas if needed in the future
 
     // ST-214: Use transaction for atomic version creation
     const artifact = await prisma.$transaction(async (tx) => {
@@ -330,11 +368,12 @@ export async function handler(
           },
         });
       } else {
-        // Create new artifact
+        // Create new artifact (ST-362: support both storyId and epicId)
         result = await tx.artifact.create({
           data: {
             definitionId,
-            storyId,
+            storyId: storyId || undefined,
+            epicId: epicId || undefined,
             workflowRunId,
             lastUpdatedRunId: workflowRunId,
             content: params.content,
@@ -369,10 +408,10 @@ export async function handler(
     });
 
     return formatArtifact(artifact);
-  } catch (error: any) {
-    if (error.name === 'MCPError') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'MCPError') {
       throw error;
     }
-    throw handlePrismaError(error, 'create_artifact');
+    throw handlePrismaError(error as Error, 'create_artifact');
   }
 }

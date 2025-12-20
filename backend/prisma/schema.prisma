@@ -71,6 +71,7 @@ model Project {
   otelEvents           OtelEvent[]
   approvalRequests     ApprovalRequest[]  // ST-148: Approval gates
   apiKeys              ApiKey[]           // ST-163: MCP HTTP API keys
+  artifactDefinitions  ArtifactDefinition[] // ST-362: Global artifact definitions
 
   @@map("projects")
 }
@@ -120,6 +121,7 @@ model Epic {
   stories      Story[]
   commits      Commit[]
   workflowRuns WorkflowRun[]
+  artifacts    Artifact[]    // ST-362: Epic-level artifacts
 
   @@unique([projectId, key])
   @@index([projectId, status])
@@ -1755,7 +1757,8 @@ model RemoteJob {
 // ArtifactDefinition - Defines what artifacts a workflow can produce/consume
 model ArtifactDefinition {
   id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  workflowId  String  @map("workflow_id") @db.Uuid
+  workflowId  String? @map("workflow_id") @db.Uuid  // ST-362: Nullable for global definitions (e.g., THE_PLAN)
+  projectId   String? @map("project_id") @db.Uuid   // ST-362: For global definitions, ties to project
 
   name        String  // "Architecture Document"
   key         String  // Unique key like "ARCH_DOC"
@@ -1768,20 +1771,24 @@ model ArtifactDefinition {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  workflow    Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflow    Workflow?        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)  // ST-362
   artifacts   Artifact[]
   accessRules ArtifactAccess[]
 
   @@unique([workflowId, key])
+  @@unique([projectId, key])  // ST-362: Global definitions unique per project
   @@index([workflowId])
+  @@index([projectId])
   @@map("artifact_definitions")
 }
 
-// Artifact - Story-scoped artifact with version history (ST-214)
+// Artifact - Story-scoped or Epic-scoped artifact with version history (ST-214, ST-362)
 model Artifact {
   id            String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   definitionId  String @map("definition_id") @db.Uuid
-  storyId       String @map("story_id") @db.Uuid
+  storyId       String? @map("story_id") @db.Uuid  // ST-362: Nullable for epic-scoped
+  epicId        String? @map("epic_id") @db.Uuid   // ST-362: Epic-scoped artifacts
   workflowRunId String? @map("workflow_run_id") @db.Uuid
 
   content        String  @db.Text // Actual content or S3 URL
@@ -1800,14 +1807,17 @@ model Artifact {
 
   // Relations
   definition         ArtifactDefinition  @relation(fields: [definitionId], references: [id], onDelete: Cascade)
-  story              Story               @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  story              Story?              @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  epic               Epic?               @relation(fields: [epicId], references: [id], onDelete: Cascade)
   workflowRun        WorkflowRun?        @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
   lastUpdatedRun     WorkflowRun?        @relation("ArtifactLastUpdatedRun", fields: [lastUpdatedRunId], references: [id], onDelete: SetNull)
   createdByComponent Component?          @relation(fields: [createdByComponentId], references: [id], onDelete: SetNull)
   versions           ArtifactVersion[]
 
   @@unique([definitionId, storyId])
+  @@unique([definitionId, epicId])  // ST-362: Epic-scoped artifacts
   @@index([storyId])
+  @@index([epicId])  // ST-362: Index for epic queries
   @@index([workflowRunId])
   @@index([definitionId, storyId])
   @@map("artifacts")

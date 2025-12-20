@@ -1,7 +1,7 @@
 # Domain Model
 
-**Version:** 1.0
-**Last Updated:** 2025-12-17
+**Version:** 1.1
+**Last Updated:** 2025-12-19
 **Epic:** ST-279
 
 ## Overview
@@ -196,7 +196,7 @@ Version history for use case content.
 
 ### Artifact (schema.prisma L1780-1813)
 
-Story-scoped artifact with version history (ST-214). Replaces deprecated story analysis fields.
+Story-scoped artifact with version history (ST-214). Replaces deprecated story analysis fields. EP-14 introduces file-based artifact pattern where agents write to `docs/ST-XXX/ARTIFACT_KEY.md` instead of using MCP tools.
 
 ```typescript
 {
@@ -228,6 +228,66 @@ Story-scoped artifact with version history (ST-214). Replaces deprecated story a
 - `report`: Test reports, quality metrics
 - `image`: Diagrams, screenshots
 - `other`: Miscellaneous artifacts
+
+**File-Based Artifact Pattern (EP-14):**
+- Agents write to `docs/ST-XXX/ARTIFACT_KEY.md` directly
+- ArtifactWatcher (laptop daemon) detects changes via chokidar
+- UploadManager queues uploads with guaranteed delivery
+- Replaces direct MCP `upload_artifact` calls for better reliability
+
+### TranscriptLine (schema.prisma L1957-1969)
+
+Incremental transcript storage for live streaming (ST-328, ST-329, EP-14). Stores transcript lines as they're generated, enabling real-time streaming without loading entire transcripts.
+
+```typescript
+{
+  id: string;
+  workflowRunId: string;
+  sessionIndex: number;            // Session number (0=master, 1+=spawned agents)
+  lineNumber: number;              // Line number within session (1-based)
+  content: string;                 // Raw JSONL line content
+  createdAt: Date;
+}
+```
+
+**Key Relations:**
+- Belongs to: WorkflowRun (CASCADE delete)
+
+**Usage:**
+- Laptop agent streams transcript lines via WebSocket as they're written
+- Backend persists to TranscriptLine table with skipDuplicates
+- Frontend fetches via REST API: `GET /api/projects/:projectId/workflow-runs/:runId/transcript-lines`
+- Supports pagination (limit, offset) and sessionIndex filtering
+- Replaces batch transcript upload for live streaming use cases
+
+### UploadQueue (laptop-side, SQLite)
+
+Persistent queue for guaranteed delivery of artifacts and transcripts (EP-14). Runs on laptop at `~/.vibestudio/upload-queue.db`.
+
+```typescript
+{
+  id: number;                      // Auto-increment primary key
+  type: string;                    // Upload type (e.g., 'artifact:upload', 'transcript:lines')
+  payload: string;                 // JSON-serialized payload
+  contentHash: string;             // SHA256 hash for deduplication
+  status: string;                  // 'pending' | 'sent' | 'acked'
+  createdAt: string;               // ISO timestamp
+  sentAt?: string;                 // ISO timestamp when sent
+  ackedAt?: string;                // ISO timestamp when acknowledged
+}
+```
+
+**Key Features:**
+- Survives laptop restarts and network failures
+- Content hash deduplication prevents duplicate uploads
+- ACK protocol ensures delivery confirmation
+- Daily cleanup removes items older than 7 days
+
+**Usage:**
+- ArtifactWatcher queues file changes via UploadManager
+- TranscriptTailer queues transcript lines via UploadManager
+- UploadManager flushes queue every 500ms in batches of 50
+- Backend sends `upload:ack:item` for each processed item
 
 ## Flows
 
@@ -314,6 +374,17 @@ ORDER BY confidence DESC;
 - ST-214: Story-scoped artifacts with version history
 
 ## Changelog
+
+### Version 1.2 (2025-12-19)
+- **EP-14**: Added UploadQueue entity for persistent upload queue on laptop
+- **EP-14**: Updated Artifact entity with file-based pattern documentation
+- Documented content hash deduplication and ACK protocol
+- Added SQLite queue location and usage patterns
+
+### Version 1.1 (2025-12-19)
+- **ST-328, ST-329**: Added TranscriptLine entity for incremental transcript storage
+- Documented TranscriptLine structure, relations, and usage patterns
+- Added REST API endpoint reference for transcript line retrieval
 
 ### Version 1.0 (2025-12-17)
 - Initial documentation created for ST-279

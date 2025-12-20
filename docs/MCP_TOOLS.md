@@ -354,6 +354,9 @@ Tools for artifact management (core tools). Supports text and binary artifact up
 - `upload_artifact` → `create_artifact` (deprecated alias)
 - `upload_artifact_from_file` → `upload_artifact_from_md_file` (deprecated alias)
 
+**EP-14 File-Based Pattern (Recommended):**
+Instead of calling MCP artifact tools, agents should write artifacts to `docs/ST-XXX/ARTIFACT_KEY.md`. The ArtifactWatcher daemon automatically detects changes and uploads via UploadManager with guaranteed delivery. This pattern provides better reliability than direct MCP calls.
+
 ### 7. Meta Server
 
 Tools for tool discovery (core tools).
@@ -534,6 +537,11 @@ console.log('Required params:', schema[0].inputSchema.required);
 - ST-279: Living Documentation System
 
 ## Changelog
+
+### Version 1.3 (2025-12-19)
+- **EP-14**: Added file-based artifact pattern recommendation
+- Documented ArtifactWatcher automatic upload with guaranteed delivery
+- Note that direct MCP artifact calls are being superseded by file-based approach
 
 ### Version 1.2 (2025-12-18)
 - ST-307: Updated artifact tool names and documentation

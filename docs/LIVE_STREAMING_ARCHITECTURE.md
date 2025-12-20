@@ -1,8 +1,8 @@
 # Live Streaming Architecture
 
-**Version:** 1.4
+**Version:** 1.5
 **Last Updated:** 2025-12-19
-**Epic:** ST-220, ST-242, ST-247, ST-279, ST-321
+**Epic:** ST-220, ST-242, ST-247, ST-279, ST-321, ST-328, ST-329, ST-330
 
 ## Table of Contents
 
@@ -318,6 +318,106 @@ Component transcript finished.
   totalLines: number;
 }
 ```
+
+### TranscriptLine Storage (ST-328, ST-329, ST-330)
+
+Incremental transcript persistence to database for guaranteed delivery and historical queries.
+
+**Architecture:**
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ Laptop: TranscriptTailer + UploadManager                       │
+│ - Tail transcript file (chokidar)                              │
+│ - Queue via UploadManager.queueUpload()                        │
+│ - Persistent SQLite queue (~/.vibestudio/upload-queue.db)      │
+└────────────────────────────────────┬───────────────────────────┘
+                                     │
+                                     │ WebSocket: transcript:lines
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│ Backend: RemoteAgentGateway                                     │
+│ - Receive transcript:lines event                               │
+│ - Save to TranscriptLine table (skipDuplicates)                │
+│ - Broadcast to frontend room                                   │
+└────────────────────────────────────────────────────────────────┘
+                                     │
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────┐
+│ Database: TranscriptLine table (schema.prisma L1957-1969)      │
+│ - id, workflowRunId, sessionIndex, lineNumber, content         │
+│ - Composite index: (workflowRunId, sessionIndex, lineNumber)   │
+│ - CASCADE delete on WorkflowRun                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**WebSocket Event: `transcript:lines`**
+
+Sent from laptop agent via UploadManager:
+
+```typescript
+{
+  runId: string;              // WorkflowRun UUID
+  sessionIndex: number;       // Session number (0=master, 1+=spawned)
+  lines: Array<{
+    line: string;             // Raw JSONL line content
+    sequenceNumber: number;   // Line number (1-based)
+  }>;
+  isHistorical: boolean;      // Whether historical backfill (true) or live (false)
+  timestamp: string;          // ISO timestamp
+}
+```
+
+**Backend Handler: `handleTranscriptLines()`**
+
+Location: `backend/src/remote-agent/handlers/transcript.handler.ts`
+
+```typescript
+// Persist to database
+await prisma.transcriptLine.createMany({
+  data: lines.map((line) => ({
+    workflowRunId: runId,
+    sessionIndex,
+    lineNumber: line.sequenceNumber,
+    content: line.line,
+  })),
+  skipDuplicates: true,  // Prevent duplicate inserts
+});
+
+// Broadcast to frontend room
+this.appWebSocketGateway.server
+  .to(`master-transcript:${runId}`)
+  .emit('master-transcript:lines', payload);
+```
+
+**REST API Retrieval:**
+
+```
+GET /api/projects/:projectId/workflow-runs/:runId/transcript-lines
+Query params:
+  - sessionIndex: number (required)
+  - limit: number (default: 1000)
+  - offset: number (default: 0)
+
+Response:
+{
+  lines: Array<{ id, lineNumber, content, createdAt }>;
+  totalLines: number;
+}
+```
+
+**Key Features (EP-14):**
+- **Incremental Storage**: Lines stored as they're generated, not batch upload
+- **Duplicate Prevention**: `skipDuplicates: true` prevents re-insertion
+- **Guaranteed Delivery**: UploadManager with persistent SQLite queue (ST-320, ST-321)
+  - Queue location: `~/.vibestudio/upload-queue.db`
+  - Survives laptop restarts and network failures
+  - ACK protocol confirms backend receipt
+  - Content hash deduplication prevents duplicates
+- **Efficient Queries**: Composite index enables fast retrieval by session
+- **Pagination**: REST API supports limit/offset for large transcripts
+- **Live + Historical**: Same mechanism for both live streaming and historical backfill
 
 ---
 
@@ -1473,10 +1573,28 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
 - **ST-247**: Telemetry Sync Fix (metadata path fix, cache token columns, running-workflows.json sync)
 - **ST-320**: UploadQueue Class (SQLite-backed persistent queue)
 - **ST-321**: UploadManager Orchestration (guaranteed delivery via queue)
+- **ST-328**: TranscriptLine Prisma model (incremental transcript storage)
+- **ST-329**: Backend transcript line persistence and REST API
+- **ST-330**: TranscriptTailer integration with UploadManager
 
 ---
 
 ## Changelog
+
+### Version 1.6 (2025-12-19)
+- **EP-14**: Updated guaranteed delivery section with SQLite queue details
+- Added content hash deduplication and ACK protocol to key features
+- Updated references to include EP-14 story tracking
+
+### Version 1.5 (2025-12-19)
+- **ST-328, ST-329, ST-330**: Added TranscriptLine Storage section
+- Documented incremental transcript persistence architecture:
+  - TranscriptTailer + UploadManager integration (ST-330)
+  - Backend handler with skipDuplicates (ST-329)
+  - TranscriptLine table structure (ST-328)
+  - REST API for transcript line retrieval
+- Added architecture diagram showing laptop → backend → database flow
+- Updated References section with ST-328, ST-329, ST-330
 
 ### Version 1.4 (2025-12-19)
 - **ST-321**: UploadManager Orchestration - added comprehensive documentation for guaranteed delivery system

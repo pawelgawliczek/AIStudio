@@ -71,6 +71,8 @@ Each WorkflowState executes in 3 phases:
 │     - Spawn component agent (Task tool)                      │
 │     - Agent performs work (coding, analysis, etc.)           │
 │     - ComponentRun created and tracked                       │
+│     - EP-14: Agent writes artifacts to docs/ST-XXX/*.md     │
+│     - ArtifactWatcher queues uploads via UploadManager       │
 └─────────────────────────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -466,6 +468,11 @@ AND "jobType" = 'claude-agent';
 - ST-279: Living Documentation System
 
 ## Changelog
+
+### Version 1.1 (2025-12-19)
+- **EP-14**: Added file-based artifact pattern to agent execution phase
+- Documented ArtifactWatcher integration with UploadManager
+- Updated 3-phase execution diagram with artifact persistence flow
 
 ### Version 1.0 (2025-12-17)
 - Initial documentation created for ST-279

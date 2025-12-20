@@ -450,7 +450,14 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       timestamp: string;
     },
   ) {
-    return this.transcriptHandler.handleTranscriptLines(data);
+    const ack = await this.transcriptHandler.handleTranscriptLines(data);
+    // EP-14: Emit ACK back to client for guaranteed delivery protocol
+    client.emit('upload:ack:item', {
+      success: ack.success,
+      id: data.queueId,
+      ...(ack.error && { error: ack.error }),
+    });
+    return ack;
   }
 
   @SubscribeMessage('transcript:batch')
@@ -465,7 +472,14 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
       timestamp: string;
     },
   ) {
-    return this.transcriptHandler.handleTranscriptBatch(data);
+    const ack = await this.transcriptHandler.handleTranscriptBatch(data);
+    // EP-14: Emit ACK back to client for guaranteed delivery protocol
+    client.emit('upload:ack:item', {
+      success: ack.success,
+      id: data.queueId,
+      ...(ack.error && { error: ack.error }),
+    });
+    return ack;
   }
 
   @SubscribeMessage('transcript:error')
