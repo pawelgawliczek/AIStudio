@@ -38,6 +38,7 @@ export class UploadManager {
   private readonly cleanupIntervalHours: number;
 
   private flushTimer: NodeJS.Timeout | null = null;
+  private hasDisconnected: boolean = false; // Track if we've had a disconnect (for reconnect logic)
   private cleanupTimer: NodeJS.Timeout | null = null;
   private stuckItemTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
@@ -83,19 +84,33 @@ export class UploadManager {
    * Setup WebSocket event handlers
    */
   private setupSocketHandlers(): void {
-    this.socket.on('connect', () => {
-      this.logger.info('Socket connected, triggering flush');
+    this.socket.on('connect', async () => {
+      const isReconnect = this.hasDisconnected;
+      this.logger.info('Socket connected', { isReconnect });
       this.isConnected = true;
-      // Flush immediately on reconnect
-      this.flush().catch((error: unknown) => {
+
+      try {
+        // ST-345: Only requeue sent items on RECONNECT (after a disconnect)
+        // On initial connect, there shouldn't be any sent items waiting for ACK
+        if (isReconnect) {
+          const count = await this.queue.requeueAllSentItems();
+          if (count > 0) {
+            this.logger.info('Requeued sent items on reconnect', { count });
+          }
+        }
+
+        // Flush pending items
+        await this.flush();
+      } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        this.logger.error('Flush on reconnect failed', { error: message });
-      });
+        this.logger.error('Connect handling failed', { error: message });
+      }
     });
 
     this.socket.on('disconnect', () => {
       this.logger.info('Socket disconnected');
       this.isConnected = false;
+      this.hasDisconnected = true; // Mark that we've had a disconnect
     });
 
     // Handle individual item acknowledgements from server
@@ -316,14 +331,16 @@ export class UploadManager {
   }
 
   /**
-   * Start stuck item monitor
-   * Requeues items that have been in 'sent' state for too long
+   * Start stuck item monitor (ST-345)
+   * 1. Requeues items that have been in 'sent' state for too long
+   * 2. Marks items as failed if they've exceeded max retries
    */
   private startStuckItemMonitor(): void {
     this.stuckItemTimer = setInterval(async () => {
       try {
         const stats = await this.queue.getStats();
         if (stats.sent > 0) {
+          // First, requeue items that haven't timed out yet but are stuck
           const requeued = await this.queue.requeueStuckItems({
             timeoutSeconds: 30,
             maxRetries: 5,
@@ -333,6 +350,20 @@ export class UploadManager {
               count: requeued,
               previousSentCount: stats.sent,
             });
+          }
+
+          // ST-345: Mark items as failed if they've exceeded max retries
+          // These are items that requeueStuckItems skipped due to retry count
+          const sentItems = await this.queue.getSentItems();
+          for (const item of sentItems) {
+            if (item.retryCount >= 5) {
+              await this.queue.markFailed(item.id, 'Max retries exceeded');
+              this.logger.error('Item marked as failed after max retries', {
+                id: item.id,
+                type: item.type,
+                retryCount: item.retryCount,
+              });
+            }
           }
         }
       } catch (error: unknown) {

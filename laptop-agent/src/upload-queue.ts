@@ -18,6 +18,7 @@ import {
   QueueStatus,
   EnqueueInput,
   GetPendingItemsOptions,
+  GetSentItemsOptions,
   CleanupAckedOptions,
   RequeueStuckItemsOptions,
   QueueStats,
@@ -290,6 +291,38 @@ export class UploadQueue {
     return rows.map(row => this.deserializeItem(row));
   }
 
+  /**
+   * Get items in 'sent' state (ST-345)
+   * Used to check for items that may have exceeded max retries
+   */
+  async getSentItems(options?: GetSentItemsOptions): Promise<QueueItem[]> {
+    const limit = options?.limit;
+    const type = options?.type;
+
+    let query = `
+      SELECT * FROM upload_queue
+      WHERE status = 'sent'
+    `;
+
+    const params: unknown[] = [];
+
+    if (type) {
+      query += ` AND type = ?`;
+      params.push(type);
+    }
+
+    query += ` ORDER BY createdAt ASC`;
+
+    if (limit) {
+      query += ` LIMIT ?`;
+      params.push(limit);
+    }
+
+    const rows = this.db.prepare(query).all(...params) as DbQueueItem[];
+
+    return rows.map(row => this.deserializeItem(row));
+  }
+
   async markSent(id: number): Promise<void> {
     const item = await this.getItem(id);
 
@@ -430,6 +463,24 @@ export class UploadQueue {
         AND sentAt < ?
         AND retryCount < ?
     `).run(thresholdIso, maxRetries);
+
+    return result.changes;
+  }
+
+  /**
+   * Requeue all items in 'sent' state (ST-345)
+   * Used on reconnect to retry all items that may have been lost during disconnect
+   */
+  async requeueAllSentItems(): Promise<number> {
+    const result = this.db.prepare(`
+      UPDATE upload_queue
+      SET status = 'pending', retryCount = retryCount + 1
+      WHERE status = 'sent'
+    `).run();
+
+    if (result.changes > 0) {
+      this.logger.info('Requeued all sent items', { count: result.changes });
+    }
 
     return result.changes;
   }

@@ -53,6 +53,14 @@ export interface GetPendingItemsOptions {
 }
 
 /**
+ * Options for getSentItems (ST-345)
+ */
+export interface GetSentItemsOptions {
+  limit?: number;
+  type?: QueueItemType | string;
+}
+
+/**
  * Options for cleanupAcked
  */
 export interface CleanupAckedOptions {
