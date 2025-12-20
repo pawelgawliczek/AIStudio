@@ -24,6 +24,7 @@
   "license": "MIT",
   "dependencies": {
     "@vibestudio/mcp-http-client": "file:../sdk/mcp-http-client",
+    "axios": "^1.6.2",
     "better-sqlite3": "^9.2.2",
     "chokidar": "^4.0.3",
     "commander": "^11.1.0",
