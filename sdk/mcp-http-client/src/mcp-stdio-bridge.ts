@@ -21,8 +21,22 @@
  */
 
 import * as readline from 'readline';
+import * as fs from 'fs';
 import { McpHttpClient } from './client';
 import { ConnectionState } from './types';
+
+// Dedicated log file for deep debugging when run by Gemini CLI
+const LOG_FILE = '/tmp/vibestudio-bridge.log';
+function writeToLogFile(msg: string): void {
+  try {
+    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`);
+  } catch (e) {
+    // Ignore logging errors
+  }
+}
+
+// Clear log file on startup
+try { fs.writeFileSync(LOG_FILE, '--- Bridge starting ---\n'); } catch(e) {}
 
 // Configuration
 const API_KEY_FROM_ARG = process.argv.find(a => a.startsWith('--api-key='))?.split('=')[1];
@@ -38,14 +52,42 @@ const DEBUG = process.env.VIBESTUDIO_DEBUG === '1' || process.env.VIBESTUDIO_DEB
  * Log to stderr (stdout is reserved for MCP protocol)
  */
 function log(message: string, data?: any): void {
+  const timestamp = new Date().toISOString();
+  const logLine = data
+    ? `[${timestamp}] [MCP-Bridge] ${message} ${JSON.stringify(data)}`
+    : `[${timestamp}] [MCP-Bridge] ${message}`;
+  
+  // Always write to log file for debugging
+  writeToLogFile(logLine);
+  
   if (DEBUG) {
-    const timestamp = new Date().toISOString();
-    const logLine = data
-      ? `[${timestamp}] [MCP-Bridge] ${message} ${JSON.stringify(data)}`
-      : `[${timestamp}] [MCP-Bridge] ${message}`;
     process.stderr.write(logLine + '\n');
   }
 }
+
+// Redirect all console methods to our log file and stderr
+// stdout MUST be reserved exclusively for the MCP protocol
+const originalConsoleError = console.error;
+const originalConsoleLog = console.log;
+const originalConsoleInfo = console.info;
+const originalConsoleWarn = console.warn;
+
+console.error = (...args: any[]) => {
+  writeToLogFile(`[CONSOLE.ERROR] ${args.join(' ')}`);
+  process.stderr.write(args.join(' ') + '\n');
+};
+console.log = (...args: any[]) => {
+  writeToLogFile(`[CONSOLE.LOG] ${args.join(' ')}`);
+  process.stderr.write(args.join(' ') + '\n');
+};
+console.info = (...args: any[]) => {
+  writeToLogFile(`[CONSOLE.INFO] ${args.join(' ')}`);
+  process.stderr.write(args.join(' ') + '\n');
+};
+console.warn = (...args: any[]) => {
+  writeToLogFile(`[CONSOLE.WARN] ${args.join(' ')}`);
+  process.stderr.write(args.join(' ') + '\n');
+};
 
 if (!API_KEY) {
   log('ERROR: Missing API key');
@@ -170,6 +212,7 @@ async function handleRequest(request: any): Promise<any> {
         };
 
       case 'initialized':
+      case 'notifications/initialized':
         log('Client sent initialized notification');
         // Notification, no response needed
         return null;
@@ -221,6 +264,9 @@ async function handleRequest(request: any): Promise<any> {
 
       default:
         log(`Unknown method: ${method}`);
+        if (id === undefined || id === null) {
+          return null;
+        }
         return {
           jsonrpc: '2.0',
           error: {
@@ -283,6 +329,8 @@ async function main() {
 
   rl.on('line', (line) => {
     if (!line.trim()) return;
+    
+    writeToLogFile(`[RAW-IN] ${line}`);
 
     // Queue requests to prevent race conditions
     requestQueue = requestQueue.then(async () => {
@@ -292,7 +340,9 @@ async function main() {
 
         // Only send response if not a notification
         if (response !== null) {
-          process.stdout.write(JSON.stringify(response) + '\n');
+          const outLine = JSON.stringify(response) + '\n';
+          writeToLogFile(`[RAW-OUT] ${outLine.trim()}`);
+          process.stdout.write(outLine);
         }
       } catch (error: any) {
         log('Parse error', { error: error.message, line: line.substring(0, 100) });
@@ -304,7 +354,9 @@ async function main() {
           },
           id: null,
         };
-        process.stdout.write(JSON.stringify(errorResponse) + '\n');
+        const outLine = JSON.stringify(errorResponse) + '\n';
+        writeToLogFile(`[RAW-OUT-ERR] ${outLine.trim()}`);
+        process.stdout.write(outLine);
       }
     });
   });

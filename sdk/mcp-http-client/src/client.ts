@@ -132,95 +132,9 @@ export class McpHttpClient {
    * Automatically reconnects on disconnect with exponential backoff.
    */
   connect(): void {
-    if (this.socket?.connected) {
-      this.log('Already connected to WebSocket');
-      return;
-    }
-
-    this.log('Connecting to WebSocket', { namespace: '/mcp-stream' });
-    this.connectionState = ConnectionState.CONNECTING;
-
-    this.socket = io(`${this.baseUrl}/mcp-stream`, {
-      auth: { apiKey: this.apiKey },
-      transports: ['websocket', 'polling'],
-      reconnection: false, // We handle reconnection manually
-    });
-
-    // Connection established
-    this.socket.on('connect', () => {
-      this.log('WebSocket connected', { socketId: this.socket?.id });
-      this.connectionState = ConnectionState.CONNECTED;
-      this.reconnectAttempts = 0;
-
-      // Subscribe to session events
-      if (this.sessionId && this.socket) {
-        this.socket.emit('subscribe:session', this.sessionId);
-        this.log('Subscribed to session', { sessionId: this.sessionId });
-      }
-
-      // Emit connect event
-      this.emitClientEvent('connect', {});
-    });
-
-    // Disconnection
-    this.socket.on('disconnect', (reason: string) => {
-      this.log('WebSocket disconnected', { reason });
-      this.connectionState = ConnectionState.DISCONNECTED;
-
-      // Emit disconnect event
-      this.emitClientEvent('disconnect', { reason });
-
-      // Auto-reconnect if not a clean disconnect
-      if (reason !== 'io client disconnect') {
-        this.handleReconnect();
-      }
-    });
-
-    // Connection error
-    this.socket.on('connect_error', (error: Error) => {
-      this.log('WebSocket connection error', { error: error.message });
-
-      // Emit error event
-      this.emitClientEvent('error', { error: error.message });
-
-      // Handle reconnection
-      this.handleReconnect();
-    });
-
-    // Tool events
-    this.socket.on('tool:start', (event: ToolEvent) => {
-      this.log('Tool start event', { toolName: event.toolName });
-      this.eventCallbacks.onToolStart?.(event);
-    });
-
-    this.socket.on('tool:progress', (event: ToolEvent) => {
-      this.log('Tool progress event', { toolName: event.toolName, progress: event.data.progress });
-      this.eventCallbacks.onToolProgress?.(event);
-    });
-
-    this.socket.on('tool:complete', (event: ToolEvent) => {
-      this.log('Tool complete event', { toolName: event.toolName });
-      this.eventCallbacks.onToolComplete?.(event);
-    });
-
-    this.socket.on('tool:error', (event: ToolEvent) => {
-      this.log('Tool error event', { toolName: event.toolName, error: event.data.error });
-      this.eventCallbacks.onToolError?.(event);
-    });
-
-    // Session revocation
-    this.socket.on('session:revoked', (event: ToolEvent) => {
-      this.log('Session revoked', { message: event.data.message });
-      this.eventCallbacks.onSessionRevoked?.(event);
-      this.emitClientEvent('session:revoked', { message: event.data.message });
-      this.disconnect();
-    });
-
-    // Generic error from server
-    this.socket.on('error', (error: any) => {
-      this.log('Server error', { error });
-      this.emitClientEvent('error', { error });
-    });
+    // WebSocket disabled for now due to namespace handshake issues on Hostinger
+    this.log('WebSocket connection disabled (using HTTP fallback)');
+    return;
   }
 
   /**
@@ -568,7 +482,11 @@ export class McpHttpClient {
    */
   private log(message: string, data?: any): void {
     if (this.debug) {
-      console.log(`[McpHttpClient] ${message}`, data || '');
+      const timestamp = new Date().toISOString();
+      const logLine = data
+        ? `[${timestamp}] [McpHttpClient] ${message} ${JSON.stringify(data)}`
+        : `[${timestamp}] [McpHttpClient] ${message}`;
+      process.stderr.write(logLine + '\n');
     }
   }
 
