@@ -167,16 +167,16 @@ describe('ArtifactMover', () => {
     });
 
     describe('Path Pattern Validation', () => {
-      it('should reject old path that is not a direct story directory', async () => {
+      it('should reject old path with invalid directory structure', async () => {
         const result = await mover.moveArtifacts({
           storyKey: 'ST-123',
           epicKey: 'EP-1',
-          oldPath: 'docs/EP-1/ST-123', // Already in epic
-          newPath: 'docs/EP-2/ST-123',
+          oldPath: 'docs/foo/bar/ST-123', // Invalid structure
+          newPath: 'docs/EP-1/ST-123',
         });
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('Old path must be direct story directory');
+        expect(result.error).toContain('Old path must be story directory');
       });
 
       it('should reject old path with wrong directory prefix', async () => {
@@ -188,7 +188,7 @@ describe('ArtifactMover', () => {
         });
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('Old path must be direct story directory');
+        expect(result.error).toContain('Old path must be story directory');
       });
 
       it('should reject old path that does not match story key', async () => {
