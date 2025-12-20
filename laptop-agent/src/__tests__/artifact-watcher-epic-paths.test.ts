@@ -390,7 +390,8 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
       fs.writeFileSync(path.join(story1Dir, 'plan1.md'), 'Plan 1');
       fs.writeFileSync(path.join(story2Dir, 'plan2.md'), 'Plan 2');
 
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // ST-351: Wait longer for file stabilization (500ms) + batch processing
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
       expect(mockUploadManager.queueUpload).toHaveBeenCalledTimes(2);
 
@@ -437,7 +438,8 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
         fs.writeFileSync(path.join(storyDir, 'test.md'), `Content for ${storyKey}`);
       }
 
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // ST-351: Wait longer for file stabilization (500ms) + batch processing
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
       expect(mockUploadManager.queueUpload).toHaveBeenCalledTimes(stories.length);
 
@@ -516,7 +518,8 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
       fs.mkdirSync(legacyDir, { recursive: true });
       fs.writeFileSync(path.join(legacyDir, 'story3.md'), 'Story 3');
 
-      await new Promise(resolve => setTimeout(resolve, 700));
+      // ST-351: Wait longer for file stabilization (500ms) + batch processing
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
       // Should have 3 uploads (epic-level is skipped)
       expect(mockUploadManager.queueUpload).toHaveBeenCalledTimes(3);

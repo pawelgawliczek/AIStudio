@@ -277,7 +277,12 @@ export class ArtifactWatcher {
 
         // Process batch
         for (const { filePath } of batch) {
-          await this.handleFile(filePath);
+          try {
+            await this.handleFile(filePath);
+          } catch (error: unknown) {
+            // Error already logged in handleFile, continue with next file
+            this.logger.debug('Continuing after file processing error', { filePath });
+          }
         }
 
         // Save cache after each batch
@@ -316,9 +321,20 @@ export class ArtifactWatcher {
 
     const { epicKey, storyKey, artifactKey, extension } = parsed;
 
-    // Must have either storyKey or epicKey (for epic-level artifacts)
-    if (!storyKey && !epicKey) {
-      this.logger.debug('No storyKey or epicKey found, skipping', { filePath });
+    // ST-363: Skip epic-level artifacts (files with epicKey but no storyKey)
+    // These will be supported in a future story
+    if (!storyKey && epicKey) {
+      this.logger.debug('Epic-level artifact detected but skipped (not yet supported)', {
+        filePath,
+        epicKey,
+        artifactKey
+      });
+      return;
+    }
+
+    // Must have storyKey
+    if (!storyKey) {
+      this.logger.debug('No storyKey found, skipping', { filePath });
       return;
     }
 
@@ -342,7 +358,7 @@ export class ArtifactWatcher {
     try {
       await this.uploadManager.queueUpload('artifact:upload', {
         storyKey,
-        epicKey,  // ST-362: Support epic-level artifacts
+        // epicKey not included - epic context is tracked via file path only
         artifactKey,
         filePath,
         content,
@@ -358,7 +374,6 @@ export class ArtifactWatcher {
       const contentHash = crypto.createHash('sha256').update(content).digest('hex').substring(0, 8);
 
       this.logger.info('Artifact queued for upload', {
-        epicKey,
         storyKey,
         artifactKey,
         filePath,
