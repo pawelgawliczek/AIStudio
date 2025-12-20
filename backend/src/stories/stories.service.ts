@@ -16,6 +16,7 @@ import {
   FilterStoryDto,
   UpdateStoryStatusDto,
 } from './dto';
+import { requestArtifactMove } from '../mcp/services/websocket-gateway.instance';
 
 /**
  * Story Workflow State Machine
@@ -516,13 +517,21 @@ export class StoriesService {
    * @returns Updated story
    */
   async update(id: string, updateStoryDto: UpdateStoryDto) {
-    const existingStory = await this.prisma.story.findUnique({ where: { id } });
+    const existingStory = await this.prisma.story.findUnique({
+      where: { id },
+      include: { epic: { select: { key: true } } },
+    });
 
     if (!existingStory) {
       throw new NotFoundException(`Story with ID ${id} not found`);
     }
 
+    // Track if epicId is changing (ST-363)
+    const epicIdChanged =
+      'epicId' in updateStoryDto && updateStoryDto.epicId !== existingStory.epicId;
+
     // Verify epic exists if being updated
+    let newEpicKey: string | null = null;
     if (updateStoryDto.epicId) {
       const epic = await this.prisma.epic.findUnique({
         where: { id: updateStoryDto.epicId },
@@ -531,6 +540,7 @@ export class StoriesService {
       if (!epic) {
         throw new NotFoundException(`Epic with ID ${updateStoryDto.epicId} not found`);
       }
+      newEpicKey = epic.key;
     }
 
     const story = await this.prisma.story.update({
@@ -551,6 +561,30 @@ export class StoriesService {
 
     // Broadcast story updated
     this.wsGateway.broadcastStoryUpdated(id, story.projectId, story);
+
+    // ST-363: Trigger artifact move if epicId changed
+    if (epicIdChanged) {
+      const storyKey = existingStory.key;
+      const oldEpicKey = existingStory.epic?.key;
+      const oldPath = oldEpicKey
+        ? `docs/${oldEpicKey}/${storyKey}`
+        : `docs/${storyKey}`;
+      const newPath = newEpicKey
+        ? `docs/${newEpicKey}/${storyKey}`
+        : `docs/unassigned/${storyKey}`;
+
+      // Fire-and-forget artifact move request (don't block the response)
+      requestArtifactMove({
+        storyKey,
+        storyId: id,
+        epicKey: newEpicKey,
+        oldPath,
+        newPath,
+      }).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`[ST-363] Failed to request artifact move for ${storyKey}: ${message}`);
+      });
+    }
 
     return story;
   }

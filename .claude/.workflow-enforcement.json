@@ -49,18 +49,6 @@
         "allowedSubagentTypes": null
       },
       "updatedAt": "2025-12-20T04:20:40Z"
-    },
-    "e1b6e203-7658-4220-a208-9deeaacc3faa": {
-      "workflowActive": true,
-      "runId": "1a0c3fd0-2680-49fd-8afb-d702dac8468d",
-      "currentState": {
-        "id": "b75dd2cc-1bac-4241-9770-0a050731b484",
-        "name": "implementation",
-        "phase": "post",
-        "componentName": "Developer",
-        "allowedSubagentTypes": null
-      },
-      "updatedAt": "2025-12-20T04:42:50Z"
     }
   }
 }

@@ -33,26 +33,39 @@ const PROJECT_PATH = '/Users/pawelgawliczek/projects/AIStudio';
 const TEST_TIMEOUT = 60000; // 60 seconds for E2E test with file operations
 
 /**
- * MCP HTTP Client for making API calls
+ * REST API Client for making API calls
+ * Uses actual REST endpoints instead of MCP HTTP endpoints
  */
-class MCPClient {
+class APIClient {
   private baseUrl: string;
-  private authToken: string;
+  private authToken: string | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
-    // For production, we use a service account token or session
-    // In real implementation, this would be obtained from authentication
-    this.authToken = 'test-token'; // Placeholder
+  }
+
+  async login() {
+    const response = await axios.post(
+      `${this.baseUrl}/api/auth/login`,
+      { email: 'admin@aistudio.local', password: 'admin123' },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    this.authToken = response.data.accessToken;
+    return response.data;
+  }
+
+  private getHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {}),
+    };
   }
 
   async createEpic(data: { projectId: string; title: string; description?: string }) {
     const response = await axios.post(
-      `${this.baseUrl}/api/mcp/create_epic`,
+      `${this.baseUrl}/api/epics`,
       data,
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
+      { headers: this.getHeaders() }
     );
     return response.data;
   }
@@ -64,57 +77,41 @@ class MCPClient {
     epicId?: string;
   }) {
     const response = await axios.post(
-      `${this.baseUrl}/api/mcp/create_story`,
+      `${this.baseUrl}/api/stories`,
       data,
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
+      { headers: this.getHeaders() }
     );
     return response.data;
   }
 
-  async updateStory(data: { story: string; epicId: string | null }) {
-    const response = await axios.post(
-      `${this.baseUrl}/api/mcp/update_story`,
+  async updateStory(storyId: string, data: { epicId: string | null }) {
+    const response = await axios.patch(
+      `${this.baseUrl}/api/stories/${storyId}`,
       data,
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
+      { headers: this.getHeaders() }
     );
     return response.data;
   }
 
   async deleteStory(storyId: string) {
-    const response = await axios.post(
-      `${this.baseUrl}/api/mcp/invoke_tool`,
-      {
-        toolName: 'delete_story',
-        params: { storyId },
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
+    const response = await axios.delete(
+      `${this.baseUrl}/api/stories/${storyId}`,
+      { headers: this.getHeaders() }
     );
     return response.data;
   }
 
   async deleteEpic(epicId: string) {
-    const response = await axios.post(
-      `${this.baseUrl}/api/mcp/invoke_tool`,
-      {
-        toolName: 'delete_epic',
-        params: { epicId },
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
+    const response = await axios.delete(
+      `${this.baseUrl}/api/epics/${epicId}`,
+      { headers: this.getHeaders() }
     );
     return response.data;
   }
 }
 
 describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
-  let mcpClient: MCPClient;
+  let apiClient: APIClient;
   let socket: Socket;
   let testEpicId: string;
   let testEpicKey: string;
@@ -126,9 +123,10 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
     console.log('\n🚀 Starting Epic Assignment Artifact Move E2E Test');
     console.log('=' .repeat(70));
 
-    // Initialize MCP client
-    mcpClient = new MCPClient(PROD_URL);
-    console.log(`✅ MCP Client initialized (${PROD_URL})`);
+    // Initialize API client and login
+    apiClient = new APIClient(PROD_URL);
+    await apiClient.login();
+    console.log(`✅ API Client initialized and authenticated (${PROD_URL})`);
 
     // Connect to production WebSocket as agent
     console.log('🔌 Connecting to production WebSocket...');
@@ -203,7 +201,7 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
     // Cleanup database entities
     try {
       if (testStoryId) {
-        await mcpClient.deleteStory(testStoryId);
+        await apiClient.deleteStory(testStoryId);
         console.log(`  ✅ Deleted story: ${testStoryKey}`);
       }
     } catch (error) {
@@ -212,7 +210,7 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
 
     try {
       if (testEpicId) {
-        await mcpClient.deleteEpic(testEpicId);
+        await apiClient.deleteEpic(testEpicId);
         console.log(`  ✅ Deleted epic: ${testEpicKey}`);
       }
     } catch (error) {
@@ -234,26 +232,26 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
 
     // Step 1: Create test epic
     console.log('\n📋 Step 1: Creating test epic...');
-    const epicResponse = await mcpClient.createEpic({
+    const epicResponse = await apiClient.createEpic({
       projectId: PROJECT_ID,
       title: 'E2E Test Epic - Artifact Move',
       description: 'Test epic for ST-363 E2E test - will be deleted after test',
     });
 
-    testEpicId = epicResponse.epic.id;
-    testEpicKey = epicResponse.epic.key;
+    testEpicId = epicResponse.id;
+    testEpicKey = epicResponse.key;
     console.log(`  ✅ Epic created: ${testEpicKey} (ID: ${testEpicId})`);
 
     // Step 2: Create test story (unassigned)
     console.log('\n📝 Step 2: Creating test story...');
-    const storyResponse = await mcpClient.createStory({
+    const storyResponse = await apiClient.createStory({
       projectId: PROJECT_ID,
       title: 'E2E Test Story - Artifact Move',
       description: 'Test story for ST-363 E2E test - will be deleted after test',
     });
 
-    testStoryId = storyResponse.story.id;
-    testStoryKey = storyResponse.story.key;
+    testStoryId = storyResponse.id;
+    testStoryKey = storyResponse.key;
     console.log(`  ✅ Story created: ${testStoryKey} (ID: ${testStoryId})`);
 
     // Step 3: Create artifact file at docs/ST-XXX/THE_PLAN.md
@@ -301,10 +299,7 @@ when the story is assigned to the epic.
 
     // Step 5: Assign story to epic (triggers move)
     console.log('\n🔄 Step 5: Assigning story to epic...');
-    await mcpClient.updateStory({
-      story: testStoryKey,
-      epicId: testEpicId,
-    });
+    await apiClient.updateStory(testStoryId, { epicId: testEpicId });
     console.log(`  ✅ Story ${testStoryKey} assigned to epic ${testEpicKey}`);
 
     // Step 6: Wait for move to complete
@@ -363,27 +358,27 @@ when the story is assigned to the epic.
 
     // Step 1: Create test epic
     console.log('\n📋 Step 1: Creating test epic...');
-    const epicResponse = await mcpClient.createEpic({
+    const epicResponse = await apiClient.createEpic({
       projectId: PROJECT_ID,
       title: 'E2E Test Epic - Unassignment',
       description: 'Test epic for ST-363 unassignment E2E test',
     });
 
-    const unassignEpicId = epicResponse.epic.id;
-    const unassignEpicKey = epicResponse.epic.key;
+    const unassignEpicId = epicResponse.id;
+    const unassignEpicKey = epicResponse.key;
     console.log(`  ✅ Epic created: ${unassignEpicKey}`);
 
     // Step 2: Create test story assigned to epic
     console.log('\n📝 Step 2: Creating test story with epic assignment...');
-    const storyResponse = await mcpClient.createStory({
+    const storyResponse = await apiClient.createStory({
       projectId: PROJECT_ID,
       title: 'E2E Test Story - Unassignment',
       description: 'Test story for ST-363 unassignment E2E test',
       epicId: unassignEpicId,
     });
 
-    const unassignStoryId = storyResponse.story.id;
-    const unassignStoryKey = storyResponse.story.key;
+    const unassignStoryId = storyResponse.id;
+    const unassignStoryKey = storyResponse.key;
     console.log(`  ✅ Story created: ${unassignStoryKey} (assigned to ${unassignEpicKey})`);
 
     // Step 3: Create artifact file at epic location
@@ -421,10 +416,7 @@ when the story is assigned to the epic.
 
     // Step 5: Remove epic assignment (set epicId to null)
     console.log('\n🔄 Step 5: Removing epic assignment...');
-    await mcpClient.updateStory({
-      story: unassignStoryKey,
-      epicId: null,
-    });
+    await apiClient.updateStory(unassignStoryId, { epicId: null });
     console.log(`  ✅ Story ${unassignStoryKey} unassigned from epic`);
 
     // Step 6: Wait for move to unassigned
@@ -477,10 +469,10 @@ when the story is assigned to the epic.
         console.log('  🗑️  Removed unassigned directory');
       }
 
-      await mcpClient.deleteStory(unassignStoryId);
+      await apiClient.deleteStory(unassignStoryId);
       console.log(`  ✅ Deleted story: ${unassignStoryKey}`);
 
-      await mcpClient.deleteEpic(unassignEpicId);
+      await apiClient.deleteEpic(unassignEpicId);
       console.log(`  ✅ Deleted epic: ${unassignEpicKey}`);
     } catch (error) {
       console.warn('  ⚠️  Error during cleanup:', error);
