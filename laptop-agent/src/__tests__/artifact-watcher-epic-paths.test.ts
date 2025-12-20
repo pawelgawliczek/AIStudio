@@ -33,6 +33,9 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
     docsDir = path.join(testProjectPath, 'docs');
     fs.mkdirSync(docsDir, { recursive: true });
 
+    // ST-351: Set unique cache file for each test to prevent pollution
+    process.env.ARTIFACT_CACHE_FILE = path.join(testProjectPath, '.cache.json');
+
     mockUploadManager = {
       queueUpload: jest.fn().mockResolvedValue(undefined),
       getStats: jest.fn().mockResolvedValue({ pending: 0, sent: 0, acked: 0, total: 0 }),
@@ -48,9 +51,18 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
 
   afterEach(async () => {
     await watcher.stop();
+
+    // ST-351: Clear cache to prevent test pollution
+    (watcher as any).clearCache();
+
     if (fs.existsSync(testProjectPath)) {
       fs.rmSync(testProjectPath, { recursive: true, force: true });
     }
+
+    // Restore env vars
+    delete process.env.SYNC_EXISTING_ARTIFACTS;
+    delete process.env.ARTIFACT_CACHE_FILE;
+
     jest.clearAllMocks();
   });
 
@@ -252,8 +264,10 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
 
   describe('File Watching - Epic-Level Artifacts', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should detect epic-level artifact but SKIP upload (not yet supported)', async () => {
@@ -281,8 +295,10 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
 
   describe('File Watching - Story in Epic', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should detect and upload story artifacts in epic directory', async () => {
@@ -309,7 +325,7 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
       fs.writeFileSync(path.join(storyDir, 'ARCH_DOC.md'), 'Architecture');
       fs.writeFileSync(path.join(storyDir, 'config.json'), '{"key": "value"}');
 
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       expect(mockUploadManager.queueUpload).toHaveBeenCalledTimes(3);
 
@@ -341,8 +357,10 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
 
   describe('File Watching - Unassigned Stories', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should detect and upload artifacts in unassigned story directory', async () => {
@@ -386,8 +404,10 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
 
   describe('File Watching - Legacy Direct Story Paths', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should still detect and upload legacy direct story paths', async () => {
@@ -432,8 +452,10 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
 
   describe('Depth and Performance', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should watch at depth 3 to support epic/story structure', async () => {
@@ -467,8 +489,10 @@ describe('ArtifactWatcher - Epic Path Support (ST-363)', () => {
 
   describe('Mixed Path Patterns', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should handle all 4 path patterns simultaneously', async () => {

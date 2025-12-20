@@ -32,6 +32,9 @@ describe('ArtifactWatcher', () => {
     docsDir = path.join(testProjectPath, 'docs');
     fs.mkdirSync(docsDir, { recursive: true });
 
+    // ST-351: Set unique cache file for each test to prevent pollution
+    process.env.ARTIFACT_CACHE_FILE = path.join(testProjectPath, '.cache.json');
+
     // Create mock UploadManager
     mockUploadManager = {
       queueUpload: jest.fn().mockResolvedValue(undefined),
@@ -51,10 +54,17 @@ describe('ArtifactWatcher', () => {
     // Stop watcher and cleanup
     await watcher.stop();
 
+    // ST-351: Clear cache to prevent test pollution
+    (watcher as any).clearCache();
+
     // Remove test directory
     if (fs.existsSync(testProjectPath)) {
       fs.rmSync(testProjectPath, { recursive: true, force: true });
     }
+
+    // Restore env vars
+    delete process.env.SYNC_EXISTING_ARTIFACTS;
+    delete process.env.ARTIFACT_CACHE_FILE;
 
     jest.clearAllMocks();
   });
@@ -197,8 +207,12 @@ describe('ArtifactWatcher', () => {
 
   describe('File Watching', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests to maintain original behavior
+      // Tests create files after watcher starts and expect immediate detection
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // ST-351: Wait longer for chokidar ready event to ensure watcher is ready for add events
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should detect new .md file in ST-* directory', async () => {
@@ -298,7 +312,7 @@ describe('ArtifactWatcher', () => {
       fs.writeFileSync(path.join(storyDir, 'ARCH_DOC.md'), 'Architecture content');
       fs.writeFileSync(path.join(storyDir, 'config.json'), '{key: alue}');
 
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       expect(mockUploadManager.queueUpload).toHaveBeenCalledTimes(3);
 
@@ -313,8 +327,11 @@ describe('ArtifactWatcher', () => {
 
   describe('Error Handling', () => {
     beforeEach(async () => {
+      // ST-351: Disable initial sync for these tests
+      process.env.SYNC_EXISTING_ARTIFACTS = 'false';
       await watcher.start();
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // ST-351: Wait longer for chokidar ready event
+      await new Promise(resolve => setTimeout(resolve, 500));
     });
 
     it('should handle upload queue errors gracefully', async () => {

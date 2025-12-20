@@ -93,6 +93,7 @@ describe.skip('RemoteAgent - ArtifactWatcher Integration', () => {
       lokiUrl: '',
       lokiUsername: '',
       lokiPassword: '',
+      maxQueueSize: 1000, // ST-346: Required field
     };
 
     // Clear all mocks
