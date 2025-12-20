@@ -232,14 +232,20 @@ export class UploadManager {
   /**
    * Handle individual item acknowledgement from server
    * ST-323: Process individual ACKs and mark items as acked regardless of success/failure
+   * ST-347: Distinguish success/failure - mark failed items as failed, not acked
    */
   private async handleItemAcknowledgement(data: { success: boolean; id: number; isDuplicate?: boolean; error?: string }): Promise<void> {
-    this.logger.info('Received item acknowledgement', { id: data.id, success: data.success, isDuplicate: data.isDuplicate, error: data.error });
-
     try {
-      // Mark item as acked regardless of success/failure to prevent infinite retries
-      await this.queue.markAcked(data.id);
-      this.logger.info('Item marked as acked', { id: data.id });
+      if (data.success) {
+        // Success path: mark as acked
+        this.logger.info('Item acknowledged', { id: data.id, isDuplicate: data.isDuplicate });
+        await this.queue.markAcked(data.id);
+      } else {
+        // ST-347: Failure path - log warning and mark as failed (not acked)
+        // This ensures failed items are tracked separately and don't get lost
+        this.logger.warn('Item failed - invalid key or server error', { id: data.id, error: data.error });
+        await this.queue.markFailed(data.id, data.error ?? 'Unknown server error');
+      }
 
       // ST-322: Emit queue:acked event for UI
       this.socket.emit('queue:acked', {
@@ -253,7 +259,7 @@ export class UploadManager {
       this.socket.emit('queue:stats', stats);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error('Failed to mark item as acked', { id: data.id, error: message });
+      this.logger.error('Failed to process item acknowledgement', { id: data.id, error: message });
     }
   }
 

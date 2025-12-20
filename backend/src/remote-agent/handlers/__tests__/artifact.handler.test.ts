@@ -323,10 +323,11 @@ describe('ArtifactHandler - handleArtifactUpload', () => {
       const callback = jest.fn();
       await handler.handleArtifactUpload(item, callback);
 
+      // ST-347: Error now includes the key for debugging
       expect(callback).toHaveBeenCalledWith({
         success: false,
         id: 6,
-        error: 'Story not found',
+        error: 'Story not found: ST-NONEXISTENT',
       });
     });
   });
@@ -356,10 +357,11 @@ describe('ArtifactHandler - handleArtifactUpload', () => {
       const callback = jest.fn();
       await handler.handleArtifactUpload(item, callback);
 
+      // ST-347: Error now includes the key for debugging
       expect(callback).toHaveBeenCalledWith({
         success: false,
         id: 7,
-        error: 'Artifact definition not found',
+        error: 'Artifact definition not found: UNKNOWN_ARTIFACT',
       });
     });
 

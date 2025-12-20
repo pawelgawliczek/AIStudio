@@ -127,7 +127,7 @@ describe('UploadManager - Individual Item ACK Handler (ST-323)', () => {
       expect(stats.sent).toBe(0);
     });
 
-    it('should mark item as acked even on error ACK (prevent infinite retries)', async () => {
+    it('should mark item as failed on error ACK (ST-347)', async () => {
       mockSocket.connected = true;
 
       manager = new UploadManager({
@@ -146,17 +146,19 @@ describe('UploadManager - Individual Item ACK Handler (ST-323)', () => {
         call => call[0] === 'upload:ack:item'
       )?.[1];
 
-      // Simulate error ACK (item should still be marked as acked to prevent infinite retry)
+      // Simulate error ACK - ST-347: item should be marked as FAILED (not acked)
       await itemAckHandler({
         success: false,
         id: 1,
-        error: 'Story not found',
+        error: 'Story not found: ST-INVALID',
       });
 
-      // Verify item was marked as acked despite error
+      // ST-347: Verify item was NOT marked as acked (failures don't count as acked)
+      // Item is marked as 'failed' status in DB but QueueStats tracks pending/sent/acked
       const stats = await manager.getStats();
-      expect(stats.acked).toBe(1);
-      expect(stats.sent).toBe(0);
+      expect(stats.acked).toBe(0);  // Failed items don't count as acked
+      expect(stats.sent).toBe(0);   // Item was processed (not stuck in sent)
+      expect(stats.pending).toBe(0); // Item was processed (not pending)
     });
 
     it('should mark duplicate items as acked', async () => {
@@ -409,11 +411,11 @@ describe('UploadManager - Individual Item ACK Handler (ST-323)', () => {
       await itemAckHandler({ success: true, id: 2 });
       await itemAckHandler({ success: false, id: 3, error: 'Some error' });
 
-      // All should be acked
+      // ST-347: Success items acked, failure items marked as failed (not counted in acked)
       const stats = await manager.getStats();
-      expect(stats.acked).toBe(3);
-      expect(stats.sent).toBe(0);
-      expect(stats.pending).toBe(0);
+      expect(stats.acked).toBe(2);  // Only successful items
+      expect(stats.sent).toBe(0);   // All items processed
+      expect(stats.pending).toBe(0); // All items processed
     });
 
     it('should handle mixed success/failure ACKs', async () => {
@@ -439,16 +441,17 @@ describe('UploadManager - Individual Item ACK Handler (ST-323)', () => {
       // First item succeeds
       await itemAckHandler({ success: true, id: 1 });
 
-      // Second item fails (but should still be acked)
+      // Second item fails - ST-347: should be marked as failed
       await itemAckHandler({
         success: false,
         id: 2,
-        error: 'Story not found',
+        error: 'Story not found: ST-INVALID',
       });
 
-      // Both should be acked
+      // ST-347: Success items acked, failure items NOT counted in acked
       const stats = await manager.getStats();
-      expect(stats.acked).toBe(2);
+      expect(stats.acked).toBe(1);  // Only the successful item
+      expect(stats.sent).toBe(0);   // All items processed
     });
   });
 

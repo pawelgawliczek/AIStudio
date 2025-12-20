@@ -87,7 +87,7 @@ export class ArtifactHandler {
 
         if (!story) {
           this.logger.error(`${logPrefix}: Story not found`);
-          callback({ success: false, id: queueId, error: 'Story not found' });
+          callback({ success: false, id: queueId, error: `Story not found: ${storyKey}` });
           return;
         }
         storyId = story.id;
@@ -100,7 +100,7 @@ export class ArtifactHandler {
 
         if (!epic) {
           this.logger.error(`${logPrefix}: Epic not found`);
-          callback({ success: false, id: queueId, error: 'Epic not found' });
+          callback({ success: false, id: queueId, error: `Epic not found: ${epicKey}` });
           return;
         }
         epicId = epic.id;
@@ -124,7 +124,7 @@ export class ArtifactHandler {
 
       if (!artifactDefinition) {
         this.logger.error(`${logPrefix}: Artifact definition ${artifactKey} not found for project ${projectId}`);
-        callback({ success: false, id: queueId, error: 'Artifact definition not found' });
+        callback({ success: false, id: queueId, error: `Artifact definition not found: ${artifactKey}` });
         return;
       }
 
