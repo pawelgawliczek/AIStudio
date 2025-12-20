@@ -1974,6 +1974,6 @@ model TranscriptLine {
 
   workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
 
-  @@index([workflowRunId, sessionIndex, lineNumber])
+  @@unique([workflowRunId, sessionIndex, lineNumber])
   @@map("transcript_lines")
 }

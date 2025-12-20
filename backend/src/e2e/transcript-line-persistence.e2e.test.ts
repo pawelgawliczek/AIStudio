@@ -362,10 +362,9 @@ describe('Transcript Line DB Persistence E2E', () => {
       expect(batchAcks[0].data).toEqual({ ids: [] });
     });
 
-    it('should allow duplicate transcript lines (no unique constraint)', async () => {
-      // Note: skipDuplicates in Prisma only works with unique constraints.
-      // The transcript_lines table has no unique constraint on (workflowRunId, sessionIndex, lineNumber),
-      // so duplicate lines are allowed. This is expected behavior for now.
+    it('should skip duplicate transcript lines using unique constraint', async () => {
+      // The transcript_lines table has a unique constraint on (workflowRunId, sessionIndex, lineNumber).
+      // Prisma's skipDuplicates will prevent duplicate lines from being inserted.
 
       // First upload
       const payload1 = {
@@ -397,7 +396,7 @@ describe('Transcript Line DB Persistence E2E', () => {
       // Clear events
       emittedEvents = [];
 
-      // Second upload with same line content (allowed - no unique constraint)
+      // Second upload with same line (will be skipped by skipDuplicates)
       const payload2 = {
         agentId: 'test-agent-transcript-line',
         items: [
@@ -406,7 +405,7 @@ describe('Transcript Line DB Persistence E2E', () => {
             runId: testWorkflowRunId,
             sessionIndex: 5,
             lines: [
-              { line: 'Duplicate test line', sequenceNumber: 1 },
+              { line: 'Duplicate test line', sequenceNumber: 1 }, // Same line
             ],
             isHistorical: false,
             timestamp: new Date().toISOString(),
@@ -416,7 +415,7 @@ describe('Transcript Line DB Persistence E2E', () => {
 
       await gateway.handleUploadBatch(mockClient as Socket, payload2);
 
-      // Verify second upload also succeeded
+      // Verify second upload also succeeded (skipDuplicates prevents error)
       itemAcks = emittedEvents.filter(e => e.event === 'upload:ack:item');
       expect(itemAcks[0].data).toEqual({
         success: true,
@@ -424,11 +423,11 @@ describe('Transcript Line DB Persistence E2E', () => {
         error: undefined,
       });
 
-      // Both lines exist in database (duplicates allowed)
+      // Only one line exists in database (duplicate was skipped)
       const lines = await prisma.transcriptLine.findMany({
         where: { workflowRunId: testWorkflowRunId, sessionIndex: 5 },
       });
-      expect(lines).toHaveLength(2);
+      expect(lines).toHaveLength(1);
     });
 
     it('should correctly route transcript_line vs full transcript items in mixed batch', async () => {
