@@ -37,6 +37,9 @@ describe('task-prompt-builder', () => {
       artifact: {
         findFirst: jest.fn(),
       },
+      story: {
+        findUnique: jest.fn(),
+      },
     } as any;
   });
 
@@ -285,7 +288,7 @@ describe('task-prompt-builder', () => {
 
       expect(result).toContain('### Artifacts to CREATE/UPDATE');
       expect(result).toContain('**ARCH_DOC** (Architecture Document)');
-      expect(result).toContain('upload_artifact');
+      expect(result).toContain('create_artifact');
       expect(result).toContain('definitionKey: "ARCH_DOC"');
     });
 
@@ -427,6 +430,11 @@ describe('task-prompt-builder', () => {
         },
       ];
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue(previousRuns);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue(artifactAccess);
       (mockPrisma.artifact.findFirst as jest.Mock).mockResolvedValue({ id: 'a-1', latestVersion: 1 });
@@ -456,6 +464,11 @@ describe('task-prompt-builder', () => {
         preExecutionInstructions: null,
       };
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue([]);
 
@@ -479,6 +492,11 @@ describe('task-prompt-builder', () => {
         component: componentNoInstructions,
       };
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue([]);
 
@@ -491,6 +509,11 @@ describe('task-prompt-builder', () => {
     });
 
     it('should handle no previous component runs', async () => {
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue([]);
 
@@ -500,6 +523,11 @@ describe('task-prompt-builder', () => {
     });
 
     it('should handle no artifact access rules', async () => {
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue([]);
 
@@ -514,6 +542,11 @@ describe('task-prompt-builder', () => {
         { accessType: 'read', definition: { key: 'DOC', name: 'Doc', description: 'Doc' } },
       ];
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue(previousRuns);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue(artifactAccess);
       (mockPrisma.artifact.findFirst as jest.Mock).mockResolvedValue(null);
@@ -555,6 +588,11 @@ describe('task-prompt-builder', () => {
         },
       ];
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue(allRuns);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue([]);
 
@@ -566,7 +604,7 @@ describe('task-prompt-builder', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (mockPrisma.componentRun.findMany as jest.Mock).mockRejectedValue(
+      (mockPrisma.story.findUnique as jest.Mock).mockRejectedValue(
         new Error('Database connection failed')
       );
 
@@ -588,6 +626,11 @@ describe('task-prompt-builder', () => {
         component: componentWithSpecialChars,
       };
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue([]);
 
@@ -629,6 +672,11 @@ describe('task-prompt-builder', () => {
         },
       ];
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue([]);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue(artifactAccess);
       (mockPrisma.artifact.findFirst as jest.Mock).mockResolvedValue({ id: 'a-1', latestVersion: 1 });
@@ -683,6 +731,11 @@ describe('task-prompt-builder', () => {
         },
       ];
 
+      (mockPrisma.story.findUnique as jest.Mock).mockResolvedValue({
+        key: '123',
+        epicId: null,
+        epic: null,
+      });
       (mockPrisma.componentRun.findMany as jest.Mock).mockResolvedValue(previousRuns);
       (mockPrisma.artifactAccess.findMany as jest.Mock).mockResolvedValue(artifactAccess);
       (mockPrisma.artifact.findFirst as jest.Mock).mockResolvedValue({ id: 'a-1', latestVersion: 1 });

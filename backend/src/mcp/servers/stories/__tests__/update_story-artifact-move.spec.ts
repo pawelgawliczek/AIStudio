@@ -11,8 +11,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { updateStory } from '../update_story';
 import { requestArtifactMove } from '../../../../mcp/services/websocket-gateway.instance';
+import { updateStory } from '../update_story';
 
 // Mock the requestArtifactMove function
 jest.mock('../../../../mcp/services/websocket-gateway.instance', () => ({

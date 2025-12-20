@@ -16,13 +16,11 @@
  * - Error Handling: No agent available, move failures
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
 import { Socket as ServerSocket } from 'socket.io';
 import { io as ClientIO, Socket as ClientSocket } from 'socket.io-client';
-import { RemoteAgentGateway } from '../remote-agent.gateway';
-import { RemoteAgentController } from '../remote-agent.controller';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TelemetryService } from '../../telemetry/telemetry.service';
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
@@ -30,6 +28,8 @@ import { ArtifactHandler } from '../handlers/artifact.handler';
 import { ClaudeCodeHandler } from '../handlers/claude-code.handler';
 import { GitJobHandler } from '../handlers/git-job.handler';
 import { TranscriptHandler } from '../handlers/transcript.handler';
+import { RemoteAgentController } from '../remote-agent.controller';
+import { RemoteAgentGateway } from '../remote-agent.gateway';
 import { StreamEventService } from '../stream-event.service';
 import { TranscriptRegistrationService } from '../transcript-registration.service';
 

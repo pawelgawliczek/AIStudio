@@ -308,6 +308,35 @@ export async function buildTaskPrompt(
 ): Promise<string> {
   const sections: string[] = [];
 
+  // 0. Epic Context (ST-364)
+  const story = await prisma.story.findUnique({
+    where: { id: storyId },
+    select: {
+      key: true,
+      epicId: true,
+      epic: {
+        select: {
+          key: true,
+        },
+      },
+    },
+  });
+
+  if (story?.epicId && story.epic) {
+    const epicKey = story.epic.key;
+    const storyKey = story.key;
+    sections.push('## Epic Context\n');
+    sections.push(`This story belongs to Epic: **EP-${epicKey}**\n\n`);
+    sections.push('### File Paths (ST-363)\n');
+    sections.push(`- Story artifacts: \`docs/EP-${epicKey}/ST-${storyKey}/*.md\`\n`);
+    sections.push(`- Epic-level plan: \`docs/EP-${epicKey}/THE_PLAN.md\` (check for overarching context)\n\n`);
+  } else if (story) {
+    const storyKey = story.key;
+    sections.push('## Story Context\n');
+    sections.push('### File Paths (ST-363)\n');
+    sections.push(`- Story artifacts: \`docs/undefined/ST-${storyKey}/*.md\`\n\n`);
+  }
+
   // 1. Component instructions (Input, Task, Output)
   if (state.component) {
     if (state.component.inputInstructions) {
