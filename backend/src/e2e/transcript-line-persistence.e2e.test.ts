@@ -201,13 +201,13 @@ describe('Transcript Line DB Persistence E2E', () => {
       // Execute the upload batch
       await gateway.handleUploadBatch(mockClient as Socket, payload);
 
-      // Verify individual ACK was sent
+      // Verify individual ACK was sent (ItemAckPayload format: id, success, error?)
       const itemAcks = emittedEvents.filter(e => e.event === 'upload:ack:item');
       expect(itemAcks).toHaveLength(1);
       expect(itemAcks[0].data).toEqual({
         success: true,
-        queueId: 5001,
-        linesCount: 3,
+        id: 5001,
+        error: undefined,
       });
 
       // Verify batch ACK was sent
@@ -280,8 +280,8 @@ describe('Transcript Line DB Persistence E2E', () => {
       expect(itemAcks).toHaveLength(1);
       expect(itemAcks[0].data).toEqual({
         success: true,
-        queueId: 5003,
-        linesCount: 2,
+        id: 5003,
+        error: undefined,
       });
 
       // Verify both sessions exist in database
@@ -318,8 +318,8 @@ describe('Transcript Line DB Persistence E2E', () => {
       expect(itemAcks).toHaveLength(1);
       expect(itemAcks[0].data).toEqual({
         success: true,
-        queueId: 5004,
-        linesCount: 0,
+        id: 5004,
+        error: undefined,
       });
 
       // Verify no lines were added to database
@@ -354,7 +354,7 @@ describe('Transcript Line DB Persistence E2E', () => {
       expect(itemAcks).toHaveLength(1);
       const ack = itemAcks[0].data as any;
       expect(ack.success).toBe(false);
-      expect(ack.queueId).toBe(5005);
+      expect(ack.id).toBe(5005);
       expect(ack.error).toBeDefined();
 
       // Verify batch ACK is empty
@@ -386,8 +386,8 @@ describe('Transcript Line DB Persistence E2E', () => {
       let itemAcks = emittedEvents.filter(e => e.event === 'upload:ack:item');
       expect(itemAcks[0].data).toEqual({
         success: true,
-        queueId: 5006,
-        linesCount: 1,
+        id: 5006,
+        error: undefined,
       });
 
       // Clear events
@@ -416,8 +416,8 @@ describe('Transcript Line DB Persistence E2E', () => {
       itemAcks = emittedEvents.filter(e => e.event === 'upload:ack:item');
       expect(itemAcks[0].data).toEqual({
         success: true,
-        queueId: 5007,
-        linesCount: 1,
+        id: 5007,
+        error: undefined,
       });
 
       // Verify only one line exists in database
@@ -496,12 +496,13 @@ describe('Transcript Line DB Persistence E2E', () => {
       expect(itemAcks).toHaveLength(2);
       expect(itemAcks[0].data).toEqual({
         success: true,
-        queueId: 5008,
-        linesCount: 1,
+        id: 5008,
+        error: undefined,
       });
       expect(itemAcks[1].data).toEqual({
         success: true,
         id: 5009,
+        error: undefined,
       });
 
       // Verify transcript_line was saved to transcript_lines table
