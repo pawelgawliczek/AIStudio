@@ -92,7 +92,7 @@ describe('ArtifactHandler - handleArtifactUpload', () => {
 
       expect(mockPrismaService.story.findFirst).toHaveBeenCalledWith({
         where: { key: 'ST-123' },
-        include: { project: true },
+        select: { id: true, projectId: true },
       });
       expect(mockPrismaService.artifactDefinition.findFirst).toHaveBeenCalledWith({
         where: {
@@ -158,7 +158,9 @@ describe('ArtifactHandler - handleArtifactUpload', () => {
       expect(mockFrontendServer.emit).toHaveBeenCalledWith('artifact:updated', {
         artifactId: 'artifact-uuid-2',
         storyId: 'story-uuid-2',
+        epicId: null,
         storyKey: 'ST-456',
+        epicKey: undefined,
         artifactKey: 'ANALYSIS',
         version: 1,
         timestamp: mockArtifact.updatedAt,
