@@ -119,19 +119,9 @@ export class ArtifactWatcher {
 
     const { epicKey, storyKey, artifactKey, extension } = parsed;
 
-    // ST-363: Skip epic-level artifacts (no storyKey) - these will be handled in future story
-    if (epicKey && !storyKey) {
-      this.logger.debug('Epic-level artifact detected, skipping (not yet supported)', {
-        filePath,
-        epicKey,
-        artifactKey,
-      });
-      return;
-    }
-
-    // Validate storyKey is present
-    if (!storyKey) {
-      this.logger.debug('No storyKey found, skipping', { filePath });
+    // Must have either storyKey or epicKey (for epic-level artifacts)
+    if (!storyKey && !epicKey) {
+      this.logger.debug('No storyKey or epicKey found, skipping', { filePath });
       return;
     }
 
@@ -155,6 +145,7 @@ export class ArtifactWatcher {
     try {
       await this.uploadManager.queueUpload('artifact:upload', {
         storyKey,
+        epicKey,  // ST-362: Support epic-level artifacts
         artifactKey,
         filePath,
         content,

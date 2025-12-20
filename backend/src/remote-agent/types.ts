@@ -161,10 +161,12 @@ export interface UploadAckPayload {
 
 /**
  * ST-326: Artifact upload types
+ * ST-362: Added epicKey for epic-level artifacts
  */
 export interface ArtifactUploadItem {
   queueId: number;
-  storyKey: string;
+  storyKey?: string;  // For story-level artifacts
+  epicKey?: string;   // ST-362: For epic-level artifacts
   artifactKey: string;
   filePath: string;
   content: string;
