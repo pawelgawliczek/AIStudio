@@ -323,18 +323,20 @@ export async function buildTaskPrompt(
   });
 
   if (story?.epicId && story.epic) {
+    // Keys already include prefix (e.g., "EP-14", "ST-345"), use as-is
     const epicKey = story.epic.key;
     const storyKey = story.key;
     sections.push('## Epic Context\n');
-    sections.push(`This story belongs to Epic: **EP-${epicKey}**\n\n`);
+    sections.push(`This story belongs to Epic: **${epicKey}**\n\n`);
     sections.push('### File Paths (ST-363)\n');
-    sections.push(`- Story artifacts: \`docs/EP-${epicKey}/ST-${storyKey}/*.md\`\n`);
-    sections.push(`- Epic-level plan: \`docs/EP-${epicKey}/THE_PLAN.md\` (check for overarching context)\n\n`);
+    sections.push(`- Story artifacts: \`docs/${epicKey}/${storyKey}/*.md\`\n`);
+    sections.push(`- Epic-level plan: \`docs/${epicKey}/THE_PLAN.md\` (check for overarching context)\n\n`);
   } else if (story) {
+    // Key already includes prefix (e.g., "ST-345"), use as-is
     const storyKey = story.key;
     sections.push('## Story Context\n');
     sections.push('### File Paths (ST-363)\n');
-    sections.push(`- Story artifacts: \`docs/undefined/ST-${storyKey}/*.md\`\n\n`);
+    sections.push(`- Story artifacts: \`docs/undefined/${storyKey}/*.md\`\n\n`);
   }
 
   // 1. Component instructions (Input, Task, Output)
