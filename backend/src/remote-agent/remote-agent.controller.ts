@@ -188,7 +188,7 @@ export class RemoteAgentController {
 
   /**
    * ST-363: Request artifact move on laptop agent
-   * POST /api/internal/artifact-move
+   * POST /api/remote-agent/internal/artifact-move
    * Requires X-Internal-API-Secret header
    * Body: { storyKey, storyId, epicKey, oldPath, newPath }
    *

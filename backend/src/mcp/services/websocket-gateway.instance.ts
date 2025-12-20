@@ -368,7 +368,7 @@ export async function requestArtifactMove(data: {
   newPath: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/internal/artifact-move`, {
+    const response = await fetch(`${BACKEND_URL}/api/remote-agent/internal/artifact-move`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
