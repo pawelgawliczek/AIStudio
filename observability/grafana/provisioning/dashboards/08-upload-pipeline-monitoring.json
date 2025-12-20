@@ -155,7 +155,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "100 * count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Item marked as acked\" [5m]) / (count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Flushing items\" [5m]) + 0.001)",
+          "expr": "100 * count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Item acknowledged\" [5m]) / (count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Flushing items\" [5m]) + 0.001)",
           "refId": "A"
         }
       ],
@@ -362,6 +362,54 @@
         "type": "loki",
         "uid": "loki"
       },
+      "description": "Items failed due to invalid story/artifact keys (ST-347)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 4 },
+      "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "count_over_time({app=\"laptop-agent\", hostname=~\"$hostname\"} |= \"Item failed - invalid key\" [5m])",
+          "refId": "A"
+        }
+      ],
+      "title": "Failed Items (5m)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "description": "Artifacts queued for upload",
       "fieldConfig": {
         "defaults": {
@@ -379,7 +427,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 4 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 4 },
       "id": 6,
       "options": {
         "colorMode": "value",
