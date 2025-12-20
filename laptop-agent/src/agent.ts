@@ -13,6 +13,7 @@ import { TranscriptWatcher } from './transcript-watcher';
 import { WakeDetector } from './wake-detector';
 import { ArtifactWatcher } from './artifact-watcher';
 import { UploadManager } from './upload-manager';
+import { ArtifactMover } from './artifact-mover';
 
 /**
  * ST-153: Git job payload from server
@@ -75,6 +76,9 @@ export class RemoteAgent {
 
   // ST-327: Artifact watcher for story artifacts
   private artifactWatcher: ArtifactWatcher | null = null;
+
+  // ST-363: Artifact mover for epic assignment
+  private artifactMover: ArtifactMover | null = null;
 
   // ST-281: Logger for structured logging
   private readonly logger = new Logger('Agent');
@@ -319,6 +323,19 @@ export class RemoteAgent {
     this.socket.on('transcript:stop_tail', (data: { runId: string; sessionIndex: number }) => {
       console.log(`[ST-182] Received stop tail request for ${data.runId}:${data.sessionIndex}`);
       this.handleStopTail(data.runId, data.sessionIndex);
+    });
+
+    // ST-363: Artifact move requests
+    this.socket.on('artifact:move-request', (data: {
+      requestId: string;
+      storyKey: string;
+      epicKey: string | null;
+      oldPath: string;
+      newPath: string;
+      timestamp: number;
+    }) => {
+      console.log(`[ST-363] Received artifact move request for ${data.storyKey}`);
+      this.handleArtifactMoveRequest(data);
     });
 
     // Resume acknowledgment
@@ -808,6 +825,10 @@ export class RemoteAgent {
     await this.artifactWatcher.start();
 
     console.log('[ST-327] Artifact watcher started successfully');
+
+    // ST-363: Initialize artifact mover for epic assignment
+    this.artifactMover = new ArtifactMover(this.config.projectPath);
+    console.log('[ST-363] Artifact mover initialized');
   }
 
   /**
@@ -845,6 +866,70 @@ export class RemoteAgent {
       await this.transcriptTailer.stopTailing(runId, sessionIndex);
     } catch (error: any) {
       console.error('[ST-182] Failed to stop tailing:', error.message);
+    }
+  }
+
+  /**
+   * ST-363: Handle artifact move request from backend
+   * Moves story directory from docs/ST-XXX to docs/EP-YYY/ST-XXX or docs/unassigned/ST-XXX
+   */
+  private async handleArtifactMoveRequest(data: {
+    requestId: string;
+    storyKey: string;
+    epicKey: string | null;
+    oldPath: string;
+    newPath: string;
+    timestamp: number;
+  }): Promise<void> {
+    if (!this.artifactMover) {
+      console.error('[ST-363] Cannot move artifacts - ArtifactMover not initialized');
+      this.socket?.emit('artifact:move-failed', {
+        requestId: data.requestId,
+        storyKey: data.storyKey,
+        success: false,
+        error: 'ArtifactMover not initialized',
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    try {
+      const result = await this.artifactMover.moveArtifacts({
+        storyKey: data.storyKey,
+        epicKey: data.epicKey,
+        oldPath: data.oldPath,
+        newPath: data.newPath,
+      });
+
+      if (result.success) {
+        console.log(`[ST-363] Successfully moved artifacts for ${data.storyKey}`);
+        this.socket?.emit('artifact:move-complete', {
+          requestId: data.requestId,
+          storyKey: data.storyKey,
+          success: true,
+          newPath: result.newPath,
+          timestamp: Date.now(),
+        });
+      } else {
+        console.error(`[ST-363] Failed to move artifacts for ${data.storyKey}: ${result.error}`);
+        this.socket?.emit('artifact:move-failed', {
+          requestId: data.requestId,
+          storyKey: data.storyKey,
+          success: false,
+          error: result.error,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[ST-363] Exception during artifact move: ${message}`);
+      this.socket?.emit('artifact:move-failed', {
+        requestId: data.requestId,
+        storyKey: data.storyKey,
+        success: false,
+        error: message,
+        timestamp: Date.now(),
+      });
     }
   }
 

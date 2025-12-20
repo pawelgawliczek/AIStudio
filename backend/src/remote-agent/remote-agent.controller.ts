@@ -187,6 +187,43 @@ export class RemoteAgentController {
   }
 
   /**
+   * ST-363: Request artifact move on laptop agent
+   * POST /api/internal/artifact-move
+   * Requires X-Internal-API-Secret header
+   * Body: { storyKey, storyId, epicKey, oldPath, newPath }
+   *
+   * Called by update_story MCP tool when epicId changes
+   */
+  @Post('internal/artifact-move')
+  async requestArtifactMove(
+    @Headers('x-internal-api-secret') secret: string,
+    @Body() body: {
+      storyKey: string;
+      storyId: string;
+      epicKey: string | null;
+      oldPath: string;
+      newPath: string;
+    },
+  ) {
+    this.validateInternalSecret(secret);
+    this.logger.log(`[ST-363] Artifact move request for ${body.storyKey}: ${body.oldPath} -> ${body.newPath}`);
+
+    try {
+      await this.remoteAgentGateway.emitArtifactMoveRequest({
+        storyKey: body.storyKey,
+        epicKey: body.epicKey,
+        oldPath: body.oldPath,
+        newPath: body.newPath,
+      });
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`[ST-363] Failed to request artifact move: ${getErrorMessage(error)}`);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  /**
    * ST-160: Get session streaming status
    * GET /api/remote-agent/session-status/:workflowRunId
    * Requires X-Agent-Secret header

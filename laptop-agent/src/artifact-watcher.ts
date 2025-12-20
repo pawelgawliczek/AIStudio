@@ -1,12 +1,19 @@
 /**
  * ST-325: ArtifactWatcher - Watch and upload story artifacts
+ * ST-363: Added epic file hierarchy support (docs/EP-XXX/)
  *
- * Watches docs/ST-* directories for artifact files (.md, .json, .txt)
+ * Watches docs/ directories for artifact files (.md, .json, .txt)
  * and queues them for upload via UploadManager.
  *
+ * Supported paths:
+ * - docs/EP-XXX/*.md (epic-level artifacts)
+ * - docs/EP-XXX/ST-YYY/*.md (story in epic)
+ * - docs/unassigned/ST-YYY/*.md (unassigned stories)
+ * - docs/ST-YYY/*.md (legacy direct story path)
+ *
  * Features:
- * - Watches docs/ST-* directories recursively
- * - Parses storyKey and artifactKey from file paths
+ * - Watches docs/ directories at depth 3
+ * - Parses epicKey, storyKey, and artifactKey from file paths
  * - Queues uploads via UploadManager for guaranteed delivery
  * - Handles both new files and changes
  */
@@ -46,7 +53,7 @@ export class ArtifactWatcher {
     this.watcher = chokidar.watch(watchDir, {
       persistent: true,
       ignoreInitial: false, // Process existing files on startup
-      depth: 2, // docs/ST-XXX/files
+      depth: 3, // ST-363: docs/EP-XXX/ST-YYY/files or docs/unassigned/ST-YYY/files
       awaitWriteFinish: {
         stabilityThreshold: 500, // Wait 500ms for file to stabilize
         pollInterval: 100,
@@ -92,6 +99,7 @@ export class ArtifactWatcher {
 
   /**
    * Handle a new or changed artifact file
+   * ST-363: Skip epic-level artifacts (no storyKey) for now
    */
   private async handleFile(filePath: string): Promise<void> {
     this.logger.debug('handleFile called', { filePath });
@@ -102,15 +110,30 @@ export class ArtifactWatcher {
       return;
     }
 
-    // Parse the file path to extract storyKey and artifactKey
-    // Expected pattern: docs/ST-XXX/ARTIFACT_NAME.ext
+    // Parse the file path to extract epicKey, storyKey, and artifactKey
     const parsed = this.parseArtifactPath(filePath);
     if (!parsed) {
       this.logger.debug('File does not match artifact pattern, skipping', { filePath });
       return;
     }
 
-    const { storyKey, artifactKey, extension } = parsed;
+    const { epicKey, storyKey, artifactKey, extension } = parsed;
+
+    // ST-363: Skip epic-level artifacts (no storyKey) - these will be handled in future story
+    if (epicKey && !storyKey) {
+      this.logger.debug('Epic-level artifact detected, skipping (not yet supported)', {
+        filePath,
+        epicKey,
+        artifactKey,
+      });
+      return;
+    }
+
+    // Validate storyKey is present
+    if (!storyKey) {
+      this.logger.debug('No storyKey found, skipping', { filePath });
+      return;
+    }
 
     // Validate file extension
     if (!['md', 'json', 'txt'].includes(extension)) {
@@ -146,6 +169,7 @@ export class ArtifactWatcher {
       const contentHash = crypto.createHash('sha256').update(content).digest('hex').substring(0, 8);
 
       this.logger.info('Artifact queued for upload', {
+        epicKey,
         storyKey,
         artifactKey,
         filePath,
@@ -160,25 +184,66 @@ export class ArtifactWatcher {
   }
 
   /**
-   * Parse artifact path to extract storyKey and artifactKey
-   * Expected pattern: docs/ST-XXX/ARTIFACT_NAME.ext
-   * Returns { storyKey, artifactKey, extension } or null if not a valid artifact path
+   * Parse artifact path to extract epicKey, storyKey, and artifactKey
+   * ST-363: Support multiple path patterns:
+   * - docs/EP-XXX/THE_PLAN.md (epic-level artifact)
+   * - docs/EP-XXX/ST-YYY/ARTIFACT.md (story in epic)
+   * - docs/unassigned/ST-YYY/ARTIFACT.md (unassigned story)
+   * - docs/ST-YYY/ARTIFACT.md (legacy direct story path)
+   *
+   * Returns { epicKey?, storyKey?, artifactKey, extension } or null if not valid
    */
-  private parseArtifactPath(filePath: string): { storyKey: string; artifactKey: string; extension: string } | null {
+  private parseArtifactPath(filePath: string): {
+    epicKey?: string;
+    storyKey?: string;
+    artifactKey: string;
+    extension: string;
+  } | null {
     // Normalize path separators
     const normalizedPath = filePath.replace(/\\/g, '/');
 
-    // Match pattern: docs/ST-XXX/ARTIFACT.ext
-    const match = normalizedPath.match(/docs\/(ST-\d+)\/([^/]+)\.(md|json|txt)$/);
-    if (!match) {
-      return null;
+    // Pattern 1: docs/EP-XXX/THE_PLAN.md (epic-level artifact)
+    const epicMatch = normalizedPath.match(/docs\/(EP-\d+)\/([^/]+)\.(md|json|txt)$/);
+    if (epicMatch) {
+      return {
+        epicKey: epicMatch[1],
+        artifactKey: epicMatch[2],
+        extension: epicMatch[3],
+      };
     }
 
-    const storyKey = match[1];
-    const artifactKey = match[2];
-    const extension = match[3];
+    // Pattern 2: docs/EP-XXX/ST-YYY/ARTIFACT.md (story in epic)
+    const epicStoryMatch = normalizedPath.match(/docs\/(EP-\d+)\/(ST-\d+)\/([^/]+)\.(md|json|txt)$/);
+    if (epicStoryMatch) {
+      return {
+        epicKey: epicStoryMatch[1],
+        storyKey: epicStoryMatch[2],
+        artifactKey: epicStoryMatch[3],
+        extension: epicStoryMatch[4],
+      };
+    }
 
-    return { storyKey, artifactKey, extension };
+    // Pattern 3: docs/unassigned/ST-YYY/ARTIFACT.md (unassigned story)
+    const unassignedMatch = normalizedPath.match(/docs\/unassigned\/(ST-\d+)\/([^/]+)\.(md|json|txt)$/);
+    if (unassignedMatch) {
+      return {
+        storyKey: unassignedMatch[1],
+        artifactKey: unassignedMatch[2],
+        extension: unassignedMatch[3],
+      };
+    }
+
+    // Pattern 4: docs/ST-YYY/ARTIFACT.md (legacy direct story path)
+    const legacyMatch = normalizedPath.match(/docs\/(ST-\d+)\/([^/]+)\.(md|json|txt)$/);
+    if (legacyMatch) {
+      return {
+        storyKey: legacyMatch[1],
+        artifactKey: legacyMatch[2],
+        extension: legacyMatch[3],
+      };
+    }
+
+    return null;
   }
 
   /**

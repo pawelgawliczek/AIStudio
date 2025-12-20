@@ -3557,3 +3557,44 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-20T03:53:24Z",
+  "session_id": "e1b6e203-7658-4220-a208-9deeaacc3faa",
+  "run_id": "433be132-b85e-4942-b41d-e4f3e22b882f",
+  "questions": [
+    {
+      "question": "Should Native Planner also be able to UPDATE THE_PLAN since it helps you during plan mode, or should it remain read-only like other agents?",
+      "header": "Planner Access",
+      "options": [
+        {
+          "label": "UPDATE (like Explorer/Architect)",
+          "description": "Native Planner can modify THE_PLAN since it's part of the planning phase"
+        },
+        {
+          "label": "READ-ONLY (Recommended)",
+          "description": "Native Planner only consumes THE_PLAN - you create/update it yourself in plan mode"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should agents know the epic context? Currently stories have epicId but agents don't automatically receive it.",
+      "header": "Epic Context",
+      "options": [
+        {
+          "label": "Add epic info to story context",
+          "description": "Orchestrator includes epicId and epicKey in the prompt when spawning agents"
+        },
+        {
+          "label": "Agents check via MCP",
+          "description": "Agents use get_story to retrieve epicId, then check for docs/EP-XXX/THE_PLAN.md"
+        },
+        {
+          "label": "Skip epic support for now",
+          "description": "Implement story-level only, add epic support later"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

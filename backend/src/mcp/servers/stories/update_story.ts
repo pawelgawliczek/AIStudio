@@ -7,6 +7,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { PrismaClient } from '@prisma/client';
+import { requestArtifactMove } from '../../services/websocket-gateway.instance';
 import { resolveStory } from '../../shared/resolve-identifiers';
 import {
   UpdateStoryParams,
@@ -194,6 +195,21 @@ export async function handler(
       deprecatedFieldsUsed.push('architectAnalysis');
     }
 
+    // ST-363: Check if epicId is changing and trigger artifact move
+    const epicIdChanged = params.epicId !== undefined && params.epicId !== existingStory.epicId;
+    let newEpicKey: string | null = null;
+
+    if (epicIdChanged && params.epicId !== null) {
+      // Fetch the new epic to get its key
+      const newEpic = await prisma.epic.findUnique({
+        where: { id: params.epicId },
+        select: { key: true },
+      });
+      if (newEpic) {
+        newEpicKey = newEpic.key;
+      }
+    }
+
     // Update story
     const updatedStory = await prisma.story.update({
       where: { id: storyId },
@@ -205,6 +221,27 @@ export async function handler(
     // Add deprecation warning if deprecated fields were used
     if (deprecatedFieldsUsed.length > 0) {
       (response as any)._deprecationWarning = `Fields [${deprecatedFieldsUsed.join(', ')}] are deprecated (ST-152). Use the Artifact system instead: upload_artifact() or open_artifact_session()`;
+    }
+
+    // ST-363: Trigger artifact move if epicId changed
+    if (epicIdChanged) {
+      const storyKey = existingStory.key;
+      const oldPath = `docs/${storyKey}`;
+      const newPath = newEpicKey
+        ? `docs/${newEpicKey}/${storyKey}`
+        : `docs/unassigned/${storyKey}`;
+
+      // Fire-and-forget artifact move request (don't block the response)
+      requestArtifactMove({
+        storyKey,
+        storyId,
+        epicKey: newEpicKey,
+        oldPath,
+        newPath,
+      }).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[ST-363] Failed to request artifact move for ${storyKey}: ${message}`);
+      });
     }
 
     return response;

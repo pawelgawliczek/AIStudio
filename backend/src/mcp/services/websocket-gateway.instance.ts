@@ -356,6 +356,42 @@ export async function stopTranscriptTailing(
   }
 }
 
+/**
+ * ST-363: Request artifact move via HTTP to backend
+ * Called when update_story changes epicId
+ */
+export async function requestArtifactMove(data: {
+  storyKey: string;
+  storyId: string;
+  epicKey: string | null;
+  oldPath: string;
+  newPath: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/internal/artifact-move`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-API-Secret': INTERNAL_API_SECRET,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn(`[ST-363] Failed to request artifact move: ${errorText}`);
+      return { success: false, error: errorText };
+    }
+
+    const result = await response.json() as { success: boolean; error?: string };
+    return result;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[ST-363] Failed to request artifact move: ${message}`);
+    return { success: false, error: message };
+  }
+}
+
 // Keep old exports for NestJS-side code (main.ts)
 import { AppWebSocketGateway } from '../../websocket/websocket.gateway';
 let sharedGateway: AppWebSocketGateway | null = null;

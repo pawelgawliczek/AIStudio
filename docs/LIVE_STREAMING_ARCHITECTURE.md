@@ -1,6 +1,6 @@
 # Live Streaming Architecture
 
-**Version:** 1.5
+**Version:** 1.7
 **Last Updated:** 2025-12-19
 **Epic:** ST-220, ST-242, ST-247, ST-279, ST-321, ST-328, ST-329, ST-330
 
@@ -358,6 +358,7 @@ Sent from laptop agent via UploadManager:
 
 ```typescript
 {
+  queueId: number;            // ST-329: Queue item ID for ACK protocol
   runId: string;              // WorkflowRun UUID
   sessionIndex: number;       // Session number (0=master, 1+=spawned)
   lines: Array<{
@@ -374,21 +375,45 @@ Sent from laptop agent via UploadManager:
 Location: `backend/src/remote-agent/handlers/transcript.handler.ts`
 
 ```typescript
-// Persist to database
-await prisma.transcriptLine.createMany({
-  data: lines.map((line) => ({
-    workflowRunId: runId,
-    sessionIndex,
-    lineNumber: line.sequenceNumber,
-    content: line.line,
-  })),
-  skipDuplicates: true,  // Prevent duplicate inserts
-});
+// ST-329: Returns ACK for guaranteed delivery
+async handleTranscriptLines(data): Promise<{
+  success: boolean;
+  queueId: number;
+  linesCount?: number;
+  error?: string;
+}> {
+  try {
+    // Persist to database
+    await prisma.transcriptLine.createMany({
+      data: lines.map((line) => ({
+        workflowRunId: runId,
+        sessionIndex,
+        lineNumber: line.sequenceNumber,
+        content: line.line,
+      })),
+      skipDuplicates: true,  // Prevent duplicate inserts
+    });
 
-// Broadcast to frontend room
-this.appWebSocketGateway.server
-  .to(`master-transcript:${runId}`)
-  .emit('master-transcript:lines', payload);
+    // Broadcast to frontend room
+    this.appWebSocketGateway.server
+      .to(`master-transcript:${runId}`)
+      .emit('master-transcript:lines', payload);
+
+    // Return ACK to laptop agent
+    return {
+      success: true,
+      queueId: data.queueId,
+      linesCount: data.lines.length,
+    };
+  } catch (error) {
+    // Graceful error handling - return error ACK
+    return {
+      success: false,
+      queueId: data.queueId,
+      error: getErrorMessage(error),
+    };
+  }
+}
 ```
 
 **REST API Retrieval:**
@@ -396,15 +421,27 @@ this.appWebSocketGateway.server
 ```
 GET /api/projects/:projectId/workflow-runs/:runId/transcript-lines
 Query params:
-  - sessionIndex: number (required)
-  - limit: number (default: 1000)
-  - offset: number (default: 0)
+  - sessionIndex: number (optional, default: 0)
+  - limit: number (optional)
+  - offset: number (optional)
 
 Response:
 {
-  lines: Array<{ id, lineNumber, content, createdAt }>;
+  workflowRunId: string;
+  sessionIndex: number;
+  lines: Array<{
+    id: string;
+    lineNumber: number;
+    content: string;
+    createdAt: Date;
+  }>;
   totalLines: number;
 }
+
+Security:
+  - JWT authentication required
+  - Project-level access validation
+  - Run must belong to specified project
 ```
 
 **Key Features (EP-14):**
@@ -413,7 +450,10 @@ Response:
 - **Guaranteed Delivery**: UploadManager with persistent SQLite queue (ST-320, ST-321)
   - Queue location: `~/.vibestudio/upload-queue.db`
   - Survives laptop restarts and network failures
-  - ACK protocol confirms backend receipt
+  - ACK protocol confirms backend receipt (ST-329)
+    - Handler returns `{ success, queueId, linesCount }` on success
+    - Returns `{ success: false, queueId, error }` on failure
+    - Graceful error handling - doesn't crash on persistence failure
   - Content hash deduplication prevents duplicates
 - **Efficient Queries**: Composite index enables fast retrieval by session
 - **Pagination**: REST API supports limit/offset for large transcripts
@@ -1580,6 +1620,14 @@ const ALLOWED_TRANSCRIPT_DIRECTORIES = [
 ---
 
 ## Changelog
+
+### Version 1.7 (2025-12-19)
+- **ST-329**: Updated ACK protocol documentation for transcript line streaming
+  - Added queueId to transcript:lines WebSocket event payload
+  - Documented ACK response format (success, queueId, linesCount/error)
+  - Added graceful error handling details
+  - Updated REST API documentation with correct parameters and security
+- **ST-329**: Enhanced Key Features section with detailed ACK protocol behavior
 
 ### Version 1.6 (2025-12-19)
 - **EP-14**: Updated guaranteed delivery section with SQLite queue details

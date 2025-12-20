@@ -618,4 +618,88 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
     this.logger.log(`[ST-326] Artifact batch upload complete: ${successfulIds.length}/${items.length} items uploaded`);
   }
+
+  // ===========================================================================
+  // ST-363: Artifact Move Handlers
+  // ===========================================================================
+
+  /**
+   * ST-363: Emit artifact move request to laptop agent
+   * Called by internal controller when update_story changes epicId
+   */
+  async emitArtifactMoveRequest(data: {
+    storyKey: string;
+    epicKey: string | null;
+    oldPath: string;
+    newPath: string;
+  }): Promise<void> {
+    // Find an online laptop agent with artifact-move capability
+    const agents = await getOnlineAgentsWithCapabilityUtil(this.prisma, 'artifact-move');
+
+    if (agents.length === 0) {
+      this.logger.warn(`[ST-363] No online agents with artifact-move capability found`);
+      return;
+    }
+
+    // Use the first available agent
+    const agent = agents[0];
+
+    if (!agent.socketId) {
+      this.logger.warn(`[ST-363] Agent ${agent.id} has no socket ID, cannot send move request`);
+      return;
+    }
+
+    const requestId = `move-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    this.logger.log(`[ST-363] Sending artifact move request to agent ${agent.id} for ${data.storyKey}`);
+
+    this.server.to(agent.socketId).emit('artifact:move-request', {
+      requestId,
+      storyKey: data.storyKey,
+      epicKey: data.epicKey,
+      oldPath: data.oldPath,
+      newPath: data.newPath,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * ST-363: Handle artifact move completion from laptop agent
+   */
+  @SubscribeMessage('artifact:move-complete')
+  async handleArtifactMoveComplete(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { requestId: string; storyKey: string; success: true; newPath: string; timestamp: number },
+  ): Promise<void> {
+    const { agentId } = client.data;
+
+    this.logger.log(`[ST-363] Artifact move completed successfully for ${data.storyKey} by agent ${agentId}`);
+
+    // Broadcast to frontend clients
+    this.appWebSocketGateway.server.emit('artifact:moved', {
+      storyKey: data.storyKey,
+      newPath: data.newPath,
+      timestamp: new Date(data.timestamp),
+    });
+  }
+
+  /**
+   * ST-363: Handle artifact move failure from laptop agent
+   */
+  @SubscribeMessage('artifact:move-failed')
+  async handleArtifactMoveFailed(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { requestId: string; storyKey: string; success: false; error: string; timestamp: number },
+  ): Promise<void> {
+    const { agentId } = client.data;
+
+    this.logger.error(`[ST-363] Artifact move failed for ${data.storyKey} by agent ${agentId}: ${data.error}`);
+
+    // Broadcast to frontend clients
+    this.appWebSocketGateway.server.emit('artifact:move-failed', {
+      storyKey: data.storyKey,
+      error: data.error,
+      timestamp: new Date(data.timestamp),
+    });
+  }
 }

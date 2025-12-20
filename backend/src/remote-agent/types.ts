@@ -197,3 +197,41 @@ export interface TranscriptBatchPayload {
   isHistorical: boolean;
   timestamp: string;
 }
+
+/**
+ * ST-363: Artifact move types
+ */
+
+/**
+ * Request from backend to laptop-agent to move artifact directory
+ */
+export interface ArtifactMoveRequestPayload {
+  requestId: string;
+  storyKey: string;
+  epicKey: string | null; // null = move to unassigned
+  oldPath: string; // e.g., "docs/ST-123"
+  newPath: string; // e.g., "docs/EP-1/ST-123" or "docs/unassigned/ST-123"
+  timestamp: number;
+}
+
+/**
+ * Confirmation from laptop-agent that move completed successfully
+ */
+export interface ArtifactMoveCompletePayload {
+  requestId: string;
+  storyKey: string;
+  success: true;
+  newPath: string;
+  timestamp: number;
+}
+
+/**
+ * Error from laptop-agent that move failed
+ */
+export interface ArtifactMoveFailedPayload {
+  requestId: string;
+  storyKey: string;
+  success: false;
+  error: string;
+  timestamp: number;
+}

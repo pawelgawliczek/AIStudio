@@ -35,6 +35,7 @@ const DEFAULT_CONFIG: Partial<AgentConfig> = {
     'exec-command',       // ST-269: Code impact metrics (git diff)
     'read-file',          // ST-173: Transcript reading
     'workflow-tracker',   // ST-164: Context recovery
+    'artifact-move',      // ST-363: Artifact directory moving for epic assignment
   ],
   logLevel: 'info',
   // Centralized logging defaults
