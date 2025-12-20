@@ -1,26 +1,22 @@
 /**
- * ST-182: Master Transcript Panel
+ * ST-378: Master Transcript Panel - DB-First Implementation
  *
- * Displays master session transcripts with live streaming support.
- * Supports multiple sessions (context compaction creates new sessions).
+ * Displays master session transcripts from database with polling for running workflows.
+ * Removes WebSocket dependency - all data comes from TranscriptLine DB table.
  *
  * Features:
- * - Live streaming from laptop agent via WebSocket
+ * - DB-first: Immediately fetches and displays transcript from database
+ * - Polling: For running workflows, polls DB every 2-3 seconds for new lines
  * - Multiple session support (tabs for each compacted session)
  * - Parsed JSONL view (conversation turns)
  * - Raw JSONL view (for debugging)
- * - Connection status indicator
  */
 
 import {
-  PlayArrow,
-  Stop,
   ExpandMore,
   ExpandLess,
   Terminal,
   Code,
-  Wifi,
-  WifiOff,
   Refresh,
 } from '@mui/icons-material';
 import {
@@ -39,7 +35,7 @@ import {
   Collapse,
 } from '@mui/material';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Socket } from 'socket.io-client';
+import { transcriptsService, TranscriptLineItem } from '../../services/transcripts.service';
 import { TranscriptParser, ConversationTurn } from '../../utils/transcript-parser';
 
 // =============================================================================
@@ -49,26 +45,22 @@ import { TranscriptParser, ConversationTurn } from '../../utils/transcript-parse
 interface MasterSession {
   index: number;
   filePath: string;
-  isStreaming: boolean;
-  lines: TranscriptLine[];
+  lines: TranscriptLineItem[];
   parsedTurns: ConversationTurn[];
   error?: string;
-}
-
-interface TranscriptLine {
-  line: string;
-  sequenceNumber: number;
-  isHistorical: boolean;
+  totalLines: number;
+  isLoading: boolean;
 }
 
 export interface MasterTranscriptPanelProps {
   runId: string;
+  projectId: string;
   masterTranscriptPaths: string[];
-  socket: Socket | null;
-  isAgentOnline?: boolean;
-  agentHostname?: string;
+  workflowStatus?: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
   defaultExpanded?: boolean;
 }
+
+const POLL_INTERVAL_MS = 2500; // 2.5 seconds
 
 // =============================================================================
 // Component
@@ -76,10 +68,9 @@ export interface MasterTranscriptPanelProps {
 
 export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
   runId,
+  projectId,
   masterTranscriptPaths,
-  socket,
-  isAgentOnline = false,
-  agentHostname,
+  workflowStatus = 'completed',
   defaultExpanded = false,
 }) => {
   // State
@@ -87,11 +78,11 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
   const [activeSession, setActiveSession] = useState(0);
   const [viewMode, setViewMode] = useState<'parsed' | 'raw'>('parsed');
   const [sessions, setSessions] = useState<MasterSession[]>([]);
-  const [isConnecting, setIsConnecting] = useState(false);
 
   // Refs
   const contentRef = useRef<HTMLDivElement>(null);
   const parser = useRef(new TranscriptParser());
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize sessions from paths
   useEffect(() => {
@@ -104,65 +95,56 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
       masterTranscriptPaths.map((filePath, index) => ({
         index,
         filePath,
-        isStreaming: false,
         lines: [],
         parsedTurns: [],
+        totalLines: 0,
+        isLoading: false,
       }))
     );
   }, [masterTranscriptPaths]);
 
-  // Set up WebSocket listeners
-  useEffect(() => {
-    if (!socket) return;
+  // Fetch transcript lines from DB
+  const fetchTranscriptLines = useCallback(async (sessionIndex: number) => {
+    if (!projectId || !runId) return;
 
-    // Streaming started
-    const handleStreamingStarted = (data: {
-      runId: string;
-      sessionIndex: number;
-      filePath: string;
-      fileSize: number;
-    }) => {
-      if (data.runId !== runId) return;
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.index === sessionIndex ? { ...s, isLoading: true, error: undefined } : s
+      )
+    );
 
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.index === data.sessionIndex ? { ...s, isStreaming: true, error: undefined } : s
-        )
+    try {
+      const response = await transcriptsService.getTranscriptLines(
+        projectId,
+        runId,
+        sessionIndex
       );
-      setIsConnecting(false);
-    };
-
-    // New lines (live)
-    const handleLines = (data: {
-      runId: string;
-      sessionIndex: number;
-      lines: Array<{ line: string; sequenceNumber: number }>;
-      isHistorical: boolean;
-    }) => {
-      if (data.runId !== runId) return;
 
       setSessions((prev) =>
         prev.map((s) => {
-          if (s.index !== data.sessionIndex) return s;
+          if (s.index !== sessionIndex) return s;
 
-          const newLines = data.lines.map((l) => ({
-            ...l,
-            isHistorical: data.isHistorical,
-          }));
-
-          const allLines = [...s.lines, ...newLines];
+          const lines = response.lines;
 
           // Parse the combined JSONL
-          const rawContent = allLines.map((l) => l.line).join('\n');
+          const rawContent = lines.map((l) => l.content).join('\n');
           let parsedTurns: ConversationTurn[] = [];
           try {
-            const parsed = parser.current.parseJSONL(rawContent);
-            parsedTurns = parsed.turns;
+            if (rawContent.trim()) {
+              const parsed = parser.current.parseJSONL(rawContent);
+              parsedTurns = parsed.turns;
+            }
           } catch (e) {
-            // Ignore parse errors for partial content
+            console.error('Failed to parse transcript JSONL:', e);
           }
 
-          return { ...s, lines: allLines, parsedTurns };
+          return {
+            ...s,
+            lines,
+            parsedTurns,
+            totalLines: response.totalLines,
+            isLoading: false,
+          };
         })
       );
 
@@ -170,102 +152,81 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
       if (contentRef.current) {
         contentRef.current.scrollTop = contentRef.current.scrollHeight;
       }
-    };
-
-    // Batch (historical content)
-    const handleBatch = (data: {
-      runId: string;
-      sessionIndex: number;
-      lines: Array<{ line: string; sequenceNumber: number }>;
-      isHistorical: boolean;
-    }) => {
-      if (data.runId !== runId) return;
-      // Treat batch same as lines
-      handleLines(data);
-    };
-
-    // Error
-    const handleError = (data: {
-      runId: string;
-      sessionIndex: number;
-      error: string;
-      code: string;
-    }) => {
-      if (data.runId !== runId) return;
-
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       setSessions((prev) =>
         prev.map((s) =>
-          s.index === data.sessionIndex
-            ? { ...s, isStreaming: false, error: data.error }
+          s.index === sessionIndex
+            ? { ...s, isLoading: false, error: message }
             : s
         )
       );
-      setIsConnecting(false);
-    };
+    }
+  }, [projectId, runId]);
 
-    // Stopped
-    const handleStopped = (data: { runId: string; sessionIndex: number }) => {
-      if (data.runId !== runId) return;
+  // Initial fetch when panel expands
+  useEffect(() => {
+    if (expanded && sessions.length > 0 && sessions[activeSession]) {
+      const session = sessions[activeSession];
+      // Only fetch if we haven't loaded any lines yet
+      if (session.lines.length === 0 && !session.isLoading) {
+        fetchTranscriptLines(activeSession);
+      }
+    }
+  }, [expanded, activeSession, sessions, fetchTranscriptLines]);
 
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.index === data.sessionIndex ? { ...s, isStreaming: false } : s
-        )
-      );
-    };
+  // Set up polling for running workflows
+  useEffect(() => {
+    // Only poll if workflow is running and panel is expanded
+    const shouldPoll =
+      expanded &&
+      workflowStatus === 'running' &&
+      sessions.length > 0 &&
+      projectId &&
+      runId;
 
-    // Subscribe to events
-    socket.on('master-transcript:streaming_started', handleStreamingStarted);
-    socket.on('master-transcript:lines', handleLines);
-    socket.on('master-transcript:batch', handleBatch);
-    socket.on('master-transcript:error', handleError);
-    socket.on('master-transcript:stopped', handleStopped);
+    if (shouldPoll) {
+      // Start polling
+      pollIntervalRef.current = setInterval(() => {
+        fetchTranscriptLines(activeSession);
+      }, POLL_INTERVAL_MS);
+    } else {
+      // Stop polling
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    }
 
+    // Cleanup on unmount or when dependencies change
     return () => {
-      socket.off('master-transcript:streaming_started', handleStreamingStarted);
-      socket.off('master-transcript:lines', handleLines);
-      socket.off('master-transcript:batch', handleBatch);
-      socket.off('master-transcript:error', handleError);
-      socket.off('master-transcript:stopped', handleStopped);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     };
-  }, [socket, runId]);
+  }, [expanded, workflowStatus, activeSession, sessions.length, projectId, runId, fetchTranscriptLines]);
 
-  // Start streaming for a session
-  const startStreaming = useCallback(
-    (sessionIndex: number) => {
-      const session = sessions[sessionIndex];
-      if (!session || !socket) return;
-
-      setIsConnecting(true);
-
-      socket.emit('master-transcript:subscribe', {
-        runId,
-        sessionIndex,
-        filePath: session.filePath,
-        fromBeginning: true,
+  // When workflow completes, do one final fetch
+  useEffect(() => {
+    if (
+      expanded &&
+      (workflowStatus === 'completed' || workflowStatus === 'failed') &&
+      sessions.length > 0
+    ) {
+      // Final fetch for all sessions to ensure we have complete data
+      sessions.forEach((session) => {
+        fetchTranscriptLines(session.index);
       });
-    },
-    [socket, runId, sessions]
-  );
+    }
+  }, [workflowStatus, expanded, sessions.length, fetchTranscriptLines]);
 
-  // Stop streaming for a session
-  const stopStreaming = useCallback(
-    (sessionIndex: number) => {
-      if (!socket) return;
-
-      socket.emit('master-transcript:unsubscribe', {
-        runId,
-        sessionIndex,
-      });
-
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.index === sessionIndex ? { ...s, isStreaming: false } : s
-        )
-      );
-    },
-    [socket, runId]
-  );
+  // Manual refresh
+  const handleRefresh = useCallback(() => {
+    if (sessions[activeSession]) {
+      fetchTranscriptLines(activeSession);
+    }
+  }, [activeSession, sessions, fetchTranscriptLines]);
 
   // Get current session
   const currentSession = sessions[activeSession];
@@ -312,16 +273,21 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Agent status */}
-          <Tooltip title={isAgentOnline ? `Connected: ${agentHostname}` : 'Laptop agent offline'}>
-            <Chip
-              icon={isAgentOnline ? <Wifi /> : <WifiOff />}
-              label={isAgentOnline ? 'Online' : 'Offline'}
-              size="small"
-              color={isAgentOnline ? 'success' : 'default'}
-              variant="outlined"
-            />
-          </Tooltip>
+          {/* Workflow status */}
+          <Chip
+            label={workflowStatus}
+            size="small"
+            color={
+              workflowStatus === 'running'
+                ? 'primary'
+                : workflowStatus === 'completed'
+                ? 'success'
+                : workflowStatus === 'failed'
+                ? 'error'
+                : 'default'
+            }
+            variant="outlined"
+          />
 
           <IconButton size="small" onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
             {expanded ? <ExpandLess /> : <ExpandMore />}
@@ -345,21 +311,8 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                   label={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <span>{idx === 0 ? 'Initial' : `Compacted ${idx}`}</span>
-                      {session.isStreaming && (
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            bgcolor: 'error.main',
-                            animation: 'pulse 1.5s infinite',
-                            '@keyframes pulse': {
-                              '0%': { opacity: 1 },
-                              '50%': { opacity: 0.4 },
-                              '100%': { opacity: 1 },
-                            },
-                          }}
-                        />
+                      {session.isLoading && (
+                        <CircularProgress size={12} />
                       )}
                     </Box>
                   }
@@ -371,33 +324,17 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
           {/* Controls */}
           {currentSession && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              {/* Stream controls */}
-              {isAgentOnline && (
-                <>
-                  {currentSession.isStreaming ? (
-                    <Tooltip title="Stop streaming">
-                      <IconButton
-                        color="error"
-                        onClick={() => stopStreaming(activeSession)}
-                        size="small"
-                      >
-                        <Stop />
-                      </IconButton>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title="Start live streaming">
-                      <IconButton
-                        color="primary"
-                        onClick={() => startStreaming(activeSession)}
-                        disabled={isConnecting}
-                        size="small"
-                      >
-                        {isConnecting ? <CircularProgress size={20} /> : <PlayArrow />}
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </>
-              )}
+              {/* Refresh button */}
+              <Tooltip title="Refresh transcript">
+                <IconButton
+                  color="primary"
+                  onClick={handleRefresh}
+                  disabled={currentSession.isLoading}
+                  size="small"
+                >
+                  {currentSession.isLoading ? <CircularProgress size={20} /> : <Refresh />}
+                </IconButton>
+              </Tooltip>
 
               {/* View mode toggle */}
               <ToggleButtonGroup
@@ -425,7 +362,7 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
 
               {/* Line count */}
               <Chip
-                label={`${currentSession.lines.length} lines`}
+                label={`${currentSession.lines.length} / ${currentSession.totalLines} lines`}
                 size="small"
                 variant="outlined"
               />
@@ -524,22 +461,23 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                   ))
                 ) : (
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {currentSession.isStreaming
-                      ? 'Waiting for transcript data...'
-                      : 'Click play to start streaming transcript'}
+                    {currentSession.isLoading
+                      ? 'Loading transcript...'
+                      : currentSession.lines.length === 0
+                      ? 'No transcript data available yet'
+                      : 'Parsing transcript...'}
                   </Typography>
                 )
               ) : (
                 // Raw JSONL view
                 currentSession.lines.length > 0 ? (
-                  currentSession.lines.map((line, idx) => (
+                  currentSession.lines.map((line) => (
                     <Box
-                      key={idx}
+                      key={line.id}
                       sx={{
                         py: 0.5,
                         borderBottom: '1px solid',
                         borderColor: 'divider',
-                        opacity: line.isHistorical ? 0.7 : 1,
                       }}
                     >
                       <Typography
@@ -552,22 +490,22 @@ export const MasterTranscriptPanel: React.FC<MasterTranscriptPanelProps> = ({
                           mr: 1,
                         }}
                       >
-                        {line.sequenceNumber}
+                        {line.lineNumber}
                       </Typography>
                       <Typography
                         component="span"
                         variant="body2"
                         sx={{ color: 'text.primary', wordBreak: 'break-all' }}
                       >
-                        {line.line}
+                        {line.content}
                       </Typography>
                     </Box>
                   ))
                 ) : (
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {currentSession.isStreaming
-                      ? 'Waiting for transcript data...'
-                      : 'Click play to start streaming transcript'}
+                    {currentSession.isLoading
+                      ? 'Loading transcript...'
+                      : 'No transcript data available yet'}
                   </Typography>
                 )
               )}

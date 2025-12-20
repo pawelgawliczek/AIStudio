@@ -147,6 +147,66 @@ class TranscriptsService {
     );
     return response.data;
   }
+
+  /**
+   * Get transcript lines from database (ST-378)
+   *
+   * @param projectId - Project UUID
+   * @param runId - Workflow Run UUID
+   * @param sessionIndex - Session index (0=initial, 1=after first compact)
+   * @param limit - Max lines to return
+   * @param offset - Number of lines to skip
+   * @returns Transcript lines response
+   */
+  async getTranscriptLines(
+    projectId: string,
+    runId: string,
+    sessionIndex = 0,
+    limit?: number,
+    offset?: number
+  ): Promise<TranscriptLinesResponse> {
+    const params: Record<string, string> = {
+      sessionIndex: sessionIndex.toString(),
+    };
+
+    if (limit !== undefined) {
+      params.limit = limit.toString();
+    }
+
+    if (offset !== undefined) {
+      params.offset = offset.toString();
+    }
+
+    const response = await apiClient.get(
+      `/projects/${projectId}/workflow-runs/${runId}/transcript-lines`,
+      { params }
+    );
+    return response.data;
+  }
+}
+
+// =============================================================================
+// ST-378: TranscriptLine Types
+// =============================================================================
+
+/**
+ * Single transcript line from database
+ */
+export interface TranscriptLineItem {
+  id: string;
+  lineNumber: number;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * Response for transcript lines query
+ */
+export interface TranscriptLinesResponse {
+  workflowRunId: string;
+  sessionIndex: number;
+  lines: TranscriptLineItem[];
+  totalLines: number;
 }
 
 // Export singleton instance

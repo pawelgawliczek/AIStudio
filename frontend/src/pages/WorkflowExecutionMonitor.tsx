@@ -616,15 +616,14 @@ const WorkflowExecutionMonitor: React.FC = () => {
       {/* Metrics Overview */}
       <LiveMetricsDisplay metrics={liveStatus.metrics} status={liveStatus.status} />
 
-      {/* ST-182: Master Session Transcript Panel */}
+      {/* ST-378: Master Session Transcript Panel - DB-First */}
       {workflowRun?.masterTranscriptPaths && workflowRun.masterTranscriptPaths.length > 0 && (
         <Box sx={{ mt: 3 }}>
           <MasterTranscriptPanel
             runId={runId || ''}
+            projectId={projectId}
             masterTranscriptPaths={workflowRun.masterTranscriptPaths}
-            socket={socket}
-            isAgentOnline={hasTailFileAgent}
-            agentHostname={tailFileAgent?.hostname}
+            workflowStatus={workflowRun.status}
           />
         </Box>
       )}
@@ -831,10 +830,9 @@ const WorkflowExecutionMonitor: React.FC = () => {
             {selectedAgentTranscriptPath ? (
               <MasterTranscriptPanel
                 runId={runId || ''}
+                projectId={projectId}
                 masterTranscriptPaths={[selectedAgentTranscriptPath]}
-                socket={socket}
-                isAgentOnline={hasTailFileAgent}
-                agentHostname={tailFileAgent?.hostname}
+                workflowStatus={workflowRun?.status}
                 defaultExpanded={true}
               />
             ) : (
