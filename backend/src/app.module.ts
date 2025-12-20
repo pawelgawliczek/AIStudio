@@ -28,6 +28,7 @@ import { TelemetryModule } from './telemetry/telemetry.module';
 import { TestCasesModule } from './test-cases/test-cases.module';
 import { TestExecutionModule } from './test-execution/test-execution.module';
 import { TestExecutionsModule } from './test-executions/test-executions.module';
+import { TranscriptCleanupModule } from './transcripts/transcript-cleanup.module';
 import { UseCasesModule } from './use-cases/use-cases.module';
 import { UsersModule } from './users/users.module';
 import { WebSocketModule } from './websocket/websocket.module';
@@ -65,6 +66,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     WorkersModule,
     QueueProcessorModule, // Queue processor background worker
     DiskMonitorModule, // Disk space monitoring and alerting (ST-54)
+    TranscriptCleanupModule, // Transcript line retention management (ST-348)
     BackupsModule, // Backup management API (ST-130)
     InternalModule, // Internal API for MCP handlers (ST-129)
     // LayersModule, // Removed - layers deprecated

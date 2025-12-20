@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { StoryStatus, Prisma } from '@prisma/client';
+import { requestArtifactMove } from '../mcp/services/websocket-gateway.instance';
 import { PrismaService } from '../prisma/prisma.service';
 import { RunnerService } from '../runner/runner.service';
 import { AppWebSocketGateway } from '../websocket/websocket.gateway';
@@ -16,7 +17,6 @@ import {
   FilterStoryDto,
   UpdateStoryStatusDto,
 } from './dto';
-import { requestArtifactMove } from '../mcp/services/websocket-gateway.instance';
 
 /**
  * Story Workflow State Machine

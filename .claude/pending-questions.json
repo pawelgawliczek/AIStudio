@@ -3598,3 +3598,29 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-20T04:58:33Z",
+  "session_id": "ac7409cc-9df2-4169-9320-b5647040380b",
+  "run_id": "1a0c3fd0-2680-49fd-8afb-d702dac8468d",
+  "questions": [
+    {
+      "question": "How aggressive should the refactoring budget be for the Developer agent?",
+      "header": "Refactor %",
+      "options": [
+        {
+          "label": "20% (Recommended)",
+          "description": "Spend up to 20% of implementation time on opportunistic refactoring. Balanced approach."
+        },
+        {
+          "label": "10% (Conservative)",
+          "description": "Minimal refactoring, focus on primary implementation. Slower debt reduction."
+        },
+        {
+          "label": "30% (Aggressive)",
+          "description": "More time on cleanup, faster debt reduction but longer story completion times."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}

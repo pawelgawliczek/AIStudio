@@ -42,8 +42,10 @@ import {
   GitJobPayload,
   GitResultEvent,
   TranscriptDetectionPayload,
-  UploadBatchPayload,
+  UploadBatchItem,
   UploadAckPayload,
+  ItemAckPayload,
+  TranscriptLinesPayload,
 } from './types';
 
 /**
@@ -531,13 +533,14 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
   /**
    * ST-323: Handle batch upload of transcript items from laptop agent
+   * ST-329: Route transcript_line items to handleTranscriptLines for DB persistence
    * Processes items sequentially and sends individual ACK callbacks for each item
    * Also sends a batch ACK with all successfully processed IDs
    */
   @SubscribeMessage('upload:batch')
   async handleUploadBatch(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: UploadBatchPayload,
+    @MessageBody() data: { agentId: string; items: unknown[] },
   ): Promise<void> {
     const { agentId, items } = data;
     const { agentId: clientAgentId } = client.data;
@@ -554,15 +557,39 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
 
     // Process each item sequentially with individual ACK callbacks
     for (const item of items) {
-      await this.transcriptHandler.handleTranscriptUpload(item, (ack) => {
-        // Send individual ACK via callback pattern
-        client.emit('upload:ack:item', ack);
+      // ST-329: Detect transcript_line items by checking for runId and lines fields
+      // These items come from TranscriptTailer.queueUpload('transcript_line', payload)
+      const hasTranscriptLineFields =
+        typeof item === 'object' &&
+        item !== null &&
+        'runId' in item &&
+        'lines' in item &&
+        'sessionIndex' in item &&
+        'queueId' in item;
 
-        // Track successful uploads for batch ACK
-        if (ack.success && !ack.isDuplicate) {
-          successfulIds.push(ack.id);
-        }
-      });
+      if (hasTranscriptLineFields) {
+        // Route to handleTranscriptLines for DB persistence
+        await this.handleTranscriptLineUpload(client, item as TranscriptLinesPayload, (ack) => {
+          // Send individual ACK via callback pattern
+          client.emit('upload:ack:item', ack);
+
+          // Track successful uploads for batch ACK
+          if (ack.success && !ack.isDuplicate) {
+            successfulIds.push(ack.id);
+          }
+        });
+      } else {
+        // Original behavior for full transcript artifacts (UploadBatchItem format)
+        await this.transcriptHandler.handleTranscriptUpload(item as UploadBatchItem, (ack) => {
+          // Send individual ACK via callback pattern
+          client.emit('upload:ack:item', ack);
+
+          // Track successful uploads for batch ACK
+          if (ack.success && !ack.isDuplicate) {
+            successfulIds.push(ack.id);
+          }
+        });
+      }
     }
 
     // Send batch ACK with all successful IDs
@@ -570,6 +597,47 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
     client.emit('upload:ack', batchAck);
 
     this.logger.log(`[ST-323] Batch upload complete: ${successfulIds.length}/${items.length} items uploaded`);
+  }
+
+  /**
+   * ST-329: Handle transcript_line upload from queue
+   * Converts TranscriptLinesPayload to handleTranscriptLines format and persists to DB
+   */
+  private async handleTranscriptLineUpload(
+    _client: Socket,
+    payload: TranscriptLinesPayload,
+    callback: (ack: ItemAckPayload) => void,
+  ): Promise<void> {
+    try {
+      // Validate payload structure
+      if (!payload.runId || !payload.lines || !Array.isArray(payload.lines)) {
+        this.logger.error(`[ST-329] Invalid transcript_line payload structure`, { queueId: payload.queueId });
+        callback({ success: false, id: payload.queueId, error: 'Invalid payload structure' });
+        return;
+      }
+
+      this.logger.log(`[ST-329] Processing transcript_line upload: runId=${payload.runId}, lines=${payload.lines.length}, queueId=${payload.queueId}`);
+
+      // Call handleTranscriptLines with proper format
+      const ack = await this.transcriptHandler.handleTranscriptLines({
+        queueId: payload.queueId,
+        runId: payload.runId,
+        sessionIndex: payload.sessionIndex,
+        lines: payload.lines,
+        isHistorical: payload.isHistorical ?? true,
+        timestamp: payload.timestamp,
+      });
+
+      // Map response to ItemAckPayload format
+      callback({
+        success: ack.success,
+        id: ack.queueId,
+        error: ack.error,
+      });
+    } catch (error) {
+      this.logger.error(`[ST-329] Failed to process transcript_line upload: ${getErrorMessage(error)}`);
+      callback({ success: false, id: payload.queueId, error: getErrorMessage(error) });
+    }
   }
 
   // ===========================================================================

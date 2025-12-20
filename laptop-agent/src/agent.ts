@@ -14,6 +14,7 @@ import { WakeDetector } from './wake-detector';
 import { ArtifactWatcher } from './artifact-watcher';
 import { UploadManager } from './upload-manager';
 import { ArtifactMover } from './artifact-mover';
+import { HealthServer } from './health-server';
 
 /**
  * ST-153: Git job payload from server
@@ -80,6 +81,9 @@ export class RemoteAgent {
   // ST-363: Artifact mover for epic assignment
   private artifactMover: ArtifactMover | null = null;
 
+  // ST-334: Health server for connectivity checks
+  private healthServer: HealthServer | null = null;
+
   // ST-281: Logger for structured logging
   private readonly logger = new Logger('Agent');
 
@@ -90,6 +94,9 @@ export class RemoteAgent {
     if (!this.config.capabilities.includes('tail-file')) {
       this.config.capabilities.push('tail-file');
     }
+
+    // ST-334: Initialize health server
+    this.healthServer = new HealthServer(config.healthPort);
   }
 
   /**
@@ -100,6 +107,20 @@ export class RemoteAgent {
     const namespace = '/remote-agent';
 
     console.log(`Connecting to ${serverUrl}${namespace}...`);
+
+    // ST-334: Start health server FIRST (before registration)
+    // This allows health checks during agent connection process
+    try {
+      await this.healthServer!.start(() => ({
+        status: this.isConnected() && this.agentId !== null ? 'connected' : 'disconnected',
+        agentId: this.agentId,
+        uptime: process.uptime(),
+      }));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[ST-334] Failed to start health server: ${message}`);
+      // Don't fail agent startup if health server fails
+    }
 
     // ST-150: Check if Claude Code is available
     await this.checkClaudeCodeAvailability();
@@ -770,6 +791,14 @@ export class RemoteAgent {
         console.error('[ST-327] Error stopping upload manager:', err.message);
       });
       this.uploadManager = null;
+    }
+
+    // ST-334: Stop health server LAST
+    if (this.healthServer) {
+      this.healthServer.stop().catch((err: Error) => {
+        console.error('[ST-334] Error stopping health server:', err.message);
+      });
+      this.healthServer = null;
     }
 
     if (this.socket) {

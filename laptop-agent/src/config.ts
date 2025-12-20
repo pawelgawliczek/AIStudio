@@ -25,6 +25,8 @@ export interface AgentConfig {
   lokiPassword: string;
   // Queue configuration (ST-346)
   maxQueueSize: number;
+  // ST-334: Health endpoint configuration
+  healthPort: number;
 }
 
 const DEFAULT_CONFIG: Partial<AgentConfig> = {
@@ -46,7 +48,9 @@ const DEFAULT_CONFIG: Partial<AgentConfig> = {
   lokiUsername: 'vibestudio',
   lokiPassword: 'a0b961abd748e5ebe29fb074ab9f498e69ddf87028d33855',
   // Queue configuration (ST-346)
-  maxQueueSize: 350000,
+  maxQueueSize: 20000,
+  // ST-334: Health endpoint configuration
+  healthPort: 3002,
 };
 
 /**
@@ -118,6 +122,14 @@ function loadEnvConfig(): Partial<AgentConfig> {
     const parsed = parseInt(process.env.MAX_QUEUE_SIZE, 10);
     if (!isNaN(parsed) && parsed > 0) {
       config.maxQueueSize = parsed;
+    }
+  }
+
+  // ST-334: Health endpoint configuration
+  if (process.env.HEALTH_PORT) {
+    const parsed = parseInt(process.env.HEALTH_PORT, 10);
+    if (!isNaN(parsed) && parsed > 0 && parsed <= 65535) {
+      config.healthPort = parsed;
     }
   }
 

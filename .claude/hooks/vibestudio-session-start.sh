@@ -12,12 +12,72 @@ set -e
 
 # Read hook input from stdin
 INPUT=$(cat)
+
+# ST-333: Check laptop-agent connectivity
+# Returns 0 if healthy, 1 if not
+check_laptop_agent() {
+  local response
+  local status
+
+  # Curl with 2s timeout, suppress errors
+  response=$(curl -s --max-time 2 http://127.0.0.1:3002/health 2>/dev/null) || return 1
+
+  # Check if response contains "connected" status
+  status=$(echo "$response" | jq -r '.status // "unknown"' 2>/dev/null) || return 1
+
+  if [ "$status" = "connected" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id')
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path')
 SOURCE=$(echo "$INPUT" | jq -r '.source // "startup"')
 
 # ST-172: Fallback to PWD if CLAUDE_PROJECT_DIR not set (happens during compaction)
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
+
+# ST-333: Check laptop-agent connectivity
+# For compaction (active workflow): BLOCK if agent down
+# For startup/resume: WARN only (non-blocking)
+AGENT_HEALTHY=true
+if ! check_laptop_agent; then
+  AGENT_HEALTHY=false
+
+  if [ "$SOURCE" = "compact" ]; then
+    # Active workflow - block with error
+    cat >&2 <<'AGENT_ERROR'
+
+❌ VibeStudio laptop-agent not running!
+
+Your workflow cannot continue without the laptop-agent.
+It handles artifact syncing, transcript parsing, and file operations.
+
+To start the agent:
+  launchctl start cloud.pawelgawliczek.vibestudio-agent
+
+Or manually:
+  cd ~/projects/AIStudio/laptop-agent && npm start
+
+After starting, run: /orchestrate to resume your workflow.
+
+AGENT_ERROR
+    exit 1
+  else
+    # New session - warn only, don't block
+    cat >&2 <<'AGENT_WARNING'
+
+⚠️  VibeStudio laptop-agent not detected
+
+Workflows will not work until the agent is running.
+Normal coding sessions are unaffected.
+
+To start: launchctl start cloud.pawelgawliczek.vibestudio-agent
+
+AGENT_WARNING
+  fi
+fi
 WORKFLOWS_FILE="$PROJECT_DIR/.claude/running-workflows.json"
 SESSION_WORKFLOW_FILE="$PROJECT_DIR/.claude/.session-workflow"
 
