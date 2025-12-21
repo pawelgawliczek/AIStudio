@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { getErrorMessage, getErrorStack } from '../../common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TranscriptRegistrationService } from '../transcript-registration.service';
+import { TranscriptRegistrationService, TranscriptDetectionResult } from '../transcript-registration.service';
 import { TranscriptDetectionPayload, UploadBatchItem, ItemAckPayload } from '../types';
 import { uploadAgentTranscript as uploadAgentTranscriptUtil } from './transcript.utils';
 
@@ -31,6 +31,9 @@ export class TranscriptHandler {
   // ST-284: Frontend server for broadcasting to frontend clients (set after construction)
   private frontendServer: Server | null = null;
 
+  // ST-380: Remote agent server for sending transcript:start_tail events
+  private remoteAgentServer: Server | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly transcriptRegistrationService: TranscriptRegistrationService,
@@ -43,6 +46,15 @@ export class TranscriptHandler {
   setFrontendServer(server: Server): void {
     this.frontendServer = server;
     this.logger.log('[ST-284] Frontend server reference set for transcript broadcasting');
+  }
+
+  /**
+   * ST-380: Set remote agent server for sending transcript:start_tail events
+   * Called by RemoteAgentGateway after construction
+   */
+  setRemoteAgentServer(server: Server): void {
+    this.remoteAgentServer = server;
+    this.logger.log('[ST-380] Remote agent server reference set for auto-tailing');
   }
 
   /**
@@ -80,12 +92,31 @@ export class TranscriptHandler {
 
         await Promise.all(batch.map(async ({ client, data }) => {
           try {
-            await this.transcriptRegistrationService.handleTranscriptDetected(data);
+            const result = await this.transcriptRegistrationService.handleTranscriptDetected(data);
 
             client.emit('agent:transcript_detected_ack', {
               agentId: data.agentId,
               success: true,
             });
+
+            // ST-380: Auto-trigger TranscriptTailer for matched workflow transcripts
+            if (result?.matched && result.runId && this.remoteAgentServer) {
+              this.logger.log(`[ST-380] Auto-triggering TranscriptTailer for runId=${result.runId}, file=${result.filePath}`);
+
+              // Use forwardTailRequestToAgent to start tailing
+              const tailResult = await this.forwardTailRequestToAgent(this.remoteAgentServer, {
+                runId: result.runId,
+                sessionIndex: result.sessionIndex,
+                filePath: result.filePath,
+                fromBeginning: true,
+              });
+
+              if (tailResult.success) {
+                this.logger.log(`[ST-380] TranscriptTailer started on agent ${tailResult.agentHostname}`);
+              } else {
+                this.logger.warn(`[ST-380] Failed to start TranscriptTailer: ${tailResult.error}`);
+              }
+            }
           } catch (error) {
             this.logger.error(`[ST-170] Failed to handle transcript detection: ${getErrorMessage(error)}`, getErrorStack(error));
 

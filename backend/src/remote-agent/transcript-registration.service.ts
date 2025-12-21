@@ -22,6 +22,16 @@ interface TranscriptDetectedPayload {
   metadata?: Record<string, unknown>; // Parsed first line from laptop agent
 }
 
+/**
+ * ST-380: Result of transcript detection - includes match info for auto-tailing
+ */
+export interface TranscriptDetectionResult {
+  matched: boolean;
+  runId?: string;
+  filePath: string;
+  sessionIndex: number;
+}
+
 interface TranscriptMetadata {
   sessionId?: string;
   agentId?: string;
@@ -37,8 +47,9 @@ export class TranscriptRegistrationService {
 
   /**
    * Handle transcript detected event from laptop agent
+   * ST-380: Returns match info so caller can trigger TranscriptTailer for auto-streaming
    */
-  async handleTranscriptDetected(payload: TranscriptDetectedPayload): Promise<void> {
+  async handleTranscriptDetected(payload: TranscriptDetectedPayload): Promise<TranscriptDetectionResult | null> {
     this.logger.log(`Transcript detected: ${payload.agentId || 'master'} at ${payload.transcriptPath}`);
 
     try {
@@ -59,7 +70,7 @@ export class TranscriptRegistrationService {
         const parsedMetadata = await this.parseTranscriptMetadata(payload.transcriptPath);
 
         if (!parsedMetadata) {
-          return;
+          return null;
         }
         metadata = parsedMetadata;
       }
@@ -72,14 +83,29 @@ export class TranscriptRegistrationService {
 
         // Register transcript for the matched workflow
         await this.registerForLiveStreaming(match.runId, match.componentId, payload);
+
+        // ST-380: Return match info for auto-tailing
+        return {
+          matched: true,
+          runId: match.runId,
+          filePath: payload.transcriptPath,
+          sessionIndex: 0, // Master session is always index 0
+        };
       } else {
         this.logger.log(`No active workflow found, storing as unassigned`);
 
         // Store as unassigned for later matching
         await this.storeUnassignedTranscript(metadata, payload);
+
+        return {
+          matched: false,
+          filePath: payload.transcriptPath,
+          sessionIndex: 0,
+        };
       }
     } catch (error) {
       this.logger.error(`Failed to handle transcript detection: ${getErrorMessage(error)}`, getErrorStack(error));
+      return null;
     }
   }
 

@@ -107,11 +107,14 @@ export class RemoteAgentGateway implements OnGatewayConnection, OnGatewayDisconn
   /**
    * ST-284: Initialize handlers after gateway is ready
    * ST-326: Inject frontend server reference to handlers to avoid circular dependency
+   * ST-380: Inject remote agent server for auto-tailing
    */
   afterInit(): void {
     this.artifactHandler.setFrontendServer(this.appWebSocketGateway.server);
     this.transcriptHandler.setFrontendServer(this.appWebSocketGateway.server);
+    this.transcriptHandler.setRemoteAgentServer(this.server);
     this.logger.log('[ST-284] Gateway initialized, frontend server injected into handlers');
+    this.logger.log('[ST-380] Remote agent server injected for auto-tailing');
   }
 
   /**
