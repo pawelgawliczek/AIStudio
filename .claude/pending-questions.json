@@ -3624,3 +3624,51 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-20T21:50:48Z",
+  "session_id": "3dec6d6c-5a18-4b9f-be36-3a6cc837507b",
+  "run_id": "1a0c3fd0-2680-49fd-8afb-d702dac8468d",
+  "questions": [
+    {
+      "question": "The cleanup scope is small - only 1 unused file to delete. Do you also want me to test the transcript streaming on the live page to verify everything works?",
+      "header": "Scope",
+      "options": [
+        {
+          "label": "Delete + Verify",
+          "description": "Delete ArtifactViewer.tsx and manually verify transcript streaming works on the live page"
+        },
+        {
+          "label": "Delete Only",
+          "description": "Just delete the unused ArtifactViewer.tsx file"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
+{
+  "timestamp": "2025-12-21T05:24:58Z",
+  "session_id": "49ca0ea3-b931-472a-9f76-93e8cc730e4e",
+  "run_id": "6bb9401c-70c9-4ec3-bb0d-29e9aadb2b18",
+  "questions": [
+    {
+      "question": "How should Tauri frontend communicate with the Node.js sidecar?",
+      "header": "IPC Pattern",
+      "options": [
+        {
+          "label": "HTTP health endpoint (Recommended)",
+          "description": "Use existing port 3002 health endpoint. Simpler, already implemented in ST-334. Just poll /health for status."
+        },
+        {
+          "label": "JSON-RPC over stdio",
+          "description": "Communication via stdin/stdout as mentioned in ST-342. More complex but allows richer bidirectional messaging."
+        },
+        {
+          "label": "Both - HTTP now, JSON-RPC later",
+          "description": "Start with HTTP for ST-335 (quick win), add JSON-RPC in ST-342 for advanced features."
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
