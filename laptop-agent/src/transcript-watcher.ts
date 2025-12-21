@@ -203,7 +203,13 @@ export class TranscriptWatcher {
 
         // Process batch
         for (const { filePath, isInitialScan } of batch) {
-          await this.handleNewFile(filePath);
+          try {
+            await this.handleNewFile(filePath);
+          } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.logger.error('Error processing transcript file', { filePath, error: message });
+            // Continue with next file instead of crashing entire queue
+          }
         }
 
         // Save cache after each batch
@@ -306,10 +312,14 @@ export class TranscriptWatcher {
 
     return new Promise((resolve, reject) => {
       try {
+        let resolved = false;  // Track if we've already resolved
+
         const stream = fs.createReadStream(filePath, { encoding: 'utf8' });
         const reader = readline.createInterface({ input: stream });
 
         reader.on('line', (line) => {
+          if (resolved) return;
+          resolved = true;
           reader.close();
           stream.destroy();
 
@@ -322,12 +332,25 @@ export class TranscriptWatcher {
           }
         });
 
+        // Handle empty files - 'close' fires when no lines are read
+        reader.on('close', () => {
+          if (resolved) return;
+          resolved = true;
+          stream.destroy();
+          this.logger.debug('Empty file or no lines read', { filePath });
+          resolve(null);
+        });
+
         reader.on('error', (error) => {
+          if (resolved) return;
+          resolved = true;
           this.logger.error('Error reading file', { filePath, error });
           resolve(null);
         });
 
         stream.on('error', (error) => {
+          if (resolved) return;
+          resolved = true;
           this.logger.error('Error opening file', { filePath, error });
           resolve(null);
         });
