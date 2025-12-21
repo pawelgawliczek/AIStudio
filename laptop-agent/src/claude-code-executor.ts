@@ -1,6 +1,13 @@
 import { spawn, ChildProcess } from 'child_process';
 import { createHmac } from 'crypto';
 import { EventEmitter } from 'events';
+import {
+  ClaudeCodeJobPayload,
+  ExecutionResult,
+  ExecutionType,
+  IAgentExecutor,
+  ProgressEventType,
+} from './types/executor';
 
 /**
  * ST-150: Claude Code Executor
@@ -14,76 +21,9 @@ import { EventEmitter } from 'events';
  * - Graceful shutdown
  * - Token metrics collection
  * - Transcript path tracking
+ *
+ * ST-381: Implements IAgentExecutor interface.
  */
-
-/**
- * ST-160: Native subagent execution types
- */
-export type ExecutionType = 'custom' | 'native_explore' | 'native_plan' | 'native_general';
-
-/**
- * ST-160: Native agent configuration
- */
-export interface NativeAgentConfig {
-  questionTimeout?: number;  // Timeout for question response (ms)
-  maxQuestions?: number;     // Max questions per execution
-  allowedTools?: string[];   // Override tools for native agent
-}
-
-/**
- * Job payload from server
- */
-export interface ClaudeCodeJobPayload {
-  id: string;
-  componentId: string;
-  stateId: string;
-  workflowRunId: string;
-  instructions: string;
-  config: {
-    storyContext?: Record<string, unknown>;
-    allowedTools?: string[];
-    model?: string;
-    maxTurns?: number;
-    projectPath?: string;
-    // ST-160: Native subagent support
-    executionType?: ExecutionType;
-    nativeAgentConfig?: NativeAgentConfig;
-  };
-  signature: string;
-  timestamp: number;
-  jobToken: string;
-}
-
-/**
- * Progress event types
- */
-export type ProgressEventType =
-  | 'token_update'
-  | 'tool_call'
-  | 'tool_result'
-  | 'activity_change'
-  | 'stream_end'
-  | 'question_detected'  // ST-160: Agent is asking a question
-  | 'session_init';       // ST-160: Session ID captured from init message
-
-/**
- * Execution result
- */
-export interface ExecutionResult {
-  success: boolean;
-  output?: unknown;
-  metrics?: {
-    inputTokens: number;
-    outputTokens: number;
-    cacheCreationTokens?: number;
-    cacheReadTokens?: number;
-    totalTokens: number;
-  };
-  transcriptPath?: string;
-  // ST-160: Session tracking for resume support
-  sessionId?: string;
-  error?: string;
-}
 
 /**
  * Event emitter interface for progress events
@@ -98,7 +38,7 @@ export interface ClaudeCodeEvents {
   error: (error: Error) => void;
 }
 
-export class ClaudeCodeExecutor extends EventEmitter {
+export class ClaudeCodeExecutor extends EventEmitter implements IAgentExecutor {
   private agentSecret: string;
   private projectPath: string;
   private claudeCodePath: string;

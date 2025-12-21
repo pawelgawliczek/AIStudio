@@ -1,9 +1,10 @@
 import { io, Socket } from 'socket.io-client';
+import { ClaudeCodeExecutor } from './claude-code-executor';
 import {
-  ClaudeCodeExecutor,
   ClaudeCodeJobPayload,
   ExecutionResult,
-} from './claude-code-executor';
+  IAgentExecutor,
+} from './types/executor';
 import { AgentConfig } from './config';
 import { executeGitCommand, checkGitAvailable, GitExecutionResult } from './git-executor';
 import { Logger } from './logger';
@@ -55,7 +56,7 @@ export class RemoteAgent {
   private baseReconnectDelay = 1000; // 1 second
 
   // ST-150: Claude Code execution
-  private claudeCodeExecutor: ClaudeCodeExecutor | null = null;
+  private claudeCodeExecutor: IAgentExecutor | null = null;
   private claudeCodeVersion: string | null = null;
   private currentClaudeJob: ClaudeCodeJobPayload | null = null;
   private isExecutingClaudeCode = false;
