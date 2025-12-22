@@ -114,6 +114,10 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
   let testStoryId: string;
   let testStoryKey: string;
 
+  // Track ALL created entities for cleanup (handles test failures)
+  const createdEpics: Array<{ id: string; key: string }> = [];
+  const createdStories: Array<{ id: string; key: string }> = [];
+
   beforeAll(async () => {
     console.log('\n🚀 Starting Epic Assignment Artifact Move E2E Test');
     console.log('=' .repeat(70));
@@ -126,18 +130,19 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
   }, TEST_TIMEOUT);
 
   afterAll(async () => {
-    console.log('\n🧹 Cleaning up...');
+    console.log('\n🧹 Cleaning up all created entities...');
 
-    // Cleanup files (if any remain)
-    try {
-      if (testStoryKey) {
+    // Cleanup files for ALL tracked stories
+    for (const story of createdStories) {
+      try {
         const possiblePaths = [
-          path.join(PROJECT_PATH, 'docs', testStoryKey),
-          path.join(PROJECT_PATH, 'docs', 'unassigned', testStoryKey),
+          path.join(PROJECT_PATH, 'docs', story.key),
+          path.join(PROJECT_PATH, 'docs', 'unassigned', story.key),
         ];
 
-        if (testEpicKey) {
-          possiblePaths.push(path.join(PROJECT_PATH, 'docs', testEpicKey, testStoryKey));
+        // Also check under all tracked epics
+        for (const epic of createdEpics) {
+          possiblePaths.push(path.join(PROJECT_PATH, 'docs', epic.key, story.key));
         }
 
         for (const dirPath of possiblePaths) {
@@ -146,28 +151,29 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
             console.log(`  🗑️  Removed directory: ${dirPath}`);
           }
         }
+      } catch (error) {
+        console.warn(`  ⚠️  Error cleaning up files for ${story.key}:`, error);
       }
-    } catch (error) {
-      console.warn('  ⚠️  Error cleaning up files:', error);
     }
 
-    // Cleanup database entities
-    try {
-      if (testStoryId) {
-        await apiClient.deleteStory(testStoryId);
-        console.log(`  ✅ Deleted story: ${testStoryKey}`);
+    // Cleanup ALL tracked stories
+    for (const story of createdStories) {
+      try {
+        await apiClient.deleteStory(story.id);
+        console.log(`  ✅ Deleted story: ${story.key}`);
+      } catch (error) {
+        console.warn(`  ⚠️  Error deleting story ${story.key}:`, error);
       }
-    } catch (error) {
-      console.warn('  ⚠️  Error deleting story:', error);
     }
 
-    try {
-      if (testEpicId) {
-        await apiClient.deleteEpic(testEpicId);
-        console.log(`  ✅ Deleted epic: ${testEpicKey}`);
+    // Cleanup ALL tracked epics
+    for (const epic of createdEpics) {
+      try {
+        await apiClient.deleteEpic(epic.id);
+        console.log(`  ✅ Deleted epic: ${epic.key}`);
+      } catch (error) {
+        console.warn(`  ⚠️  Error deleting epic ${epic.key}:`, error);
       }
-    } catch (error) {
-      console.warn('  ⚠️  Error deleting epic:', error);
     }
 
     console.log('✅ Cleanup complete\n');
@@ -187,6 +193,7 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
 
     testEpicId = epicResponse.id;
     testEpicKey = epicResponse.key;
+    createdEpics.push({ id: testEpicId, key: testEpicKey });
     console.log(`  ✅ Epic created: ${testEpicKey} (ID: ${testEpicId})`);
 
     // Step 2: Create test story (unassigned)
@@ -199,6 +206,7 @@ describe('Epic Assignment Artifact Move E2E (ST-363)', () => {
 
     testStoryId = storyResponse.id;
     testStoryKey = storyResponse.key;
+    createdStories.push({ id: testStoryId, key: testStoryKey });
     console.log(`  ✅ Story created: ${testStoryKey} (ID: ${testStoryId})`);
 
     // Step 3: Create artifact file at docs/ST-XXX/THE_PLAN.md
@@ -287,6 +295,7 @@ when the story is assigned to the epic.
 
     const unassignEpicId = epicResponse.id;
     const unassignEpicKey = epicResponse.key;
+    createdEpics.push({ id: unassignEpicId, key: unassignEpicKey });
     console.log(`  ✅ Epic created: ${unassignEpicKey}`);
 
     // Step 2: Create test story assigned to epic
@@ -300,6 +309,7 @@ when the story is assigned to the epic.
 
     const unassignStoryId = storyResponse.id;
     const unassignStoryKey = storyResponse.key;
+    createdStories.push({ id: unassignStoryId, key: unassignStoryKey });
     console.log(`  ✅ Story created: ${unassignStoryKey} (assigned to ${unassignEpicKey})`);
 
     // Step 3: Create artifact file at epic location
@@ -353,22 +363,7 @@ when the story is assigned to the epic.
     expect(fs.existsSync(epicDirPath)).toBe(false);
     console.log('  ✅ Epic directory removed');
 
-    // Cleanup
-    console.log('\n🧹 Cleaning up test entities...');
-    try {
-      if (fs.existsSync(unassignedDirPath)) {
-        fs.rmSync(unassignedDirPath, { recursive: true, force: true });
-        console.log('  🗑️  Removed unassigned directory');
-      }
-
-      await apiClient.deleteStory(unassignStoryId);
-      console.log(`  ✅ Deleted story: ${unassignStoryKey}`);
-
-      await apiClient.deleteEpic(unassignEpicId);
-      console.log(`  ✅ Deleted epic: ${unassignEpicKey}`);
-    } catch (error) {
-      console.warn('  ⚠️  Error during cleanup:', error);
-    }
+    // Note: Cleanup is handled by afterAll - no inline cleanup needed
 
     console.log('\n✅ Test passed: Epic unassignment artifact move completed successfully!');
     console.log('=' .repeat(70));
