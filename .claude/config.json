@@ -22,10 +22,6 @@
         "pawel@example.com",
         "cd /opt/stack/AIStudio && DATABASE_URL='postgresql://postgres:CHANGE_ME_POSTGRES_PASSWORD@127.0.0.1:5433/vibestudio?schema=public' NODE_ENV=development npx tsx backend/src/mcp/server.ts"
       ]
-    },
-    "tauri-mcp": {
-      "command": "npx",
-      "args": ["-y", "@hypothesi/tauri-mcp-server"]
     }
   }
 }
