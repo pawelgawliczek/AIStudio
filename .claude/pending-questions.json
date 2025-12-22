@@ -3672,3 +3672,86 @@
     }
   ]
 }
+{
+  "timestamp": "2025-12-21T09:18:33Z",
+  "session_id": "43bb6eb1-f99e-4f79-be25-113722f22c9d",
+  "run_id": "6bb9401c-70c9-4ec3-bb0d-29e9aadb2b18",
+  "questions": [
+    {
+      "question": "Does the Gemini CLI actually exist and what's its output format? The plan assumes --output-format=json-stream but I couldn't find documentation confirming Gemini CLI has this.",
+      "header": "Gemini CLI",
+      "options": [
+        {
+          "label": "Research needed",
+          "description": "We need to research the actual Gemini CLI capabilities first"
+        },
+        {
+          "label": "Assume similar to Claude",
+          "description": "Proceed assuming Gemini CLI has similar streaming JSON output"
+        },
+        {
+          "label": "Skip for now",
+          "description": "Create the interface abstraction first, add Gemini when we know more"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "The existing IAgentExecutor interface is tightly coupled to ClaudeCodeJobPayload. Should we create a generic AgentJobPayload that both Claude and Gemini use?",
+      "header": "Payload Type",
+      "options": [
+        {
+          "label": "Generic AgentJobPayload",
+          "description": "Create a new generic type, adapters convert to/from CLI-specific payloads"
+        },
+        {
+          "label": "Keep ClaudeCodeJobPayload",
+          "description": "Gemini executor also takes ClaudeCodeJobPayload (simpler, less flexible)"
+        },
+        {
+          "label": "Per-executor payloads",
+          "description": "Each executor has its own payload type, interface uses a union type"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "How should we handle the agent:claude_job vs agent:gemini_job routing? The plan suggests separate events, but this creates backend coupling.",
+      "header": "Job Routing",
+      "options": [
+        {
+          "label": "Single agent:job event",
+          "description": "Single event with executorType field, agent routes internally (Recommended)"
+        },
+        {
+          "label": "Separate events",
+          "description": "Keep agent:claude_job and agent:gemini_job as proposed in the plan"
+        },
+        {
+          "label": "Capability-based",
+          "description": "Server checks agent capabilities and sends appropriate event type"
+        }
+      ],
+      "multiSelect": false
+    },
+    {
+      "question": "What's the priority: Should we complete ST-G1 (interface abstraction) now since it's already 90% done, or wait to plan all stories together?",
+      "header": "Execution",
+      "options": [
+        {
+          "label": "Complete ST-G1 now",
+          "description": "Finish the interface abstraction since most work is done"
+        },
+        {
+          "label": "Plan all first",
+          "description": "Complete the full architecture review before any implementation"
+        },
+        {
+          "label": "Create all stories",
+          "description": "Create ST-G1 through ST-G5 in the system, then prioritize"
+        }
+      ],
+      "multiSelect": false
+    }
+  ]
+}
