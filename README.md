@@ -69,6 +69,14 @@ Claude Code (Task agents spawned per workflow state)
 | `search_tools` | Find tools by keyword or category |
 | `invoke_tool` | Call any non-core tool by name |
 
+## 📊 Telemetry Dashboards
+
+Every agent run is tracked automatically: tokens, cost, duration, files changed, commits, lines of code. These dashboards show the data collected across weekly sprints.
+
+| Weekly KPI Timeline | KPI Trend Explorer |
+|---|---|
+| ![Agent effectiveness timeline](https://pawelgawliczek.cloud/agenteffectivness1.webp) | ![KPI trends across weeks](https://pawelgawliczek.cloud/agenteffectivness2.webp) |
+
 ## How a workflow runs
 
 ```
