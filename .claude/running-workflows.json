@@ -136,7 +136,9 @@
       "masterTranscripts": [
         "/Users/pawelgawliczek/.claude/projects/-Users-pawelgawliczek-projects-AIStudio/6f66a7a5-e773-4364-9fad-a741a39f2f4f.jsonl"
       ],
-      "startedAt": "2026-03-05T10:12:41Z"
+      "startedAt": "2026-03-05T10:12:41Z",
+      "endedAt": "2026-03-05T12:56:28Z",
+      "endReason": "other"
     }
   }
 }
