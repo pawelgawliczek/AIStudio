@@ -184,3 +184,5 @@ npm run typecheck
 ## License
 
 MIT
+
+![](https://analytics.pawelgawliczek.cloud/p/aistudio)
